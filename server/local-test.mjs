@@ -104,6 +104,11 @@ r = await call(1, "sub_check"); ok(r.ok && r.res.r === 10, "подписка н�
 r = await call(1, "sub_check"); ok(!r.ok, "за подписку награда только один раз");
 r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку нельзя получить в обход проверки");
 
+/* --- история --- */
+r = await call(1, "sync"); const sp1 = r.S.spins;
+r = await call(1, "story"); ok(r.ok && r.S.spins === sp1 + 10, "история: +10 прокруток");
+r = await call(1, "story"); ok(!r.ok && /неделе/.test(r.err), "история: второй раз на неделе нельзя");
+
 /* --- закалка звёздами --- */
 r = await call(1, "sync"); let fc = r.S.cards.find(c => !c.listed && !c.away && !c.xp);
 r = await call(1, "forge", { id: fc.id }); ok(!r.ok && /уровень/.test(r.err), "закалка без уровня не проходит: " + r.err);

@@ -278,6 +278,10 @@ const ACTIONS={
 
   sub_reward(G){if(!G.ctx.subOk)fail("Сначала подпишись на канал");if(G.st.subGot)fail("Награда за подписку уже получена");G.st.subGot=1;G.st.spins+=10;return {r:10}},
 
+  /* история в Telegram: +10 прокруток раз в неделю. Telegram не даёт ботам проверить, что история опубликована,
+     поэтому награда выдаётся после открытия окна публикации */
+  story(G){const w=weekKey(G.ctx.now);if(G.st.storyWeek===w)fail("За историю на этой неделе уже получено. Новая награда в понедельник");G.st.storyWeek=w;G.st.spins+=10;return {r:10}},
+
   topup(G){if(!G.ctx.test)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */

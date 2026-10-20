@@ -926,6 +926,19 @@ function renderBonus(){if(!S)return;
 $("sub-go").onclick=async()=>{
   if(!subStep){subStep=1;const u="https://t.me/"+CHANNEL;if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank");renderBonus();return}
   const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +10 прокруток")};
+/* история в Telegram: открываем редактор с готовой картинкой и личной ссылкой, затем забираем награду */
+let storyStep=0;
+function renderStory(){const b=$("story-go"),t=$("story-t");if(!b)return;const done=S.storyWeek===weekKey(NOW());
+  b.disabled=done;b.textContent=done?"Получено":storyStep?"Забрать +10":"Выложить";
+  t.textContent=done?"На этой неделе уже получено. Новая награда в понедельник":storyStep?"Выложил историю? Жми «Забрать +10»":"Картинка игры и твоя ссылка в истории Telegram: +10 прокруток раз в неделю"}
+$("story-go").onclick=async()=>{
+  if(!storyStep){
+    if(!(tg&&tg.shareToStory&&(!tg.isVersionAtLeast||tg.isVersionAtLeast("7.8")))){toast("Истории работают в игре через Telegram на телефоне. Обнови Telegram, если не открывается");return}
+    const link=ONLINE?linkFor("r_"+S.uid):BOT_LINK,premium=!!(tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.is_premium);
+    const opt={text:"Крути карточки воинов и выбей легенду ⚔️ "+link};if(premium)opt.widget_link={url:link,name:"Играть"};
+    try{tg.shareToStory(PAGE_URL+"assets/story.jpg",opt)}catch(e){toast("Не получилось открыть истории");return}
+    storyStep=1;renderStory();return}
+  const r=await act("story");if(!r){renderStory();return}storyStep=0;sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за историю! +10 прокруток")};
 $("ref-go").onclick=()=>{if(!ONLINE){toast("Приглашения работают в игре через бота @VoinyEpohBot");return}
   sendLink("Залетай в «Воины Эпох»: крути карточки воинов, собирай легенды, сражайся с друзьями и торгуй на рынке!",linkFor("r_"+S.uid))};
 
@@ -1092,7 +1105,7 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();$("topup").hidden=ONLINE&&!S.test}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();$("topup").hidden=ONLINE&&!S.test}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
