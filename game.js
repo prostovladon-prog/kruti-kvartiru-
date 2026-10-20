@@ -305,7 +305,7 @@ function tearSVG(sn){const R=rng(snHash(sn)+7),left=R()<.5,y0=40+R()*45,len=35+R
 function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"");root.style.setProperty("--hc",T.c);
-  if(c.frame&&FRAMES[c.frame])root.style.setProperty("--edge",FRAMES[c.frame].bg);else root.style.removeProperty("--edge");
+  root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
   q(".top b").textContent=H[0];q(".top span").textContent="№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
@@ -322,6 +322,16 @@ function fillFace(root,c){
   root.style.clipPath=c.f===4?tornPoly(sn):"";
   root.querySelectorAll(".tear,.brak").forEach(e=>e.remove());if(c.f===4)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
 }
+/* ---------- маленькая копия карточки для списков ----------
+   miniSlot(c) возвращает пустой span, а настоящая карточка дорисовывается, как только span попадёт на страницу. */
+const MINI=new Map();let miniN=0;
+function miniSlot(c){if(MINI.size>3000)MINI.clear();const k="m"+(++miniN);MINI.set(k,c);return `<span class="minic" data-k="${k}"></span>`}
+const miniRO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(e=>{const w=e.contentRect.width;if(w)e.target.style.setProperty("--z",w/300)})):null;
+function hydrate(root){if(!root||!root.querySelectorAll)return;const list=root.matches&&root.matches(".minic[data-k]")?[root]:root.querySelectorAll(".minic[data-k]");
+  list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;
+    const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
+    if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)})}
+new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)hydrate(n)}).observe(document.body,{childList:true,subtree:true});
 function showCard(c){fillFace(front,c);$("p-val").textContent=fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
 let current=null,busy=false;
 
@@ -416,32 +426,31 @@ function renderAlbum(){
     const mine=S.cards.filter(c=>c.h===i),got=mine.length>0;if(got)have++;
     const d=document.createElement("div");d.className="slot "+(got?"have":"empty");d.style.setProperty("--hc",HT[H[2]].c);
     const fins=[...new Set(mine.map(c=>c.f))].sort();
-    d.innerHTML=`<span class="n">${String(i+1).padStart(2,"0")}</span><span class="e">${got?portrait(i,mine[0],1):portrait(i,null,1)}</span><small></small><span class="dots">${fins.map(f=>`<i style="--d:${FIN[f].col}"></i>`).join("")}</span>`;
-    d.querySelector("small").textContent=got?H[0]:"???";box.appendChild(d)});
+    if(got){const best=[...mine].sort((a,b)=>b.v-a.v)[0];d.innerHTML=miniSlot(best)+(mine.length>1?`<span class="cnt">×${mine.length}</span>`:"");d.onclick=()=>openCardView(best,{mine:true});box.appendChild(d);return}
+    d.innerHTML=`<span class="n">${String(i+1).padStart(2,"0")}</span><span class="e">${portrait(i,null,1)}</span><small></small>`;
+    d.querySelector("small").textContent="???";box.appendChild(d)});
   $("al-n").textContent=have+" из "+NHEROES;$("al-bar").style.width=have/NHEROES*100+"%";
 }
 
 /* ---------- collection ---------- */
 function renderCol(){
-  const box=$("col");box.innerHTML="";
+  const box=$("col");box.innerHTML="";box.className="cgrid";
   $("col-n").textContent=S.cards.length+" из "+CAP+" мест, на "+fmt(S.cards.reduce((a,c)=>a+c.v,0));
-  if(!S.cards.length){box.innerHTML='<div class="empty-msg">Тут пока пусто. Открой первую карточку на вкладке «Крутить»</div>';return}
+  if(!S.cards.length){box.className="list";box.innerHTML='<div class="empty-msg">Тут пока пусто. Открой первую карточку на вкладке «Крутить»</div>';return}
   [...S.cards].sort((a,b)=>b.v-a.v).forEach(c=>{
-    const H=HEROES[c.h],F=FIN[c.f],el=document.createElement("div");el.className="it";el.style.setProperty("--hc",HT[H[2]].c);el.style.setProperty("--s",c.f?F.col:HT[H[2]].c);
-    el.innerHTML=`<div class="e">${portrait(c.h,c,1)}</div><div class="t"><b></b><small><span class="tg"></span><span class="sub"></span></small></div><div class="r"><b class="num">${fmt(c.v)}</b><button type="button" class="mini">Продать</button></div>`;
-    el.querySelector("b").textContent=H[0];el.querySelector(".tg").textContent=F.k;
-    el.querySelector(".sub").textContent=F.run===Infinity?HT[H[2]].k:c.no+" из "+F.run;
-    if(c.sn){const cl=classify(c.sn),sn=document.createElement("div");sn.className="sn num"+(cl?" nice":"");sn.textContent="№ "+fmtSn(c.sn)+(cl?", "+cl.k.toLowerCase():"");el.querySelector(".t").appendChild(sn)}
-    if(away(c)){const m=el.querySelector(".mini");m.disabled=true;m.textContent=c.listed?"На рынке":"В походе"}
-    if(lvl(c)>1){const t=document.createElement("span");t.className="tg";t.style.setProperty("--s","#0d1030");t.textContent="Ур. "+lvl(c);el.querySelector(".t small").prepend(t)}
-    if(c.stars){const t=document.createElement("span");t.className="tg star";t.textContent="★"+c.stars;el.querySelector(".t small").prepend(t)}
-    thumbDeco(el.querySelector(".e"),c);
-    el.onclick=e=>{if(!e.target.closest("button"))openCardView(c,{mine:true})};
-    el.querySelector(".mini").onclick=async()=>{const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))};
+    const el=document.createElement("div");el.className="ctile";
+    el.innerHTML=`<button type="button" class="cbtn" aria-label="Рассмотреть карточку">${miniSlot(c)}</button><div class="cr"><b class="num">${fmt(c.v)}</b><button type="button" class="mini">Продать</button></div>`;
+    el.querySelector(".cbtn").setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");
+    el.querySelector(".cbtn").onclick=()=>openCardView(c,{mine:true});
+    const m=el.querySelector(".mini");
+    if(away(c)){m.disabled=true;m.textContent=c.listed?"На рынке":"В походе"}
+    m.onclick=async()=>{const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))};
     box.appendChild(el)});
 }
+$("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))};
+
 /* маленькая картинка карточки: рваная для ошибки печати, светится при звёздах */
-function thumbDeco(e,c){if(!e)return;e.classList.toggle("torn",c.f===4);e.classList.toggle("starred",(c.stars||0)>=3)}
+function thumbDeco(e,c){}
 
 /* ---------- просмотр карточки и закалка ---------- */
 function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
@@ -501,7 +510,7 @@ function renderCraft(){
   [...S.cards].filter(c=>!away(c)).sort((a,b)=>b.v-a.v).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",crSel.has(c.id));
-    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;
     b.children[1].textContent=H[0];
     b.onclick=()=>{if(crBusy)return;crLast=null;if(crSel.has(c.id))crSel.delete(c.id);else{if(crSel.size>=5){toast("Можно отдать максимум 5 карточек");return}crSel.add(c.id)}renderCraft()};
     pk.appendChild(b)});
@@ -617,7 +626,7 @@ function renderDuel(){
   const pk=$("du-pick");pk.innerHTML="";
   [...S.cards].filter(c=>!away(c)).sort((a,b)=>eff(b,duStat)-eff(a,duStat)).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===duMine);
-    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${eff(c,duStat)}</span><b>Ур. ${lvl(c)}${c.wins?", побед "+c.wins:""}</b>`;b.children[1].textContent=H[0];
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${eff(c,duStat)}</span><b>Ур. ${lvl(c)}${c.wins?", побед "+c.wins:""}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel()};pk.appendChild(b)});
   $("du-wins").textContent="Побед сегодня: "+day(S,NOW()).wins;
 }
@@ -681,7 +690,7 @@ function renderMerge(){const box=$("merge");if(!box)return;box.innerHTML="";cons
   const groups=Object.values(g).filter(a=>a.length>=3);
   if(!groups.length){box.innerHTML='<p style="margin:0;color:#5a5f80">Пока нечего сливать. Собери три одинаковых карточки.</p>';return}
   groups.forEach(a=>{const c=a[0],nf=c.f+1,left=FIN[nf].run===Infinity||issuedOfUI(c.h,nf)<FIN[nf].run,el=document.createElement("div");el.className="mg";el.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
-    el.innerHTML=`<span class="e">${portrait(c.h,c,1)}</span><span><b></b><br><small style="color:#5a5f80">${a.length} шт., ${FIN[c.f].k.toLowerCase()} → ${FIN[nf].k.toLowerCase()}</small></span><button type="button" class="mini2">${left?"Слить 3":"Тираж закончился"}</button>`;
+    el.innerHTML=`<span class="e">${miniSlot(c)}</span><span><b></b><br><small style="color:#5a5f80">${a.length} шт., ${FIN[c.f].k.toLowerCase()} → ${FIN[nf].k.toLowerCase()}</small></span><button type="button" class="mini2">${left?"Слить 3":"Тираж закончился"}</button>`;
     el.querySelector("b").textContent=HEROES[c.h][0];const b=el.querySelector("button");b.disabled=!left;
     b.onclick=async()=>{const r=await act("merge",{h:c.h,f:c.f});if(!r)return;const n=r.card;
       if(current&&!S.cards.some(x=>x.id===current.id)){current=null;$("sell").disabled=true}
@@ -704,7 +713,7 @@ function renderExp(){
   for(let i=0;i<Math.max(exSlots(),list.length);i++){const c=list[i],el=document.createElement("div");
     if(!c){el.className="exp emptys";el.textContent="Свободное место для похода";sl.appendChild(el);continue}
     const D=DEST[c.dest]||DEST[0],left=c.away-NOW();el.className="exp";el.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
-    el.innerHTML=`<span class="e">${portrait(c.h,c,1)}</span><span><b></b><br><small style="color:#5a5f80"></small></span><button type="button" class="mini2"></button>`;
+    el.innerHTML=`<span class="e">${miniSlot(c)}</span><span><b></b><br><small style="color:#5a5f80"></small></span><button type="button" class="mini2"></button>`;
     el.querySelector("b").textContent=HEROES[c.h][0];el.querySelector("small").textContent=D.k+(left>0?", вернётся через "+tleft(left):", вернулся!");
     const b=el.querySelector("button");const canRush=!ONLINE||S.test;b.textContent=left>0?(canRush?"Ускорить (тест)":"В пути"):"Забрать добычу";b.disabled=left>0&&!canRush;
     b.onclick=async()=>{if(left>0){if(await act("exp_rush",{id:c.id}))renderExp();return}
@@ -719,7 +728,7 @@ function renderExp(){
   const pk=$("ex-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c));
   if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных воинов.</p>';
   free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===exPick);
-    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(c)}</span><b>${FIN[c.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{exPick=c.id;renderExp()};pk.appendChild(b)});
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(c)}</span><b>${FIN[c.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{exPick=c.id;renderExp()};pk.appendChild(b)});
   const go=$("ex-go"),full=list.length>=exSlots();go.disabled=!exPick||full||!free.some(c=>c.id===exPick);go.textContent=full?"Все места заняты":"Отправить в поход: "+DEST[exDest].k.toLowerCase();
 }
 $("ex-go").onclick=async()=>{const c=S.cards.find(x=>x.id===exPick);if(!c)return;const r=await act("exp_start",{id:c.id,dest:exDest});if(!r)return;
@@ -729,16 +738,72 @@ setInterval(()=>{if(S&&!$("sec-duel").hidden&&btView==="exp")renderExp()},1000);
 
 /* ---------- босс недели ---------- */
 const bossS=()=>boss(S,NOW());
-function bossSVG(hpk){const eye=hpk<.3?"#ff3b30":"#ffd60a";let heads="";
-  [[95,62,-18],[150,42,0],[205,62,18]].forEach(([x,y,r],i)=>{heads+=`<g transform="rotate(${r} ${x} ${y+40})"><path d="M${x-12} ${y+70} Q${x-16} ${y+30} ${x} ${y+18} Q${x+16} ${y+30} ${x+12} ${y+70} Z" fill="#3f8f3a" stroke="#0d1030" stroke-width="4"/>
-   <path d="M${x-22} ${y+20} Q${x-24} ${y-6} ${x} ${y-10} Q${x+24} ${y-6} ${x+22} ${y+20} Q${x+12} ${y+34} ${x} ${y+34} Q${x-12} ${y+34} ${x-22} ${y+20} Z" fill="#4fae47" stroke="#0d1030" stroke-width="4"/>
-   <path d="M${x-14} ${y-6} L${x-22} ${y-24} L${x-6} ${y-10} M${x+14} ${y-6} L${x+22} ${y-24} L${x+6} ${y-10}" fill="#f2e6c8" stroke="#0d1030" stroke-width="3"/>
-   <path d="M${x-12} ${y+4} L${x-3} ${y+8} M${x+12} ${y+4} L${x+3} ${y+8}" stroke="#0d1030" stroke-width="4"/><circle cx="${x-8}" cy="${y+10}" r="3.4" fill="${eye}"/><circle cx="${x+8}" cy="${y+10}" r="3.4" fill="${eye}"/>
-   <path d="M${x-10} ${y+24} L${x-6} ${y+30} L${x-2} ${y+24} L${x+2} ${y+30} L${x+6} ${y+24} L${x+10} ${y+30}" fill="none" stroke="#fff" stroke-width="2.5"/>
-   ${i===1?`<path d="M${x-8} ${y+34} Q${x} ${y+60} ${x+8} ${y+34} Q${x+20} ${y+70} ${x} ${y+86} Q${x-20} ${y+70} ${x-8} ${y+34} Z" fill="#ff9f0a" opacity=".9"/><path d="M${x-4} ${y+38} Q${x} ${y+56} ${x+4} ${y+38} Q${x+10} ${y+62} ${x} ${y+72} Q${x-10} ${y+62} ${x-4} ${y+38} Z" fill="#ffd60a"/>`:""}</g>`});
-  return `<path d="M40 120 Q20 60 70 40 Q66 80 98 104 Z M260 120 Q280 60 230 40 Q234 80 202 104 Z" fill="#2e6e2a" stroke="#0d1030" stroke-width="4"/>
-  <path d="M60 196 Q70 120 150 112 Q230 120 240 196 Z" fill="#3f8f3a" stroke="#0d1030" stroke-width="4"/><path d="M110 196 Q118 146 150 140 Q182 146 190 196 Z" fill="#c9d98a" stroke="#0d1030" stroke-width="3"/>
-  <path d="M120 160 H180 M116 176 H184" stroke="#8aa04a" stroke-width="3"/>${heads}`}
+function bossSVG(hpk){
+  const dead=hpk<=0,hurt=hpk<.5,rage=hpk<.25&&!dead,K="#0d1030",eye=dead?"#5a5f80":rage?"#ff3b30":"#ffe14d";
+  const st=`stroke="${K}" stroke-linejoin="round" stroke-linecap="round"`;
+  const defs=`<defs>
+   <linearGradient id="zgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cc04f"/><stop offset=".55" stop-color="#2f8a34"/><stop offset="1" stop-color="#17501f"/></linearGradient>
+   <linearGradient id="zgW" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a6b4a"/><stop offset="1" stop-color="#123a2c"/></linearGradient>
+   <linearGradient id="zgM" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3fa06a" stop-opacity=".85"/><stop offset="1" stop-color="#7a2a3a" stop-opacity=".85"/></linearGradient>
+   <linearGradient id="zgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7efc4"/><stop offset="1" stop-color="#c9b77a"/></linearGradient>
+   <linearGradient id="zgH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe8"/><stop offset="1" stop-color="#b9a46a"/></linearGradient>
+   <radialGradient id="zgF" cx=".5" cy=".1" r=".9"><stop offset="0" stop-color="#fff7c2"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".7" stop-color="#ff7a1a"/><stop offset="1" stop-color="#d0141f" stop-opacity="0"/></radialGradient>
+   <radialGradient id="zgE"><stop offset="0" stop-color="${eye}" stop-opacity=".9"/><stop offset="1" stop-color="${eye}" stop-opacity="0"/></radialGradient>
+   <radialGradient id="zgMo" cx=".4" cy=".35"><stop offset="0" stop-color="#fffbe0"/><stop offset="1" stop-color="#e9d58a"/></radialGradient>
+   <pattern id="zgS" width="9" height="7" patternUnits="userSpaceOnUse"><path d="M0 7 Q4.5 0 9 7" fill="none" stroke="#14451b" stroke-width="1.3" opacity=".55"/></pattern>
+  </defs>`;
+  /* фон: луна, горы, земля, искры */
+  let bg=`<circle cx="150" cy="34" r="26" fill="url(#zgMo)" opacity=".9"/><circle cx="141" cy="28" r="4" fill="#d9c36e" opacity=".6"/><circle cx="158" cy="42" r="3" fill="#d9c36e" opacity=".6"/>
+   <path d="M0 170 L30 130 L55 150 L85 112 L120 160 L180 160 L215 118 L245 148 L272 126 L300 160 L300 200 L0 200 Z" fill="#2a1450" opacity=".85"/>
+   <path d="M0 186 Q75 172 150 182 Q225 172 300 186 L300 200 L0 200 Z" fill="#14081f"/>`;
+  for(let i=0;i<9;i++)bg+=`<circle class="zg-em" style="--d:${(i*0.37)%2.6}s" cx="${20+i*33}" cy="${190-(i%3)*6}" r="${1.2+(i%3)*.6}" fill="${i%2?"#ffd60a":"#ff7a1a"}"/>`;
+  /* крылья */
+  const wing=`<g class="zg-wing"><path d="M118 128 C96 92 58 58 14 34 L34 82 Q50 76 56 96 Q70 86 82 106 Q96 98 104 122 Z" fill="url(#zgM)" ${st} stroke-width="3.5"/>
+   <path d="M118 128 C96 92 58 58 14 34" fill="none" stroke="url(#zgW)" stroke-width="7" stroke-linecap="round"/><path d="M118 128 C96 92 58 58 14 34" fill="none" ${st} stroke-width="1.6"/>
+   <path d="M108 112 L34 82 M104 118 L56 96 M110 124 L82 106" ${st} stroke-width="2.6" fill="none"/>
+   <path d="M14 34 l-6 -4 l9 1 Z" fill="url(#zgH)" ${st} stroke-width="1.5"/>
+   ${hurt?`<path d="M58 72 l8 4 l-3 6 l-7 -3 Z M86 92 l6 2 l-2 5 l-6 -2 Z" fill="#1a0b2e" ${st} stroke-width="1.5"/>`:""}</g>`;
+  /* хвост */
+  const tail=`<path d="M206 182 C246 192 282 172 270 146 C262 128 240 132 246 146" fill="none" stroke="${K}" stroke-width="17" stroke-linecap="round"/>
+   <path d="M206 182 C246 192 282 172 270 146 C262 128 240 132 246 146" fill="none" stroke="#2f8a34" stroke-width="11" stroke-linecap="round"/>
+   <path d="M246 146 l-12 -6 l14 -10 l6 14 Z" fill="#b3222a" ${st} stroke-width="2.5"/>`;
+  /* тело */
+  let body=`<path d="M82 200 C78 150 108 116 150 113 C192 116 222 150 218 200 Z" fill="url(#zgB)" ${st} stroke-width="4"/>
+   <path d="M82 200 C78 150 108 116 150 113 C192 116 222 150 218 200 Z" fill="url(#zgS)"/>
+   <path d="M120 200 C117 162 132 140 150 138 C168 140 183 162 180 200 Z" fill="url(#zgL)" ${st} stroke-width="3"/>
+   <path d="M124 160 Q150 152 176 160 M121 174 Q150 166 179 174 M120 188 Q150 180 180 188" fill="none" stroke="#a8955a" stroke-width="2.4"/>
+   <path d="M96 138 l-6 -12 l12 6 Z M108 126 l-2 -13 l10 9 Z M192 126 l2 -13 l-10 9 Z M204 138 l6 -12 l-12 6 Z" fill="#b3222a" ${st} stroke-width="2.2"/>
+   <path d="M104 150 Q118 132 140 126" fill="none" stroke="#9be08a" stroke-width="3" stroke-linecap="round" opacity=".6"/>`;
+  if(hurt)body+=`<path d="M100 160 l26 -14 M104 168 l24 -13" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M100 160 l26 -14 M104 168 l24 -13" stroke="#d0141f" stroke-width="1.4" stroke-linecap="round"/>`;
+  if(hpk<.25)body+=`<path d="M172 150 l18 16 M168 158 l16 15" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M172 150 l18 16 M168 158 l16 15" stroke="#d0141f" stroke-width="1.4" stroke-linecap="round"/>`;
+  const claws=[100,200].map(x=>`<ellipse cx="${x}" cy="194" rx="17" ry="9" fill="#2f8a34" ${st} stroke-width="3.5"/><path d="M${x-12} 196 l-3 7 M${x} 199 l0 7 M${x+12} 196 l3 7" stroke="url(#zgH)" stroke-width="4" stroke-linecap="round"/><path d="M${x-12} 196 l-3 7 M${x} 199 l0 7 M${x+12} 196 l3 7" ${st} stroke-width="1.2" fill="none"/>`).join("");
+  /* шеи и головы */
+  const H=dead?[[86,104,-40,128],[150,96,0,120],[214,104,40,172]]:[[80,64,-16,128],[150,46,0,150],[220,64,16,172]];
+  let necks="",heads="";
+  H.forEach(([x,y,r,nx],i)=>{const d=`M${nx} ${i===1?118:126} C${nx+(x-nx)*.2} ${y+60} ${x+(i===1?0:(x<150?14:-14))} ${y+48} ${x} ${y+26}`;
+    necks+=`<path d="${d}" fill="none" stroke="${K}" stroke-width="23" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#2f8a34" stroke-width="17" stroke-linecap="round"/>
+      <path d="${d}" fill="none" stroke="#f0e2a8" stroke-width="6" stroke-linecap="round" stroke-dasharray="5 4" opacity=".85"/>`;
+    const fire=i===1&&!dead?`<g class="zg-fire"><path d="M${x-8} ${y+48} Q${x-34} ${y+92} ${x-20} ${y+124} Q${x} ${y+108} ${x+20} ${y+124} Q${x+34} ${y+92} ${x+8} ${y+48} Z" fill="url(#zgF)"/>
+      <path d="M${x-5} ${y+50} Q${x-16} ${y+82} ${x-8} ${y+102} Q${x} ${y+92} ${x+8} ${y+102} Q${x+16} ${y+82} ${x+5} ${y+50} Z" fill="#fff7c2" opacity=".9"/></g>`:"";
+    const eyes=dead?`<path d="M${x-15} ${y-2} l8 8 M${x-7} ${y-2} l-8 8 M${x+7} ${y-2} l8 8 M${x+15} ${y-2} l-8 8" stroke="${K}" stroke-width="3" stroke-linecap="round"/>`
+      :`<circle cx="${x-11}" cy="${y+2}" r="9" fill="url(#zgE)"/><circle cx="${x+11}" cy="${y+2}" r="9" fill="url(#zgE)"/>
+       <path d="M${x-18} ${y+1} Q${x-11} ${y-5} ${x-4} ${y+4} Q${x-11} ${y+7} ${x-18} ${y+1} Z M${x+18} ${y+1} Q${x+11} ${y-5} ${x+4} ${y+4} Q${x+11} ${y+7} ${x+18} ${y+1} Z" fill="${eye}" ${st} stroke-width="1.8"/>
+       <path d="M${x-11} ${y-2} v6 M${x+11} ${y-2} v6" stroke="${K}" stroke-width="2.2" stroke-linecap="round"/>`;
+    const smoke=rage?`<circle class="zg-smoke" cx="${x-5}" cy="${y+30}" r="3" fill="#8a8fa8" opacity=".7"/><circle class="zg-smoke" style="--d:.6s" cx="${x+5}" cy="${y+30}" r="3" fill="#8a8fa8" opacity=".7"/>`:"";
+    heads+=`${fire}<g class="zg-head" style="--d:${i*.45}s" transform="rotate(${r} ${x} ${y+30})">
+      <path d="M${x-14} ${y-14} C${x-22} ${y-30} ${x-34} ${y-36} ${x-40} ${y-30} C${x-32} ${y-30} ${x-26} ${y-22} ${x-22} ${y-10} Z M${x+14} ${y-14} C${x+22} ${y-30} ${x+34} ${y-36} ${x+40} ${y-30} C${x+32} ${y-30} ${x+26} ${y-22} ${x+22} ${y-10} Z" fill="url(#zgH)" ${st} stroke-width="2.6"/>
+      <path d="M${x-24} ${y+4} l-12 -4 l9 10 Z M${x+24} ${y+4} l12 -4 l-9 10 Z" fill="#b3222a" ${st} stroke-width="2"/>
+      <path d="M${x-24} ${y} C${x-26} ${y-20} ${x-10} ${y-24} ${x} ${y-24} C${x+10} ${y-24} ${x+26} ${y-20} ${x+24} ${y} C${x+22} ${y+14} ${x+14} ${y+28} ${x+11} ${y+38} L${x-11} ${y+38} C${x-14} ${y+28} ${x-22} ${y+14} ${x-24} ${y} Z" fill="url(#zgB)" ${st} stroke-width="3.5"/>
+      <path d="M${x} ${y-22} L${x} ${y-8} M${x-6} ${y-20} L${x-4} ${y-10} M${x+6} ${y-20} L${x+4} ${y-10}" stroke="#14451b" stroke-width="2"/>
+      <path d="M${x-14} ${y-18} Q${x-6} ${y-24} ${x} ${y-24}" fill="none" stroke="#9be08a" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+      <path d="M${x-21} ${y-6} L${x-4} ${y-1} M${x+21} ${y-6} L${x+4} ${y-1}" stroke="${K}" stroke-width="4" stroke-linecap="round"/>
+      ${eyes}
+      <ellipse cx="${x-4.5}" cy="${y+31}" rx="2" ry="1.3" fill="${K}"/><ellipse cx="${x+4.5}" cy="${y+31}" rx="2" ry="1.3" fill="${K}"/>
+      ${dead?`<path d="M${x-9} ${y+38} Q${x} ${y+42} ${x+9} ${y+38}" fill="none" ${st} stroke-width="2.5"/>`:`<path d="M${x-11} ${y+37} L${x+11} ${y+37} L${x+9} ${y+52} Q${x} ${y+58} ${x-9} ${y+52} Z" fill="#6b0f1a" ${st} stroke-width="3"/>
+      <path d="M${x-9} ${y+38} l2 5 l2 -5 l2 5 l2 -5 l2 5 l2 -5 l2 5 l2 -5 M${x-7} ${y+52} l2 -4 l2 4 l2 -4 l2 4 l2 -4 l2 4" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>`}
+      ${smoke}</g>`});
+  return defs+bg+wing+`<g transform="matrix(-1 0 0 1 300 0)">${wing}</g>`+tail+`<g class="zg-body${dead?" zg-dead":""}">`+body+claws+necks+heads+`</g>`;
+}
 let bsBusy=false;
 async function setSquad(ids){if(bsBusy)return;bsBusy=true;await act("boss_squad",{ids});bsBusy=false;renderBoss()}
 function renderBoss(){const B=bossS(),k=Math.max(0,1-B.dmg/BOSS.hp);
@@ -753,7 +818,7 @@ function renderBoss(){const B=bossS(),k=Math.max(0,1-B.dmg/BOSS.hp);
   $("bs-sq").textContent="Атака отряда: "+atk;
   const pk=$("bs-pick");pk.innerHTML="";
   S.cards.filter(c=>!away(c)&&!squad.includes(c.id)).sort((a,b)=>eff(b,0)-eff(a,0)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
-    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">Атака ${eff(c,0)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">Атака ${eff(c,0)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(squad.length>=3){toast("В отряде максимум 3 воина");return}setSquad([...squad,c.id])};pk.appendChild(b)});
   const go=$("bs-go");const maxH=3+(B.extra||0);go.disabled=bsBusy||!squad.length||B.hits>=maxH||k<=0;go.textContent=k<=0?"Босс повержен":B.hits>=maxH?"Удары закончились, приходи завтра":"Ударить ("+(maxH-B.hits)+" из "+maxH+")";
   const ml=$("bs-miles");ml.innerHTML="";
@@ -827,7 +892,7 @@ function openDuel(D){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=
       b.innerHTML=`${n}<b class="num">${mine?eff(mine,i):"—"}</b>`;b.onclick=()=>{if(busy2)return;stat=i;draw()};st.appendChild(b)});
     if(mine&&!busy2){left.className="mc";left.style.setProperty("--hc",HT[HEROES[mine.h][2]].c);left.innerHTML=mcHTML(mine,stat)}
     pk.innerHTML="";S.cards.filter(c=>!away(c)).sort((a,b)=>eff(b,stat)-eff(a,stat)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",mine&&c.id===mine.id);
-      b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${STN[stat]}: ${eff(c,stat)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{if(busy2)return;mine=c;draw()};pk.appendChild(b)});
+      b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[stat]}: ${eff(c,stat)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{if(busy2)return;mine=c;draw()};pk.appendChild(b)});
     if(!S.cards.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">У тебя пока нет карточек. Закрой окно и открой несколько на вкладке «Крутить».</p>';
     go.disabled=!mine||busy2}
   go.onclick=async()=>{if(!mine||busy2)return;busy2=true;draw();ac();go.disabled=true;
@@ -907,7 +972,7 @@ function tickSales(){if(ONLINE||!S)return;let sold=false;S.cards.forEach(c=>{if(
 setInterval(tickSales,5000);
 if(ONLINE)setInterval(()=>{if(S&&!document.hidden)act("sync").then(()=>{updCash();if(!$("sec-shop").hidden&&shView==="sell")renderSell()})},30000);
 function lotRow(c,priceHTML,btn){const H=HEROES[c.h],d=document.createElement("div");d.className="lot";d.style.setProperty("--hc",HT[H[2]].c);
-  d.innerHTML=`<span class="e">${portrait(c.h,c,1)}</span><span class="t"><b></b>${FIN[c.f].k}${FIN[c.f].run!==Infinity?" "+c.no+"/"+FIN[c.f].run:""}, ур. ${lvl(c)}<br>№ ${fmtSn(c.sn)}${classify(c.sn)?", "+classify(c.sn).k.toLowerCase():""}</span><span class="r">${priceHTML}</span>`;
+  d.innerHTML=`<span class="e">${miniSlot(c)}</span><span class="t"><b></b>${FIN[c.f].k}${FIN[c.f].run!==Infinity?" "+c.no+"/"+FIN[c.f].run:""}, ур. ${lvl(c)}<br>№ ${fmtSn(c.sn)}${classify(c.sn)?", "+classify(c.sn).k.toLowerCase():""}</span><span class="r">${priceHTML}</span>`;
   d.querySelector("b").textContent=H[0];d.querySelector(".r").appendChild(btn);thumbDeco(d.querySelector(".e"),c);
   if(c.stars)d.querySelector(".t b").insertAdjacentHTML("beforeend",' <span class="stg">★'+c.stars+'</span>');
   d.querySelector(".e").onclick=()=>openCardView(c,{});return d}
@@ -930,7 +995,7 @@ function renderSell(){const lots=$("lots");lots.innerHTML="";const mine=S.cards.
   const pk=$("sl-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c));
   if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных карточек.</p>';
   free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===slPick);
-    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;b.children[1].textContent=H[0];
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{slPick=c.id;$("sl-range").value=120;$("sl-price").value=Math.max(1,Math.round(c.v*1.2));renderSell()};pk.appendChild(b)});
   const c=S.cards.find(x=>x.id===slPick&&!away(x)),f=$("sl-form");f.style.display=c?"flex":"none";if(!c)return;
   $("sl-name").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase();$("sl-val").textContent="оценка "+fmt(c.v);sellHint(c)}
@@ -948,11 +1013,12 @@ function renderLavka(){const c=S.cards.find(x=>x.id===lvPick);
   $("lv-train-t").textContent=c?HEROES[c.h][0]+", уровень "+lvl(c)+(lvlNext(c)?", опыт "+(c.xp||0)+" из "+lvlNext(c):""):"Выбери воина ниже: +50 опыта за деньги";
   const B=bossS();$("lv-rage").disabled=(B.extra||0)>=2;$("lv-rage").textContent=(B.extra||0)>=2?"Лимит на сегодня":"Купить за $150";
   $("lv-map").disabled=S.mapDay===todayL();$("lv-map").textContent=S.mapDay===todayL()?"Уже куплена":"Купить за $120";
+  $("lv-prev").innerHTML=c?miniSlot(Object.assign({},c,{frame:lvFrame})):'<span class="lvnone">Выбери воина внизу, и здесь появится превью с рамкой</span>';
   const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
     b.innerHTML=`<i></i><span><b></b><br>${fmt(F.cost)}</span>`;b.querySelector("b").textContent=F.k;b.onclick=()=>{lvFrame=k;renderLavka()};fr.appendChild(b)});
   $("lv-fgo").disabled=!c;$("lv-fgo").textContent=c?(c.frame===lvFrame?"Эта рамка уже надета":"Надеть рамку «"+FRAMES[lvFrame].k+"» за "+fmt(FRAMES[lvFrame].cost)):"Выбери воина внизу";
   const pk=$("lv-pick");pk.innerHTML="";S.cards.filter(x=>!x.listed).sort((a,b)=>b.v-a.v).forEach(x=>{const H=HEROES[x.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",x.id===lvPick);
-    b.innerHTML=`<span class="pv">${portrait(x.h,x,1)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(x)}</span><b>${x.frame?FRAMES[x.frame].k:FIN[x.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{lvPick=x.id;renderLavka()};pk.appendChild(b)});}
+    b.innerHTML=`<span class="pv">${miniSlot(x)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(x)}</span><b>${x.frame?FRAMES[x.frame].k:FIN[x.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{lvPick=x.id;renderLavka()};pk.appendChild(b)});}
 $("lv-train").onclick=async()=>{if(await act("train",{id:lvPick})){sfx.coin();updCash();renderLavka();toast("Тренировка: +50 опыта")}};
 $("lv-rage").onclick=async()=>{if(await act("rage")){sfx.coin();updCash();renderLavka();toast("Зелье выпито: +1 удар по боссу сегодня")}};
 $("lv-map").onclick=async()=>{if(await act("map")){sfx.coin();updCash();renderLavka();toast("Открыто 4-е место для походов")}};
@@ -1003,7 +1069,7 @@ function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" 
 function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.type="button";d.className="trow"+(it.me||(ONLINE&&it.uid===S.uid)?" me":"")+(i<3?" p"+(i+1):"");
   d.innerHTML=`<span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="e"></span><span class="t"><b></b><small></small></span><span class="sc num"></span>`;
   d.querySelector("b").textContent=it.name;d.querySelector(".sc").textContent=TP[kind].u(it.score);
-  if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=portrait(c.h,c,1);thumbDeco(e,c);
+  if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
 async function renderTop(force){$("my-nick").textContent=S.nick||"не выбран";$("nick-go").textContent=S.nick?"Сменить":"Выбрать";document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
@@ -1016,7 +1082,7 @@ async function renderTop(force){$("my-nick").textContent=S.nick||"не выбр�
   $("top-t").textContent=kind==="cards"?"Нажми на карточку, чтобы рассмотреть. Закаляй свои, чтобы попасть сюда.":me&&me.rank?(me.rank===1?"Ты на первом месте в мире! Держи позицию.":"Твоё место в мире. До следующего места: "+(r.items[me.rank-2]?TP[kind].u(Math.max(0,r.items[me.rank-2].score-me.score)):"чуть-чуть")):"Открой карточки, чтобы попасть в рейтинг.";
   const fd=await loadTop("feed");if(!fd)return;const fb=$("feed");fb.innerHTML="";
   fd.items.slice(0,8).forEach(it=>{const c=it.card,d=document.createElement("button");d.type="button";d.className="fitem";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
-    d.innerHTML=`<span class="e"></span><span><b></b><small></small></span>`;const e=d.querySelector(".e");e.innerHTML=portrait(c.h,c,1);thumbDeco(e,c);
+    d.innerHTML=`<span class="e"></span><span><b></b><small></small></span>`;const e=d.querySelector(".e");e.innerHTML=miniSlot(c);
     d.querySelector("b").textContent=it.name+" выбил";d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
     d.onclick=()=>openCardView(c,{owner:it.name,mine:ONLINE&&it.uid===S.uid});fb.appendChild(d)});
   if(!fd.items.length)fb.innerHTML='<p style="margin:0;color:#5a5f80">Пока никто не выбил ничего редкого.</p>'}

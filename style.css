@@ -440,3 +440,59 @@ nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--ink)}
 .flip:not(.back) .face.rear{visibility:hidden}
 /* ничего не должно расширять страницу вбок, иначе телефон начинает масштабировать экран */
 html,body{overflow-x:hidden;overflow-x:clip;max-width:100%}
+
+/* ---------- Змей Горыныч ---------- */
+.boss svg .zg-head{animation:zgbob 2.4s ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes zgbob{0%,100%{translate:0 0}50%{translate:0 -3px}}
+.boss svg .zg-fire{animation:zgfire .35s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 0}
+@keyframes zgfire{from{transform:scaleY(.9) scaleX(1.05);opacity:.85}to{transform:scaleY(1.08) scaleX(.95);opacity:1}}
+.boss svg .zg-wing{animation:zgwing 3s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 100%}
+@keyframes zgwing{0%,100%{transform:rotate(0)}50%{transform:rotate(4deg)}}
+.boss svg .zg-em{animation:zgem 2.6s linear infinite;animation-delay:var(--d,0s)}
+@keyframes zgem{from{translate:0 0;opacity:1}to{translate:6px -120px;opacity:0}}
+.boss svg .zg-smoke{animation:zgsm 1.4s ease-out infinite;animation-delay:var(--d,0s)}
+@keyframes zgsm{from{translate:0 0;r:3;opacity:.7}to{translate:0 -22px;r:8;opacity:0}}
+.boss svg .zg-dead{filter:grayscale(.75) brightness(.8)}
+.boss svg .zg-dead .zg-head{animation:none}
+@media (prefers-reduced-motion:reduce){.boss svg *{animation:none!important}}
+
+/* ---------- маленькие карточки в списках ---------- */
+.minic{display:block;position:relative;width:100%;aspect-ratio:5/7;--z:.3}
+.minic>.face{inset:auto;left:0;top:0;width:300px;height:420px;transform:scale(var(--z));transform-origin:0 0}
+.minic .face,.minic .face *{animation:none!important;transition:none!important}
+.minic .front .hero .eyes{animation:none}
+.pc{flex:0 0 92px;padding:4px 4px 5px}
+.pc .pv{aspect-ratio:5/7;background:none;border-radius:0;overflow:visible;display:block;margin-bottom:3px}
+.pc .pv svg{width:auto}
+.lot .e,.exp .e,.mg .e,.trow .e,.fitem .e{border:none!important;background:none!important;overflow:visible!important;display:block!important;aspect-ratio:5/7;height:auto!important;border-radius:0!important}
+.lot .e{width:58px}.trow .e,.fitem .e{width:44px}
+.exp .e,.mg .e{width:48px;flex-shrink:0}
+.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 14px}
+@media (min-width:430px){.cgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ctile{display:flex;flex-direction:column;gap:8px}
+.ctile .cbtn{display:block;padding:0;border:0;background:none;width:100%;cursor:pointer}
+.ctile .cr{display:flex;justify-content:space-between;align-items:center;gap:6px;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;padding:5px 6px 5px 9px;box-shadow:2px 2px 0 var(--ink)}
+.ctile .cr b{font-family:var(--display);font-size:12px;white-space:nowrap}
+.ctile .mini{font-size:11px;padding:6px 8px}
+.slot.have{padding:0;border:none;background:none;overflow:visible;cursor:pointer}
+.slot.have .minic{position:absolute;inset:0;width:100%;height:100%}
+.slot .cnt{position:absolute;right:-5px;top:-7px;z-index:1;font-size:10px;font-weight:900;background:var(--red);color:#fff;border:2px solid var(--ink);border-radius:9px;padding:1px 5px}
+.lvprev{width:150px;margin:2px auto 6px}
+.lvprev .lvnone{display:block;text-align:center;color:#5a5f80;font-size:13px;padding:20px 0}
+
+/* ---------- рамки: работают поверх любой отделки и звёзд ---------- */
+.face.front[data-frame]{padding:13px}
+.face.front[data-frame=bronze]{--edge:linear-gradient(135deg,#f3c58b,#a8642a 35%,#ffe0b0 50%,#8a4a18 70%,#e6a96a)}
+.face.front[data-frame=silver]{--edge:linear-gradient(135deg,#ffffff,#9aa6bf 35%,#f7f9ff 50%,#6d7a93 70%,#e9edf5)}
+.face.front[data-frame=fire]{--edge:linear-gradient(0deg,#d0141f,#ff7a1a 30%,#ffe14d 55%,#ff7a1a 80%,#d0141f);background-size:100% 200%;animation:fireedge 1.6s linear infinite;box-shadow:6px 6px 0 var(--ink),0 0 22px 4px rgba(255,122,26,.65)}
+@keyframes fireedge{from{background-position:0 0}to{background-position:0 -200%}}
+.face.front[data-frame=night]{--edge:radial-gradient(#fff 1px,transparent 1.6px) 0 0/10px 10px,radial-gradient(#ffd60a 1px,transparent 1.8px) 5px 5px/17px 17px,linear-gradient(135deg,#0d1030,#3b2a8c 50%,#0d1030);box-shadow:6px 6px 0 var(--ink),0 0 18px 3px rgba(122,92,255,.55)}
+.face.front[data-frame=rainbow]{--edge:conic-gradient(from var(--ang,0deg),#ff5f6d,#ffc371,#47e891,#3ab0ff,#c56bff,#ff5f6d);animation:spinang 2.5s linear infinite;box-shadow:6px 6px 0 var(--ink),0 0 22px 4px rgba(197,107,255,.55)}
+.face.front.error[data-frame]{box-shadow:none}
+.minic .art .hero svg{width:auto!important;height:100%!important;max-width:100%;flex-shrink:1}
+.minic .art svg.burst{width:115%!important;height:115%!important}
+.minic .tear{width:100%!important;height:100%!important}
+.slot{position:relative}
+.lot{grid-template-columns:58px 1fr auto}
+.exp{grid-template-columns:48px 1fr auto}
+.mg{grid-template-columns:48px 1fr auto}
