@@ -227,16 +227,18 @@ const ACTIONS={
   duel(G){const {st,ctx,p}=G;const me=freeCard(G,p.id),stat=p.stat|0;if(stat<0||stat>4)fail("Неверная характеристика");
     const t=HEROES[me.h][2],tt=Math.max(0,Math.min(4,t+[-1,0,0,0,1][Math.floor(Math.random()*5)]));
     const cand=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
-    // соперник: карточка настоящего игрока (только «на интерес»), иначе бот
-    const real=G.ctx.oppCard&&!p.mode?G.ctx.oppCard:null;
+    // соперник: карточка настоящего игрока (сервер подбирает её сам), иначе бот
+    const real=G.ctx.oppCard||null;
+    if(real&&p.mode&&G.cards.length>=CAP)fail("Коллекция заполнена ("+CAP+"). Освободи место, чтобы драться на карточку");
     const opp=real||phantom(oh,Math.random()<.2?1:0),before=snap(me);
     const p2=aiPick(opp,[stat]),p3=rndPick([stat,p2]),picks=[stat,p2,p3],R=fight3(me,opp,picks);
     let reward=0,gotCard=null,lostCard=false;
     if(R.w===R.l)addXp(ctx,me,15);
     else if(R.w>R.l){me.wins=(me.wins||0)+1;st.totalWins=(st.totalWins||0)+1;addXp(ctx,me,30);day(st,ctx.now).wins++;
-      if(p.mode&&G.cards.length<CAP){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
+      if(p.mode&&real){ctx.takeCard=real.id;gotCard=snap(real);addCard(G,gotCard)}   // забираем карточку игрока
+      else if(p.mode&&G.cards.length<CAP){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
       else{reward=Math.round(opp.v*.3+5);earn(st,reward)}}
-    else{addXp(ctx,me,10);if(p.mode){burn(G,[me.id]);lostCard=true}}
+    else{addXp(ctx,me,10);if(p.mode){if(real)ctx.giveAway=me.id;burn(G,[me.id]);lostCard=true}}   // с игроком карточка уходит к нему
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null}},
 
   fduel(G){const {st,ctx,p}=G;const me=freeCard(G,p.myId),opp=p.opp,myStat=p.myStat|0;if(!opp)fail("Соперник не найден");

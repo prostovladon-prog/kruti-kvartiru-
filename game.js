@@ -641,8 +641,13 @@ function renderDuel(){
     b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel()};pk.appendChild(b)});
   $("du-wins").textContent="Побед сегодня: "+day(S,NOW()).wins;
   $("du-mode").title=duMode?"На карточку дерёшься с ботами: чужие карточки не отнимаются":"";
-  renderAttacks();
+  renderAttacks();renderStake();
+  if(duMode&&!duBusy&&!$("du-res").textContent)$("du-res").textContent=ONLINE&&S.stake?"На карточку: соперник из игроков с похожей ценой карточки, если таких нет, то бот":"Сейчас на карточку ты дерёшься с ботами. Включи бои с игроками ниже";
 }
+function renderStake(){const b=$("stake-go"),t=$("stake-t");if(!b)return;const on=!!S.stake;
+  b.textContent=on?"Выключить":"Включить";b.style.background=on?"#e8eaf3":"";
+  t.textContent=(on?"Включено. ":"")+"Твоих воинов могут вызвать на бой на карточку другие игроки, даже когда тебя нет в игре. Отобьётся твой воин, и ты заберёшь карточку нападавшего. Проиграет, и твоя карточка уйдёт к нему. Соперники только с похожей ценой карточки (от 0,5× до 2×). Карточки на рынке и в походе не участвуют. Нападать на игроков в бою на карточку можно, только если включено и у тебя."+(ONLINE?"":" Работает в игре через Telegram.")}
+$("stake-go").onclick=async()=>{if(!ONLINE){toast("Бои с игроками работают в игре через Telegram");return}const on=!S.stake;const r=await act("stake_set",{on:on?1:0});if(r){renderDuel();toast(on?"Бои на карточку с игроками включены. Удачи!":"Бои на карточку с игроками выключены")}};
 /* кто нападал на мои карточки: уведомление и реванш */
 const seenFights=new Set();
 function renderAttacks(){const box=$("du-att"),list=$("du-att-list"),F=(S&&S.fights)||[];box.hidden=!F.length;list.innerHTML="";
@@ -652,7 +657,9 @@ function renderAttacks(){const box=$("du-att"),list=$("du-att-list"),F=(S&&S.fig
     d.querySelector("small").textContent=defTxt(f)+" · "+ago(f.t);
     d.querySelector("button").onclick=()=>openParam("c_"+f.att_card);list.appendChild(d)})}
 /* счёт с точки зрения защитника: сначала его раунды */
-function defTxt(f){const H=HEROES[f.def_h][0],sc=f.l+":"+f.w;return f.w>f.l?"Твой "+H+" проиграл "+sc:f.w<f.l?"Твой "+H+" отбился "+sc:"Твой "+H+": ничья "+sc}
+function defTxt(f){const H=HEROES[f.def_h][0],sc=f.l+":"+f.w;
+  if(f.stake&&f.took)return f.w>f.l?"Бой на карточку: твой "+H+" проиграл "+sc+" и ушёл к сопернику":"Бой на карточку: твой "+H+" отбился "+sc+" и забрал карточку соперника ("+HEROES[f.att_h][0]+")";
+  return f.w>f.l?"Твой "+H+" проиграл "+sc:f.w<f.l?"Твой "+H+" отбился "+sc:"Твой "+H+": ничья "+sc}
 function fightNews(){((S&&S.fights)||[]).filter(f=>!f.seen&&!seenFights.has(f.id)).forEach(f=>{seenFights.add(f.id);
   toast("Нападение от "+f.att_name+": "+defTxt(f).replace("Твой","твой")+". Реванш во вкладке «Бой»")})}
 let duRematch=null;
@@ -672,7 +679,7 @@ $("du-go").onclick=async()=>{
     runBattle({L:r.me,Rc:r.opp,picks:r.picks,rounds:r.rounds,leftEl:mel,rightEl:op,roundsEl:$("du-rounds"),statusEl:$("du-st"),vsEl:$("du-vs"),done:(w,l)=>{
       let msg;const sc=w+" : "+l;
       if(w===l)msg="Ничья "+sc+"! Опыт +15";
-      else if(w>l){sfx.fanfare();burst(3);hapN("success");msg=r.gotCard?"Победа "+sc+"! Карточка "+HEROES[r.gotCard.h][0]+" теперь твоя":"Победа "+sc+"! Награда "+fmt(r.reward)}
+      else if(w>l){sfx.fanfare();burst(3);hapN("success");msg=r.gotCard?"Победа "+sc+"! Карточка "+HEROES[r.gotCard.h][0]+(r.real?" игрока "+bot:"")+" теперь твоя":"Победа "+sc+"! Награда "+fmt(r.reward)}
       else{sfx.lose();msg=r.lostCard?"Поражение "+sc+". Твоя карточка ушла к "+bot:"Поражение "+sc+". Попробуй другого воина или характеристику";if(r.lostCard&&current&&current.id===me.id){current=null;$("sell").disabled=true}}
       res.textContent=(r.real?"Против "+bot+". ":"")+msg;res.className="result "+(w>l?"win":w<l?"lose":"");updCash();
       if(r.real){duRematch=r.opp.id;const ag=$("du-again");ag.hidden=false;ag.textContent=(w>l?"Ещё раз с ":"Реванш с ")+bot}

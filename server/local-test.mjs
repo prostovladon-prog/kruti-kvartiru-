@@ -116,7 +116,27 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
   r = await call(def, "sync"); ok(r.S.fights[0].seen === 1, "уведомление показывается один раз");
   const d2 = await call(2, "duel", { id: c2.id, stat: 1, mode: 0, rematch: d.res.opp.id });
   ok(d2.ok && d2.res.real && d2.res.opp.id === d.res.opp.id, "реванш с той же карточкой соперника");
-  const md = await call(2, "duel", { id: c2.id, stat: 0, mode: 1 }); ok(md.ok && !md.res.real, "бой «на карточку» только с ботом, чужие карточки не отнимаются");
+  const md = await call(2, "duel", { id: c2.id, stat: 0, mode: 1 }); ok(md.ok && !md.res.real, "без включённых боёв на карточку — только бот");
+  // оба включили бои на карточку
+  await call(2, "stake_set", { on: 1 }); r = await call(1, "stake_set", { on: 1 }); ok(r.ok && r.S.stake === 1, "бои на карточку с игроками включены");
+  db.prepare("UPDATE cards SET v=10 WHERE owner IN (1,2)").run();   // цены похожие, чтобы подбор сработал
+  let moved = false, tries = 0;
+  for (; tries < 30 && !moved; tries++) {
+    r = await call(2, "sync"); const mine = r.S.cards.find(c => !c.listed && !c.away); if (!mine) break;
+    const d = await call(2, "duel", { id: mine.id, stat: tries % 5, mode: 1 });
+    if (!d.ok || !d.res.real || d.res.w === d.res.l) continue;
+    moved = true;
+    if (d.res.gotCard) {
+      const row = db.prepare("SELECT owner FROM cards WHERE id=?").get(d.res.gotCard.id);
+      ok(row && row.owner === 2, "победа на карточку: карточка соперника перешла ко мне");
+    } else {
+      const row = db.prepare("SELECT owner FROM cards WHERE id=?").get(mine.id);
+      ok(row && row.owner === d.res.oppUid, "поражение на карточку: моя карточка ушла к сопернику, а не сгорела");
+    }
+    r = await call(d.res.oppUid, "sync"); ok(r.S.fights[0].stake === 1 && r.S.fights[0].took === 1, "защитник получил уведомление о бое на карточку");
+  }
+  ok(moved, "бой на карточку с живым игроком состоялся (попыток " + tries + ")");
+  const sn = db.prepare("SELECT COUNT(*) n, COUNT(DISTINCT sn) d FROM cards").get(); ok(sn.n === sn.d, "после передач номера по-прежнему уникальны");
 }
 /* --- чат --- */
 {
