@@ -772,7 +772,7 @@ $("bs-go").onclick=async()=>{if(bsBusy)return;bsBusy=true;ac();$("bs-go").disabl
 /* ---------- друзья: витрина и бой по ссылке ----------
    С сервером в ссылке только номер игрока или карточки, всё остальное берётся с сервера.
    Без сервера данные карточки зашиты прямо в ссылку. */
-function myName(){try{const u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;if(u&&u.first_name)return u.first_name.slice(0,16)}catch(e){}return (S&&S.name)||"Игрок"}
+function myName(){if(S&&S.nick)return S.nick;try{const u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;if(u&&u.first_name)return u.first_name.slice(0,16)}catch(e){}return (S&&S.name)||"Игрок"}
 function b64e(bytes){let s="";bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
 function b64d(str){str=str.replace(/-/g,"+").replace(/_/g,"/");while(str.length%4)str+="=";const s=atob(str);return [...s].map(c=>c.charCodeAt(0))}
 function encCard(c,out){const sn=+c.sn,v=Math.round(c.v*100);out.push(c.h,c.f,lvl(c),Math.round((c.hue||0)/2)&255,(c.no>>8)&255,c.no&255,(sn>>16)&255,(sn>>8)&255,sn&255);
@@ -966,7 +966,10 @@ function renderShop(){document.querySelectorAll("#sh-seg button").forEach(b=>b.s
    С сервером это настоящие игроки. Без сервера показываем пример с ботами. */
 let tpView="worth";const tpCache={};let tpLoading={};
 const TP={worth:{t:"Самые богатые коллекции",u:v=>fmt(v)},cards:{t:"Самые дорогие карточки в мире",u:v=>fmt(v)},album:{t:"Больше всего разных воинов",u:v=>v+" из "+NHEROES},wins:{t:"Больше всего побед в боях",u:v=>fmtN(v)+" побед"}};
-Object.assign(LOCAL,{top(p){const k=p.kind,R=rng(snHash(todayL()+k)),names=SELLERS.slice().sort(()=>R()-.5);
+Object.assign(LOCAL,{nick(p){const n=checkNick(p.nick);if(n===S.nick)throw new GameError("Это уже твой ник");
+  if(SELLERS.some(x=>x.toLowerCase()===n.toLowerCase()))throw new GameError("Ник «"+n+"» уже занят. Придумай другой");
+  const cost=S.nick?NICK_COST:0;if(S.cash<cost)throw new GameError("Смена ника стоит $"+cost+", не хватает денег");S.cash-=cost;S.nick=n;return {nick:n,cost}},
+ top(p){const k=p.kind,R=rng(snHash(todayL()+k)),names=SELLERS.slice().sort(()=>R()-.5);
   const fake=(h,f)=>{const c=phantom(h,f);c.sn=String(Math.floor(R()*1e6)).padStart(6,"0");c.no=1+Math.floor(R()*Math.min(FIN[f].run,999));c.stars=f>=2&&R()<.5?1+Math.floor(R()*4):0;c.id="b"+Math.floor(R()*1e9);return c};
   const bestH=()=>{const hs=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]>=2);return hs[Math.floor(R()*hs.length)]};
   if(k==="feed")return {items:names.slice(0,8).map((n,i)=>({name:n,card:fake(bestH(),R()<.25?3:R()<.5?2:1),t:NOW()-(i+R())*25*60e3}))};
@@ -977,6 +980,23 @@ Object.assign(LOCAL,{top(p){const k=p.kind,R=rng(snHash(todayL()+k)),names=SELLE
   const items=names.map((n,i)=>({name:n,score:base[i],card:fake(bestH(),R()<.3?3:2)}));
   if(mine>0)items.push({name:myName()+" (ты)",score:Math.round(mine*100)/100,card:[...S.cards].sort((a,b)=>b.v-a.v)[0]||null,me:1});
   items.sort((a,b)=>b.score-a.score);const rank=mine>0?items.findIndex(x=>x.me)+1:null;return {items,me:{rank,score:mine}}}});
+/* ---------- ник ---------- */
+function openNick(first){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  const cost=S.nick?NICK_COST:0;
+  sh.innerHTML=`<div class="box nickbox"><h3></h3><p></p><input type="text" id="nk-in" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Например, Царь_Горы"><small id="nk-err" class="nkerr"></small><button type="button" class="craftbtn" id="nk-go"></button><button type="button" class="ghost" id="nk-later"></button></div>`;
+  sh.querySelector("h3").textContent=S.nick?"Сменить ник":"Придумай себе ник";
+  sh.querySelector("p").textContent=(S.nick?"Сейчас: "+S.nick+". ":"")+"Ник видят все: в топе мира, на рынке, в витрине и в ленте выпадений. Он один такой в игре. От 3 до 16 символов: буквы, цифры, _ . -";
+  const inp=$("nk-in"),go=$("nk-go"),err=$("nk-err");inp.value=S.nick||"";
+  go.textContent=cost?"Сменить за "+fmt(cost):"Готово";$("nk-later").textContent=first?"Позже":"Отмена";
+  $("nk-later").onclick=()=>{if(first)try{localStorage.setItem("we-nick-ask",todayL())}catch(e){}closeModal()};
+  inp.oninput=()=>{try{checkNick(inp.value);err.textContent=""}catch(e){err.textContent=inp.value.length>=3?e.message:""}};
+  const send=async()=>{try{checkNick(inp.value)}catch(e){err.textContent=e.message;return}go.disabled=true;
+    const r=await act("nick",{nick:inp.value});go.disabled=false;if(!r)return;
+    Object.keys(tpCache).forEach(k=>delete tpCache[k]);closeModal();sfx.coin();hapN("success");renderAll();toast("Теперь ты «"+r.nick+"»")};
+  go.onclick=send;inp.onkeydown=e=>{if(e.key==="Enter")send()};setTimeout(()=>inp.focus(),50)}
+$("nick-go").onclick=()=>openNick(false);
+function askNick(){if(!S||S.nick)return;let last=null;try{last=localStorage.getItem("we-nick-ask")}catch(e){}if(last===todayL())return;openNick(true)}
+
 async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.at<30000)return c.r;if(tpLoading[kind])return null;tpLoading[kind]=1;
   const r=await act("top",{kind});tpLoading[kind]=0;if(r)tpCache[kind]={at:NOW(),r};return r}
 function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" мин назад":m<1440?Math.round(m/60)+" ч назад":Math.round(m/1440)+" дн назад"}
@@ -986,7 +1006,7 @@ function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=portrait(c.h,c,1);thumbDeco(e,c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
-async function renderTop(force){document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
+async function renderTop(force){$("my-nick").textContent=S.nick||"не выбран";$("nick-go").textContent=S.nick?"Сменить":"Выбрать";document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
   $("top-h").textContent=TP[tpView].t;
   const box=$("top-list");if(!tpCache[tpView])box.innerHTML='<p style="margin:0;color:#5a5f80">Загружаю…</p>';
   const kind=tpView,r=await loadTop(kind,force);if(!r||kind!==tpView)return;
@@ -1020,5 +1040,6 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   if(ONLINE){$("free-t").textContent="Подключаюсь к серверу…";const r=await act("sync");if(!r){$("free-t").textContent="Сервер недоступен. Закрой игру и открой снова";return}}
   else{S=loadLocal();touch(S,NOW());save()}
   renderAll();handleStart();
+  if(!new URLSearchParams(location.search).get("startapp")&&!(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param))setTimeout(askNick,600);
 })();
 

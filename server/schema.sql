@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   cash     REAL    NOT NULL DEFAULT 100, -- деньги меняются только прибавлением, поэтому продажи не теряются
   state    TEXT    NOT NULL DEFAULT '{}',-- прокрутки, задания, босс и прочее
   ver      INTEGER NOT NULL DEFAULT 0,   -- защита от двойного нажатия
+  nick     TEXT,                         -- ник, который игрок придумал сам
+  nick_key TEXT,                         -- ник маленькими буквами, по нему проверяется уникальность
   ref      INTEGER,                      -- кто пригласил
   refs     INTEGER NOT NULL DEFAULT 0,   -- сколько друзей пригласил
   gift_spins INTEGER NOT NULL DEFAULT 0, -- прокрутки за друзей, ещё не добавленные
@@ -46,6 +48,7 @@ CREATE INDEX IF NOT EXISTS cards_market ON cards(listed_at) WHERE list_price IS 
 CREATE INDEX IF NOT EXISTS cards_nice   ON cards(nice) WHERE nice = 1;
 CREATE INDEX IF NOT EXISTS cards_print  ON cards(h, f, no);
 CREATE INDEX IF NOT EXISTS cards_v      ON cards(v) WHERE owner > 0;
+CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key);
 CREATE INDEX IF NOT EXISTS users_worth  ON users(worth);
 CREATE INDEX IF NOT EXISTS users_album  ON users(album);
 CREATE INDEX IF NOT EXISTS users_wins   ON users(wins);

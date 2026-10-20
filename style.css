@@ -426,3 +426,11 @@ nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--ink)}
 .fitem small{display:block;font-size:11.5px;color:#5a5f80}
 .it{cursor:pointer}
 @media (prefers-reduced-motion:reduce){.art::before,.art::after,.art svg.burst,.front.star5{animation:none!important}}
+
+/* ---------- ник ---------- */
+.nickrow{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:2px dashed #d5d9ec;padding-top:8px;font-size:14px}
+.nickrow b{font-family:var(--display);font-size:13px;word-break:break-all}
+.nickbox input{font:inherit;font-size:18px;font-weight:700;padding:12px;border-radius:12px;border:3px solid var(--ink);background:#fff;color:var(--ink);width:100%}
+.nkerr{color:var(--red);font-weight:700;font-size:13px;min-height:18px}
+.nickbox .ghost{align-self:center}
+.modal:has(.nickbox){align-items:center}

@@ -122,5 +122,18 @@ r = await call(2, "top", { kind: "cards" }); ok(r.ok && r.res.items.length > 0 &
 r = await call(2, "top", { kind: "feed" }); ok(r.ok && Array.isArray(r.res.items), "лента выпадений: " + r.res.items.length);
 r = await call(2, "top", { kind: "x; DROP TABLE users" }); ok(!r.ok, "неизвестный рейтинг отклоняется");
 
+/* --- ники --- */
+r = await call(1, "nick", { nick: "Царь_Горы" }); ok(r.ok && r.S.nick === "Царь_Горы" && r.res.cost === 0, "первый ник бесплатно");
+r = await call(2, "nick", { nick: "царь_горы" }); ok(!r.ok && /занят/.test(r.err), "занятый ник другому нельзя: " + r.err);
+r = await call(2, "nick", { nick: "ab" }); ok(!r.ok, "слишком короткий ник: " + r.err);
+r = await call(2, "nick", { nick: "<script>" }); ok(!r.ok, "запрещённые символы: " + r.err);
+r = await call(2, "nick", { nick: "Хуйло228" }); ok(!r.ok, "мат в нике нельзя");
+r = await call(2, "nick", { nick: "ЦАРЬ_ГОРЫ" }); ok(!r.ok && /занят/.test(r.err), "большими буквами тот же ник тоже занят");
+r = await call(3, "nick", { nick: "Vlad B" }); ok(r.ok && r.S.nick === "Vlad_B", "пробел превращается в _");
+r = await call(1, "top", { kind: "worth" }); ok(r.res.items.some(x => x.name === "Царь_Горы"), "ник виден в топе");
+r = await call(2, "profile", { uid: 1 }); ok(r.res.name === "Царь_Горы", "ник виден в витрине");
+db.prepare("UPDATE users SET cash=0 WHERE id=1").run();
+r = await call(1, "nick", { nick: "Новый" }); ok(!r.ok && /1000/.test(r.err), "смена ника стоит $1000: " + r.err);
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
