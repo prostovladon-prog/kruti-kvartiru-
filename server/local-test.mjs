@@ -32,6 +32,7 @@ async function call(uid, a, p = {}, start = "") {
   const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), env);
   return r.json();
 }
+const { classify } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify };").toString("base64"));
 let fails = 0;
 const ok = (cond, msg) => { console.log((cond ? "✓ " : "✗ ") + msg); if (!cond) fails++; };
 
@@ -158,6 +159,36 @@ r = await call(1, "nick", { nick: "Новый" }); ok(!r.ok && /1000/.test(r.err
   ok(/Готово/.test(st) && sent.map(x => x.m).join() === "setWebhook,setMyName,setMyShortDescription,setMyDescription,setMyCommands,setChatMenuButton", "/setup настраивает бота: " + sent.map(x => x.m).join(", "));
   ok(sent[3].b.description.length <= 512 && sent[2].b.short_description.length <= 120, "описания влезают в лимиты Telegram (" + sent[3].b.description.length + "/512, " + sent[2].b.short_description.length + "/120)");
   globalThis.fetch = realFetch;
+}
+
+/* --- проданные карточки возвращаются в прокрутки --- */
+{
+  db.prepare("UPDATE users SET cash=cash+100000 WHERE id=7").run(); await call(7, "sync");
+  // выпускаем весь тираж «ошибки печати» Ополченца и продаём её
+  db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,created) VALUES(7,0,4,1,'314159',0,0,100,'[1,1,1,1,1]',0)").run();
+  const mis = db.prepare("SELECT id FROM cards WHERE h=0 AND f=4").get().id;
+  r = await call(7, "sell", { id: mis }); ok(r.ok && !db.prepare("SELECT 1 FROM cards WHERE id=?").get(mis), "проданная карточка удалена из игры");
+  ok(!db.prepare("SELECT 1 FROM cards WHERE sn='314159'").get(), "её номер 314 159 снова свободен");
+  // золотые: тираж 10 выпущен целиком, одну продали — следующая получит её место
+  for (let i = 1; i <= 10; i++) db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,created) VALUES(7,1,3,?,?,0,0,100,'[1,1,1,1,1]',0)").run(i, "5550" + String(i).padStart(2, "0"));
+  const g3 = db.prepare("SELECT id FROM cards WHERE h=1 AND f=3 AND no=3").get().id;
+  r = await call(7, "sell", { id: g3 }); ok(r.ok, "продал золотую 3/10");
+  const ids = r.S.cards.filter(c => c.h === 1 && c.f === 3).slice(0, 3).map(c => c.id);
+  r = await call(7, "craft", { ids, h: 1, f: 3 });
+  if (r.ok && r.res.win) ok(r.res.card.no === 3, "место 3/10 снова выпало: новая золотая получила № 3/10 (получено " + r.res.card.no + ")");
+  else ok(r.ok, "крафт золотой прошёл (не повезло, место 3/10 проверено ниже)");
+  r = await call(7, "sync"); ok(r.S.prints["1-3"] <= 10, "тираж считается по картам в игре: " + r.S.prints["1-3"] + "/10");
+}
+/* --- режим удачи --- */
+r = await call(7, "luck_set", { on: 1 }); ok(!r.ok && /доступа/.test(r.err), "обычному игроку режим удачи недоступен");
+{
+  const env2 = { ...env, ADMINS: "8" };
+  const call8 = async (a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a, p }) }), env2)).json();
+  r = await call8("sync"); ok(r.S.admin === true, "администратор видит админ-панель");
+  r = await call8("luck_set", { on: 1 }); ok(r.ok && r.res.on, "режим удачи включён");
+  let rare = 0, nice = 0; for (let i = 0; i < 4; i++) { r = await call8("open"); if (r.ok) { if (r.res.card.f >= 1) rare++; if (classify(r.res.card.sn)) nice++ } }
+  ok(rare >= 3 && nice >= 3, "с удачей: редких отделок " + rare + "/4, красивых номеров " + nice + "/4");
+  r = await call8("luck_set", { on: 0 }); ok(r.ok && !r.res.on, "режим удачи выключен");
 }
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");

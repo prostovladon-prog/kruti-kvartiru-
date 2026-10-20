@@ -147,8 +147,8 @@ function touch(st,now){refill(st,now);checkStreak(st,now);day(st,now);boss(st,no
    ctx даёт доступ к общему миру: сколько экземпляров уже выпущено и какие номера заняты.
    ctx = {now, issuedOf(h,f), nextNo(h,f), snFree(sn), takeSn(sn), newId(), events:[], test} */
 function genNumber(ctx,f){
-  if(Math.random()<NICE_P[f]){
-    const w=NICE.map((x,i)=>i<3?(f>=3?6:f===2?1.5:.3):i<6?(f>=2?4:1.2):3);
+  if(ctx.luck||Math.random()<NICE_P[f]){
+    const w=ctx.luck?NICE.map((x,i)=>i<3?8:i<6?5:1):NICE.map((x,i)=>i<3?(f>=3?6:f===2?1.5:.3):i<6?(f>=2?4:1.2):3);
     for(let t=0;t<6;t++){const c=NICE[pick(w)],opts=c.gen().filter(n=>ctx.snFree(n));if(opts.length){const n=opts[Math.floor(Math.random()*opts.length)];ctx.takeSn(n);return n}}
   }
   for(let t=0;t<1000;t++){const n=String(Math.floor(Math.random()*1e6)).padStart(6,"0");if(!classify(n)&&ctx.snFree(n)){ctx.takeSn(n);return n}}
@@ -169,10 +169,12 @@ function makeCard(ctx,h,f,preset){
 }
 /* соперник для боя: не выпускается в мир, пока его не выиграли */
 function phantom(h,f){const B=cardBody(h,f);const [a,b]=HT[HEROES[h][2]].b;return {id:"opp",h,f,no:0,sn:"000000",hue:B.hue,stats:B.stats,v:Math.round((a+Math.random()*(b-a))*FIN[f].m*100)/100,xp:0}}
+/* режим удачи (только для аккаунта администратора, включается на сервере): редкие воины, дорогие отделки, красивые номера */
+const HW_LUCK=[0,0,1,3,3], FW_LUCK=[0,2,3,3,2];
 function rollCard(ctx,epic){
   const pool=HEROES.map((H,i)=>i).filter(i=>!epic||HEROES[i][2]>=2);
-  const h=pool[pick(pool.map(i=>HW[HEROES[i][2]]))];
-  let f=pick(FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
+  const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
+  let f=pick(ctx.luck?FW_LUCK:FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
   return makeCard(ctx,h,f);
 }
 function addXp(ctx,c,x){const b=lvl(c);c.xp=(c.xp||0)+x;const a=lvl(c);if(a>b)ctx.events.push({t:"lvl",h:c.h,lv:a})}
@@ -182,7 +184,8 @@ function noteCard(st,c){st.best=Math.max(st.best||0,HEROES[c.h][2]);st.bestFin=M
 function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточка не найдена");return c}
 function freeCard(G,id){const c=own(G,id);if(c.away)fail("Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 function addCard(G,c){if(G.cards.length>=CAP)fail("Коллекция заполнена ("+CAP+"). Продай лишнее");G.cards.push(c);noteCard(G.st,c)}
-function burn(G,ids){G.cards=G.cards.filter(x=>!ids.includes(x.id))}
+/* карточка уходит из игры: её номер и место в тираже освобождаются и снова могут выпасть в прокрутках */
+function burn(G,ids){G.cards.forEach(x=>{if(ids.includes(x.id)&&G.ctx.release)G.ctx.release(x)});G.cards=G.cards.filter(x=>!ids.includes(x.id))}
 function pay(st,n){if(st.cash<n)fail("Не хватает $"+Math.ceil(n-st.cash));st.cash=Math.round((st.cash-n)*100)/100}
 function earn(st,n){st.cash=Math.round((st.cash+n)*100)/100}
 function aiPick(card,ex){let best=-1,bv=-1;for(let i=0;i<5;i++){if(ex.includes(i))continue;const v=eff(card,i)*(.85+Math.random()*.3);if(v>bv){bv=v;best=i}}return best}
@@ -282,6 +285,9 @@ const ACTIONS={
      поэтому награда выдаётся после открытия окна публикации */
   story(G){const w=weekKey(G.ctx.now);if(G.st.storyWeek===w)fail("За историю на этой неделе уже получено. Новая награда в понедельник");G.st.storyWeek=w;G.st.spins+=10;return {r:10}},
 
+  /* режим удачи на 3 часа: только администратор (сервер передаёт ctx.admin) */
+  luck_set(G){if(!G.ctx.admin)fail("Нет доступа");G.st.luckUntil=G.p.on?G.ctx.now+3*3600e3:0;return {on:!!G.p.on,until:G.st.luckUntil}},
+
   topup(G){if(!G.ctx.test)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */
@@ -325,7 +331,8 @@ async function ensureSchema(env){if(schemaOk)return;
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
     "ALTER TABLE users ADD COLUMN worth REAL NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN album INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN wins INTEGER NOT NULL DEFAULT 0",
     "CREATE INDEX IF NOT EXISTS users_worth ON users(worth)","CREATE INDEX IF NOT EXISTS users_album ON users(album)","CREATE INDEX IF NOT EXISTS users_wins ON users(wins)",
-    "CREATE INDEX IF NOT EXISTS cards_v ON cards(v) WHERE owner>0"])
+    "CREATE INDEX IF NOT EXISTS cards_v ON cards(v) WHERE owner>0",
+    "DELETE FROM cards WHERE owner=0"])   // старые проданные карточки: освобождаем их номера
     try{await env.DB.prepare(q).run()}catch(e){}
   schemaOk=true}
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,
@@ -343,19 +350,29 @@ async function loadUser(env,me){
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);
   return {u,cards};
 }
+/* Тираж считается по картам, которые сейчас в игре. Проданные системе карточки удаляются,
+   поэтому их номер и место в тираже (например, золотая 3/10) снова могут выпасть. */
 async function makeCtx(env,test){
-  const issued={},taken=new Set();let seq=0;
-  for(const r of (await env.DB.prepare("SELECT h,f,MAX(no) AS m FROM cards GROUP BY h,f").all()).results)issued[r.h+"-"+r.f]=r.m;
+  const cnt={},max={},gaps={},taken=new Set();let seq=0;
+  for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS n,MAX(no) AS m FROM cards GROUP BY h,f").all()).results){const k=r.h+"-"+r.f;cnt[k]=r.n;max[k]=r.m;
+    if(r.f>0&&r.m>=FIN[r.f].run&&r.n<FIN[r.f].run){   // тираж был выпущен целиком, но часть вернулась: ищем свободные места
+      const used=new Set((await env.DB.prepare("SELECT no FROM cards WHERE h=? AND f=?").bind(r.h,r.f).all()).results.map(x=>x.no));
+      gaps[k]=[];for(let i=1;i<=FIN[r.f].run;i++)if(!used.has(i))gaps[k].push(i)}}
   const nice=new Set((await env.DB.prepare("SELECT sn FROM cards WHERE nice=1").all()).results.map(r=>r.sn));
-  return {now:Date.now(),test,events:[],issuedOf:(h,f)=>issued[h+"-"+f]||0,nextNo:(h,f)=>issued[h+"-"+f]=(issued[h+"-"+f]||0)+1,
+  return {now:Date.now(),test,events:[],
+    issuedOf:(h,f)=>FIN[f].run===Infinity?(max[h+"-"+f]||0):(cnt[h+"-"+f]||0),
+    nextNo:(h,f)=>{const k=h+"-"+f;cnt[k]=(cnt[k]||0)+1;if(gaps[k]&&gaps[k].length)return gaps[k].shift();return max[k]=(max[k]||0)+1},
     snFree:s=>!nice.has(s)&&!taken.has(s),takeSn:s=>taken.add(s),newId:()=>"n"+(++seq)};
 }
+/* администраторы игры (id в Telegram). Можно задать и переменной ADMINS="id1,id2" в настройках воркера */
+const ADMINS=[6724818967];
+const isAdmin=(env,id)=>ADMINS.includes(id)||String(env.ADMINS||"").split(",").map(Number).includes(id);
 async function stateFor(env,me){
   const {u,cards}=await loadUser(env,me);
-  const prints={};for(const r of (await env.DB.prepare("SELECT h,f,MAX(no) AS m FROM cards WHERE f>0 GROUP BY h,f").all()).results)prints[r.h+"-"+r.f]=r.m;
+  const prints={};for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS m FROM cards WHERE f>0 GROUP BY h,f").all()).results)prints[r.h+"-"+r.f]=r.m;
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
-  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0});
+  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id)});
   S.spins=(S.spins??0)+(u.gift_spins||0);
   touch(S,Date.now());
   // числа для мирового топа: обновляем, только если изменились
@@ -375,6 +392,7 @@ async function doAction(env,me,name,p,extra){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
+    ctx.admin=isAdmin(env,me.id);ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
     const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
@@ -389,7 +407,7 @@ async function doAction(env,me,name,p,extra){
       if(before.get(c.id)!==JSON.stringify(c))stm.push(env.DB.prepare(`UPDATE cards SET xp=?,wins=?,stars=?,v=?,frame=?,away=?,dest=? WHERE id=? AND owner=? AND ${guard}`)
         .bind(c.xp|0,c.wins|0,c.stars|0,c.v,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
     }
-    for(const id of before.keys())if(!keep.has(id))stm.push(env.DB.prepare(`UPDATE cards SET owner=0 WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(id,me.id,me.id,nv));
+    for(const id of before.keys())if(!keep.has(id))stm.push(env.DB.prepare(`DELETE FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(id,me.id,me.id,nv));
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
     if(rs[0].meta.changes!==1)continue;
     const S=await stateFor(env,me);fixIds(out.res,S.cards);out.res.events=ctx.events;return {S,res:out.res};
@@ -558,6 +576,7 @@ export default {
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
       if(a==="sub_reward")fail("Неизвестное действие");
+      if(a==="luck_set"&&!isAdmin(env,me.id))fail("Нет доступа");
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
       if(!ACTIONS[a])fail("Неизвестное действие");
       const r=await doAction(env,me,a,p);return J({ok:true,...r});

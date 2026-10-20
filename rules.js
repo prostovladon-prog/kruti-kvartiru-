@@ -146,8 +146,8 @@ function touch(st,now){refill(st,now);checkStreak(st,now);day(st,now);boss(st,no
    ctx даёт доступ к общему миру: сколько экземпляров уже выпущено и какие номера заняты.
    ctx = {now, issuedOf(h,f), nextNo(h,f), snFree(sn), takeSn(sn), newId(), events:[], test} */
 function genNumber(ctx,f){
-  if(Math.random()<NICE_P[f]){
-    const w=NICE.map((x,i)=>i<3?(f>=3?6:f===2?1.5:.3):i<6?(f>=2?4:1.2):3);
+  if(ctx.luck||Math.random()<NICE_P[f]){
+    const w=ctx.luck?NICE.map((x,i)=>i<3?8:i<6?5:1):NICE.map((x,i)=>i<3?(f>=3?6:f===2?1.5:.3):i<6?(f>=2?4:1.2):3);
     for(let t=0;t<6;t++){const c=NICE[pick(w)],opts=c.gen().filter(n=>ctx.snFree(n));if(opts.length){const n=opts[Math.floor(Math.random()*opts.length)];ctx.takeSn(n);return n}}
   }
   for(let t=0;t<1000;t++){const n=String(Math.floor(Math.random()*1e6)).padStart(6,"0");if(!classify(n)&&ctx.snFree(n)){ctx.takeSn(n);return n}}
@@ -168,10 +168,12 @@ function makeCard(ctx,h,f,preset){
 }
 /* соперник для боя: не выпускается в мир, пока его не выиграли */
 function phantom(h,f){const B=cardBody(h,f);const [a,b]=HT[HEROES[h][2]].b;return {id:"opp",h,f,no:0,sn:"000000",hue:B.hue,stats:B.stats,v:Math.round((a+Math.random()*(b-a))*FIN[f].m*100)/100,xp:0}}
+/* режим удачи (только для аккаунта администратора, включается на сервере): редкие воины, дорогие отделки, красивые номера */
+const HW_LUCK=[0,0,1,3,3], FW_LUCK=[0,2,3,3,2];
 function rollCard(ctx,epic){
   const pool=HEROES.map((H,i)=>i).filter(i=>!epic||HEROES[i][2]>=2);
-  const h=pool[pick(pool.map(i=>HW[HEROES[i][2]]))];
-  let f=pick(FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
+  const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
+  let f=pick(ctx.luck?FW_LUCK:FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
   return makeCard(ctx,h,f);
 }
 function addXp(ctx,c,x){const b=lvl(c);c.xp=(c.xp||0)+x;const a=lvl(c);if(a>b)ctx.events.push({t:"lvl",h:c.h,lv:a})}
@@ -181,7 +183,8 @@ function noteCard(st,c){st.best=Math.max(st.best||0,HEROES[c.h][2]);st.bestFin=M
 function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточка не найдена");return c}
 function freeCard(G,id){const c=own(G,id);if(c.away)fail("Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 function addCard(G,c){if(G.cards.length>=CAP)fail("Коллекция заполнена ("+CAP+"). Продай лишнее");G.cards.push(c);noteCard(G.st,c)}
-function burn(G,ids){G.cards=G.cards.filter(x=>!ids.includes(x.id))}
+/* карточка уходит из игры: её номер и место в тираже освобождаются и снова могут выпасть в прокрутках */
+function burn(G,ids){G.cards.forEach(x=>{if(ids.includes(x.id)&&G.ctx.release)G.ctx.release(x)});G.cards=G.cards.filter(x=>!ids.includes(x.id))}
 function pay(st,n){if(st.cash<n)fail("Не хватает $"+Math.ceil(n-st.cash));st.cash=Math.round((st.cash-n)*100)/100}
 function earn(st,n){st.cash=Math.round((st.cash+n)*100)/100}
 function aiPick(card,ex){let best=-1,bv=-1;for(let i=0;i<5;i++){if(ex.includes(i))continue;const v=eff(card,i)*(.85+Math.random()*.3);if(v>bv){bv=v;best=i}}return best}
@@ -280,6 +283,9 @@ const ACTIONS={
   /* история в Telegram: +10 прокруток раз в неделю. Telegram не даёт ботам проверить, что история опубликована,
      поэтому награда выдаётся после открытия окна публикации */
   story(G){const w=weekKey(G.ctx.now);if(G.st.storyWeek===w)fail("За историю на этой неделе уже получено. Новая награда в понедельник");G.st.storyWeek=w;G.st.spins+=10;return {r:10}},
+
+  /* режим удачи на 3 часа: только администратор (сервер передаёт ctx.admin) */
+  luck_set(G){if(!G.ctx.admin)fail("Нет доступа");G.st.luckUntil=G.p.on?G.ctx.now+3*3600e3:0;return {on:!!G.p.on,until:G.st.luckUntil}},
 
   topup(G){if(!G.ctx.test)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };

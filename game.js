@@ -28,7 +28,8 @@ function save(){if(ONLINE||!S)return;try{localStorage.setItem(LKEY,JSON.stringif
 function localCtx(){S.issued=S.issued||{};S.used=S.used||{};
   const issuedOf=(h,f)=>{const k=h+"-"+f;if(S.issued[k]==null){const run=FIN[f].run;S.issued[k]=run===Infinity?3000+Math.floor(Math.random()*40000):Math.floor(Math.random()*run*.6)}return S.issued[k]};
   return {now:NOW(),test:true,events:[],issuedOf,nextNo:(h,f)=>S.issued[h+"-"+f]=issuedOf(h,f)+1,
-    snFree:s=>!S.used[s],takeSn:s=>{S.used[s]=1},newId:()=>S.seq=(S.seq||0)+1}}
+    snFree:s=>!S.used[s],takeSn:s=>{S.used[s]=1},newId:()=>S.seq=(S.seq||0)+1,
+    release:c=>{delete S.used[c.sn];const k=c.h+"-"+c.f;if(FIN[c.f].run!==Infinity&&S.issued[k]>0)S.issued[k]--}}}
 /* сколько экземпляров уже выпущено (для крафта и слияния) */
 function issuedOfUI(h,f){if(FIN[f].run===Infinity)return 0;return ONLINE?((S.prints||{})[h+"-"+f]||0):localCtx().issuedOf(h,f)}
 
@@ -540,6 +541,13 @@ function renderCraft(){
   else if(!crBusy)$("cr-res").textContent="";
   $("cr-res").className="result";
 }
+/* звук колеса: щелчок каждые 15° настоящего поворота стрелки, в зелёной зоне выше тоном */
+function wheelSound(el,ms,pp){if(reduce)return;whoosh(.5,.16);let last=null,acc=0,lastTick=0;const t0=performance.now();
+  (function f(t){const m=getComputedStyle(el).transform,v=m&&/matrix\(([^)]+)\)/.exec(m);
+    if(v){const [a,b]=v[1].split(",").map(Number),ang=Math.atan2(b,a)*180/Math.PI;
+      if(last!=null){let d=ang-last;if(d<-180)d+=360;if(d>180)d-=360;acc+=Math.abs(d);
+        if(acc-lastTick>=15){lastTick=acc;const pos=(ang+360)%360;sfx.tick(pos<pp*360);hap("light")}}last=ang}
+    if(t-t0<ms)requestAnimationFrame(f)})(t0)}
 $("cr-go").onclick=async()=>{
   if(crBusy)return;const p=crChance();if(!crSel.size||p<=0)return;
   crBusy=true;crLast=p;$("cr-go").disabled=true;
@@ -552,7 +560,7 @@ $("cr-go").onclick=async()=>{
   const pp=r.p,win=r.win,ang=win?Math.random()*pp*360*.94+pp*360*.03:pp*360+(360-pp*360)*(.03+Math.random()*.94);
   $("cr-arc").setAttribute("d",arcPath(pp));$("cr-p").textContent=(pp*100<1?"<1":Math.round(pp*100))+"%";
   crRot=crRot-(crRot%360)+360*6+ang;
-  const nd=$("cr-needle");nd.style.transition=reduce?"none":"";nd.style.transform=`rotate(${crRot}deg)`;
+  const nd=$("cr-needle");nd.style.transition=reduce?"none":"";nd.style.transform=`rotate(${crRot}deg)`;wheelSound(nd,4300,pp);
   $("cr-res").textContent="Крутим...";$("cr-res").className="result";
   setTimeout(()=>{
     let msg;
@@ -561,6 +569,7 @@ $("cr-go").onclick=async()=>{
     else msg="Не повезло. Сгорело "+ids.length+" шт. на "+fmt(r.lost);
     crBusy=false;renderCraft();renderAll();
     const el=$("cr-res");el.textContent=msg;el.className="result "+(win?"win":"lose");toast(win?"Крафт удался!":"Крафт не удался");
+    if(win){sfx.fanfare();hapN("success")}else{sfx.lose();hapN("error")}
   },reduce?50:4300);
 };
 
@@ -1085,7 +1094,11 @@ function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
-async function renderTop(force){$("my-nick").textContent=S.nick||"не выбран";$("nick-go").textContent=S.nick?"Сменить":"Выбрать";document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
+function renderAdmin(){const box=$("admin-box");box.hidden=!S.admin;if(!S.admin)return;const on=(S.luckUntil||0)>NOW();
+  $("luck-t").textContent=on?"Включён ещё "+tleft(S.luckUntil-NOW())+". Выпадают легендарные и мифические воины, дорогие отделки и красивые номера. Видишь эту панель только ты.":"Выключен. На 3 часа делает прокрутки на твоём аккаунте очень удачными. Проданные карточки потом вернутся в общий пул.";
+  $("luck-go").textContent=on?"Выключить":"Включить на 3 часа";$("luck-go").style.background=on?"var(--red)":""}
+$("luck-go").onclick=async()=>{const on=!((S.luckUntil||0)>NOW());const r=await act("luck_set",{on});if(r){renderAdmin();toast(on?"Режим удачи включён на 3 часа":"Режим удачи выключен")}};
+async function renderTop(force){renderAdmin();$("my-nick").textContent=S.nick||"не выбран";$("nick-go").textContent=S.nick?"Сменить":"Выбрать";document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
   $("top-h").textContent=TP[tpView].t;
   const box=$("top-list");if(!tpCache[tpView])box.innerHTML='<p style="margin:0;color:#5a5f80">Загружаю…</p>';
   const kind=tpView,r=await loadTop(kind,force);if(!r||kind!==tpView)return;

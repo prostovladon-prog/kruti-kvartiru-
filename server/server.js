@@ -33,7 +33,8 @@ async function ensureSchema(env){if(schemaOk)return;
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
     "ALTER TABLE users ADD COLUMN worth REAL NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN album INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN wins INTEGER NOT NULL DEFAULT 0",
     "CREATE INDEX IF NOT EXISTS users_worth ON users(worth)","CREATE INDEX IF NOT EXISTS users_album ON users(album)","CREATE INDEX IF NOT EXISTS users_wins ON users(wins)",
-    "CREATE INDEX IF NOT EXISTS cards_v ON cards(v) WHERE owner>0"])
+    "CREATE INDEX IF NOT EXISTS cards_v ON cards(v) WHERE owner>0",
+    "DELETE FROM cards WHERE owner=0"])   // старые проданные карточки: освобождаем их номера
     try{await env.DB.prepare(q).run()}catch(e){}
   schemaOk=true}
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,
@@ -51,19 +52,29 @@ async function loadUser(env,me){
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);
   return {u,cards};
 }
+/* Тираж считается по картам, которые сейчас в игре. Проданные системе карточки удаляются,
+   поэтому их номер и место в тираже (например, золотая 3/10) снова могут выпасть. */
 async function makeCtx(env,test){
-  const issued={},taken=new Set();let seq=0;
-  for(const r of (await env.DB.prepare("SELECT h,f,MAX(no) AS m FROM cards GROUP BY h,f").all()).results)issued[r.h+"-"+r.f]=r.m;
+  const cnt={},max={},gaps={},taken=new Set();let seq=0;
+  for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS n,MAX(no) AS m FROM cards GROUP BY h,f").all()).results){const k=r.h+"-"+r.f;cnt[k]=r.n;max[k]=r.m;
+    if(r.f>0&&r.m>=FIN[r.f].run&&r.n<FIN[r.f].run){   // тираж был выпущен целиком, но часть вернулась: ищем свободные места
+      const used=new Set((await env.DB.prepare("SELECT no FROM cards WHERE h=? AND f=?").bind(r.h,r.f).all()).results.map(x=>x.no));
+      gaps[k]=[];for(let i=1;i<=FIN[r.f].run;i++)if(!used.has(i))gaps[k].push(i)}}
   const nice=new Set((await env.DB.prepare("SELECT sn FROM cards WHERE nice=1").all()).results.map(r=>r.sn));
-  return {now:Date.now(),test,events:[],issuedOf:(h,f)=>issued[h+"-"+f]||0,nextNo:(h,f)=>issued[h+"-"+f]=(issued[h+"-"+f]||0)+1,
+  return {now:Date.now(),test,events:[],
+    issuedOf:(h,f)=>FIN[f].run===Infinity?(max[h+"-"+f]||0):(cnt[h+"-"+f]||0),
+    nextNo:(h,f)=>{const k=h+"-"+f;cnt[k]=(cnt[k]||0)+1;if(gaps[k]&&gaps[k].length)return gaps[k].shift();return max[k]=(max[k]||0)+1},
     snFree:s=>!nice.has(s)&&!taken.has(s),takeSn:s=>taken.add(s),newId:()=>"n"+(++seq)};
 }
+/* администраторы игры (id в Telegram). Можно задать и переменной ADMINS="id1,id2" в настройках воркера */
+const ADMINS=[6724818967];
+const isAdmin=(env,id)=>ADMINS.includes(id)||String(env.ADMINS||"").split(",").map(Number).includes(id);
 async function stateFor(env,me){
   const {u,cards}=await loadUser(env,me);
-  const prints={};for(const r of (await env.DB.prepare("SELECT h,f,MAX(no) AS m FROM cards WHERE f>0 GROUP BY h,f").all()).results)prints[r.h+"-"+r.f]=r.m;
+  const prints={};for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS m FROM cards WHERE f>0 GROUP BY h,f").all()).results)prints[r.h+"-"+r.f]=r.m;
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
-  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0});
+  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id)});
   S.spins=(S.spins??0)+(u.gift_spins||0);
   touch(S,Date.now());
   // числа для мирового топа: обновляем, только если изменились
@@ -83,6 +94,7 @@ async function doAction(env,me,name,p,extra){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
+    ctx.admin=isAdmin(env,me.id);ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
     const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
@@ -97,7 +109,7 @@ async function doAction(env,me,name,p,extra){
       if(before.get(c.id)!==JSON.stringify(c))stm.push(env.DB.prepare(`UPDATE cards SET xp=?,wins=?,stars=?,v=?,frame=?,away=?,dest=? WHERE id=? AND owner=? AND ${guard}`)
         .bind(c.xp|0,c.wins|0,c.stars|0,c.v,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
     }
-    for(const id of before.keys())if(!keep.has(id))stm.push(env.DB.prepare(`UPDATE cards SET owner=0 WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(id,me.id,me.id,nv));
+    for(const id of before.keys())if(!keep.has(id))stm.push(env.DB.prepare(`DELETE FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(id,me.id,me.id,nv));
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
     if(rs[0].meta.changes!==1)continue;
     const S=await stateFor(env,me);fixIds(out.res,S.cards);out.res.events=ctx.events;return {S,res:out.res};
@@ -266,6 +278,7 @@ export default {
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
       if(a==="sub_reward")fail("Неизвестное действие");
+      if(a==="luck_set"&&!isAdmin(env,me.id))fail("Нет доступа");
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
       if(!ACTIONS[a])fail("Неизвестное действие");
       const r=await doAction(env,me,a,p);return J({ok:true,...r});
