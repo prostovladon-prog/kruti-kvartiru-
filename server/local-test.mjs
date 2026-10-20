@@ -135,5 +135,25 @@ r = await call(2, "profile", { uid: 1 }); ok(r.res.name === "Царь_Горы",
 db.prepare("UPDATE users SET cash=0 WHERE id=1").run();
 r = await call(1, "nick", { nick: "Новый" }); ok(!r.ok && /1000/.test(r.err), "смена ника стоит $1000: " + r.err);
 
+/* --- бот: /start, приглашение через бота, настройка --- */
+{
+  const sent = []; const realFetch = globalThis.fetch;
+  globalThis.fetch = async (u, o) => { sent.push({ m: String(u).split("/").pop(), b: JSON.parse(o.body) }); return new Response('{"ok":true,"result":true}') };
+  const sec = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("hook:" + env.BOT_TOKEN))).toString("hex").slice(0, 48);
+  const upd = (text, id = 900) => worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "X-Telegram-Bot-Api-Secret-Token": sec }, body: JSON.stringify({ message: { chat: { id, type: "private" }, from: { id, first_name: "Гость" }, text } }) }), env);
+  const bad = await worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "X-Telegram-Bot-Api-Secret-Token": "x" }, body: "{}" }), env);
+  ok(bad.status === 403, "чужие запросы к боту отклоняются");
+  r = await call(1, "sync"); const s1 = r.S.spins;
+  await upd("/start r_1");
+  ok(sent.at(-1).m === "sendPhoto" && sent.at(-1).b.reply_markup.inline_keyboard[0][0].web_app, "на /start бот присылает картинку и кнопку «Играть»");
+  r = await call(1, "sync"); ok(r.S.spins === s1 + 10, "приглашение через /start r_1 тоже засчитано");
+  await upd("/start r_1"); r = await call(1, "sync"); ok(r.S.spins === s1 + 10, "повторный /start не засчитывается");
+  await upd("/invite"); ok(sent.at(-1).m === "sendMessage" && /startapp=r_900/.test(sent.at(-1).b.text), "/invite даёт личную ссылку");
+  sent.length = 0; const st = await (await worker.fetch(new Request("https://x/setup"), env)).text();
+  ok(/Готово/.test(st) && sent.map(x => x.m).join() === "setWebhook,setMyName,setMyShortDescription,setMyDescription,setMyCommands,setChatMenuButton", "/setup настраивает бота: " + sent.map(x => x.m).join(", "));
+  ok(sent[3].b.description.length <= 512 && sent[2].b.short_description.length <= 120, "описания влезают в лимиты Telegram (" + sent[3].b.description.length + "/512, " + sent[2].b.short_description.length + "/120)");
+  globalThis.fetch = realFetch;
+}
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

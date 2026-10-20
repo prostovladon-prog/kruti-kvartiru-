@@ -327,14 +327,15 @@ async function ensureSchema(env){if(schemaOk)return;
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,
   away:r.away,dest:r.dest,listed:r.list_price!=null?1:0,listPrice:r.list_price||0}}
 const pub=c=>({id:c.id,h:c.h,f:c.f,no:c.no,sn:c.sn,hue:c.hue,v:c.v,stats:c.stats,xp:c.xp,wins:c.wins,stars:c.stars||0,frame:c.frame});
+/* новый игрок. Приглашение (r_<id друга>) засчитывается только новому игроку и не самому себе */
+async function createUser(env,me){const st=freshState(),cash=st.cash,now=Date.now();delete st.cash;
+  const m=/^r_(\d+)$/.exec(me.start||""),inviter=m&&+m[1]!==me.id?+m[1]:null;
+  const ins=await env.DB.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,created,updated,ref) VALUES(?,?,?,?,0,?,?,?)").bind(me.id,me.name,cash,JSON.stringify(st),now,now,inviter).run();
+  if(inviter&&ins.meta.changes===1)await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+10 WHERE id=?").bind(inviter).run();
+  return ins.meta.changes===1}
 async function loadUser(env,me){
   let u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first();
-  if(!u){const st=freshState(),cash=st.cash,now=Date.now();delete st.cash;
-    // приглашение: ссылка t.me/бот?startapp=r_<id друга>. Засчитывается только новому игроку и не самому себе
-    const m=/^r_(\d+)$/.exec(me.start||""),inviter=m&&+m[1]!==me.id?+m[1]:null;
-    const ins=await env.DB.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,created,updated,ref) VALUES(?,?,?,?,0,?,?,?)").bind(me.id,me.name,cash,JSON.stringify(st),now,now,inviter).run();
-    if(inviter&&ins.meta.changes===1)await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+10 WHERE id=?").bind(inviter).run();
-    u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first()}
+  if(!u){await createUser(env,me);u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first()}
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);
   return {u,cards};
 }
@@ -490,11 +491,51 @@ async function subCheck(env,me){
   return doAction(env,me,"sub_reward",{},{subOk:true});
 }
 
+/* ---------- бот: ответ на /start и настройка ----------
+   Один раз открой в браузере https://<адрес воркера>/setup — сервер сам подключит бота
+   и заполнит название, описание и команды. */
+const PAGE="https://prostovladon-prog.github.io/kruti-kvartiru-/";
+const BOT_TEXT={
+  name:"Воины Эпох",
+  short:"Крути карточки воинов всех эпох: редкие номера, золото и ошибки печати. Бои, рынок и топ мира ⚔️",
+  desc:"⚔️ ВОИНЫ ЭПОХ: коллекционная игра с карточками воинов\n\n🎴 Бесплатные прокрутки каждые 4 часа: от ополченца до Сёгуна и Мерлина\n💎 Каждая карточка одна в своём роде: свой номер, тираж и отделка. Ошибка печати одна на всю игру\n🔥 Закаляй воинов до ★5\n⚔️ Бои с друзьями, босс недели, рынок между игроками\n🏆 Поднимайся в топ мира\n\nЖми «Начать» 👇",
+  cmds:[{command:"start",description:"Играть"},{command:"help",description:"Как играть"},{command:"invite",description:"Пригласить друга (+10 прокруток)"}]};
+async function tgApi(env,method,body){const r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});return r.json().catch(()=>({ok:false}))}
+async function hookSecret(env){return hex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("hook:"+env.BOT_TOKEN)))).slice(0,48)}
+async function setup(env,origin){const out={};
+  out.webhook=await tgApi(env,"setWebhook",{url:origin+"/tg",secret_token:await hookSecret(env),allowed_updates:["message"]});
+  out.name=await tgApi(env,"setMyName",{name:BOT_TEXT.name});
+  out.short=await tgApi(env,"setMyShortDescription",{short_description:BOT_TEXT.short});
+  out.desc=await tgApi(env,"setMyDescription",{description:BOT_TEXT.desc});
+  out.cmds=await tgApi(env,"setMyCommands",{commands:BOT_TEXT.cmds});
+  out.menu=await tgApi(env,"setChatMenuButton",{menu_button:{type:"web_app",text:"Играть",web_app:{url:PAGE}}});
+  const ok=Object.values(out).every(r=>r&&r.ok);
+  return new Response((ok?"✅ Готово! Бот настроен: приветствие, описание, команды и кнопка «Играть».":"⚠️ Не всё получилось, подробности ниже. Если ошибка про токен, проверь секрет BOT_TOKEN.")+"\n\n"+Object.entries(out).map(([k,v])=>k+": "+(v&&v.ok?"ok":JSON.stringify(v))).join("\n"),{headers:{"Content-Type":"text/plain; charset=utf-8"}});
+}
+async function onUpdate(env,upd){const m=upd.message;if(!m||!m.chat||m.chat.type!=="private"||!m.from)return;
+  const text=String(m.text||""),[cmd,arg]=text.split(/\s+/),name=String(m.from.first_name||"воин").slice(0,32);
+  const play=(t,url)=>({inline_keyboard:[[{text:t,web_app:{url:url||PAGE}}],[{text:"📣 Канал игры",url:"https://t.me/"+CHANNEL.slice(1)}]]});
+  if(cmd==="/start"&&arg&&/^r_\d+$/.test(arg))await createUser(env,{id:m.from.id,name,start:arg});   // приглашение по ссылке ?start=r_<id>
+  if(cmd==="/invite"){
+    const link="https://t.me/"+(env.BOT_USERNAME||"VoinyEpohBot")+"?startapp=r_"+m.from.id;
+    return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"Твоя ссылка для друзей:\n"+link+"\n\nЗа каждого нового игрока, который зайдёт по ней, ты получишь +10 прокруток 🎁",
+      reply_markup:{inline_keyboard:[[{text:"📤 Отправить другу",url:"https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent("Залетай в «Воины Эпох»: крути карточки воинов и собирай легенды!")}]]}})}
+  if(cmd==="/help")return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"Как играть:\n\n🎴 Жми «Играть» и открывай карточки. 3 бесплатные прокрутки каждые 4 часа\n💎 Редкость, отделка и номер решают цену. Красивые номера (777 777, 000 001) стоят дороже\n🔥 Закаляй воинов до ★5 и качай уровень в боях и походах\n🛒 Продавай и покупай карточки на рынке у других игроков\n🏆 Смотри своё место в топе мира\n\n🎁 +10 прокруток за подписку на "+CHANNEL+" и за каждого друга (/invite)",reply_markup:play("⚔️ Играть")});
+  return tgApi(env,"sendPhoto",{chat_id:m.chat.id,photo:PAGE+"assets/welcome.png",
+    caption:"Привет, "+name+"! Добро пожаловать в «Воины Эпох» ⚔️\n\nТебя ждут 5 бесплатных прокруток. Открой первую карточку, вдруг выпадет легенда?\n\n🎁 +10 прокруток за подписку на "+CHANNEL+" и за каждого друга",
+    reply_markup:play("⚔️ Играть")});
+}
+
 /* ---------- маршрутизация ---------- */
 export default {
   async fetch(req,env){
     if(req.method==="OPTIONS")return new Response(null,{headers:CORS});
+    const url=new URL(req.url);
+    if(req.method==="GET"&&url.pathname==="/setup"){await ensureSchema(env);return setup(env,url.origin)}
     if(req.method==="GET")return J({ok:true,game:"Воины Эпох",server:"работает"});
+    if(url.pathname==="/tg"){   // сообщения боту от Telegram
+      if(req.headers.get("X-Telegram-Bot-Api-Secret-Token")!==await hookSecret(env))return new Response("no",{status:403});
+      await ensureSchema(env);try{await onUpdate(env,await req.json())}catch(e){console.error("bot",e)}return new Response("ok")}
     let me=null;
     await ensureSchema(env);
     if(env.DEV==="1"&&req.headers.get("X-Dev-User"))me={id:+req.headers.get("X-Dev-User")||1,name:"Тестер "+req.headers.get("X-Dev-User"),start:req.headers.get("X-Dev-Start")||"",dev:1};
