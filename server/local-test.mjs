@@ -171,6 +171,21 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
   r = await call(1, "sync"); ok(r.S.chatLast > 0, "в состоянии есть номер последнего сообщения для значка «новое»");
 }
 
+/* --- основатели: 3 эксклюзивные карточки за 15 друзей --- */
+{
+  const tre = db.prepare("SELECT COUNT(*) n FROM cards WHERE owner=-1 AND f=5").get().n; ok(tre === 3, "в казне 3 карточки «Основатель»");
+  r = await call(7000, "sync"); ok(r.S.foundersLeft === 3 && !r.S.founder, "осталось 3 из 3");
+  for (let i = 1; i <= 14; i++) await call(70000 + i, "sync", {}, "r_7000");
+  r = await call(7000, "sync"); ok(!r.S.founder && r.S.refs === 14, "14 друзей: ещё не основатель");
+  await call(70015, "sync", {}, "r_7000");
+  r = await call(7000, "sync"); const fc = r.S.cards.find(c => c.f === 5);
+  ok(r.S.founder && r.S.founderNew && fc && fc.stars === 5, "15-й друг: карточка «Основатель» у игрока (" + (fc && fc.sn) + ", ★" + (fc && fc.stars) + ")");
+  r = await call(7000, "sync"); ok(!r.S.founderNew && r.S.foundersLeft === 2, "уведомление один раз, в казне осталось " + r.S.foundersLeft);
+  for (let i = 16; i <= 20; i++) await call(70000 + i, "sync", {}, "r_7000");
+  r = await call(7000, "sync"); ok(r.S.cards.filter(c => c.f === 5).length === 1, "второй карточки за тех же друзей не будет");
+  await call(7000, "open"); r = await call(7000, "sync"); r = await call(7000, "craft", { ids: [r.S.cards.find(c => c.f !== 5).id], h: 0, f: 5 }); ok(!r.ok, "«Основателя» нельзя скрафтить");
+}
+
 /* --- история --- */
 r = await call(1, "sync"); const sp1 = r.S.spins;
 r = await call(1, "story"); ok(r.ok && r.S.spins === sp1 + 10, "история: +10 прокруток");

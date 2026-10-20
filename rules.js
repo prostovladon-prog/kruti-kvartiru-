@@ -44,7 +44,10 @@ const FIN=[
  {k:"Блестящая",cls:"shiny",w:16,m:4,run:1000,col:"#b8c2d8"},
  {k:"Голограмма",cls:"holo",w:5,m:15,run:100,col:"#c56bff"},
  {k:"Золотая",cls:"gold",w:.9,m:80,run:10,col:"#ffcc33"},
- {k:"Ошибка печати",cls:"error",w:.1,m:600,run:1,col:"#ff2e63"}];
+ {k:"Ошибка печати",cls:"error",w:.1,m:600,run:1,col:"#ff2e63"},
+ {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1}];   // не выпадает: 3 карточки за 15 приглашённых друзей
+/* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
+const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
 const HW=[10,4.5,1.6,.55,.12];          // вес выпадения воина по его редкости
 
 /* ---------- номера карточек: 6 цифр, уникальны на всю игру ---------- */
@@ -213,7 +216,7 @@ const ACTIONS={
     const got=Math.round(list.reduce((a,c)=>a+c.v*QUICK,0)*100)/100;burn(G,list.map(c=>c.id));earn(G.st,got);return {got,n:list.length}},
 
   craft(G){const {st,ctx,p}=G;const ids=[...new Set(p.ids||[])];if(!ids.length||ids.length>5)fail("Выбери от 1 до 5 карточек");
-    const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");
+    const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
     if(FIN[f].run!==Infinity&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
     const inp=ids.map(id=>freeCard(G,id)),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),amu=p.amu?.1:0;
     if(amu)pay(st,amuCost(h,f));

@@ -45,7 +45,10 @@ const FIN=[
  {k:"Блестящая",cls:"shiny",w:16,m:4,run:1000,col:"#b8c2d8"},
  {k:"Голограмма",cls:"holo",w:5,m:15,run:100,col:"#c56bff"},
  {k:"Золотая",cls:"gold",w:.9,m:80,run:10,col:"#ffcc33"},
- {k:"Ошибка печати",cls:"error",w:.1,m:600,run:1,col:"#ff2e63"}];
+ {k:"Ошибка печати",cls:"error",w:.1,m:600,run:1,col:"#ff2e63"},
+ {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1}];   // не выпадает: 3 карточки за 15 приглашённых друзей
+/* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
+const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
 const HW=[10,4.5,1.6,.55,.12];          // вес выпадения воина по его редкости
 
 /* ---------- номера карточек: 6 цифр, уникальны на всю игру ---------- */
@@ -214,7 +217,7 @@ const ACTIONS={
     const got=Math.round(list.reduce((a,c)=>a+c.v*QUICK,0)*100)/100;burn(G,list.map(c=>c.id));earn(G.st,got);return {got,n:list.length}},
 
   craft(G){const {st,ctx,p}=G;const ids=[...new Set(p.ids||[])];if(!ids.length||ids.length>5)fail("Выбери от 1 до 5 карточек");
-    const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");
+    const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
     if(FIN[f].run!==Infinity&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
     const inp=ids.map(id=>freeCard(G,id)),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),amu=p.amu?.1:0;
     if(amu)pay(st,amuCost(h,f));
@@ -350,8 +353,14 @@ async function ensureSchema(env){if(schemaOk)return;
     "ALTER TABLE users ADD COLUMN stake INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE fights ADD COLUMN stake INTEGER NOT NULL DEFAULT 0","ALTER TABLE fights ADD COLUMN took INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE users ADD COLUMN pioneer INTEGER NOT NULL DEFAULT 0",
-    "CREATE UNIQUE INDEX IF NOT EXISTS users_pioneer ON users(pioneer) WHERE pioneer>0"])   // старые проданные карточки: освобождаем их номера
+    "CREATE UNIQUE INDEX IF NOT EXISTS users_pioneer ON users(pioneer) WHERE pioneer>0",
+    "ALTER TABLE users ADD COLUMN founder INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN founder_seen INTEGER NOT NULL DEFAULT 0"])
     try{await env.DB.prepare(q).run()}catch(e){}
+  // три карточки «Основатель» в казне игры (владелец -1). Если номер уже занят, берём запасной
+  for(const F of FOUNDERS){const have=await env.DB.prepare("SELECT 1 FROM cards WHERE f=5 AND h=?").bind(F.h).first();if(have)continue;
+    for(const sn of [F.sn,F.sn.slice(0,5)+"0","00000"+(FOUNDERS.indexOf(F)+3)]){
+      try{const r=await env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created) VALUES(-1,?,5,1,?,1,?,?,?,2500,0,5,?)")
+        .bind(F.h,sn,HEROES[F.h][4].hue,250000,JSON.stringify(F.stats),Date.now()).run();if(r.meta.changes)break}catch(e){}}}
   schemaOk=true}
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,
   away:r.away,dest:r.dest,listed:r.list_price!=null?1:0,listPrice:r.list_price||0}}
@@ -363,7 +372,12 @@ const bump=(env,k,day)=>env.DB.prepare("INSERT INTO stats(day,k,n) VALUES(?,?,1)
 async function createUser(env,me){const st=freshState(),cash=st.cash,now=Date.now();delete st.cash;
   const m=/^r_(\d+)$/.exec(me.start||""),inviter=m&&+m[1]!==me.id?+m[1]:null;
   const ins=await env.DB.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,created,updated,ref) VALUES(?,?,?,?,0,?,?,?)").bind(me.id,me.name,cash,JSON.stringify(st),now,now,inviter).run();
-  if(inviter&&ins.meta.changes===1)await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+10 WHERE id=?").bind(inviter).run();
+  if(inviter&&ins.meta.changes===1){await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+10 WHERE id=?").bind(inviter).run();
+    // 15 друзей: первые трое получают по карточке «Основатель» из казны
+    const iv=await env.DB.prepare("SELECT refs,founder FROM users WHERE id=?").bind(inviter).first();
+    if(iv&&iv.refs>=FOUNDER_REFS&&!iv.founder){const c=await env.DB.prepare("SELECT id FROM cards WHERE owner=-1 AND f=5 ORDER BY id LIMIT 1").first();
+      if(c){const t=await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=-1").bind(inviter,c.id).run();
+        if(t.meta.changes===1)await env.DB.prepare("UPDATE users SET founder=? WHERE id=? AND founder=0").bind(c.id,inviter).run()}}}
   if(ins.meta.changes===1)try{await env.DB.batch([bump(env,"new"),...(inviter?[bump(env,"new_ref")]:[])])}catch(e){}
   return ins.meta.changes===1}
 async function loadUser(env,me){
@@ -401,8 +415,9 @@ async function stateFor(env,me){
   const prints={};for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS m FROM cards WHERE f>0 GROUP BY h,f").all()).results)prints[r.h+"-"+r.f]=r.m;
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
-  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,pioneer:u.pioneer||0,pioneerNew,pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
+  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   S.spins=(S.spins??0)+(u.gift_spins||0);
+  if(u.founder&&!u.founder_seen){await env.DB.prepare("UPDATE users SET founder_seen=1 WHERE id=?").bind(me.id).run();delete topCache.founders}
   // кто нападал на мои карточки за 3 дня: для уведомлений и реванша
   S.fights=(await env.DB.prepare("SELECT id,att_name,att_card,att_h,def_h,w,l,t,seen,stake,took FROM fights WHERE def=? AND t>? ORDER BY id DESC LIMIT 6").bind(me.id,Date.now()-3*864e5).all()).results;
   if(S.fights.some(f=>!f.seen))await env.DB.prepare("UPDATE fights SET seen=1 WHERE def=? AND seen=0").bind(me.id).run();

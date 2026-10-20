@@ -542,3 +542,15 @@ nav.tabs.onb-hl{position:fixed;border-radius:0}
 
 .face.front[data-frame=pioneer]{--edge:linear-gradient(115deg,#14110a 0%,#ffd60a 22%,#fff6c8 32%,#ffd60a 42%,#14110a 50%,#ffd60a 72%,#fff6c8 82%,#ffd60a 92%,#14110a 100%);background-size:200% 200%;animation:pioedge 3s linear infinite;box-shadow:6px 6px 0 var(--ink),0 0 26px 6px rgba(255,214,10,.6)}
 @keyframes pioedge{from{background-position:0 0}to{background-position:200% 200%}}
+
+/* ---------- отделка «Основатель» ---------- */
+.front.founder{--edge:conic-gradient(from var(--ang,0deg),#000,#ffd60a,#ff3b30,#000,#ffd60a,#fff6c8,#000);animation:spinang 3s linear infinite;box-shadow:6px 6px 0 var(--ink),0 0 34px 8px rgba(255,59,48,.55)}
+.front.founder .in{background:linear-gradient(160deg,#2a0a0a,#120606)}
+.front.founder .art{background:radial-gradient(circle at 50% 45%,#ff3b30 0,#7a0f12 35%,#1a0505 75%),#1a0505}
+.front.founder .art svg.burst{color:#ffd60a;opacity:.7}
+.front.founder .top{background:linear-gradient(90deg,#000,#b47b10,#000)}
+.front.founder .top b{color:#ffe48a;text-shadow:1.5px 1.5px 0 #000,0 0 10px #ffd60a}
+.front.founder .power{background:#1a0505;color:#ffe9b0;border-top-color:#000}
+.front.founder .power b{color:#ffd60a}
+.front.founder .finish{background:linear-gradient(90deg,#ffd60a,#ff3b30);color:#000}
+.front.founder .in::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;background:linear-gradient(115deg,transparent 30%,rgba(255,240,180,.9) 47%,transparent 62%);background-size:250% 100%;animation:sweep 2.2s linear infinite}

@@ -483,7 +483,7 @@ $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;r
 
 
 /* ---------- odds ---------- */
-$("odds").innerHTML=FIN.map(f=>`<div><i style="--s:${f.col}"></i><b style="text-align:left;min-width:0">${f.k}</b><span>${f.run===Infinity?"без лимита":"тираж "+f.run}</span><b>${String(f.w).replace(".",",")}%</b></div>`).join("");
+$("odds").innerHTML=FIN.filter(f=>!f.excl).map(f=>`<div><i style="--s:${f.col}"></i><b style="text-align:left;min-width:0">${f.k}</b><span>${f.run===Infinity?"без лимита":"тираж "+f.run}</span><b>${String(f.w).replace(".",",")}%</b></div>`).join("");
 
 $("nums").innerHTML=NICE.map(n=>`<div><b>${n.ex}</b><span>${n.k}</span><b>×${n.m}</b></div>`).join("");
 
@@ -521,7 +521,7 @@ function renderCraft(){
   $("cr-hint").textContent=crSel.size?"Выбрано "+crSel.size+" из 5":"Выбери от 1 до 5 карточек из коллекции.";
   // target finishes
   const fb=$("cr-fins");fb.innerHTML="";
-  FIN.forEach((F,i)=>{const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
+  FIN.forEach((F,i)=>{if(F.excl)return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
     b.onclick=()=>{if(crBusy)return;crF=i;renderCraft()};fb.appendChild(b)});
   const tg=$("cr-tgt");tg.innerHTML="";
   HEROES.forEach((H,i)=>{const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
@@ -965,6 +965,18 @@ $("sub-go").onclick=async()=>{
   const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +10 прокруток")};
 /* история в Telegram: открываем редактор с готовой картинкой и личной ссылкой, затем забираем награду */
 let storyStep=0;
+/* основатели: 3 эксклюзивные карточки первым трём, кто пригласит 15 друзей */
+function renderFounder(){const row=$("fnd-row");if(!row)return;const left=S.foundersLeft??3,refs=S.refs||0;
+  row.hidden=!S.founder&&left<=0;if(row.hidden)return;
+  const b=$("fnd-go");
+  if(S.founder){$("fnd-h").textContent="🏆 Ты Основатель!";$("fnd-t").textContent="Эксклюзивная карточка «Основатель» у тебя. Таких всего 3 в игре, и больше их не будет";b.textContent="Смотреть";$("fnd-bar").parentNode.hidden=true}
+  else{$("fnd-h").textContent="🏆 Основатели: 15 друзей";$("fnd-t").textContent="Первые трое, кто пригласит 15 друзей, получат по эксклюзивной карточке «Основатель» ★5. Её нет в прокрутках. Осталось "+left+" из 3, у тебя "+Math.min(refs,FOUNDER_REFS)+" из "+FOUNDER_REFS;
+    b.textContent="Пригласить";$("fnd-bar").parentNode.hidden=false;$("fnd-bar").style.width=Math.min(1,refs/FOUNDER_REFS)*100+"%"}}
+$("fnd-go").onclick=()=>{if(S.founder){const c=S.cards.find(x=>x.id===S.founder)||S.cards.find(x=>x.f===5);if(c)openCardView(c,{mine:true});else toast("Карточки «Основатель» сейчас нет в твоей коллекции");return}$("ref-go").click()};
+let fndShown=false;
+function founderNews(){if(!S||!S.founderNew||fndShown)return;fndShown=true;setTimeout(()=>{sfx.fanfare();burst(4);hapN("success");
+  toast("🏆 15 друзей! Ты Основатель: эксклюзивная карточка уже в коллекции");const c=S.cards.find(x=>x.id===S.founder)||S.cards.find(x=>x.f===5);if(c)setTimeout(()=>openCardView(c,{mine:true}),1200)},1500)}
+
 /* первопроходцы: первые 100 игроков */
 function renderPioneer(){const row=$("pio-row");if(!row)return;row.hidden=!S.pioneer;if(!S.pioneer)return;
   $("pio-h").textContent="🏅 Первопроходец №"+S.pioneer;$("pio-t").textContent="Ты среди первых "+PIONEERS+" игроков! +"+PIONEER_SPINS+" прокруток уже твои, а рамку «Первопроходец» больше никто не получит. Надень её в Лавке бесплатно"}
@@ -1180,7 +1192,7 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();$("topup").hidden=ONLINE&&!S.test&&!S.admin}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
