@@ -1094,7 +1094,33 @@ function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
-function renderAdmin(){const box=$("admin-box");box.hidden=!S.admin;if(!S.admin)return;const on=(S.luckUntil||0)>NOW();
+/* ---------- статистика для администратора (видит только он) ---------- */
+let stAt=0,stData=null;
+const pct=(a,b)=>b?Math.round(a/b*100)+"%":"—";
+async function loadStats(force){if(!S.admin||!ONLINE)return;if(!force&&stData&&NOW()-stAt<60000){drawStats();return}
+  const r=await act("stats");if(!r)return;stData=r;stAt=NOW();drawStats()}
+function drawStats(){const R=stData,b=$("st-body");if(!R)return;
+  const tile=(v,l,sub)=>`<div class="stt"><b class="num">${v}</b><span>${l}</span>${sub?`<small>${sub}</small>`:""}</div>`;
+  const max=Math.max(1,...R.days.map(d=>Math.max(d.n,d.a))),W=300,H=110,bw=W/R.days.length;
+  const bars=R.days.map((d,i)=>{const x=i*bw,ha=d.a/max*(H-20),hn=d.n/max*(H-20);
+    return `<rect x="${x+2}" y="${H-14-ha}" width="${bw/2-2}" height="${ha}" rx="2" fill="#0a84ff"><title>${d.d}: активных ${d.a}</title></rect><rect x="${x+bw/2}" y="${H-14-hn}" width="${bw/2-2}" height="${hn}" rx="2" fill="#ffb800"><title>${d.d}: новых ${d.n}</title></rect>`+(i%2===1||i===R.days.length-1?`<text x="${x+bw/2}" y="${H-2}" text-anchor="middle" font-size="9" fill="#5a5f80">${+d.d.slice(8)}</text>`:"")}).join("");
+  b.innerHTML=`<div class="stgrid">
+    ${tile(fmtN(R.players),"игроков всего",R.withNick+" с ником")}
+    ${tile(fmtN(R.newToday),"новых сегодня","вчера "+R.newYesterday+", за 7 дней "+R.newWeek)}
+    ${tile(fmtN(R.activeToday),"активных сегодня","за 7 дней "+R.activeWeek)}
+    ${tile(pct(R.d1,R.cohort),"вернулись на 2-й день",R.cohort?R.d1+" из "+R.cohort+" за прошлую неделю":"пока мало данных")}
+    ${tile(pct(R.fromRef,R.players),"пришли по приглашению",R.fromRef+" игроков, сегодня "+R.newRefToday)}
+    ${tile(fmtN(R.today.open),"прокруток сегодня",fmtN(R.cardsInGame)+" карточек в игре")}
+  </div>
+  <div class="stchart"><svg viewBox="0 0 300 110" aria-label="Новые и активные игроки за 14 дней">${bars}</svg>
+    <div class="stleg"><span><i style="background:#0a84ff"></i>активные</span><span><i style="background:#ffb800"></i>новые</span><span style="color:#5a5f80">14 дней</span></div></div>
+  <div class="stlist"><b>Сегодня</b><span>Крафтов ${R.today.craft} · боёв ${R.today.duel} · ударов по боссу ${R.today.boss} · закалок ${R.today.forge} · историй ${R.today.story} · продаж на рынке ${R.today.sales} на ${fmt(R.today.salesV)}</span></div>
+  <div class="stlist"><b>Больше всех пригласили</b>${R.inviters.length?R.inviters.map((x,i)=>`<span>${i+1}. <em></em> — ${x.refs}</span>`).join(""):"<span>Пока никого</span>"}</div>
+  <p class="stnote">Дни по минскому времени. «Вернулись на 2-й день» считается по игрокам, которые пришли с 8 по 1 день назад.</p>`;
+  b.querySelectorAll(".stlist em").forEach((e,i)=>e.textContent=R.inviters[i].name)}
+$("st-reload").onclick=()=>loadStats(true);
+function renderAdmin(){const sb=$("admin-stats");sb.hidden=!(S.admin&&ONLINE);if(S.admin&&ONLINE)loadStats();
+  const box=$("admin-box");box.hidden=!S.admin;if(!S.admin)return;const on=(S.luckUntil||0)>NOW();
   $("luck-t").textContent=on?"Включён ещё "+tleft(S.luckUntil-NOW())+". Выпадают легендарные и мифические воины, дорогие отделки и красивые номера. Видишь эту панель только ты.":"Выключен. На 3 часа делает прокрутки на твоём аккаунте очень удачными. Проданные карточки потом вернутся в общий пул.";
   $("luck-go").textContent=on?"Выключить":"Включить на 3 часа";$("luck-go").style.background=on?"var(--red)":""}
 $("luck-go").onclick=async()=>{const on=!((S.luckUntil||0)>NOW());const r=await act("luck_set",{on});if(r){renderAdmin();toast(on?"Режим удачи включён на 3 часа":"Режим удачи выключен")}};

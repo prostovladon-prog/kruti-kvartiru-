@@ -181,6 +181,7 @@ r = await call(1, "nick", { nick: "Новый" }); ok(!r.ok && /1000/.test(r.err
 }
 /* --- режим удачи --- */
 r = await call(7, "luck_set", { on: 1 }); ok(!r.ok && /доступа/.test(r.err), "обычному игроку режим удачи недоступен");
+r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обычному игроку статистика недоступна");
 {
   const env2 = { ...env, ADMINS: "8" };
   const call8 = async (a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a, p }) }), env2)).json();
@@ -189,6 +190,12 @@ r = await call(7, "luck_set", { on: 1 }); ok(!r.ok && /доступа/.test(r.er
   let rare = 0, nice = 0; for (let i = 0; i < 4; i++) { r = await call8("open"); if (r.ok) { if (r.res.card.f >= 1) rare++; if (classify(r.res.card.sn)) nice++ } }
   ok(rare >= 3 && nice >= 3, "с удачей: редких отделок " + rare + "/4, красивых номеров " + nice + "/4");
   r = await call8("luck_set", { on: 0 }); ok(r.ok && !r.res.on, "режим удачи выключен");
+  r = await call8("stats"); const T = r.res;
+  ok(r.ok && T.players >= 8 && T.newToday >= 8 && T.activeToday >= 3 && T.today.open >= 4 && T.fromRef >= 3 && T.days.length === 14, "статистика: игроков " + T.players + ", новых сегодня " + T.newToday + ", активных " + T.activeToday + ", прокруток " + T.today.open + ", по приглашению " + T.fromRef);
+  ok(T.inviters[0] && T.inviters[0].refs >= 2, "лучший пригласивший: " + (T.inviters[0] && T.inviters[0].name + " — " + T.inviters[0].refs));
+  // возврат на второй день: игрок пришёл «вчера» и зашёл сегодня
+  db.prepare("UPDATE users SET created=?, seen=?, d1=0 WHERE id=7").run(Date.now() - 864e5 * 1.2, Date.now() - 864e5 * 1.2);
+  await call(7, "sync"); ok(db.prepare("SELECT d1 FROM users WHERE id=7").get().d1 === 1, "вернувшийся на второй день отмечен");
 }
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");

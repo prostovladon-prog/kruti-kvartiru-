@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS users (
   worth    REAL    NOT NULL DEFAULT 0,   -- стоимость коллекции (для мирового топа)
   album    INTEGER NOT NULL DEFAULT 0,   -- сколько разных воинов собрано
   wins     INTEGER NOT NULL DEFAULT 0,   -- побед в боях
+  seen     INTEGER NOT NULL DEFAULT 0,   -- когда последний раз заходил
+  back     INTEGER NOT NULL DEFAULT 0,   -- возвращался в другой день
+  d1       INTEGER NOT NULL DEFAULT 0,   -- вернулся на следующий день после первого входа
   created  INTEGER,
   updated  INTEGER
 );
@@ -52,6 +55,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key);
 CREATE INDEX IF NOT EXISTS users_worth  ON users(worth);
 CREATE INDEX IF NOT EXISTS users_album  ON users(album);
 CREATE INDEX IF NOT EXISTS users_wins   ON users(wins);
+
+-- Счётчики по дням для статистики администратора (новые игроки, активные, действия).
+CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, k));
+CREATE INDEX IF NOT EXISTS users_created ON users(created);
+CREATE INDEX IF NOT EXISTS users_seen    ON users(seen);
 
 -- История продаж на рынке.
 CREATE TABLE IF NOT EXISTS sales (
