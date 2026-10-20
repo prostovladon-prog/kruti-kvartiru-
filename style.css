@@ -539,3 +539,6 @@ nav.tabs.onb-hl{position:fixed;border-radius:0}
 .chin input{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 12px;border-radius:12px;border:3px solid var(--ink);background:#fff;color:var(--ink)}
 .chin .mini2{font-size:18px;padding:8px 16px}
 .chrule{color:#aab4e8;font-size:11.5px;text-align:center}
+
+.face.front[data-frame=pioneer]{--edge:linear-gradient(115deg,#14110a 0%,#ffd60a 22%,#fff6c8 32%,#ffd60a 42%,#14110a 50%,#ffd60a 72%,#fff6c8 82%,#ffd60a 92%,#14110a 100%);background-size:200% 200%;animation:pioedge 3s linear infinite;box-shadow:6px 6px 0 var(--ink),0 0 26px 6px rgba(255,214,10,.6)}
+@keyframes pioedge{from{background-position:0 0}to{background-position:200% 200%}}

@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS users (
   back     INTEGER NOT NULL DEFAULT 0,   -- возвращался в другой день
   d1       INTEGER NOT NULL DEFAULT 0,   -- вернулся на следующий день после первого входа
   muted    INTEGER NOT NULL DEFAULT 0,   -- до какого времени запрещено писать в чат
+  stake    INTEGER NOT NULL DEFAULT 0,   -- согласен на бои на карточку с игроками
+  pioneer  INTEGER NOT NULL DEFAULT 0,   -- номер первопроходца 1–100 (0 = нет)
   created  INTEGER,
   updated  INTEGER
 );
@@ -53,6 +55,7 @@ CREATE INDEX IF NOT EXISTS cards_nice   ON cards(nice) WHERE nice = 1;
 CREATE INDEX IF NOT EXISTS cards_print  ON cards(h, f, no);
 CREATE INDEX IF NOT EXISTS cards_v      ON cards(v) WHERE owner > 0;
 CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key);
+CREATE UNIQUE INDEX IF NOT EXISTS users_pioneer ON users(pioneer) WHERE pioneer > 0;
 CREATE INDEX IF NOT EXISTS users_worth  ON users(worth);
 CREATE INDEX IF NOT EXISTS users_album  ON users(album);
 CREATE INDEX IF NOT EXISTS users_wins   ON users(wins);

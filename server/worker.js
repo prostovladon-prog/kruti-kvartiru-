@@ -119,7 +119,9 @@ const BOSS={name:"Змей Горыныч",hp:25000};
 const MILES=[{p:.25,t:"3 прокрутки"},{p:.5,t:"Гарантированная эпическая"},{p:.75,t:"$500 и 3 прокрутки"},{p:1,t:"Легендарная карточка"}];
 const FRAMES={bronze:{k:"Бронзовая",cost:100,bg:"linear-gradient(135deg,#f3c58b,#a8642a 50%,#e6a96a)"},silver:{k:"Серебряная",cost:300,bg:"linear-gradient(135deg,#ffffff,#9aa6bf 45%,#f2f4fa 60%,#7d8aa3)"},
   fire:{k:"Огненная",cost:1000,bg:"linear-gradient(180deg,#ffe14d,#ff7a1a 45%,#d0141f)"},night:{k:"Звёздная ночь",cost:2000,bg:"radial-gradient(#fff 1px,transparent 1.6px) 0 0/10px 10px,linear-gradient(135deg,#0d1030,#3b2a8c)"},
-  rainbow:{k:"Радужная",cost:4000,bg:"conic-gradient(#ff5f6d,#ffc371,#47e891,#3ab0ff,#c56bff,#ff5f6d)"}};
+  rainbow:{k:"Радужная",cost:4000,bg:"conic-gradient(#ff5f6d,#ffc371,#47e891,#3ab0ff,#c56bff,#ff5f6d)"},
+  pioneer:{k:"Первопроходец",cost:0,only:"pioneer",bg:"linear-gradient(135deg,#14110a,#ffd60a 30%,#fff6c8 50%,#ffd60a 70%,#14110a)"}};   // только для первых 100 игроков
+const PIONEERS=100, PIONEER_SPINS=20;
 
 /* ---------- ник игрока: виден в топе, на рынке и в витрине ---------- */
 const NICK_COST=1000;   // первый ник бесплатно, смена за деньги
@@ -277,7 +279,7 @@ const ACTIONS={
     pay(G.st,forgeCost(c));c.stars=s+1;c.v=Math.round(c.v*STAR_V*100)/100;return {stars:c.stars,v:c.v}},
   rage(G){const B=boss(G.st,G.ctx.now);if((B.extra||0)>=2)fail("Лимит зелий на сегодня");pay(G.st,150);B.extra=(B.extra||0)+1;return {}},
   map(G){if(G.st.mapDay===today(G.ctx.now))fail("Карта уже куплена");pay(G.st,120);G.st.mapDay=today(G.ctx.now);return {}},
-  frame(G){const c=own(G,G.p.id),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
+  frame(G){const c=own(G,G.p.id),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(F.only&&!G.ctx.pioneer)fail("Эта рамка только для первых "+PIONEERS+" игроков");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
 
   task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;return {r:T.r}},
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
@@ -346,7 +348,9 @@ async function ensureSchema(env){if(schemaOk)return;
     "CREATE INDEX IF NOT EXISTS chat_uid ON chat(uid, id)",
     "ALTER TABLE users ADD COLUMN muted INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE users ADD COLUMN stake INTEGER NOT NULL DEFAULT 0",
-    "ALTER TABLE fights ADD COLUMN stake INTEGER NOT NULL DEFAULT 0","ALTER TABLE fights ADD COLUMN took INTEGER NOT NULL DEFAULT 0"])   // старые проданные карточки: освобождаем их номера
+    "ALTER TABLE fights ADD COLUMN stake INTEGER NOT NULL DEFAULT 0","ALTER TABLE fights ADD COLUMN took INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN pioneer INTEGER NOT NULL DEFAULT 0",
+    "CREATE UNIQUE INDEX IF NOT EXISTS users_pioneer ON users(pioneer) WHERE pioneer>0"])   // старые проданные карточки: освобождаем их номера
     try{await env.DB.prepare(q).run()}catch(e){}
   schemaOk=true}
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,
@@ -385,12 +389,19 @@ async function makeCtx(env,test){
 /* администраторы игры (id в Telegram). Можно задать и переменной ADMINS="id1,id2" в настройках воркера */
 const ADMINS=[6724818967];
 const isAdmin=(env,id)=>ADMINS.includes(id)||String(env.ADMINS||"").split(",").map(Number).includes(id);
+/* первопроходцы: первые 100 игроков, открывших игру, получают номер, +20 прокруток и рамку «Первопроходец» */
+let pioneersFull=false;   // когда все 100 мест заняты, базу больше не спрашиваем
+async function pioneersCount(env){if(pioneersFull)return PIONEERS;const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE pioneer>0").first())||{}).n||0;if(n>=PIONEERS)pioneersFull=true;return n}
 async function stateFor(env,me){
-  const {u,cards}=await loadUser(env,me);
+  let {u,cards}=await loadUser(env,me),pioneerNew=false;
+  if(!u.pioneer&&await pioneersCount(env)<PIONEERS){
+    try{const r=await env.DB.prepare("UPDATE users SET pioneer=(SELECT COALESCE(MAX(pioneer),0)+1 FROM users),gift_spins=gift_spins+? WHERE id=? AND pioneer=0 AND (SELECT COUNT(*) FROM users WHERE pioneer>0)<?").bind(PIONEER_SPINS,me.id,PIONEERS).run();
+      if(r.meta.changes===1){pioneerNew=true;u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first()}}catch(e){}   // одновременно с кем-то: получит номер при следующем запросе
+  }
   const prints={};for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS m FROM cards WHERE f>0 GROUP BY h,f").all()).results)prints[r.h+"-"+r.f]=r.m;
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
-  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0});
+  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,pioneer:u.pioneer||0,pioneerNew,pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   S.spins=(S.spins??0)+(u.gift_spins||0);
   // кто нападал на мои карточки за 3 дня: для уведомлений и реванша
   S.fights=(await env.DB.prepare("SELECT id,att_name,att_card,att_h,def_h,w,l,t,seen,stake,took FROM fights WHERE def=? AND t>? ORDER BY id DESC LIMIT 6").bind(me.id,Date.now()-3*864e5).all()).results;
@@ -419,7 +430,7 @@ async function doAction(env,me,name,p,extra){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
-    ctx.admin=isAdmin(env,me.id);ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;
+    ctx.admin=isAdmin(env,me.id);ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
     const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
@@ -485,10 +496,10 @@ async function buy(env,me,p){
 
 /* ---------- друзья ---------- */
 async function profile(env,p){
-  const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,state FROM users WHERE id=?").bind(p.uid|0).first();if(!u)fail("Игрок не найден");
+  const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,state,pioneer FROM users WHERE id=?").bind(p.uid|0).first();if(!u)fail("Игрок не найден");
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 3").bind(u.id).all()).results.map(r=>pub(rowToCard(r)));
   const have=await env.DB.prepare("SELECT COUNT(DISTINCT h) AS n FROM cards WHERE owner=?").bind(u.id).first();
-  return {name:u.name||"Игрок",wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id};
+  return {name:u.name||"Игрок",pi:u.pioneer||0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id};
 }
 async function cardInfo(env,p){
   const r=await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.id=? AND c.owner>0").bind(p.id|0).first();
@@ -504,8 +515,8 @@ async function top(env,me,p){
   const S=await stateFor(env,me);   // заодно обновляет мои числа
   const kind=p.kind;
   if(kind==="cards"){
-    const items=await cached("cards",60e3,async()=>(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 ORDER BY c.v DESC LIMIT 30").all()).results
-      .map(r=>({uid:r.owner,name:r.owner_name||"Игрок",card:pub(rowToCard(r)),score:r.v})));
+    const items=await cached("cards",60e3,async()=>(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS owner_name,u.pioneer AS pi FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 ORDER BY c.v DESC LIMIT 30").all()).results
+      .map(r=>({uid:r.owner,name:r.owner_name||"Игрок",pi:r.pi||0,card:pub(rowToCard(r)),score:r.v})));
     return {res:{kind,items},S};
   }
   if(kind==="feed"){
@@ -516,9 +527,9 @@ async function top(env,me,p){
   }
   const col=BOARDS[kind];if(!col)fail("Нет такого рейтинга");
   const items=await cached(kind,60e3,async()=>{
-    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,${col} AS score FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
+    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,${col} AS score FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
     const out=[];for(const r of rows){const b=await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();
-      out.push({uid:r.id,name:r.name||"Игрок",score:r.score,card:b?pub(rowToCard(b)):null})}return out});
+      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,score:r.score,card:b?pub(rowToCard(b)):null})}return out});
   const mine=await env.DB.prepare(`SELECT ${col} AS score FROM users WHERE id=?`).bind(me.id).first();
   const score=mine?mine.score:0;
   const rank=score>0?(await env.DB.prepare(`SELECT COUNT(*)+1 AS n FROM users WHERE ${col}>?`).bind(score).first()).n:null;
@@ -587,7 +598,7 @@ async function logFight(env,me,myCardId,opp,res,stake){
 const CHAT_BAD=/(?<![а-яёa-z])(х[уy][йеёяию]\S*|п[иi]зд\S*|[её]б[аеуы]\S*|бля\S*|сук[аи]\S*|муд[ао]\S*|пид[оа]р\S*|гандон\S*|шлюх\S*|залуп\S*|fuck\S*|shit\S*|bitch\S*)/gi;
 const CHAT_LINK=/(https?:\/\/|www\.|t\.me\/|telegram\.(me|dog)|\.(ru|com|net|org|me|io|gg|xyz|su|by|ua|info|site|online)\b)/i;
 async function chatGet(env,p){
-  const rows=(await env.DB.prepare("SELECT id,uid,name,text,t FROM chat WHERE id>? ORDER BY id DESC LIMIT 60").bind(p.after|0).all()).results.reverse();
+  const rows=(await env.DB.prepare("SELECT c.id,c.uid,c.name,c.text,c.t,COALESCE(u.pioneer,0) AS pi FROM chat c LEFT JOIN users u ON u.id=c.uid WHERE c.id>? ORDER BY c.id DESC LIMIT 60").bind(p.after|0).all()).results.reverse();
   return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0}))};
 }
 async function chatSend(env,me,p){

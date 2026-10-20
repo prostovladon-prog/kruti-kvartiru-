@@ -50,6 +50,19 @@ const ok = (cond, msg) => { console.log((cond ? "✓ " : "✗ ") + msg); if (!co
   ok(bad.status === 401, "подделанная подпись не проходит");
 }
 
+/* --- первопроходцы: первые 100 игроков --- */
+{
+  let r = await call(9000, "sync"); ok(r.S.pioneer >= 1 && r.S.spins === 25 && r.S.pioneerNew === true, "первопроходец №" + r.S.pioneer + ": +20 прокруток (" + r.S.spins + ")");
+  r = await call(9000, "sync"); ok(r.S.pioneerNew === false && r.S.spins === 25, "награда первопроходца выдаётся один раз");
+  r = await call(9000, "open"); const pc = r.res.card;
+  r = await call(9000, "frame", { id: pc.id, frame: "pioneer" }); ok(r.ok && r.S.cards.find(c => c.id === pc.id).frame === "pioneer", "рамка «Первопроходец» бесплатно надета");
+  const used = db.prepare("SELECT MAX(pioneer) m FROM users").get().m;
+  for (let i = used + 1; i <= 100; i++) db.prepare("INSERT INTO users(id,name,cash,state,ver,pioneer) VALUES(?,?,0,'{}',0,?)").run(100000 + i, "dummy", i);
+  r = await call(9001, "sync"); ok(!r.S.pioneer && r.S.spins === 5 && r.S.pioneersLeft === 0, "101-й игрок уже не первопроходец, мест осталось " + r.S.pioneersLeft);
+  r = await call(9001, "open"); r = await call(9001, "frame", { id: r.res.card.id, frame: "pioneer" }); ok(!r.ok && /первых 100/.test(r.err), "рамку первопроходца другим не надеть: " + r.err);
+  r = await call(9001, "profile", { uid: 9000 }); ok(r.res.pi >= 1, "значок первопроходца виден в витрине");
+}
+
 /* --- игрок A открывает карточки --- */
 let r = await call(1, "sync");
 ok(r.ok && r.S.spins === 5 && r.S.cash === 100, "новый игрок: 5 прокруток и $100");

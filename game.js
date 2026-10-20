@@ -902,7 +902,7 @@ function friendsGet(){try{return JSON.parse(localStorage.getItem("we-friends")||
 function friendsPut(F){try{localStorage.setItem("we-friends",JSON.stringify(F))}catch(e){}}
 function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
-  const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent="Витрина: "+F.name;
+  const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent="Витрина: "+(F.pi?"🏅 ":"")+F.name;
   w.children[1].textContent="Собрано воинов: "+F.have+" из "+NHEROES+", побед в боях: "+F.wins;sh.appendChild(w);
   const g=document.createElement("div");g.className="show3";F.cards.forEach(c=>{const d=bigMc(c,0);d.querySelector(".v").innerHTML=`<small>${FIN[c.f].k}, ур. ${lvl(c)}</small><b class="num">${fmt(c.v)}</b>`;g.appendChild(d)});
   if(!F.cards.length){const e=document.createElement("div");e.className="mc empty";e.textContent="Пока нет карточек";g.appendChild(e)}sh.appendChild(g);
@@ -965,6 +965,13 @@ $("sub-go").onclick=async()=>{
   const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +10 прокруток")};
 /* история в Telegram: открываем редактор с готовой картинкой и личной ссылкой, затем забираем награду */
 let storyStep=0;
+/* первопроходцы: первые 100 игроков */
+function renderPioneer(){const row=$("pio-row");if(!row)return;row.hidden=!S.pioneer;if(!S.pioneer)return;
+  $("pio-h").textContent="🏅 Первопроходец №"+S.pioneer;$("pio-t").textContent="Ты среди первых "+PIONEERS+" игроков! +"+PIONEER_SPINS+" прокруток уже твои, а рамку «Первопроходец» больше никто не получит. Надень её в Лавке бесплатно"}
+$("pio-go").onclick=()=>{lvFrame="pioneer";if(!S.cards.some(c=>c.id===lvPick)){const b=[...S.cards].filter(c=>!c.listed).sort((x,y)=>y.v-x.v)[0];lvPick=b?b.id:null}setTab("shop");shView="lavka";renderShop();setTimeout(()=>$("lv-frames").scrollIntoView({block:"center"}),100)};
+let pioShown=false;
+function pioneerNews(){if(!S||!S.pioneerNew||pioShown)return;pioShown=true;setTimeout(()=>{sfx.fanfare();burst(4);hapN("success");
+  toast("🏅 Ты Первопроходец №"+S.pioneer+" из "+PIONEERS+"! +"+PIONEER_SPINS+" прокруток и эксклюзивная рамка")},900)}
 function renderStory(){const b=$("story-go"),t=$("story-t");if(!b)return;const done=S.storyWeek===weekKey(NOW());
   b.disabled=done;b.textContent=done?"Получено":storyStep?"Забрать +10":"Выложить";
   t.textContent=done?"На этой неделе уже получено. Новая награда в понедельник":storyStep?"Выложил историю? Жми «Забрать +10»":"Картинка игры и твоя ссылка в истории Telegram: +10 прокруток раз в неделю"}
@@ -1064,9 +1071,10 @@ function renderLavka(){const c=S.cards.find(x=>x.id===lvPick);
   const B=bossS();$("lv-rage").disabled=(B.extra||0)>=2;$("lv-rage").textContent=(B.extra||0)>=2?"Лимит на сегодня":"Купить за $150";
   $("lv-map").disabled=S.mapDay===todayL();$("lv-map").textContent=S.mapDay===todayL()?"Уже куплена":"Купить за $120";
   $("lv-prev").innerHTML=c?miniSlot(Object.assign({},c,{frame:lvFrame})):'<span class="lvnone">Выбери воина внизу, и здесь появится превью с рамкой</span>';
-  const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
-    b.innerHTML=`<i></i><span><b></b><br>${fmt(F.cost)}</span>`;b.querySelector("b").textContent=F.k;b.onclick=()=>{lvFrame=k;renderLavka()};fr.appendChild(b)});
-  $("lv-fgo").disabled=!c;$("lv-fgo").textContent=c?(c.frame===lvFrame?"Эта рамка уже надета":"Надеть рамку «"+FRAMES[lvFrame].k+"» за "+fmt(FRAMES[lvFrame].cost)):"Выбери воина внизу";
+  if(FRAMES[lvFrame].only&&!S.pioneer)lvFrame="bronze";
+  const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).filter(([k,F])=>!F.only||S.pioneer).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
+    b.innerHTML=`<i></i><span><b></b><br>${F.only?"только для тебя":fmt(F.cost)}</span>`;b.querySelector("b").textContent=F.k;b.onclick=()=>{lvFrame=k;renderLavka()};fr.appendChild(b)});
+  $("lv-fgo").disabled=!c;$("lv-fgo").textContent=c?(c.frame===lvFrame?"Эта рамка уже надета":"Надеть рамку «"+FRAMES[lvFrame].k+"» "+(FRAMES[lvFrame].cost?"за "+fmt(FRAMES[lvFrame].cost):"бесплатно")):"Выбери воина внизу";
   const pk=$("lv-pick");pk.innerHTML="";S.cards.filter(x=>!x.listed).sort((a,b)=>b.v-a.v).forEach(x=>{const H=HEROES[x.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",x.id===lvPick);
     b.innerHTML=`<span class="pv">${miniSlot(x)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(x)}</span><b>${x.frame?FRAMES[x.frame].k:FIN[x.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{lvPick=x.id;renderLavka()};pk.appendChild(b)});}
 $("lv-train").onclick=async()=>{if(await act("train",{id:lvPick})){sfx.coin();updCash();renderLavka();toast("Тренировка: +50 опыта")}};
@@ -1118,7 +1126,7 @@ async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.a
 function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" мин назад":m<1440?Math.round(m/60)+" ч назад":Math.round(m/1440)+" дн назад"}
 function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.type="button";d.className="trow"+(it.me||(ONLINE&&it.uid===S.uid)?" me":"")+(i<3?" p"+(i+1):"");
   d.innerHTML=`<span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="e"></span><span class="t"><b></b><small></small></span><span class="sc num"></span>`;
-  d.querySelector("b").textContent=it.name;d.querySelector(".sc").textContent=TP[kind].u(it.score);
+  d.querySelector("b").textContent=(it.pi?"🏅 ":"")+it.name;d.querySelector(".sc").textContent=TP[kind].u(it.score);
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
@@ -1172,7 +1180,7 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();$("topup").hidden=ONLINE&&!S.test&&!S.admin}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
@@ -1191,7 +1199,7 @@ function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scroll
   if(!chatItems.length)box.innerHTML='<p class="chempty">Пока тихо. Напиши первым!</p>';
   chatItems.forEach(m=>{const d=document.createElement("div");const mine=ONLINE?m.uid===S.uid:m.uid===0;d.className="chm"+(mine?" me":"");
     d.innerHTML='<div class="chh"><button type="button" class="chn"></button><span class="cht"></span></div><div class="chx"></div>';
-    const n=d.querySelector(".chn");n.textContent=m.name+(m.a?" ★":"");n.style.color=m.a?"#d4380d":nickCol(m.name);
+    const n=d.querySelector(".chn");n.textContent=(m.pi?"🏅 ":"")+m.name+(m.a?" ★":"");n.style.color=m.a?"#d4380d":nickCol(m.name);
     d.querySelector(".cht").textContent=new Date(m.t).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     d.querySelector(".chx").textContent=m.text;
     n.onclick=()=>{if(ONLINE&&m.uid>0&&m.uid!==S.uid){closeChat();openParam("u_"+m.uid)}};
