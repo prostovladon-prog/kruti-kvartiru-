@@ -139,8 +139,36 @@
         <div class="needle" id="cr-needle"><svg viewBox="0 0 200 200"><path d="M100 100 L93 96 L100 8 L107 96 Z" fill="#ffd60a" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/></svg></div>
         <div class="chance"><div><span><b class="num" id="cr-p">0%</b><small>шанс</small></span></div></div>
       </div>
+      <label class="chk"><input type="checkbox" id="cr-amu"> <span id="cr-amu-t">Амулет удачи: +10% к шансу</span></label>
       <button type="button" class="craftbtn" id="cr-go">Крутить колесо</button>
       <div class="result" id="cr-res" aria-live="polite"></div>
+    </div>
+  </section>
+  <section id="sec-shop" hidden>
+    <div class="seg" id="sh-seg"><button type="button" data-v="buy" aria-pressed="true">Купить</button><button type="button" data-v="sell" aria-pressed="false">Продать</button><button type="button" data-v="lavka" aria-pressed="false">Лавка</button></div>
+    <div id="sh-buy" style="display:flex;flex-direction:column;gap:10px">
+      <div class="box"><div class="rowb"><h3>Рынок</h3><span id="mk-t" style="font-size:12px;color:#5a5f80"></span></div><p>Карточки, которые выставили другие игроки. Зелёная цена — ниже оценки, выгодно. Красная — переплата.</p></div>
+      <div id="mk-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div id="sh-sell" style="display:none;flex-direction:column;gap:12px">
+      <div class="box"><h3>Мои лоты</h3><p>Чем ниже цена относительно оценки, тем быстрее купят. Рынок берёт 5% с каждой продажи.</p><div id="lots" style="display:flex;flex-direction:column;gap:8px"></div></div>
+      <div class="box"><h3>Выставить карточку</h3><div class="pickrow" id="sl-pick"></div>
+        <div id="sl-form" style="display:none;flex-direction:column;gap:8px">
+          <div class="tgtinfo"><span id="sl-name"></span><b class="num" id="sl-val"></b></div>
+          <div class="price-in"><input type="range" id="sl-range" min="50" max="300" value="120" aria-label="Цена в процентах от оценки"><input type="number" id="sl-price" min="1" step="1" aria-label="Цена в долларах"></div>
+          <p id="sl-hint"></p>
+          <button type="button" class="craftbtn" id="sl-go">Выставить на рынок</button>
+        </div>
+      </div>
+    </div>
+    <div id="sh-lavka" style="display:none;flex-direction:column;gap:12px">
+      <div class="box"><h3>Лавка</h3><p>Здесь деньги превращаются в силу. Деньги приходят с продаж, боёв, походов и босса.</p>
+        <div class="shopi"><b>Тренер</b><button type="button" class="mini2" id="lv-train">Тренировать</button><small id="lv-train-t">Выбери воина ниже: +50 опыта за деньги</small></div>
+        <div class="shopi"><b>Зелье ярости</b><button type="button" class="mini2" id="lv-rage">Купить за $150</button><small id="lv-rage-t">+1 удар по боссу сегодня, до 2 в день</small></div>
+        <div class="shopi"><b>Карта похода</b><button type="button" class="mini2" id="lv-map">Купить за $120</button><small id="lv-map-t">Открывает 4-е место для походов на сегодня</small></div>
+      </div>
+      <div class="box"><h3>Рамки для карточек</h3><p>Украшение для понтов: рамка видна на карточке, в витрине и у друзей.</p><div class="frames" id="lv-frames"></div><button type="button" class="craftbtn" id="lv-fgo">Надеть рамку</button></div>
+      <div class="box"><span class="step">Выбери воина</span><div class="pickrow" id="lv-pick"></div></div>
     </div>
   </section>
   <section id="sec-col" hidden>
@@ -154,6 +182,7 @@
   <button type="button" role="tab" id="tab-duel" aria-selected="false">Бой</button>
   <button type="button" role="tab" id="tab-album" aria-selected="false">Альбом</button>
   <button type="button" role="tab" id="tab-craft" aria-selected="false">Крафт</button>
+  <button type="button" role="tab" id="tab-shop" aria-selected="false">Рынок</button>
   <button type="button" role="tab" id="tab-col" aria-selected="false">Коллекция</button>
 </div></nav>
 <div class="toast" id="toast"></div>

@@ -99,7 +99,7 @@ function lvl(c){return Math.min(LMAX,1+Math.floor(Math.sqrt((c.xp||0)/25)))}
 function lvlNext(c){const l=lvl(c);return l>=LMAX?null:25*l*l}
 function eff(c,i){return Math.round((c.stats||[])[i]*(1+.04*(lvl(c)-1)))}
 function addXp(c,x){const before=lvl(c);c.xp=(c.xp||0)+x;const after=lvl(c);if(after>before){toast(HEROES[c.h][0]+" достиг уровня "+after+"!");sfx&&sfx.reveal&&sfx.reveal(2)}return after>before}
-const away=c=>!!c.away;  // в походе, пока добыча не забрана
+const away=c=>!!c.away||!!c.listed;  // в походе или на рынке
 function makeCard(h,f){
   const no=issuedOf(h,f)+1;S.issued[h+"-"+f]=no;
   const tier=HEROES[h][2],[a,b]=HT[tier].b;
@@ -349,7 +349,7 @@ portrait.n=0;
 const front=$("front"),flip=$("flip");
 function showCard(c){
   const H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f];
-  front.className="face front "+F.cls;front.style.setProperty("--hc",T.c);
+  front.className="face front "+F.cls;front.style.setProperty("--hc",T.c);if(c.frame&&FRAMES[c.frame])front.style.setProperty("--edge",FRAMES[c.frame].bg);else front.style.removeProperty("--edge");
   $("h-name").textContent=H[0];$("h-no").textContent="№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
   $("h-emo").innerHTML=portrait(c.h,c);$("h-era").textContent=H[1];$("h-tier").textContent=T.k;$("h-fin").textContent=F.k;
   $("h-pow").textContent=H[3];
@@ -476,7 +476,7 @@ function renderCol(){
     el.querySelector("b").textContent=H[0];el.querySelector(".tg").textContent=F.k;
     el.querySelector(".sub").textContent=F.run===Infinity?HT[H[2]].k:c.no+" из "+F.run;
     if(c.sn){const cl=classify(c.sn),sn=document.createElement("div");sn.className="sn num"+(cl?" nice":"");sn.textContent="№ "+fmtSn(c.sn)+(cl?", "+cl.k.toLowerCase():"");el.querySelector(".t").appendChild(sn)}
-    if(away(c)){const m=el.querySelector(".mini");m.disabled=true;m.textContent="В походе"}
+    if(away(c)){const m=el.querySelector(".mini");m.disabled=true;m.textContent=c.listed?"На рынке":"В походе"}
     if(lvl(c)>1){const t=document.createElement("span");t.className="tg";t.style.setProperty("--s","#0d1030");t.textContent="Ур. "+lvl(c);el.querySelector(".t small").prepend(t)}
     el.querySelector(".mini").onclick=()=>{S.cards=S.cards.filter(x=>x.id!==c.id);S.cash+=c.v;if(current&&current.id===c.id){current=null;$("sell").disabled=true}save();renderAll();toast("Продано за "+fmt(c.v))};
     box.appendChild(el)});
@@ -505,7 +505,8 @@ function step(){fc.clearRect(0,0,innerWidth,innerHeight);parts=parts.filter(p=>p
 let crSel=new Set(),crH=19,crF=1,crBusy=false,crRot=0,crLast=null;
 const HOUSE=.9, PMAX=.8;
 function crSum(){return S.cards.filter(c=>crSel.has(c.id)).reduce((a,c)=>a+c.v,0)}
-function crChance(){const t=targetPrice(crH,crF),sum=crSum();if(!sum)return 0;return Math.min(PMAX,HOUSE*sum/t)}
+function amuCost(){return Math.max(20,Math.round(targetPrice(crH,crF)*.15))}
+function crChance(){const t=targetPrice(crH,crF),sum=crSum();if(!sum)return 0;const amu=$("cr-amu")&&$("cr-amu").checked?.1:0;return Math.min(PMAX+amu,HOUSE*sum/t+amu)}
 function arcPath(p){if(p<=0)return "";if(p>=.9999)return "M100 8 A92 92 0 1 1 99.99 8 Z";
   const a=p*2*Math.PI,x=100+92*Math.sin(a),y=100-92*Math.cos(a);return `M100 100 L100 8 A92 92 0 ${p>.5?1:0} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z`}
 function renderCraft(){
@@ -539,6 +540,7 @@ function renderCraft(){
   $("cr-f1").textContent=showLast?"—":fmt(crSum());$("cr-f2").textContent=fmt(tv);
   $("cr-arc").setAttribute("d",arcPath(p));
   $("cr-p").textContent=(p*100<1&&p>0?"<1":Math.round(p*100))+"%";
+  $("cr-amu-t").textContent="Амулет удачи: +10% к шансу за "+fmt(amuCost());
   const go=$("cr-go");go.disabled=crBusy||!crSel.size||left<=0||crChance()<=0;
   go.textContent=left<=0?"Тираж закончился":!crSel.size?"Выбери карточки":"Крутить колесо, шанс "+$("cr-p").textContent;
   if(!crBusy&&crSel.size&&HOUSE*crSum()/tv>PMAX)$("cr-res").textContent="Больше 80% шанса не бывает. Выбери цель подороже или отдай меньше.";
@@ -547,6 +549,7 @@ function renderCraft(){
 }
 $("cr-go").onclick=()=>{
   if(crBusy)return;const p=crChance();if(!crSel.size||p<=0)return;
+  if($("cr-amu").checked){const ac2=amuCost();if(S.cash<ac2){toast("На амулет не хватает "+fmt(ac2-S.cash));return}S.cash-=ac2;updCash();$("cr-amu").checked=false}
   crBusy=true;crLast=p;const win=Math.random()<p;dayInc("crafts");
   const inputs=S.cards.filter(c=>crSel.has(c.id));
   S.cards=S.cards.filter(c=>!crSel.has(c.id));if(current&&crSel.has(current.id)){current=null;$("sell").disabled=true}
@@ -747,10 +750,11 @@ const DEST=[
  {k:"Поход за край карты",t:"8 часов",ms:8*3600e3,xp:360,m:[150,400],sp:2,card:.25}];
 const EX_SLOTS=3;let exDest=0,exPick=null;
 function exList(){return S.cards.filter(c=>c.away)}
+function exSlots(){return EX_SLOTS+(S.mapDay===today()?1:0)}
 function tleft(ms){const s=Math.max(0,Math.ceil(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":":"")+String(m).padStart(h?2:1,"0")+":"+String(x).padStart(2,"0")}
 function renderExp(){
   const sl=$("ex-slots");sl.innerHTML="";const list=exList();
-  for(let i=0;i<EX_SLOTS;i++){const c=list[i],el=document.createElement("div");
+  for(let i=0;i<exSlots();i++){const c=list[i],el=document.createElement("div");
     if(!c){el.className="exp emptys";el.textContent="Свободное место для похода";sl.appendChild(el);continue}
     const D=DEST[c.dest],left=c.away-Date.now();el.className="exp";el.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
     el.innerHTML=`<span class="e">${portrait(c.h,c,1)}</span><span><b></b><br><small style="color:#5a5f80"></small></span><button type="button" class="mini2"></button>`;
@@ -770,16 +774,16 @@ function renderExp(){
   if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных воинов.</p>';
   free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===exPick);
     b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(c)}</span><b>${FIN[c.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{exPick=c.id;renderExp()};pk.appendChild(b)});
-  const go=$("ex-go"),full=list.length>=EX_SLOTS;go.disabled=!exPick||full||!free.some(c=>c.id===exPick);go.textContent=full?"Все места заняты":"Отправить в поход: "+DEST[exDest].k.toLowerCase();
+  const go=$("ex-go"),full=list.length>=exSlots();go.disabled=!exPick||full||!free.some(c=>c.id===exPick);go.textContent=full?"Все места заняты":"Отправить в поход: "+DEST[exDest].k.toLowerCase();
 }
-$("ex-go").onclick=()=>{const c=S.cards.find(x=>x.id===exPick);if(!c||exList().length>=EX_SLOTS)return;c.away=Date.now()+DEST[exDest].ms;c.dest=exDest;
+$("ex-go").onclick=()=>{const c=S.cards.find(x=>x.id===exPick);if(!c||exList().length>=exSlots())return;c.away=Date.now()+DEST[exDest].ms;c.dest=exDest;
   if(current&&current.id===c.id){current=null;$("sell").disabled=true}exPick=null;whoosh();save();renderExp();toast(HEROES[c.h][0]+" ушёл в поход")};
 setInterval(()=>{if(!$("sec-duel").hidden&&btView==="exp")renderExp()},1000);
 
 /* ---------- boss of the week ---------- */
 const BOSS={name:"Змей Горыныч",hp:25000};
 function weekKey(){const d=new Date(),y=d.getUTCFullYear(),s=new Date(Date.UTC(y,0,1));return y+"-"+Math.ceil(((d-s)/864e5+s.getUTCDay()+1)/7)}
-function boss(){if(!S.boss||S.boss.w!==weekKey())S.boss={w:weekKey(),dmg:0,got:[],day:"",hits:0,squad:[]};if(S.boss.day!==today()){S.boss.day=today();S.boss.hits=0}return S.boss}
+function boss(){if(!S.boss||S.boss.w!==weekKey())S.boss={w:weekKey(),dmg:0,got:[],day:"",hits:0,squad:[]};if(S.boss.day!==today()){S.boss.day=today();S.boss.hits=0;S.boss.extra=0}return S.boss}
 const MILES=[{p:.25,t:"3 прокрутки",f:B=>{S.spins=(S.spins??3)+3}},{p:.5,t:"Гарантированная эпическая",f:()=>{S.guar=(S.guar||0)+1}},{p:.75,t:"$500 и 3 прокрутки",f:()=>{S.cash+=500;S.spins=(S.spins??3)+3}},{p:1,t:"Легендарная карточка",f:()=>{const pool=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]===3);const n=makeCard(pool[Math.floor(Math.random()*pool.length)],1);S.cards.push(n);burst(4)}}];
 function bossSVG(hpk){const eye=hpk<.3?"#ff3b30":"#ffd60a";let heads="";
   [[95,62,-18],[150,42,0],[205,62,18]].forEach(([x,y,r],i)=>{heads+=`<g transform="rotate(${r} ${x} ${y+40})"><path d="M${x-12} ${y+70} Q${x-16} ${y+30} ${x} ${y+18} Q${x+16} ${y+30} ${x+12} ${y+70} Z" fill="#3f8f3a" stroke="#0d1030" stroke-width="4"/>
@@ -794,7 +798,7 @@ function bossSVG(hpk){const eye=hpk<.3?"#ff3b30":"#ffd60a";let heads="";
 let bsBusy=false;
 function renderBoss(){const B=boss(),k=Math.max(0,1-B.dmg/BOSS.hp);
   $("bs-art").innerHTML=bossSVG(k);$("bs-hp").style.width=k*100+"%";$("bs-hpt").textContent=fmtN(Math.max(0,BOSS.hp-B.dmg))+" / "+fmtN(BOSS.hp);
-  $("bs-week").textContent=k<=0?"Побеждён! Новый босс в понедельник":"Ударов сегодня: "+(3-B.hits)+" из 3";
+  $("bs-week").textContent=k<=0?"Побеждён! Новый босс в понедельник":"Ударов сегодня: "+Math.max(0,3+(B.extra||0)-B.hits)+" из "+(3+(B.extra||0));
   B.squad=B.squad.filter(id=>S.cards.some(c=>c.id===id&&!away(c)));
   const sq=$("bs-squad");sq.innerHTML="";
   for(let i=0;i<3;i++){const c=S.cards.find(x=>x.id===B.squad[i]),d=document.createElement("div");
@@ -806,13 +810,13 @@ function renderBoss(){const B=boss(),k=Math.max(0,1-B.dmg/BOSS.hp);
   S.cards.filter(c=>!away(c)&&!B.squad.includes(c.id)).sort((a,b)=>eff(b,0)-eff(a,0)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
     b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">Атака ${eff(c,0)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(bsBusy)return;if(B.squad.length>=3){toast("В отряде максимум 3 воина");return}B.squad.push(c.id);save();renderBoss()};pk.appendChild(b)});
-  const go=$("bs-go");go.disabled=bsBusy||!B.squad.length||B.hits>=3||k<=0;go.textContent=k<=0?"Босс повержен":B.hits>=3?"Удары закончились, приходи завтра":"Ударить ("+(3-B.hits)+" из 3)";
+  const go=$("bs-go");const maxH=3+(B.extra||0);go.disabled=bsBusy||!B.squad.length||B.hits>=maxH||k<=0;go.textContent=k<=0?"Босс повержен":B.hits>=maxH?"Удары закончились, приходи завтра":"Ударить ("+(maxH-B.hits)+" из "+maxH+")";
   const ml=$("bs-miles");ml.innerHTML="";
   MILES.forEach((M,i)=>{const d=document.createElement("div"),reached=B.dmg>=BOSS.hp*M.p,got=B.got.includes(i);if(got)d.className="got";
     d.innerHTML=`<span>${Math.round(M.p*100)}% урона: ${M.t}</span>`;const b=document.createElement("button");b.type="button";b.className="mini2";b.textContent=got?"Получено":"Забрать";b.disabled=!reached||got;
     b.onclick=()=>{B.got.push(i);M.f(B);sfx.fanfare();hapN("success");save();renderAll();renderBoss();toast("Награда за босса: "+M.t)};d.appendChild(b);ml.appendChild(d)});
 }
-$("bs-go").onclick=()=>{const B=boss();if(bsBusy||B.hits>=3||!B.squad.length)return;bsBusy=true;ac();
+$("bs-go").onclick=()=>{const B=boss();if(bsBusy||B.hits>=3+(B.extra||0)||!B.squad.length)return;bsBusy=true;ac();
   const team=B.squad.map(id=>S.cards.find(c=>c.id===id)).filter(Boolean);
   let dmg=team.reduce((a,c)=>a+eff(c,0)*(1.6+Math.random()*.8),0);const crit=Math.random()<.18;if(crit)dmg*=2.5;dmg=Math.round(dmg);
   B.hits++;B.dmg=Math.min(BOSS.hp,B.dmg+dmg);team.forEach(c=>addXp(c,20));
@@ -911,11 +915,81 @@ function handleStart(){let p=null;try{p=tg&&tg.initDataUnsafe&&tg.initDataUnsafe
   if(!p)return;const v=parseParam(p);if(!v){toast("Ссылка от друга не открылась");return}
   if(v.kind==="v")openShowcase(v);else openDuel(v)}
 
+
+$("cr-amu").onchange=()=>{if(!crBusy)renderCraft()};
+/* ---------- market (other players are simulated until the server exists) ---------- */
+const SELLERS=["Артём_777","lena.k","Тимур","Max_Rich","Ксюша","Vlad_B","Самурай228","Олег","Шейх_Района","Дима_Казань"];
+const MK_REFRESH=10*60e3, SELL_TICK=20e3, FEE=.05;
+let shView="buy",slPick=null;
+function market(){if(!S.market||Date.now()-S.market.at>MK_REFRESH){const items=[];
+  for(let i=0;i<8;i++){const c=roll();c.xp=Math.random()<.4?Math.floor(Math.random()*900):0;const k=.75+Math.random()*.9;items.push({card:c,price:Math.max(1,Math.round(c.v*k)),seller:SELLERS[Math.floor(Math.random()*SELLERS.length)]})}
+  items.sort((a,b)=>b.card.v-a.card.v);S.market={at:Date.now(),items};save()}return S.market}
+function lotRow(c,priceHTML,btn){const H=HEROES[c.h],d=document.createElement("div");d.className="lot";d.style.setProperty("--hc",HT[H[2]].c);
+  d.innerHTML=`<span class="e">${portrait(c.h,c,1)}</span><span class="t"><b></b>${FIN[c.f].k}${FIN[c.f].run!==Infinity?" "+c.no+"/"+FIN[c.f].run:""}, ур. ${lvl(c)}<br>№ ${fmtSn(c.sn)}${classify(c.sn)?", "+classify(c.sn).k.toLowerCase():""}</span><span class="r">${priceHTML}</span>`;
+  d.querySelector("b").textContent=H[0];d.querySelector(".r").appendChild(btn);return d}
+function renderMarket(){const M=market(),box=$("mk-list");box.innerHTML="";
+  const left=MK_REFRESH-(Date.now()-M.at);$("mk-t").textContent="Обновится через "+Math.ceil(left/60000)+" мин";
+  if(!M.items.length){box.innerHTML='<div class="box"><p>Всё раскупили. Новые лоты появятся скоро.</p></div>';return}
+  M.items.forEach((it,i)=>{const c=it.card,r=it.price/c.v,b=document.createElement("button");b.type="button";b.className="mini2";b.textContent="Купить";
+    b.onclick=()=>{if(S.cash<it.price){toast("Не хватает "+fmt(it.price-S.cash));return}if(S.cards.length>=CAP){toast("Коллекция заполнена");return}
+      S.cash-=it.price;S.cards.push(c);M.items.splice(i,1);S.best=Math.max(S.best||0,HEROES[c.h][2]);S.bestFin=Math.max(S.bestFin||0,c.f);sfx.coin();hapN("success");if(HEROES[c.h][2]>=3||c.f>=3)burst(3);save();renderAll();toast("Куплено у "+it.seller+": "+HEROES[c.h][0])};
+    box.appendChild(lotRow(c,`<b class="num">${fmt(it.price)}</b><small class="${r<1?"cheap":r>1.2?"dear":""}">${r<1?"−"+Math.round((1-r)*100)+"% от оценки":r>1?"+"+Math.round((r-1)*100)+"% к оценке":"по оценке"}</small><small style="color:#5a5f80;font-weight:500">${it.seller}</small>`,b))})}
+function sellChance(c){const r=c.listPrice/c.v;return Math.max(.03,Math.min(.9,(1.7-r)*.45))}
+function tickSales(){let sold=false;S.cards.forEach(c=>{if(!c.listed||Date.now()<(c.nextTry||0))return;c.nextTry=Date.now()+SELL_TICK;
+  if(Math.random()<sellChance(c)){const get=Math.round(c.listPrice*(1-FEE)*100)/100,buyer=SELLERS[Math.floor(Math.random()*SELLERS.length)];S.cash+=get;c.sold=1;sold=true;
+    toast("Продано! "+HEROES[c.h][0]+" ушёл к "+buyer+" за "+fmt(c.listPrice)+", тебе "+fmt(get));sfx.coin();hapN("success")}});
+  if(sold){S.cards=S.cards.filter(c=>!c.sold);save();renderAll()}}
+setInterval(tickSales,5000);
+function renderSell(){const lots=$("lots");lots.innerHTML="";const mine=S.cards.filter(c=>c.listed);
+  if(!mine.length)lots.innerHTML='<p style="margin:0;color:#5a5f80">Ты ничего не выставил.</p>';
+  mine.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="mini2";b.textContent="Снять";
+    b.onclick=()=>{c.listed=0;c.listPrice=0;save();renderAll();toast("Снято с продажи")};
+    lots.appendChild(lotRow(c,`<b class="num">${fmt(c.listPrice)}</b><small style="color:#5a5f80">шанс продажи ~${Math.round(sellChance(c)*100)}% в минуту</small>`,b))});
+  const pk=$("sl-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c));
+  if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных карточек.</p>';
+  free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===slPick);
+    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;b.children[1].textContent=H[0];
+    b.onclick=()=>{slPick=c.id;$("sl-range").value=120;$("sl-price").value=Math.max(1,Math.round(c.v*1.2));renderSell()};pk.appendChild(b)});
+  const c=S.cards.find(x=>x.id===slPick&&!away(x)),f=$("sl-form");f.style.display=c?"flex":"none";if(!c)return;
+  $("sl-name").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase();$("sl-val").textContent="оценка "+fmt(c.v);
+  const pr=+$("sl-price").value||1,tmp={listPrice:pr,v:c.v};$("sl-hint").textContent="Получишь "+fmt(pr*(1-FEE))+" после комиссии. Шанс продажи примерно "+Math.round(sellChance(tmp)*100)+"% в минуту. Быстрая продажа без рынка: "+fmt(c.v*.85)+".";}
+$("sl-range").oninput=()=>{const c=S.cards.find(x=>x.id===slPick);if(!c)return;$("sl-price").value=Math.max(1,Math.round(c.v*$("sl-range").value/100));renderSell()};
+$("sl-price").oninput=()=>{const c=S.cards.find(x=>x.id===slPick);if(!c)return;$("sl-range").value=Math.round((+$("sl-price").value||0)/c.v*100);const pr=+$("sl-price").value||1,tmp={listPrice:pr,v:c.v};$("sl-hint").textContent="Получишь "+fmt(pr*(1-FEE))+" после комиссии. Шанс продажи примерно "+Math.round(sellChance(tmp)*100)+"% в минуту."};
+$("sl-go").onclick=()=>{const c=S.cards.find(x=>x.id===slPick&&!away(x));if(!c)return;const pr=Math.max(1,Math.round(+$("sl-price").value||0));
+  if(S.cards.filter(x=>x.listed).length>=5){toast("Можно выставить максимум 5 карточек");return}
+  c.listed=1;c.listPrice=pr;c.nextTry=Date.now()+SELL_TICK;if(current&&current.id===c.id){current=null;$("sell").disabled=true}slPick=null;sfx.lock();save();renderAll();toast("Выставлено за "+fmt(pr))};
+
+/* ---------- lavka: money sinks ---------- */
+const FRAMES={bronze:{k:"Бронзовая",cost:100,bg:"linear-gradient(135deg,#f3c58b,#a8642a 50%,#e6a96a)"},silver:{k:"Серебряная",cost:300,bg:"linear-gradient(135deg,#ffffff,#9aa6bf 45%,#f2f4fa 60%,#7d8aa3)"},
+  fire:{k:"Огненная",cost:1000,bg:"linear-gradient(180deg,#ffe14d,#ff7a1a 45%,#d0141f)"},night:{k:"Звёздная ночь",cost:2000,bg:"radial-gradient(#fff 1px,transparent 1.6px) 0 0/10px 10px,linear-gradient(135deg,#0d1030,#3b2a8c)"},
+  rainbow:{k:"Радужная",cost:4000,bg:"conic-gradient(#ff5f6d,#ffc371,#47e891,#3ab0ff,#c56bff,#ff5f6d)"}};
+let lvPick=null,lvFrame="bronze";
+function trainCost(c){return Math.round(40*Math.pow(lvl(c),1.6))}
+function renderLavka(){const c=S.cards.find(x=>x.id===lvPick);
+  $("lv-train").textContent=c?(lvl(c)>=LMAX?"Максимум":"Тренировать за "+fmt(trainCost(c))):"Выбери воина";$("lv-train").disabled=!c||lvl(c)>=LMAX;
+  $("lv-train-t").textContent=c?HEROES[c.h][0]+", уровень "+lvl(c)+(lvlNext(c)?", опыт "+(c.xp||0)+" из "+lvlNext(c):""):"Выбери воина ниже: +50 опыта за деньги";
+  const B=boss();$("lv-rage").disabled=(B.extra||0)>=2;$("lv-rage").textContent=(B.extra||0)>=2?"Лимит на сегодня":"Купить за $150";
+  $("lv-map").disabled=S.mapDay===today();$("lv-map").textContent=S.mapDay===today()?"Уже куплена":"Купить за $120";
+  const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
+    b.innerHTML=`<i></i><span><b></b><br>${fmt(F.cost)}</span>`;b.querySelector("b").textContent=F.k;b.onclick=()=>{lvFrame=k;renderLavka()};fr.appendChild(b)});
+  $("lv-fgo").disabled=!c;$("lv-fgo").textContent=c?(c.frame===lvFrame?"Эта рамка уже надета":"Надеть рамку «"+FRAMES[lvFrame].k+"» за "+fmt(FRAMES[lvFrame].cost)):"Выбери воина внизу";
+  const pk=$("lv-pick");pk.innerHTML="";S.cards.filter(x=>!x.listed).sort((a,b)=>b.v-a.v).forEach(x=>{const H=HEROES[x.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",x.id===lvPick);
+    b.innerHTML=`<span class="pv">${portrait(x.h,x,1)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(x)}</span><b>${x.frame?FRAMES[x.frame].k:FIN[x.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{lvPick=x.id;renderLavka()};pk.appendChild(b)});}
+function pay(n){if(S.cash<n){toast("Не хватает "+fmt(n-S.cash)+". Продай что-нибудь на рынке или сходи в поход");return false}S.cash-=n;updCash();sfx.coin();return true}
+$("lv-train").onclick=()=>{const c=S.cards.find(x=>x.id===lvPick);if(!c||lvl(c)>=LMAX)return;if(!pay(trainCost(c)))return;addXp(c,50);save();renderLavka();toast("Тренировка: +50 опыта")};
+$("lv-rage").onclick=()=>{const B=boss();if((B.extra||0)>=2||!pay(150))return;B.extra=(B.extra||0)+1;save();renderLavka();toast("Зелье выпито: +1 удар по боссу сегодня")};
+$("lv-map").onclick=()=>{if(S.mapDay===today()||!pay(120))return;S.mapDay=today();save();renderLavka();toast("Открыто 4-е место для походов")};
+$("lv-fgo").onclick=()=>{const c=S.cards.find(x=>x.id===lvPick);if(!c||c.frame===lvFrame)return;if(!pay(FRAMES[lvFrame].cost))return;c.frame=lvFrame;burst(2);save();renderLavka();toast("Рамка «"+FRAMES[lvFrame].k+"» надета на "+HEROES[c.h][0])};
+document.querySelectorAll("#sh-seg button").forEach(b=>b.onclick=()=>{shView=b.dataset.v;renderShop()});
+function renderShop(){document.querySelectorAll("#sh-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===shView));
+  ["buy","sell","lavka"].forEach(v=>$("sh-"+v).style.display=v===shView?"flex":"none");
+  if(shView==="buy")renderMarket();if(shView==="sell")renderSell();if(shView==="lavka")renderLavka()}
+
 /* ---------- tabs ---------- */
-function setTab(t){["spin","duel","album","craft","col"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
-$("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");
+function setTab(t){["spin","duel","album","craft","shop","col"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
+$("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");
 function updCash(){$("cash").textContent=fmt(S.cash)}
-function renderAll(){updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();renderTasks();renderFree();renderStreak()}
+function renderAll(){updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();renderTasks();renderFree();renderStreak()}
 let th;function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(th);th=setTimeout(()=>e.classList.remove("show"),2200)}
 
 /* first frame: a sample card face-up so the page shows what it is */
