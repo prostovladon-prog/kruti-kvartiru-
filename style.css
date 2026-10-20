@@ -309,6 +309,17 @@ section[hidden]{display:none!important}
 .fr{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13.5px;padding:8px 10px;border-radius:10px;background:#fff;border:2.5px solid var(--ink)}
 .fr small{color:#5a5f80;font-size:12px}
 .linkbtn{font-family:var(--display);font-size:13px;padding:12px;border-radius:12px;background:var(--r2);color:#fff;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);text-shadow:1px 1px 0 var(--ink)}
+/* three-round battles */
+.rounds{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rd{background:#fff;color:var(--ink);border:2.5px solid var(--ink);border-radius:10px;padding:5px 6px;text-align:center;line-height:1.15;transition:background .3s}
+.rd small{display:block;font-size:10px;font-weight:700;color:#5a5f80}
+.rd b{display:block;font-size:12.5px}
+.rd span{display:block;font-size:10.5px;font-weight:700;color:#5a5f80;margin-top:1px}
+.rd.cur{background:var(--yellow);box-shadow:0 0 0 3px var(--yellow)}
+.rd.w{background:#c9f5d6}.rd.w span{color:#1d8c3b}
+.rd.l{background:#ffd3cf}.rd.l span{color:#c0261c}
+.rd.d{background:#e8eaf3}
+.bstatus{text-align:center;font-weight:900;font-size:14px;color:var(--yellow);text-shadow:1.5px 1.5px 0 var(--ink);min-height:20px}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--ink);border-top:3px solid var(--yellow);
   padding:8px max(16px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
 nav.tabs div{max-width:440px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}

@@ -584,6 +584,33 @@ function renderFree(){refill();const n=S.spins??3;$("free-n").textContent=n<=SPI
   $("free-t").textContent=n>=SPINS_MAX&&!S.refillAt?"Каждые 4 часа даётся 3 бесплатных прокрутки":"Новые 3 прокрутки через "+leftTxt();$("open").classList.toggle("empty",n<=0)}
 setInterval(renderFree,1000);
 
+/* ---------- three-round battle engine ---------- */
+const RN=["Твой выбор","Выбор соперника","Случайная"];
+function aiPick(card,ex){let best=-1,bv=-1;for(let i=0;i<5;i++){if(ex.includes(i))continue;const v=eff(card,i)*(.85+Math.random()*.3);if(v>bv){bv=v;best=i}}return best}
+function rndPick(ex){const r=[0,1,2,3,4].filter(i=>!ex.includes(i));return r[Math.floor(Math.random()*r.length)]}
+function pipsHTML(picks,rounds,cur,shown){shown=shown||[0];return [0,1,2].map(k=>{const r=rounds[k],known=r||shown.includes(k);
+  const cls=r?(r.a>r.b?"w":r.a<r.b?"l":"d"):(k===cur?"cur":"");
+  return `<div class="rd ${cls}"><small>Раунд ${k+1}</small><b>${known&&picks[k]!=null?STN[picks[k]]:"?"}</b><span>${r?r.a+" : "+r.b:RN[k]}</span></div>`}).join("")}
+function runBattle(o){const rounds=[];let i=0;const shown=o.shown||[0];
+  const pips=()=>{o.roundsEl.innerHTML=pipsHTML(o.picks,rounds,i,shown)};
+  const fight=()=>{const s=o.picks[i];if(!shown.includes(i))shown.push(i);pips();o.statusEl.textContent="Раунд "+(i+1)+" — "+STN[s];
+    o.leftEl.classList.remove("win","lose");o.rightEl.classList.remove("win","lose");
+    o.leftEl.innerHTML=mcHTML(o.L,s,0);o.rightEl.innerHTML=mcHTML(o.Rc,s,0);
+    if(o.vsEl){o.vsEl.classList.remove("clash");void o.vsEl.offsetWidth;o.vsEl.classList.add("clash")}sfx.clash();hap("medium");
+    const a=eff(o.L,s),b=eff(o.Rc,s),t0=performance.now(),ms=reduce?0:900;
+    (function f(t){const k=ms?Math.min(1,(t-t0)/ms):1,e=1-Math.pow(1-k,3);o.leftEl.querySelector(".v b").textContent=Math.round(a*e);o.rightEl.querySelector(".v b").textContent=Math.round(b*e);
+      if(k<1){if(Math.random()<.35)sfx.tick();requestAnimationFrame(f);return}
+      rounds.push({a,b});if(a>b){o.leftEl.classList.add("win");o.rightEl.classList.add("lose");sfx.lock()}else if(a<b){o.rightEl.classList.add("win");o.leftEl.classList.add("lose");tone(220,.18,"square",.06)}
+      o.statusEl.textContent="Раунд "+(i+1)+": "+(a>b?"твой":a<b?"соперника":"ничья")+" ("+a+" : "+b+")";
+      i++;pips();setTimeout(next,reduce?0:1000)})(t0)};
+  const next=()=>{if(i>=3){const w=rounds.filter(r=>r.a>r.b).length,l=rounds.filter(r=>r.a<r.b).length;o.leftEl.classList.remove("win","lose");o.rightEl.classList.remove("win","lose");
+      if(w>l){o.leftEl.classList.add("win");o.rightEl.classList.add("lose")}else if(l>w){o.rightEl.classList.add("win");o.leftEl.classList.add("lose")}
+      o.statusEl.textContent="Счёт "+w+" : "+l;o.done(w,l,rounds);return}
+    if(i===1&&!reduce){pips();o.statusEl.textContent="Соперник выбирает характеристику…";setTimeout(fight,900);return}
+    if(i===2&&!reduce){pips();let n=0;const iv=setInterval(()=>{o.statusEl.textContent="Случайная характеристика: "+STN[n%5];sfx.tick();n++},90);setTimeout(()=>{clearInterval(iv);fight()},1300);return}
+    fight()};
+  next()}
+
 /* ---------- duels ---------- */
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 let duMine=null,duStat=0,duMode=0,duBusy=false;
@@ -601,6 +628,7 @@ function renderDuel(){
   }
   const sb=$("du-stats");sb.innerHTML="";
   STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===duStat);b.innerHTML=`${n}<b class="num">${me?eff(me,i):"—"}</b>`;b.onclick=()=>{if(duBusy)return;duStat=i;renderDuel()};sb.appendChild(b)});
+  if(!duBusy)$("du-rounds").innerHTML=pipsHTML([duStat,null,null],[],0);
   const go=$("du-go");go.disabled=!me||duBusy;go.textContent=duMode?"В бой на карточку!":"В бой!";
   const pk=$("du-pick");pk.innerHTML="";
   [...S.cards].filter(c=>!away(c)).sort((a,b)=>eff(b,duStat)-eff(a,duStat)).forEach(c=>{
@@ -619,25 +647,22 @@ $("du-go").onclick=()=>{
   op.classList.add("back");op.innerHTML="<span>СОПЕР<br>НИК</span>";
   if(!reduce){op.style.animation="shake .11s linear infinite";whoosh()}
   setTimeout(()=>{
-    op.style.animation="";op.className="mc";op.style.setProperty("--hc",HT[HEROES[opp.h][2]].c);op.innerHTML=mcHTML(opp,duStat,0);
-    mel.innerHTML=mcHTML(me,duStat,0);const vs=$("du-vs");vs.classList.remove("clash");void vs.offsetWidth;vs.classList.add("clash");sfx.clash();
-    const a=eff(me,duStat),b=eff(opp,duStat),t0=performance.now(),ms=reduce?0:1100;
-    (function f(tm){const k=ms?Math.min(1,(tm-t0)/ms):1,e=1-Math.pow(1-k,3);
-      mel.querySelector(".v b").textContent=Math.round(a*e);op.querySelector(".v b").textContent=Math.round(b*e);
-      if(k<1){if(Math.random()<.4)sfx.tick();requestAnimationFrame(f);return}
-      let msg,win=a>b;
-      if(a===b){msg="Ничья! "+a+" против "+b}
-      else if(win){mel.classList.add("win");op.classList.add("lose");me.wins=(me.wins||0)+1;S.totalWins=(S.totalWins||0)+1;addXp(me,30);dayInc("wins");sfx.fanfare();burst(3);
-        if(duMode&&S.cards.length<CAP){S.cards.push(opp);msg="Победа! "+a+" против "+b+". Карточка "+HEROES[opp.h][0]+" теперь твоя"}
-        else{const r=Math.round(opp.v*.3+5);S.cash+=r;msg="Победа! "+a+" против "+b+". Награда "+fmt(r)}}
-      else{op.classList.add("win");mel.classList.add("lose");sfx.lose();addXp(me,10);
-        if(duMode){S.cards=S.cards.filter(c=>c.id!==me.id);if(current&&current.id===me.id){current=null;$("sell").disabled=true}msg="Поражение. "+a+" против "+b+". Твоя карточка ушла к "+bot}
-        else msg="Поражение. "+a+" против "+b+". Попробуй другую характеристику"}
-      res.textContent=msg;res.className="result "+(a>b?"win":a<b?"lose":"");save();updCash();
-      setTimeout(()=>{duBusy=false;if(duMode&&!win&&a!==b)duMine=null;renderDuel()},1600);
-    })(t0);
+    op.style.animation="";op.className="mc";op.style.setProperty("--hc",HT[HEROES[opp.h][2]].c);
+    const p2=aiPick(opp,[duStat]),p3=rndPick([duStat,p2]);
+    runBattle({L:me,Rc:opp,picks:[duStat,p2,p3],leftEl:mel,rightEl:op,roundsEl:$("du-rounds"),statusEl:$("du-st"),vsEl:$("du-vs"),done:(w,l)=>{
+      let msg;const sc=w+" : "+l;
+      if(w===l){msg="Ничья "+sc+"! Опыт +15";addXp(me,15)}
+      else if(w>l){me.wins=(me.wins||0)+1;S.totalWins=(S.totalWins||0)+1;addXp(me,30);dayInc("wins");sfx.fanfare();burst(3);hapN("success");
+        if(duMode&&S.cards.length<CAP){S.cards.push(opp);msg="Победа "+sc+"! Карточка "+HEROES[opp.h][0]+" теперь твоя"}
+        else{const r=Math.round(opp.v*.3+5);S.cash+=r;msg="Победа "+sc+"! Награда "+fmt(r)}}
+      else{sfx.lose();addXp(me,10);
+        if(duMode){S.cards=S.cards.filter(c=>c.id!==me.id);if(current&&current.id===me.id){current=null;$("sell").disabled=true}msg="Поражение "+sc+". Твоя карточка ушла к "+bot}
+        else msg="Поражение "+sc+". Попробуй другого воина или характеристику"}
+      res.textContent=msg;res.className="result "+(w>l?"win":w<l?"lose":"");save();updCash();
+      setTimeout(()=>{duBusy=false;if(duMode&&w<l)duMine=null;$("du-st").textContent="Раунд 1: выбери характеристику";renderDuel()},2200)}});
   },reduce?0:900);
 };
+
 
 
 /* ---------- Telegram Mini App bridge ---------- */
@@ -834,41 +859,44 @@ function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hid
   info.appendChild(pick);sh.appendChild(info);
   // remember the friend
   S.friends=S.friends||{};S.friends[F.name]={p:F.p,t:Date.now()};save();renderFriends()}
-function openDuel(D){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;let stat=D.stat==null?0:D.stat,mine=null,busy2=false;
+function openDuel(D){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;let stat=D.stat===0?1:0,mine=null,busy2=false;
   const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
   const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent=D.name+" вызывает тебя!";sh.appendChild(w);
+  const rds=document.createElement("div");rds.className="rounds";sh.appendChild(rds);
   const ar=document.createElement("div");ar.className="arena";const left=document.createElement("div"),vs=document.createElement("div"),right=bigMc(D.card,stat);
   left.className="mc empty";left.textContent="Выбери воина внизу";vs.className="vs";vs.textContent="VS";ar.append(left,vs,right);sh.appendChild(ar);
+  const bst=document.createElement("div");bst.className="bstatus";sh.appendChild(bst);
   const st=document.createElement("div");st.className="stats5";sh.appendChild(st);
   const go=document.createElement("button");go.type="button";go.className="craftbtn";go.textContent="В бой!";sh.appendChild(go);
   const res=document.createElement("div");res.className="result";sh.appendChild(res);
   const box=document.createElement("div");box.className="box";box.innerHTML='<span class="step">Твои воины</span>';const pk=document.createElement("div");pk.className="pickrow";box.appendChild(pk);sh.appendChild(box);
-  function draw(){w.children[1].textContent=D.stat==null?"Выбери характеристику для боя":"Бой по характеристике «"+STN[stat]+"»";
+  function draw(){w.children[1].textContent=D.stat==null?"Три раунда: первый выбираешь ты, второй соперник, третий случайно":"Соперник уже выбрал «"+STN[D.stat]+"» для второго раунда";
+    if(!busy2){rds.innerHTML=pipsHTML([stat,D.stat,null],[],0,D.stat!=null?[0,1]:[0]);bst.textContent="Раунд 1: выбери характеристику"}
     right.innerHTML=mcHTML(D.card,stat);
-    st.innerHTML="";STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===stat);b.disabled=D.stat!=null&&i!==D.stat;
+    st.innerHTML="";STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===stat);b.disabled=D.stat!=null&&i===D.stat;if(b.disabled)b.title="Эту характеристику уже выбрал соперник";
       b.innerHTML=`${n}<b class="num">${mine?eff(mine,i):"—"}</b>`;b.onclick=()=>{if(busy2)return;stat=i;draw()};st.appendChild(b)});
     if(mine){left.className="mc";left.style.setProperty("--hc",HT[HEROES[mine.h][2]].c);left.innerHTML=mcHTML(mine,stat)}
     pk.innerHTML="";S.cards.filter(c=>!away(c)).sort((a,b)=>eff(b,stat)-eff(a,stat)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",mine&&c.id===mine.id);
       b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${STN[stat]}: ${eff(c,stat)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{if(busy2)return;mine=c;draw()};pk.appendChild(b)});
     if(!S.cards.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">У тебя пока нет карточек. Закрой окно и открой несколько на вкладке «Крутить».</p>';
     go.disabled=!mine||busy2}
-  go.onclick=()=>{if(!mine||busy2)return;busy2=true;draw();ac();sfx.clash();vs.classList.remove("clash");void vs.offsetWidth;vs.classList.add("clash");
-    const a=eff(mine,stat),b=eff(D.card,stat),t0=performance.now(),ms=reduce?0:1100;left.innerHTML=mcHTML(mine,stat,0);right.innerHTML=mcHTML(D.card,stat,0);
-    (function f(tm){const k=ms?Math.min(1,(tm-t0)/ms):1,e=1-Math.pow(1-k,3);left.querySelector(".v b").textContent=Math.round(a*e);right.querySelector(".v b").textContent=Math.round(b*e);
-      if(k<1){requestAnimationFrame(f);return}
-      S.doneCh=S.doneCh||{};const key=D.id+"_"+stat,first=!S.doneCh[key];let txt;
-      if(a>b){left.classList.add("win");right.classList.add("lose");sfx.fanfare();burst(3);hapN("success");
-        if(first){const r=Math.round(D.card.v*.3+5);S.cash+=r;addXp(mine,30);S.totalWins=(S.totalWins||0)+1;mine.wins=(mine.wins||0)+1;dayInc("wins");S.doneCh[key]=1;res.textContent="Победа! "+a+" против "+b+". Награда "+fmt(r)+" и +30 опыта"}
-        else res.textContent="Победа! "+a+" против "+b+". Награду за этот вызов ты уже получал";
-        res.className="result win";txt="Я победил твоего воина "+HEROES[D.card.h][0]+": "+a+" против "+b+"! Мой "+HEROES[mine.h][0]+" сильнее 😎"}
-      else if(a<b){right.classList.add("win");left.classList.add("lose");sfx.lose();if(first){addXp(mine,10);S.doneCh[key]=1}
-        res.textContent="Поражение. "+a+" против "+b+". Попробуй другого воина";res.className="result lose";txt="Твой "+HEROES[D.card.h][0]+" меня победил ("+b+" против "+a+"). Реванш?"}
-      else{res.textContent="Ничья! "+a+" против "+b;res.className="result";txt="Ничья с твоим воином "+HEROES[D.card.h][0]+"!"}
+  go.onclick=()=>{if(!mine||busy2)return;busy2=true;draw();ac();go.disabled=true;
+    const p2=D.stat!=null?D.stat:aiPick(D.card,[stat]),p3=rndPick([stat,p2]);
+    [...sh.querySelectorAll(".linkbtn")].forEach(x=>x.remove());res.textContent="";
+    runBattle({shown:D.stat!=null?[0,1]:[0],L:mine,Rc:D.card,picks:[stat,p2,p3],leftEl:left,rightEl:right,roundsEl:rds,statusEl:bst,vsEl:vs,done:(wn,ls)=>{
+      S.doneCh=S.doneCh||{};const key=D.id+"_"+mine.h,first=!S.doneCh[key],sc=wn+" : "+ls;let txt;
+      if(wn>ls){sfx.fanfare();burst(3);hapN("success");
+        if(first){const r=Math.round(D.card.v*.3+5);S.cash+=r;addXp(mine,30);S.totalWins=(S.totalWins||0)+1;mine.wins=(mine.wins||0)+1;dayInc("wins");S.doneCh[key]=1;res.textContent="Победа "+sc+"! Награда "+fmt(r)+" и +30 опыта"}
+        else res.textContent="Победа "+sc+"! Награду за этот вызов этим воином ты уже получал";
+        res.className="result win";txt="Я победил твоего воина "+HEROES[D.card.h][0]+" со счётом "+sc+"! Мой "+HEROES[mine.h][0]+" сильнее 😎 Реванш?"}
+      else if(wn<ls){sfx.lose();if(first){addXp(mine,10);S.doneCh[key]=1}
+        res.textContent="Поражение "+sc+". Попробуй другого воина или характеристику";res.className="result lose";txt="Твой "+HEROES[D.card.h][0]+" меня победил ("+ls+" : "+wn+"). Держи ответный вызов!"}
+      else{res.textContent="Ничья "+sc+"!";res.className="result";txt="Ничья с твоим воином "+HEROES[D.card.h][0]+" ("+sc+")! Решим в следующем бою?"}
       save();updCash();
       const back=document.createElement("button");back.type="button";back.className="linkbtn";back.textContent="Отправить результат и вызвать в ответ";
       back.onclick=()=>{const by=[1,...encName(),stat];encCard(mine,by);sendLink(txt,makeLink("d",by).url)};res.after(back);
-      setTimeout(()=>{busy2=false;go.disabled=false;go.textContent="Ещё раз другим воином";left.classList.remove("win","lose");right.classList.remove("win","lose")},1500);
-    })(t0)};
+      setTimeout(()=>{busy2=false;go.disabled=false;go.textContent="Ещё раз";draw()},1800)}});
+  };
   draw()}
 function parseParam(p){try{const kind=p[0],a=b64d(p.slice(2));if(a[0]!==1)return null;const n=decName(a);let i=n.i;
   if(kind==="v"){const cnt=a[i],wins=a[i+1],have=a[i+2];i+=3;const cards=[];for(let k=0;k<cnt;k++){cards.push(decCard(a,i));i+=CARD_B}return {kind,name:n.name,wins,have,cards,p}}

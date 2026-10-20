@@ -78,14 +78,16 @@
     <div id="bt-duel" style="display:flex;flex-direction:column;gap:14px">
     <div class="box">
       <h3>Дуэль</h3>
-      <p>Выбери воина и характеристику. Соперник откроет свою карточку, у кого больше, тот победил.</p>
+      <p>Бой идёт в три раунда. В первом характеристику выбираешь ты, во втором соперник, в третьем она выпадает случайно. Кто выиграл два раунда, тот и победил.</p>
       <div class="fins" id="du-mode"></div>
     </div>
+    <div class="rounds" id="du-rounds"></div>
     <div class="arena">
       <div class="mc empty" id="du-me">Выбери воина внизу</div>
       <div class="vs" id="du-vs">VS</div>
       <div class="mc back" id="du-op"><span>СОПЕР<br>НИК</span></div>
     </div>
+    <div class="bstatus" id="du-st">Раунд 1: выбери характеристику</div>
     <div class="stats5" id="du-stats"></div>
     <button type="button" class="craftbtn" id="du-go">В бой!</button>
     <button type="button" class="linkbtn" id="du-friend">Вызвать друга этим воином</button>
