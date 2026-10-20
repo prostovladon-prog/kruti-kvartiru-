@@ -93,6 +93,13 @@ function roll(){
   while(f>0&&issuedOf(h,f)>=FIN[f].run)f--; // print run sold out, fall back
   return makeCard(h,f);
 }
+/* ---------- levels: XP from battles, boss and expeditions; +4% to every stat per level ---------- */
+const LMAX=10;
+function lvl(c){return Math.min(LMAX,1+Math.floor(Math.sqrt((c.xp||0)/25)))}
+function lvlNext(c){const l=lvl(c);return l>=LMAX?null:25*l*l}
+function eff(c,i){return Math.round((c.stats||[])[i]*(1+.04*(lvl(c)-1)))}
+function addXp(c,x){const before=lvl(c);c.xp=(c.xp||0)+x;const after=lvl(c);if(after>before){toast(HEROES[c.h][0]+" достиг уровня "+after+"!");sfx&&sfx.reveal&&sfx.reveal(2)}return after>before}
+const away=c=>!!c.away;  // в походе, пока добыча не забрана
 function makeCard(h,f){
   const no=issuedOf(h,f)+1;S.issued[h+"-"+f]=no;
   const tier=HEROES[h][2],[a,b]=HT[tier].b;
@@ -346,7 +353,8 @@ function showCard(c){
   $("h-name").textContent=H[0];$("h-no").textContent="№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
   $("h-emo").innerHTML=portrait(c.h,c);$("h-era").textContent=H[1];$("h-tier").textContent=T.k;$("h-fin").textContent=F.k;
   $("h-pow").textContent=H[3];
-  $("h-stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${(c.stats||[])[i]??"?"}</span>`).join("");
+  $("h-stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
+  const lb=$("h-lvl");lb.hidden=lvl(c)<=1;lb.textContent="Ур. "+lvl(c);
   $("h-fin").textContent=F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run);
   const sn=c.sn||"482913",cl=classify(sn);
   $("h-serial").innerHTML="<small>№</small>"+fmtSn(sn);$("h-serial").classList.toggle("nice",!!cl);
@@ -468,6 +476,8 @@ function renderCol(){
     el.querySelector("b").textContent=H[0];el.querySelector(".tg").textContent=F.k;
     el.querySelector(".sub").textContent=F.run===Infinity?HT[H[2]].k:c.no+" из "+F.run;
     if(c.sn){const cl=classify(c.sn),sn=document.createElement("div");sn.className="sn num"+(cl?" nice":"");sn.textContent="№ "+fmtSn(c.sn)+(cl?", "+cl.k.toLowerCase():"");el.querySelector(".t").appendChild(sn)}
+    if(away(c)){const m=el.querySelector(".mini");m.disabled=true;m.textContent="В походе"}
+    if(lvl(c)>1){const t=document.createElement("span");t.className="tg";t.style.setProperty("--s","#0d1030");t.textContent="Ур. "+lvl(c);el.querySelector(".t small").prepend(t)}
     el.querySelector(".mini").onclick=()=>{S.cards=S.cards.filter(x=>x.id!==c.id);S.cash+=c.v;if(current&&current.id===c.id){current=null;$("sell").disabled=true}save();renderAll();toast("Продано за "+fmt(c.v))};
     box.appendChild(el)});
 }
@@ -503,7 +513,7 @@ function renderCraft(){
   for(const id of [...crSel])if(!S.cards.some(c=>c.id===id))crSel.delete(id);
   const pk=$("cr-pick");pk.innerHTML="";
   if(!S.cards.length){pk.innerHTML='<p style="margin:0;color:#5a5f80">В коллекции пусто. Открой несколько карточек на вкладке «Крутить».</p>'}
-  [...S.cards].sort((a,b)=>b.v-a.v).forEach(c=>{
+  [...S.cards].filter(c=>!away(c)).sort((a,b)=>b.v-a.v).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",crSel.has(c.id));
     b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;
@@ -578,7 +588,7 @@ setInterval(renderFree,1000);
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 let duMine=null,duStat=0,duMode=0,duBusy=false;
 const BOTN=["Артём_777","lena.k","Тимур","Max_Rich","Ксюша","Vlad_B","Самурай228","Олег"];
-function mcHTML(c,stat,show){const H=HEROES[c.h];return `<div class="t">${H[0].replace(/</g,"")}</div><div class="p">${portrait(c.h,c,1)}</div><div class="v"><small>${STN[stat]}</small><b class="num">${show==null?(c.stats||[])[stat]:show}</b></div>`}
+function mcHTML(c,stat,show){const H=HEROES[c.h];return `<div class="t">${H[0].replace(/</g,"")}</div><div class="p">${portrait(c.h,c,1)}</div><div class="v"><small>${STN[stat]}</small><b class="num">${show==null?eff(c,stat):show}</b></div>`}
 function renderDuel(){
   if(duMine&&!S.cards.some(c=>c.id===duMine))duMine=null;
   const md=$("du-mode");md.innerHTML="";
@@ -590,12 +600,12 @@ function renderDuel(){
     const op=$("du-op");op.className="mc back";op.innerHTML="<span>СОПЕР<br>НИК</span>";
   }
   const sb=$("du-stats");sb.innerHTML="";
-  STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===duStat);b.innerHTML=`${n}<b class="num">${me?(me.stats||[])[i]:"—"}</b>`;b.onclick=()=>{if(duBusy)return;duStat=i;renderDuel()};sb.appendChild(b)});
+  STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===duStat);b.innerHTML=`${n}<b class="num">${me?eff(me,i):"—"}</b>`;b.onclick=()=>{if(duBusy)return;duStat=i;renderDuel()};sb.appendChild(b)});
   const go=$("du-go");go.disabled=!me||duBusy;go.textContent=duMode?"В бой на карточку!":"В бой!";
   const pk=$("du-pick");pk.innerHTML="";
-  [...S.cards].sort((a,b)=>b.stats.reduce((x,y)=>x+y,0)-a.stats.reduce((x,y)=>x+y,0)).forEach(c=>{
+  [...S.cards].filter(c=>!away(c)).sort((a,b)=>eff(b,duStat)-eff(a,duStat)).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===duMine);
-    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${c.stats[duStat]}</span><b>${c.wins?"Побед: "+c.wins:FIN[c.f].k}</b>`;b.children[1].textContent=H[0];
+    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${eff(c,duStat)}</span><b>Ур. ${lvl(c)}${c.wins?", побед "+c.wins:""}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel()};pk.appendChild(b)});
   $("du-wins").textContent="Побед сегодня: "+day().wins;
 }
@@ -611,16 +621,16 @@ $("du-go").onclick=()=>{
   setTimeout(()=>{
     op.style.animation="";op.className="mc";op.style.setProperty("--hc",HT[HEROES[opp.h][2]].c);op.innerHTML=mcHTML(opp,duStat,0);
     mel.innerHTML=mcHTML(me,duStat,0);const vs=$("du-vs");vs.classList.remove("clash");void vs.offsetWidth;vs.classList.add("clash");sfx.clash();
-    const a=me.stats[duStat],b=opp.stats[duStat],t0=performance.now(),ms=reduce?0:1100;
+    const a=eff(me,duStat),b=eff(opp,duStat),t0=performance.now(),ms=reduce?0:1100;
     (function f(tm){const k=ms?Math.min(1,(tm-t0)/ms):1,e=1-Math.pow(1-k,3);
       mel.querySelector(".v b").textContent=Math.round(a*e);op.querySelector(".v b").textContent=Math.round(b*e);
       if(k<1){if(Math.random()<.4)sfx.tick();requestAnimationFrame(f);return}
       let msg,win=a>b;
       if(a===b){msg="Ничья! "+a+" против "+b}
-      else if(win){mel.classList.add("win");op.classList.add("lose");me.wins=(me.wins||0)+1;S.totalWins=(S.totalWins||0)+1;dayInc("wins");sfx.fanfare();burst(3);
+      else if(win){mel.classList.add("win");op.classList.add("lose");me.wins=(me.wins||0)+1;S.totalWins=(S.totalWins||0)+1;addXp(me,30);dayInc("wins");sfx.fanfare();burst(3);
         if(duMode&&S.cards.length<CAP){S.cards.push(opp);msg="Победа! "+a+" против "+b+". Карточка "+HEROES[opp.h][0]+" теперь твоя"}
         else{const r=Math.round(opp.v*.3+5);S.cash+=r;msg="Победа! "+a+" против "+b+". Награда "+fmt(r)}}
-      else{op.classList.add("win");mel.classList.add("lose");sfx.lose();
+      else{op.classList.add("win");mel.classList.add("lose");sfx.lose();addXp(me,10);
         if(duMode){S.cards=S.cards.filter(c=>c.id!==me.id);if(current&&current.id===me.id){current=null;$("sell").disabled=true}msg="Поражение. "+a+" против "+b+". Твоя карточка ушла к "+bot}
         else msg="Поражение. "+a+" против "+b+". Попробуй другую характеристику"}
       res.textContent=msg;res.className="result "+(a>b?"win":a<b?"lose":"");save();updCash();
@@ -684,7 +694,7 @@ function renderShow(){const box=$("show3");if(!box)return;box.innerHTML="";
 
 /* ---------- merge 3 → 1 ---------- */
 function renderMerge(){const box=$("merge");if(!box)return;box.innerHTML="";const g={};
-  S.cards.forEach(c=>{if(c.f<4){const k=c.h+"-"+c.f;(g[k]=g[k]||[]).push(c)}});
+  S.cards.forEach(c=>{if(c.f<4&&!away(c)){const k=c.h+"-"+c.f;(g[k]=g[k]||[]).push(c)}});
   const groups=Object.values(g).filter(a=>a.length>=3);
   if(!groups.length){box.innerHTML='<p style="margin:0;color:#5a5f80">Пока нечего сливать. Собери три одинаковых карточки.</p>';return}
   groups.forEach(a=>{const c=a[0],nf=c.f+1,left=FIN[nf].run===Infinity||issuedOf(c.h,nf)<FIN[nf].run,el=document.createElement("div");el.className="mg";el.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
@@ -695,11 +705,102 @@ function renderMerge(){const box=$("merge");if(!box)return;box.innerHTML="";cons
       const n=makeCard(c.h,nf);S.cards.push(n);S.bestFin=Math.max(S.bestFin||0,n.f);sfx.fanfare();hapN("success");burst(nf+1);save();renderAll();
       toast("Слияние! "+HEROES[c.h][0]+", "+FIN[nf].k.toLowerCase()+", № "+fmtSn(n.sn)+", "+fmt(n.v))};box.appendChild(el)})}
 
+
+const fmtN=n=>Math.round(n).toLocaleString("ru-RU").replace(/[\u00a0,]/g," ");
+/* ---------- battle hub tabs ---------- */
+let btView="duel";
+document.querySelectorAll("#bt-seg button").forEach(b=>b.onclick=()=>{btView=b.dataset.v;renderBattle()});
+function renderBattle(){document.querySelectorAll("#bt-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===btView));
+  ["duel","boss","exp"].forEach(v=>$("bt-"+v).style.display=v===btView?"flex":"none");
+  if(btView==="duel")renderDuel();if(btView==="boss")renderBoss();if(btView==="exp")renderExp()}
+
+/* ---------- expeditions ---------- */
+const DEST=[
+ {k:"Разведка у реки",t:"1 минута",ms:60e3,xp:20,m:[5,15],sp:.1,card:0},
+ {k:"Набег на побережье",t:"1 час",ms:3600e3,xp:60,m:[20,60],sp:.35,card:.03},
+ {k:"Осада замка",t:"4 часа",ms:4*3600e3,xp:180,m:[60,180],sp:1,card:.1},
+ {k:"Поход за край карты",t:"8 часов",ms:8*3600e3,xp:360,m:[150,400],sp:2,card:.25}];
+const EX_SLOTS=3;let exDest=0,exPick=null;
+function exList(){return S.cards.filter(c=>c.away)}
+function tleft(ms){const s=Math.max(0,Math.ceil(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":":"")+String(m).padStart(h?2:1,"0")+":"+String(x).padStart(2,"0")}
+function renderExp(){
+  const sl=$("ex-slots");sl.innerHTML="";const list=exList();
+  for(let i=0;i<EX_SLOTS;i++){const c=list[i],el=document.createElement("div");
+    if(!c){el.className="exp emptys";el.textContent="Свободное место для похода";sl.appendChild(el);continue}
+    const D=DEST[c.dest],left=c.away-Date.now();el.className="exp";el.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
+    el.innerHTML=`<span class="e">${portrait(c.h,c,1)}</span><span><b></b><br><small style="color:#5a5f80"></small></span><button type="button" class="mini2"></button>`;
+    el.querySelector("b").textContent=HEROES[c.h][0];el.querySelector("small").textContent=D.k+(left>0?", вернётся через "+tleft(left):", вернулся!");
+    const b=el.querySelector("button");b.textContent=left>0?"Ускорить (тест)":"Забрать добычу";
+    b.onclick=()=>{if(left>0){c.away=Date.now()-1;save();renderExp();return}
+      const money=Math.round(D.m[0]+Math.random()*(D.m[1]-D.m[0]));let sp=Math.floor(D.sp)+(Math.random()<D.sp%1?1:0);let msg=HEROES[c.h][0]+" вернулся: +"+money+"$, +"+D.xp+" опыта";
+      S.cash+=money;addXp(c,D.xp);if(sp){S.spins=(S.spins??3)+sp;msg+=", +"+sp+(sp===1?" прокрутка":" прокрутки")}
+      c.away=0;c.dest=null;
+      if(Math.random()<D.card&&S.cards.length<CAP){const n=roll();S.cards.push(n);msg+=". Нашёл карточку: "+HEROES[n.h][0]+"!";burst(3)}
+      sfx.coin();hapN("success");save();renderAll();toast(msg)};
+    sl.appendChild(el)}
+  const dd=$("ex-dest");dd.innerHTML="";
+  DEST.forEach((D,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===exDest);
+    b.innerHTML=`<b></b>${D.t}, +${D.xp} опыта<br>$${D.m[0]}–${D.m[1]}${D.card?", шанс карточки "+Math.round(D.card*100)+"%":""}`;b.querySelector("b").textContent=D.k;b.onclick=()=>{exDest=i;renderExp()};dd.appendChild(b)});
+  const pk=$("ex-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c));
+  if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных воинов.</p>';
+  free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===exPick);
+    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">Ур. ${lvl(c)}</span><b>${FIN[c.f].k}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{exPick=c.id;renderExp()};pk.appendChild(b)});
+  const go=$("ex-go"),full=list.length>=EX_SLOTS;go.disabled=!exPick||full||!free.some(c=>c.id===exPick);go.textContent=full?"Все места заняты":"Отправить в поход: "+DEST[exDest].k.toLowerCase();
+}
+$("ex-go").onclick=()=>{const c=S.cards.find(x=>x.id===exPick);if(!c||exList().length>=EX_SLOTS)return;c.away=Date.now()+DEST[exDest].ms;c.dest=exDest;
+  if(current&&current.id===c.id){current=null;$("sell").disabled=true}exPick=null;whoosh();save();renderExp();toast(HEROES[c.h][0]+" ушёл в поход")};
+setInterval(()=>{if(!$("sec-duel").hidden&&btView==="exp")renderExp()},1000);
+
+/* ---------- boss of the week ---------- */
+const BOSS={name:"Змей Горыныч",hp:25000};
+function weekKey(){const d=new Date(),y=d.getUTCFullYear(),s=new Date(Date.UTC(y,0,1));return y+"-"+Math.ceil(((d-s)/864e5+s.getUTCDay()+1)/7)}
+function boss(){if(!S.boss||S.boss.w!==weekKey())S.boss={w:weekKey(),dmg:0,got:[],day:"",hits:0,squad:[]};if(S.boss.day!==today()){S.boss.day=today();S.boss.hits=0}return S.boss}
+const MILES=[{p:.25,t:"3 прокрутки",f:B=>{S.spins=(S.spins??3)+3}},{p:.5,t:"Гарантированная эпическая",f:()=>{S.guar=(S.guar||0)+1}},{p:.75,t:"$500 и 3 прокрутки",f:()=>{S.cash+=500;S.spins=(S.spins??3)+3}},{p:1,t:"Легендарная карточка",f:()=>{const pool=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]===3);const n=makeCard(pool[Math.floor(Math.random()*pool.length)],1);S.cards.push(n);burst(4)}}];
+function bossSVG(hpk){const eye=hpk<.3?"#ff3b30":"#ffd60a";let heads="";
+  [[95,62,-18],[150,42,0],[205,62,18]].forEach(([x,y,r],i)=>{heads+=`<g transform="rotate(${r} ${x} ${y+40})"><path d="M${x-12} ${y+70} Q${x-16} ${y+30} ${x} ${y+18} Q${x+16} ${y+30} ${x+12} ${y+70} Z" fill="#3f8f3a" stroke="#0d1030" stroke-width="4"/>
+   <path d="M${x-22} ${y+20} Q${x-24} ${y-6} ${x} ${y-10} Q${x+24} ${y-6} ${x+22} ${y+20} Q${x+12} ${y+34} ${x} ${y+34} Q${x-12} ${y+34} ${x-22} ${y+20} Z" fill="#4fae47" stroke="#0d1030" stroke-width="4"/>
+   <path d="M${x-14} ${y-6} L${x-22} ${y-24} L${x-6} ${y-10} M${x+14} ${y-6} L${x+22} ${y-24} L${x+6} ${y-10}" fill="#f2e6c8" stroke="#0d1030" stroke-width="3"/>
+   <path d="M${x-12} ${y+4} L${x-3} ${y+8} M${x+12} ${y+4} L${x+3} ${y+8}" stroke="#0d1030" stroke-width="4"/><circle cx="${x-8}" cy="${y+10}" r="3.4" fill="${eye}"/><circle cx="${x+8}" cy="${y+10}" r="3.4" fill="${eye}"/>
+   <path d="M${x-10} ${y+24} L${x-6} ${y+30} L${x-2} ${y+24} L${x+2} ${y+30} L${x+6} ${y+24} L${x+10} ${y+30}" fill="none" stroke="#fff" stroke-width="2.5"/>
+   ${i===1?`<path d="M${x-8} ${y+34} Q${x} ${y+60} ${x+8} ${y+34} Q${x+20} ${y+70} ${x} ${y+86} Q${x-20} ${y+70} ${x-8} ${y+34} Z" fill="#ff9f0a" opacity=".9"/><path d="M${x-4} ${y+38} Q${x} ${y+56} ${x+4} ${y+38} Q${x+10} ${y+62} ${x} ${y+72} Q${x-10} ${y+62} ${x-4} ${y+38} Z" fill="#ffd60a"/>`:""}</g>`});
+  return `<path d="M40 120 Q20 60 70 40 Q66 80 98 104 Z M260 120 Q280 60 230 40 Q234 80 202 104 Z" fill="#2e6e2a" stroke="#0d1030" stroke-width="4"/>
+  <path d="M60 196 Q70 120 150 112 Q230 120 240 196 Z" fill="#3f8f3a" stroke="#0d1030" stroke-width="4"/><path d="M110 196 Q118 146 150 140 Q182 146 190 196 Z" fill="#c9d98a" stroke="#0d1030" stroke-width="3"/>
+  <path d="M120 160 H180 M116 176 H184" stroke="#8aa04a" stroke-width="3"/>${heads}`}
+let bsBusy=false;
+function renderBoss(){const B=boss(),k=Math.max(0,1-B.dmg/BOSS.hp);
+  $("bs-art").innerHTML=bossSVG(k);$("bs-hp").style.width=k*100+"%";$("bs-hpt").textContent=fmtN(Math.max(0,BOSS.hp-B.dmg))+" / "+fmtN(BOSS.hp);
+  $("bs-week").textContent=k<=0?"Побеждён! Новый босс в понедельник":"Ударов сегодня: "+(3-B.hits)+" из 3";
+  B.squad=B.squad.filter(id=>S.cards.some(c=>c.id===id&&!away(c)));
+  const sq=$("bs-squad");sq.innerHTML="";
+  for(let i=0;i<3;i++){const c=S.cards.find(x=>x.id===B.squad[i]),d=document.createElement("div");
+    if(c){d.className="mc";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);d.innerHTML=mcHTML(c,0);d.style.cursor="pointer";d.onclick=()=>{if(bsBusy)return;B.squad=B.squad.filter(x=>x!==c.id);save();renderBoss()}}
+    else{d.className="mc empty";d.textContent="Пусто"}sq.appendChild(d)}
+  const atk=B.squad.map(id=>S.cards.find(c=>c.id===id)).filter(Boolean).reduce((a,c)=>a+eff(c,0),0);
+  $("bs-sq").textContent="Атака отряда: "+atk;
+  const pk=$("bs-pick");pk.innerHTML="";
+  S.cards.filter(c=>!away(c)&&!B.squad.includes(c.id)).sort((a,b)=>eff(b,0)-eff(a,0)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
+    b.innerHTML=`<span class="pv">${portrait(c.h,c,1)}</span><span></span><span style="color:#5a5f80">Атака ${eff(c,0)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];
+    b.onclick=()=>{if(bsBusy)return;if(B.squad.length>=3){toast("В отряде максимум 3 воина");return}B.squad.push(c.id);save();renderBoss()};pk.appendChild(b)});
+  const go=$("bs-go");go.disabled=bsBusy||!B.squad.length||B.hits>=3||k<=0;go.textContent=k<=0?"Босс повержен":B.hits>=3?"Удары закончились, приходи завтра":"Ударить ("+(3-B.hits)+" из 3)";
+  const ml=$("bs-miles");ml.innerHTML="";
+  MILES.forEach((M,i)=>{const d=document.createElement("div"),reached=B.dmg>=BOSS.hp*M.p,got=B.got.includes(i);if(got)d.className="got";
+    d.innerHTML=`<span>${Math.round(M.p*100)}% урона: ${M.t}</span>`;const b=document.createElement("button");b.type="button";b.className="mini2";b.textContent=got?"Получено":"Забрать";b.disabled=!reached||got;
+    b.onclick=()=>{B.got.push(i);M.f(B);sfx.fanfare();hapN("success");save();renderAll();renderBoss();toast("Награда за босса: "+M.t)};d.appendChild(b);ml.appendChild(d)});
+}
+$("bs-go").onclick=()=>{const B=boss();if(bsBusy||B.hits>=3||!B.squad.length)return;bsBusy=true;ac();
+  const team=B.squad.map(id=>S.cards.find(c=>c.id===id)).filter(Boolean);
+  let dmg=team.reduce((a,c)=>a+eff(c,0)*(1.6+Math.random()*.8),0);const crit=Math.random()<.18;if(crit)dmg*=2.5;dmg=Math.round(dmg);
+  B.hits++;B.dmg=Math.min(BOSS.hp,B.dmg+dmg);team.forEach(c=>addXp(c,20));
+  const box=$("bs-box"),d=$("bs-dmg");whoosh(.3,.25);setTimeout(()=>{sfx.clash();hap("heavy");box.classList.remove("hit");void box.offsetWidth;box.classList.add("hit");
+    d.textContent=(crit?"КРИТ! ":"")+"−"+fmtN(dmg);d.classList.remove("show");void d.offsetWidth;d.classList.add("show");if(crit)burst(3);
+    $("bs-res").textContent=(crit?"Критический удар! ":"")+"Отряд нанёс "+fmtN(dmg)+" урона, каждый воин получил +20 опыта";$("bs-res").className="result win";
+    save();setTimeout(()=>{bsBusy=false;renderBoss()},700)},reduce?0:300)};
+
 /* ---------- tabs ---------- */
 function setTab(t){["spin","duel","album","craft","col"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");
 function updCash(){$("cash").textContent=fmt(S.cash)}
-function renderAll(){updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderDuel();if(!$("sec-album").hidden){renderAch();renderShow()}if(!$("sec-col").hidden)renderMerge();renderTasks();renderFree();renderStreak()}
+function renderAll(){updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-album").hidden){renderAch();renderShow()}if(!$("sec-col").hidden)renderMerge();renderTasks();renderFree();renderStreak()}
 let th;function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(th);th=setTimeout(()=>e.classList.remove("show"),2200)}
 
 /* first frame: a sample card face-up so the page shows what it is */

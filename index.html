@@ -28,6 +28,7 @@
             <svg class="burst" viewBox="0 0 200 200" aria-hidden="true"><polygon fill="currentColor" points="100,8 116,62 168,30 140,82 196,92 142,112 176,160 122,138 116,194 96,142 58,186 66,130 10,138 54,104 6,70 64,74 40,22 88,58"/></svg>
             <div class="hero" id="h-emo"></div>
             <div class="era" id="h-era"></div>
+            <div class="lvl" id="h-lvl" hidden></div>
             <div class="tier" id="h-tier"></div>
             <div class="finish" id="h-fin"></div>
             <div class="ribbon" id="h-rib" hidden></div>
@@ -72,8 +73,10 @@
   </section>
 
   <section id="sec-duel" hidden>
+    <div class="seg" id="bt-seg"><button type="button" data-v="duel" aria-pressed="true">Дуэль</button><button type="button" data-v="boss" aria-pressed="false">Босс</button><button type="button" data-v="exp" aria-pressed="false">Походы</button></div>
+    <div id="bt-duel" style="display:flex;flex-direction:column;gap:14px">
     <div class="box">
-      <h3>Бой</h3>
+      <h3>Дуэль</h3>
       <p>Выбери воина и характеристику. Соперник откроет свою карточку, у кого больше, тот победил.</p>
       <div class="fins" id="du-mode"></div>
     </div>
@@ -86,6 +89,24 @@
     <button type="button" class="craftbtn" id="du-go">В бой!</button>
     <div class="result" id="du-res" aria-live="polite"></div>
     <div class="box"><div class="tgtinfo"><span class="step">Твои воины</span><span id="du-wins"></span></div><div class="pickrow" id="du-pick"></div></div>
+    </div>
+    <div id="bt-boss" style="display:none;flex-direction:column;gap:14px">
+      <div class="box"><div class="rowb"><h3 id="bs-name">Змей Горыныч</h3><span id="bs-week" style="font-size:12px;color:#5a5f80"></span></div>
+        <p>Босс недели. Собери отряд из трёх воинов и бей его 3 раза в день. Урон считается по атаке отряда, и иногда выпадает критический удар. За каждую четверть здоровья босса даётся награда.</p></div>
+      <div class="boss" id="bs-box"><svg viewBox="0 0 300 200" id="bs-art" aria-hidden="true"></svg><div class="dmg" id="bs-dmg"></div></div>
+      <div class="hp"><i id="bs-hp"></i><span class="num" id="bs-hpt"></span></div>
+      <div class="box"><div class="rowb"><span class="step">Отряд</span><span id="bs-sq" style="font-size:12px;color:#5a5f80"></span></div><div class="squad" id="bs-squad"></div><p>Нажимай на воинов внизу, чтобы поставить их в отряд.</p><div class="pickrow" id="bs-pick"></div></div>
+      <button type="button" class="craftbtn" id="bs-go" style="background:var(--red)">Ударить</button>
+      <div class="result" id="bs-res" aria-live="polite"></div>
+      <div class="box"><h3>Награды</h3><div class="miles" id="bs-miles"></div></div>
+    </div>
+    <div id="bt-exp" style="display:none;flex-direction:column;gap:14px">
+      <div class="box"><h3>Походы</h3><p>Отправь воина в поход. Пока он в пути, его нельзя продать или поставить в бой. Вернётся с опытом, деньгами, а иногда с прокрутками или новой карточкой.</p></div>
+      <div id="ex-slots" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="box"><span class="step">Куда идём</span><div class="dest" id="ex-dest"></div></div>
+      <div class="box"><span class="step">Кого отправить</span><div class="pickrow" id="ex-pick"></div></div>
+      <button type="button" class="craftbtn" id="ex-go">Отправить в поход</button>
+    </div>
   </section>
   <section id="sec-craft" hidden>
     <div class="box">
