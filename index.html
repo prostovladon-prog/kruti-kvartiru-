@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Воины Эпох</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="flash" id="flash"></div>
+<div class="app">
+  <div class="dimmer" id="dimmer"></div>
+  <header>
+    <div class="logo">Воины<br>Эпох<small>Серия 1, 32 карточки</small></div>
+    <div class="hdr-r"><button type="button" class="sound" id="topup" title="Тестовые прокрутки для прототипа">+3</button><button type="button" class="sound" id="snd" aria-pressed="true">Звук</button><div class="cash"><small>Баланс</small><b class="num" id="cash">$0</b></div></div>
+  </header>
+
+  <section id="sec-spin">
+    <div class="stage" id="stage" role="button" tabindex="0" aria-label="Открыть карточку">
+      <div class="rays"></div><div class="aura"></div>
+      <div class="flip" id="flip">
+        <div class="face front" id="front"><div class="in">
+          <div class="top"><b id="h-name"></b><span id="h-no"></span></div>
+          <div class="art">
+            <svg class="burst" viewBox="0 0 200 200" aria-hidden="true"><polygon fill="currentColor" points="100,8 116,62 168,30 140,82 196,92 142,112 176,160 122,138 116,194 96,142 58,186 66,130 10,138 54,104 6,70 64,74 40,22 88,58"/></svg>
+            <div class="hero" id="h-emo"></div>
+            <div class="era" id="h-era"></div>
+            <div class="tier" id="h-tier"></div>
+            <div class="finish" id="h-fin"></div>
+            <div class="ribbon" id="h-rib" hidden></div>
+          </div>
+          <div class="power" id="h-pow"></div>
+          <div class="stats" id="h-stats"></div>
+          <div class="foot"><span class="sn num" id="h-serial"></span><b class="num" id="h-val"></b></div>
+        </div></div>
+        <div class="face rear"><div class="seal"><div><b>ВОИНЫ<br>ЭПОХ</b><small>нажми, чтобы открыть</small></div></div></div>
+      </div>
+    </div>
+    <div class="price" id="price"><small id="p-lbl">Цена карточки</small><b class="num" id="p-val"></b></div>
+    <button type="button" class="share" id="share">Похвастаться</button>
+    <div class="row">
+      <button type="button" class="open" id="open">Открыть<small id="open-n">3 из 3</small></button>
+      <button type="button" class="sell" id="sell">Продать<b class="num" id="sell-v"></b></button>
+    </div>
+    <div class="hint">Можно просто тапать по карточке</div>
+    <div class="box free"><div><h3>Прокрутки</h3><p id="free-t">Каждые 4 часа даётся 3 бесплатных прокрутки</p></div><b class="num" id="free-n" style="font-family:var(--display);font-size:22px">3/3</b></div>
+    <div class="box"><div class="rowb"><h3>Серия входов</h3><button type="button" class="mini2" id="st-go">Забрать</button></div><div class="streak" id="streak"></div><p id="st-t"></p></div>
+    <div class="box"><div class="rowb"><h3>Гарантия</h3><b class="num" id="pity-n" style="font-family:var(--display)"></b></div><div class="bar"><i id="pity-bar" style="background:var(--r3)"></i></div><p id="pity-t"></p></div>
+    <div class="box"><h3>Задания дня</h3><div id="tasks" style="display:flex;flex-direction:column;gap:10px"></div></div>
+    <div class="box">
+      <h3>Шансы</h3>
+      <div class="odds" id="odds"></div>
+      <p>Тираж ограничен: золотых карточек каждого героя всего 10, а «ошибка печати» существует в единственном экземпляре.</p>
+      <h3>Красивые номера</h3>
+      <p>У каждой карточки свой номер, второго такого нет. Чем редче карточка, тем выше шанс на красивый номер.</p>
+      <div class="nums" id="nums"></div>
+    </div>
+  </section>
+
+  <section id="sec-album" hidden>
+    <div class="box">
+      <div class="prog"><h3>Альбом серии 1</h3><b class="num" id="al-n"></b></div>
+      <div class="bar"><i id="al-bar"></i></div>
+      <p>Собери всех 32 воинов и получи бонус $500 и 10 прокруток. Точки под карточкой показывают, какие виды отделки у тебя есть.</p>
+    </div>
+    <div class="album" id="album"></div>
+    <div class="box"><div class="rowb"><h3>Моя витрина</h3><span id="pf-t" style="font-size:12px;color:#5a5f80"></span></div><p>Три самые дорогие карточки. Их видят друзья в профиле.</p><div class="show3" id="show3"></div></div>
+    <div class="box"><h3>Достижения</h3><div id="achs"></div></div>
+  </section>
+
+  <section id="sec-duel" hidden>
+    <div class="box">
+      <h3>Бой</h3>
+      <p>Выбери воина и характеристику. Соперник откроет свою карточку, у кого больше, тот победил.</p>
+      <div class="fins" id="du-mode"></div>
+    </div>
+    <div class="arena">
+      <div class="mc empty" id="du-me">Выбери воина внизу</div>
+      <div class="vs" id="du-vs">VS</div>
+      <div class="mc back" id="du-op"><span>СОПЕР<br>НИК</span></div>
+    </div>
+    <div class="stats5" id="du-stats"></div>
+    <button type="button" class="craftbtn" id="du-go">В бой!</button>
+    <div class="result" id="du-res" aria-live="polite"></div>
+    <div class="box"><div class="tgtinfo"><span class="step">Твои воины</span><span id="du-wins"></span></div><div class="pickrow" id="du-pick"></div></div>
+  </section>
+  <section id="sec-craft" hidden>
+    <div class="box">
+      <h3>Крафт</h3>
+      <p>Отдай свои карточки и попробуй получить ту, которую хочешь. Чем дороже цель по сравнению с тем, что отдаёшь, тем меньше шанс. Если не повезёт, отданные карточки сгорят.</p>
+    </div>
+    <div class="box">
+      <div class="tgtinfo"><span class="step">1. Что отдаёшь</span><b class="num" id="cr-sum">$0</b></div>
+      <p id="cr-hint">Выбери от 1 до 5 карточек из коллекции.</p>
+      <div class="pickrow" id="cr-pick"></div>
+    </div>
+    <div class="box">
+      <div class="tgtinfo"><span class="step">2. Что хочешь получить</span><b class="num" id="cr-tv">$0</b></div>
+      <div class="fins" id="cr-fins"></div>
+      <div class="tgrid" id="cr-tgt"></div>
+      <div class="tgtinfo"><span id="cr-tname"></span><span id="cr-trun"></span></div>
+    </div>
+    <div class="wheelbox">
+      <div class="formula"><span>Отдаёшь</span><b class="num" id="cr-f1">$0</b><span class="ar">→</span><span>Получаешь</span><b class="num" id="cr-f2">$0</b></div>
+      <div class="wheel">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="92" fill="#ff3b30" stroke="#0d1030" stroke-width="6"/>
+          <path id="cr-arc" fill="#34c759" stroke="#0d1030" stroke-width="3"/>
+          <g id="cr-ticks"></g>
+        </svg>
+        <div class="needle" id="cr-needle"><svg viewBox="0 0 200 200"><path d="M100 100 L93 96 L100 8 L107 96 Z" fill="#ffd60a" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/></svg></div>
+        <div class="chance"><div><span><b class="num" id="cr-p">0%</b><small>шанс</small></span></div></div>
+      </div>
+      <button type="button" class="craftbtn" id="cr-go">Крутить колесо</button>
+      <div class="result" id="cr-res" aria-live="polite"></div>
+    </div>
+  </section>
+  <section id="sec-col" hidden>
+    <div class="box cap"><div><h3>Коллекция</h3><p class="num" id="col-n"></p></div><button type="button" class="ghost" id="sellcommon">Продать все обычные</button></div>
+    <div class="box merge"><h3>Слияние</h3><p>Три одинаковых воина с одной отделкой превращаются в одного с отделкой выше.</p><div id="merge"></div></div>
+    <div class="list" id="col"></div>
+  </section>
+</div>
+<nav class="tabs" role="tablist"><div>
+  <button type="button" role="tab" id="tab-spin" aria-selected="true">Крутить</button>
+  <button type="button" role="tab" id="tab-duel" aria-selected="false">Бой</button>
+  <button type="button" role="tab" id="tab-album" aria-selected="false">Альбом</button>
+  <button type="button" role="tab" id="tab-craft" aria-selected="false">Крафт</button>
+  <button type="button" role="tab" id="tab-col" aria-selected="false">Коллекция</button>
+</div></nav>
+<div class="toast" id="toast"></div>
+<script src="game.js"></script>
+</body>
+</html>
