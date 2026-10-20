@@ -2,7 +2,7 @@
 
 /* ---------- настройки ---------- */
 const API_URL="https://autumn-hat-37ccvoiny-epoh.prostovladon.workers.dev";                              // адрес сервера, например https://voiny-epoh.твоё-имя.workers.dev (пусто = игра без сервера)
-const BOT_LINK="https://t.me/YOUR_BOT_NAME";   // ссылка на бота, например https://t.me/VoinyEpohBot
+const BOT_LINK="https://t.me/VoinyEpohBot";   // ссылка на бота, например https://t.me/VoinyEpohBot
 const PAGE_URL="https://prostovladon-prog.github.io/kruti-kvartiru-/";
 
 const $=id=>document.getElementById(id);
