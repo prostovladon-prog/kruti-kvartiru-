@@ -194,7 +194,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   ok(r.ok && T.players >= 8 && T.newToday >= 8 && T.activeToday >= 3 && T.today.open >= 4 && T.fromRef >= 3 && T.days.length === 14, "статистика: игроков " + T.players + ", новых сегодня " + T.newToday + ", активных " + T.activeToday + ", прокруток " + T.today.open + ", по приглашению " + T.fromRef);
   ok(T.inviters[0] && T.inviters[0].refs >= 2, "лучший пригласивший: " + (T.inviters[0] && T.inviters[0].name + " — " + T.inviters[0].refs));
   // возврат на второй день: игрок пришёл «вчера» и зашёл сегодня
-  db.prepare("UPDATE users SET created=?, seen=?, d1=0 WHERE id=7").run(Date.now() - 864e5 * 1.2, Date.now() - 864e5 * 1.2);
+  db.prepare("UPDATE users SET created=?, seen=?, d1=0 WHERE id=7").run(Date.now() - 864e5, Date.now() - 864e5);
   await call(7, "sync"); ok(db.prepare("SELECT d1 FROM users WHERE id=7").get().d1 === 1, "вернувшийся на второй день отмечен");
 }
 

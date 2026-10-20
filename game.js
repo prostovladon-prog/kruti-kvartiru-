@@ -377,6 +377,7 @@ async function open(){
   if(busy||!S)return;
   if((S.spins??0)<=0&&!(S.refillAt&&NOW()>=S.refillAt)){toast("Прокрутки закончились. Новые через "+leftTxt());return}
   busy=true;ac();$("p-lbl").textContent="Цена карточки";
+  if(onbStep===0)onbClear();
   const stg=$("stage");
   if(!reduce){flip.classList.add("back");whoosh();stg.classList.add("tease");stg.style.setProperty("--aura","#ffffff");stg.style.setProperty("--ai",.2)}
   const t0=NOW(),r=await act("open");
@@ -398,6 +399,7 @@ async function open(){
     else if(HEROES[c.h][2]===3)toast("Легендарный воин: "+HEROES[c.h][0]);
     else if(cl)toast("Красивый номер: "+cl.k.toLowerCase()+", ×"+cl.m);
     setTimeout(()=>{stg.classList.remove("tease","epic");$("dimmer").classList.remove("on");busy=false},L>=3?900:150);
+    onbOpened();
     renderAll();
   };
   const reveal=()=>{
@@ -724,7 +726,7 @@ function renderExp(){
     const D=DEST[c.dest]||DEST[0],left=c.away-NOW();el.className="exp";el.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
     el.innerHTML=`<span class="e">${miniSlot(c)}</span><span><b></b><br><small style="color:#5a5f80"></small></span><button type="button" class="mini2"></button>`;
     el.querySelector("b").textContent=HEROES[c.h][0];el.querySelector("small").textContent=D.k+(left>0?", вернётся через "+tleft(left):", вернулся!");
-    const b=el.querySelector("button");const canRush=!ONLINE||S.test;b.textContent=left>0?(canRush?"Ускорить (тест)":"В пути"):"Забрать добычу";b.disabled=left>0&&!canRush;
+    const b=el.querySelector("button");const canRush=!ONLINE||S.test||S.admin;b.textContent=left>0?(canRush?"Ускорить (тест)":"В пути"):"Забрать добычу";b.disabled=left>0&&!canRush;
     b.onclick=async()=>{if(left>0){if(await act("exp_rush",{id:c.id}))renderExp();return}
       const r=await act("exp_claim",{id:c.id});if(!r)return;
       let msg=HEROES[c.h][0]+" вернулся: +"+r.money+"$, +"+r.xp+" опыта";if(r.sp)msg+=", +"+r.sp+(r.sp===1?" прокрутка":" прокрутки");
@@ -1144,10 +1146,33 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();$("topup").hidden=ONLINE&&!S.test}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
+
+/* ---------- обучение для новичка ----------
+   Подсвечиваем нужное место и показываем подсказку. Первый шаг ждёт, пока игрок сам откроет карточку. */
+const ONB=[
+  {el:"open",t:"Привет, воин! ⚔️ Жми «Открыть» или просто тапни по карточке: выпадет случайный воин. На старте у тебя 5 бесплатных прокруток.",wait:true},
+  {el:"stage",t:"Это твоя первая карточка! Цена зависит от трёх вещей: редкости воина, отделки (блестящая, голограмма, золото, ошибка печати) и номера. Красивые номера вроде 777 777 стоят в разы дороже."},
+  {el:"free-box",t:"Каждые 4 часа даётся 3 бесплатные прокрутки. Заходи почаще, чтобы не терять их."},
+  {el:"bonus",t:"Здесь бесплатные прокрутки сверху: +10 за подписку на канал, +10 за историю и +10 за каждого друга."},
+  {el:"tabs",t:"Внизу всё остальное: «Бой» с дуэлями и боссом, «Альбом», «Крафт», «Рынок» с настоящими игроками, «Мои» с закалкой карточек и «Топ» мира. Удачи! 🍀"}];
+let onbStep=-1;
+function startOnb(){let done=null;try{done=localStorage.getItem("we-onb")}catch(e){}if(done||!S||S.cards.length)return false;onbStep=0;showOnb();return true}
+function onbEnd(){onbClear();onbStep=-1;try{localStorage.setItem("we-onb","1")}catch(e){}setTimeout(askNick,400)}
+function onbClear(){document.querySelectorAll(".onb-hl").forEach(e=>e.classList.remove("onb-hl"));const b=$("onb");if(b)b.remove()}
+function showOnb(){onbClear();const st=ONB[onbStep];if(!st){onbEnd();return}
+  const el=st.el==="tabs"?document.querySelector("nav.tabs"):$(st.el);if(!el){onbStep++;showOnb();return}
+  if(st.el!=="tabs")el.scrollIntoView({block:"center",behavior:reduce?"auto":"smooth"});
+  setTimeout(()=>{el.classList.add("onb-hl");const r=el.getBoundingClientRect(),b=document.createElement("div");b.id="onb";b.className="onb";
+    b.innerHTML=`<div class="onb-n">${onbStep+1} из ${ONB.length}</div><p></p><div class="onb-b">${st.wait?"":`<button type="button" class="mini2" id="onb-next">${onbStep===ONB.length-1?"Играть!":"Дальше"}</button>`}<button type="button" class="ghost" id="onb-skip">Пропустить</button></div>`;
+    b.querySelector("p").textContent=st.t;document.body.appendChild(b);
+    const h=b.offsetHeight,below=r.bottom+14+h<innerHeight-10;b.style.top=(below?r.bottom+14:Math.max(10,r.top-14-h))+"px";b.classList.add(below?"down":"up");
+    if($("onb-next"))$("onb-next").onclick=()=>{onbStep++;showOnb()};$("onb-skip").onclick=onbEnd},reduce?0:350)}
+/* первый шаг: после открытия первой карточки идём дальше */
+function onbOpened(){if(onbStep===0){onbClear();setTimeout(()=>{onbStep=1;showOnb()},1600)}}
 
 /* ---------- запуск ---------- */
 const sample={id:0,h:19,f:2,no:37,sn:"123321",hue:0,v:1236,stats:[331,352,296,348,361]};
@@ -1158,6 +1183,7 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   if(ONLINE){$("free-t").textContent="Подключаюсь к серверу…";const r=await act("sync");if(!r){$("free-t").textContent="Сервер недоступен. Закрой игру и открой снова";return}}
   else{S=loadLocal();touch(S,NOW());save()}
   renderAll();handleStart();
-  if(!new URLSearchParams(location.search).get("startapp")&&!(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param))setTimeout(askNick,600);
+  const fromLink=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param);
+  if(!fromLink)setTimeout(()=>{if(!startOnb())askNick()},600);
 })();
 
