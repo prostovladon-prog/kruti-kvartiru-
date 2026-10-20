@@ -228,7 +228,9 @@ const ACTIONS={
   duel(G){const {st,ctx,p}=G;const me=freeCard(G,p.id),stat=p.stat|0;if(stat<0||stat>4)fail("Неверная характеристика");
     const t=HEROES[me.h][2],tt=Math.max(0,Math.min(4,t+[-1,0,0,0,1][Math.floor(Math.random()*5)]));
     const cand=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
-    const opp=phantom(oh,Math.random()<.2?1:0),before=snap(me);
+    // соперник: карточка настоящего игрока (только «на интерес»), иначе бот
+    const real=G.ctx.oppCard&&!p.mode?G.ctx.oppCard:null;
+    const opp=real||phantom(oh,Math.random()<.2?1:0),before=snap(me);
     const p2=aiPick(opp,[stat]),p3=rndPick([stat,p2]),picks=[stat,p2,p3],R=fight3(me,opp,picks);
     let reward=0,gotCard=null,lostCard=false;
     if(R.w===R.l)addXp(ctx,me,15);
@@ -236,7 +238,7 @@ const ACTIONS={
       if(p.mode&&G.cards.length<CAP){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
       else{reward=Math.round(opp.v*.3+5);earn(st,reward)}}
     else{addXp(ctx,me,10);if(p.mode){burn(G,[me.id]);lostCard=true}}
-    return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard}},
+    return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null}},
 
   fduel(G){const {st,ctx,p}=G;const me=freeCard(G,p.myId),opp=p.opp,myStat=p.myStat|0;if(!opp)fail("Соперник не найден");
     const p2=p.oppStat!=null?p.oppStat|0:aiPick(opp,[myStat]);if(p2===myStat)fail("Эту характеристику уже выбрал соперник");
@@ -335,7 +337,12 @@ async function ensureSchema(env){if(schemaOk)return;
     "DELETE FROM cards WHERE owner=0",
     "ALTER TABLE users ADD COLUMN seen INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN back INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN d1 INTEGER NOT NULL DEFAULT 0",
     "CREATE INDEX IF NOT EXISTS users_created ON users(created)","CREATE INDEX IF NOT EXISTS users_seen ON users(seen)",
-    "CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day,k))"])   // старые проданные карточки: освобождаем их номера
+    "CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day,k))",
+    "CREATE TABLE IF NOT EXISTS fights (id INTEGER PRIMARY KEY AUTOINCREMENT, att INTEGER, att_name TEXT, att_card INTEGER, att_h INTEGER, def INTEGER, def_card INTEGER, def_h INTEGER, w INTEGER, l INTEGER, t INTEGER, seen INTEGER NOT NULL DEFAULT 0)",
+    "CREATE INDEX IF NOT EXISTS fights_def ON fights(def, t)",
+    "CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, name TEXT, text TEXT, t INTEGER)",
+    "CREATE INDEX IF NOT EXISTS chat_uid ON chat(uid, id)",
+    "ALTER TABLE users ADD COLUMN muted INTEGER NOT NULL DEFAULT 0"])   // старые проданные карточки: освобождаем их номера
     try{await env.DB.prepare(q).run()}catch(e){}
   schemaOk=true}
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,
@@ -381,6 +388,10 @@ async function stateFor(env,me){
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id)});
   S.spins=(S.spins??0)+(u.gift_spins||0);
+  // кто нападал на мои карточки за 3 дня: для уведомлений и реванша
+  S.fights=(await env.DB.prepare("SELECT id,att_name,att_card,att_h,def_h,w,l,t,seen FROM fights WHERE def=? AND t>? ORDER BY id DESC LIMIT 6").bind(me.id,Date.now()-3*864e5).all()).results;
+  if(S.fights.some(f=>!f.seen))await env.DB.prepare("UPDATE fights SET seen=1 WHERE def=? AND seen=0").bind(me.id).run();
+  S.chatLast=await cached("chatlast",5e3,async()=>((await env.DB.prepare("SELECT MAX(id) AS m FROM chat").first())||{}).m||0);
   touch(S,Date.now());
   // когда игрок заходил: активные за день, возврат на второй день
   const now=Date.now();
@@ -535,6 +546,59 @@ async function adminStats(env){
     cardsInGame:cards.n||0,inviters:inv,days:days.map(d=>({d,n:(by[d]||{}).new||0,a:(by[d]||{}).dau||0,o:(by[d]||{}).a_open||0}))};
 }
 
+/* ---------- бои с настоящими игроками ---------- */
+async function pickOpponent(env,me,p){
+  const row=async(sql,...a)=>env.DB.prepare(sql).bind(...a).first();
+  const SEL="SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND c.owner<>? AND c.list_price IS NULL AND c.away=0";
+  let r=null;
+  if(p.rematch)r=await row(SEL+" AND c.id=?",me.id,p.rematch|0);
+  if(!r){if(Math.random()<.2)return null;   // иногда всё равно бот, чтобы соперники были разными
+    const mine=await row("SELECT h FROM cards WHERE id=? AND owner=?",p.id|0,me.id);if(!mine)return null;
+    const t=HEROES[mine.h][2],hs=HEROES.map((H,i)=>Math.abs(H[2]-t)<=1?i:-1).filter(i=>i>=0).join(",");
+    const mm=await cached("cardids",60e3,async()=>(await env.DB.prepare("SELECT MIN(id) AS a,MAX(id) AS b FROM cards").first())||{});
+    const start=Math.floor((mm.a||0)+Math.random()*((mm.b||0)-(mm.a||0)+1));
+    r=await row(SEL+` AND c.h IN (${hs}) AND c.id>=? ORDER BY c.id LIMIT 1`,me.id,start)||await row(SEL+` AND c.h IN (${hs}) AND c.id<? ORDER BY c.id DESC LIMIT 1`,me.id,start)}
+  if(!r)return null;
+  return {card:pub(rowToCard(r)),name:r.owner_name||"Игрок",owner:r.owner};
+}
+async function logFight(env,me,myCardId,opp,res){
+  try{const u=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(me.id).first();
+    await env.DB.prepare("INSERT INTO fights(att,att_name,att_card,att_h,def,def_card,def_h,w,l,t) VALUES(?,?,?,?,?,?,?,?,?,?)")
+      .bind(me.id,(u&&u.n)||me.name,myCardId|0,res.me.h,opp.owner,opp.card.id,opp.card.h,res.w,res.l,Date.now()).run()}catch(e){console.error("fight",e)}
+}
+
+/* ---------- общий чат ----------
+   Писать можно только с ником. Ссылки запрещены, мат закрывается звёздочками, не чаще раза в 3 секунды. */
+const CHAT_BAD=/(?<![а-яёa-z])(х[уy][йеёяию]\S*|п[иi]зд\S*|[её]б[аеуы]\S*|бля\S*|сук[аи]\S*|муд[ао]\S*|пид[оа]р\S*|гандон\S*|шлюх\S*|залуп\S*|fuck\S*|shit\S*|bitch\S*)/gi;
+const CHAT_LINK=/(https?:\/\/|www\.|t\.me\/|telegram\.(me|dog)|\.(ru|com|net|org|me|io|gg|xyz|su|by|ua|info|site|online)\b)/i;
+async function chatGet(env,p){
+  const rows=(await env.DB.prepare("SELECT id,uid,name,text,t FROM chat WHERE id>? ORDER BY id DESC LIMIT 60").bind(p.after|0).all()).results.reverse();
+  return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0}))};
+}
+async function chatSend(env,me,p){
+  const {u}=await loadUser(env,me);
+  if(!u.nick)fail("Чтобы писать в чат, выбери ник во вкладке «Топ»");
+  if((u.muted||0)>Date.now())fail("Тебе запрещено писать в чат ещё "+Math.ceil((u.muted-Date.now())/36e5)+" ч");
+  let t=String(p.text||"").replace(/\s+/g," ").trim();
+  if(!t)fail("Пустое сообщение");if(t.length>200)fail("Не длиннее 200 символов");
+  if(CHAT_LINK.test(t))fail("Ссылки в чате запрещены");
+  t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
+  const last=await env.DB.prepare("SELECT t FROM chat WHERE uid=? ORDER BY id DESC LIMIT 1").bind(me.id).first();
+  if(last&&Date.now()-last.t<3000)fail("Не так быстро");
+  await env.DB.prepare("INSERT INTO chat(uid,name,text,t) VALUES(?,?,?,?)").bind(me.id,u.nick,t,Date.now()).run();
+  delete topCache.chatlast;
+  if(Math.random()<.05)await env.DB.prepare("DELETE FROM chat WHERE id<(SELECT MAX(id)-500 FROM chat)").run();
+  return chatGet(env,p);
+}
+async function chatAdmin(env,me,a,p){
+  if(!isAdmin(env,me.id))fail("Нет доступа");
+  if(a==="chat_del"){await env.DB.prepare("DELETE FROM chat WHERE id=?").bind(p.id|0).run();return {}}
+  const h=Math.max(0,Math.min(24*30,+p.hours||24));
+  await env.DB.prepare("UPDATE users SET muted=? WHERE id=?").bind(h?Date.now()+h*36e5:0,p.uid|0).run();
+  if(h)await env.DB.prepare("DELETE FROM chat WHERE uid=?").bind(p.uid|0).run();
+  return {};
+}
+
 /* ---------- подписка на канал (бот должен быть администратором канала) ---------- */
 const CHANNEL="@Voiny_official";
 async function subCheck(env,me){
@@ -604,7 +668,14 @@ export default {
       if(a==="profile")return J({ok:true,res:await profile(env,p),S:await stateFor(env,me)});
       if(a==="card")return J({ok:true,res:await cardInfo(env,p),S:await stateFor(env,me)});
       if(a==="fduel"){const o=await cardInfo(env,{id:p.oppId});if(o.owner===me.id)fail("Это твоя же карточка");
-        const r=await doAction(env,me,"fduel",{myId:p.myId,myStat:p.myStat,oppStat:p.oppStat,key:"c"+o.card.id,opp:o.card});return J({ok:true,...r})}
+        const r=await doAction(env,me,"fduel",{myId:p.myId,myStat:p.myStat,oppStat:p.oppStat,key:"c"+o.card.id,opp:o.card});
+        await logFight(env,me,p.myId,o,r.res);return J({ok:true,...r})}
+      if(a==="duel"){const o=(p.mode|0)?null:await pickOpponent(env,me,p);
+        const r=await doAction(env,me,"duel",p,o?{oppCard:o.card,oppName:o.name,oppUid:o.owner}:null);
+        if(o)await logFight(env,me,p.id,o,r.res);return J({ok:true,...r})}
+      if(a==="chat_get")return J({ok:true,res:await chatGet(env,p)});
+      if(a==="chat_send")return J({ok:true,res:await chatSend(env,me,p)});
+      if(a==="chat_del"||a==="chat_mute")return J({ok:true,res:await chatAdmin(env,me,a,p)});
       if(a==="nick"){const res=await setNick(env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}

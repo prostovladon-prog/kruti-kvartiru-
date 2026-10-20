@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   seen     INTEGER NOT NULL DEFAULT 0,   -- когда последний раз заходил
   back     INTEGER NOT NULL DEFAULT 0,   -- возвращался в другой день
   d1       INTEGER NOT NULL DEFAULT 0,   -- вернулся на следующий день после первого входа
+  muted    INTEGER NOT NULL DEFAULT 0,   -- до какого времени запрещено писать в чат
   created  INTEGER,
   updated  INTEGER
 );
@@ -60,6 +61,14 @@ CREATE INDEX IF NOT EXISTS users_wins   ON users(wins);
 CREATE TABLE IF NOT EXISTS stats (day TEXT NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, k));
 CREATE INDEX IF NOT EXISTS users_created ON users(created);
 CREATE INDEX IF NOT EXISTS users_seen    ON users(seen);
+
+-- Бои с настоящими игроками: кто на кого нападал (для уведомлений и реванша).
+CREATE TABLE IF NOT EXISTS fights (id INTEGER PRIMARY KEY AUTOINCREMENT, att INTEGER, att_name TEXT, att_card INTEGER, att_h INTEGER, def INTEGER, def_card INTEGER, def_h INTEGER, w INTEGER, l INTEGER, t INTEGER, seen INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS fights_def ON fights(def, t);
+
+-- Общий чат.
+CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, name TEXT, text TEXT, t INTEGER);
+CREATE INDEX IF NOT EXISTS chat_uid ON chat(uid, id);
 
 -- История продаж на рынке.
 CREATE TABLE IF NOT EXISTS sales (

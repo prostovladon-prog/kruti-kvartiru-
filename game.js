@@ -46,7 +46,7 @@ async function act(name,p){
       save();
     }
     (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!")});
-    news();return out;
+    news();fightNews();chatDot();return out;
   }catch(e){if(!(e instanceof GameError))console.error(e);toast(e instanceof GameError?e.message:"Нет связи с сервером. Попробуй ещё раз");return null}
 }
 /* новости: кто купил твои карточки на рынке */
@@ -640,15 +640,33 @@ function renderDuel(){
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${eff(c,duStat)}</span><b>Ур. ${lvl(c)}${c.wins?", побед "+c.wins:""}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel()};pk.appendChild(b)});
   $("du-wins").textContent="Побед сегодня: "+day(S,NOW()).wins;
+  $("du-mode").title=duMode?"На карточку дерёшься с ботами: чужие карточки не отнимаются":"";
+  renderAttacks();
 }
+/* кто нападал на мои карточки: уведомление и реванш */
+const seenFights=new Set();
+function renderAttacks(){const box=$("du-att"),list=$("du-att-list"),F=(S&&S.fights)||[];box.hidden=!F.length;list.innerHTML="";
+  F.forEach(f=>{const won=f.w>f.l,d=document.createElement("div");d.className="fr";
+    d.innerHTML='<span><b></b><br><small></small></span><button type="button" class="mini2">Реванш</button>';
+    d.querySelector("b").textContent=f.att_name;
+    d.querySelector("small").textContent=defTxt(f)+" · "+ago(f.t);
+    d.querySelector("button").onclick=()=>openParam("c_"+f.att_card);list.appendChild(d)})}
+/* счёт с точки зрения защитника: сначала его раунды */
+function defTxt(f){const H=HEROES[f.def_h][0],sc=f.l+":"+f.w;return f.w>f.l?"Твой "+H+" проиграл "+sc:f.w<f.l?"Твой "+H+" отбился "+sc:"Твой "+H+": ничья "+sc}
+function fightNews(){((S&&S.fights)||[]).filter(f=>!f.seen&&!seenFights.has(f.id)).forEach(f=>{seenFights.add(f.id);
+  toast("Нападение от "+f.att_name+": "+defTxt(f).replace("Твой","твой")+". Реванш во вкладке «Бой»")})}
+let duRematch=null;
+$("du-again").onclick=()=>{if(!duRematch||duBusy)return;$("du-go").click()};
 $("du-go").onclick=async()=>{
-  const me=S.cards.find(c=>c.id===duMine);if(!me||duBusy)return;duBusy=true;ac();
-  const op=$("du-op"),mel=$("du-me"),res=$("du-res"),bot=BOTN[Math.floor(Math.random()*BOTN.length)];res.className="result";res.textContent="Соперник: "+bot;
+  const me=S.cards.find(c=>c.id===duMine);if(!me||duBusy)return;duBusy=true;ac();$("du-again").hidden=true;
+  const rem=duMode?null:duRematch;duRematch=null;
+  const op=$("du-op"),mel=$("du-me"),res=$("du-res");let bot=BOTN[Math.floor(Math.random()*BOTN.length)];res.className="result";res.textContent=rem?"Реванш!":"Ищем соперника…";
   $("du-go").disabled=true;mel.classList.remove("win","lose");
   op.classList.add("back");op.innerHTML="<span>СОПЕР<br>НИК</span>";
   if(!reduce){op.style.animation="shake .11s linear infinite";whoosh()}
-  const r=await act("duel",{id:me.id,stat:duStat,mode:duMode});
+  const r=await act("duel",{id:me.id,stat:duStat,mode:duMode,rematch:rem||undefined});
   if(!r){op.style.animation="";duBusy=false;renderDuel();return}
+  if(r.real)bot=r.oppName;res.textContent="Соперник: "+bot+(r.real?" (игрок)":"");
   setTimeout(()=>{
     op.style.animation="";op.className="mc";op.style.setProperty("--hc",HT[HEROES[r.opp.h][2]].c);
     runBattle({L:r.me,Rc:r.opp,picks:r.picks,rounds:r.rounds,leftEl:mel,rightEl:op,roundsEl:$("du-rounds"),statusEl:$("du-st"),vsEl:$("du-vs"),done:(w,l)=>{
@@ -656,7 +674,8 @@ $("du-go").onclick=async()=>{
       if(w===l)msg="Ничья "+sc+"! Опыт +15";
       else if(w>l){sfx.fanfare();burst(3);hapN("success");msg=r.gotCard?"Победа "+sc+"! Карточка "+HEROES[r.gotCard.h][0]+" теперь твоя":"Победа "+sc+"! Награда "+fmt(r.reward)}
       else{sfx.lose();msg=r.lostCard?"Поражение "+sc+". Твоя карточка ушла к "+bot:"Поражение "+sc+". Попробуй другого воина или характеристику";if(r.lostCard&&current&&current.id===me.id){current=null;$("sell").disabled=true}}
-      res.textContent=msg;res.className="result "+(w>l?"win":w<l?"lose":"");updCash();
+      res.textContent=(r.real?"Против "+bot+". ":"")+msg;res.className="result "+(w>l?"win":w<l?"lose":"");updCash();
+      if(r.real){duRematch=r.opp.id;const ag=$("du-again");ag.hidden=false;ag.textContent=(w>l?"Ещё раз с ":"Реванш с ")+bot}
       setTimeout(()=>{duBusy=false;if(r.lostCard)duMine=null;$("du-st").textContent="Раунд 1: выбери характеристику";renderDuel()},2200)}});
   },reduce?0:Math.max(0,900));
 };
@@ -870,7 +889,7 @@ $("sh-show").onclick=()=>{const top=[...S.cards].sort((a,b)=>b.v-a.v).slice(0,3)
   sendLink("Глянь мою витрину в «Воинах Эпох»: "+top.map(c=>HEROES[c.h][0]).join(", ")+"!",linkFor(showcaseParam()))};
 $("du-friend").onclick=()=>{const me=S.cards.find(c=>c.id===duMine);if(!me){toast("Сначала выбери воина");return}
   sendLink("Вызываю тебя на бой! Мой "+HEROES[me.h][0]+", "+STN[duStat].toLowerCase()+" "+eff(me,duStat)+". Сможешь побить?",linkFor(challengeParam(me,duStat)))};
-function closeModal(){$("modal").hidden=true;$("msheet").innerHTML=""}
+function closeModal(){$("modal").hidden=true;$("msheet").innerHTML="";if(chatOpen){chatOpen=false;clearInterval(chatTimer)}}
 function bigMc(c,stat,show){const d=document.createElement("div");d.className="mc";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);d.innerHTML=mcHTML(c,stat,show);return d}
 function friendsGet(){try{return JSON.parse(localStorage.getItem("we-friends")||"{}")}catch(e){return {}}}
 function friendsPut(F){try{localStorage.setItem("we-friends",JSON.stringify(F))}catch(e){}}
@@ -1150,6 +1169,43 @@ function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbu
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
+
+/* ---------- общий чат ----------
+   С сервером сообщения настоящих игроков. Без сервера показываем пример. */
+let chatItems=[],chatOpen=false,chatTimer=0;
+const CHAT_SEEN="we-chat-seen";
+function chatSeen(){try{return +localStorage.getItem(CHAT_SEEN)||0}catch(e){return 0}}
+function chatDot(){const d=$("chat-dot");if(d)d.hidden=chatOpen||!(S&&S.chatLast>chatSeen())}
+const nickCol=n=>"hsl("+(snHash(n)%360)+" 70% 38%)";
+Object.assign(LOCAL,{chat_get(){if(!S.chatL)S.chatL=[["Артём_777","кто выбил золото? у меня пока только блестящие"],["lena.k","Мне выпал Мерлин голограмма!! 😱"],["Самурай228","меняю спартанца на викинга, пишите"],["Max_Rich","босс сегодня жёсткий, бейте все"]].map((m,i)=>({id:i+1,uid:-(i+1),name:m[0],text:m[1],t:NOW()-(5-i)*7*60e3}));return {items:S.chatL}},
+  chat_send(p){if(!S.nick)throw new GameError("Чтобы писать в чат, выбери ник во вкладке «Топ»");const t=String(p.text||"").trim().slice(0,200);if(!t)throw new GameError("Пустое сообщение");
+    LOCAL.chat_get();S.chatL.push({id:S.chatL.length+1,uid:0,name:S.nick,text:t,t:NOW()});return {items:S.chatL}}});
+function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scrollHeight-box.scrollTop-box.clientHeight<60;box.innerHTML="";
+  if(!chatItems.length)box.innerHTML='<p class="chempty">Пока тихо. Напиши первым!</p>';
+  chatItems.forEach(m=>{const d=document.createElement("div");const mine=ONLINE?m.uid===S.uid:m.uid===0;d.className="chm"+(mine?" me":"");
+    d.innerHTML='<div class="chh"><button type="button" class="chn"></button><span class="cht"></span></div><div class="chx"></div>';
+    const n=d.querySelector(".chn");n.textContent=m.name+(m.a?" ★":"");n.style.color=m.a?"#d4380d":nickCol(m.name);
+    d.querySelector(".cht").textContent=new Date(m.t).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+    d.querySelector(".chx").textContent=m.text;
+    n.onclick=()=>{if(ONLINE&&m.uid>0&&m.uid!==S.uid){closeChat();openParam("u_"+m.uid)}};
+    if(S.admin&&ONLINE&&!mine){const a=document.createElement("div");a.className="chadm";a.innerHTML='<button type="button">Удалить</button><button type="button">Мут 24 ч</button>';
+      a.children[0].onclick=async()=>{if(await act("chat_del",{id:m.id})){chatItems=chatItems.filter(x=>x.id!==m.id);drawChat()}};
+      a.children[1].onclick=async()=>{if(await act("chat_mute",{uid:m.uid,hours:24})){chatItems=chatItems.filter(x=>x.uid!==m.uid);drawChat();toast(m.name+": мут на 24 часа")}};d.appendChild(a)}
+    box.appendChild(d)});
+  if(atEnd||box.dataset.first!=="1"){box.scrollTop=box.scrollHeight;box.dataset.first="1"}
+  const last=chatItems.length?chatItems[chatItems.length-1].id:0;if(ONLINE)try{localStorage.setItem(CHAT_SEEN,String(Math.max(last,S.chatLast||0)))}catch(e){}chatDot()}
+async function pullChat(){if(!chatOpen)return;const r=await act("chat_get",{after:0});if(r&&chatOpen){chatItems=r.items;drawChat()}}
+function openChat(){chatOpen=true;const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="chwrap"><div class="chtop"><b>Чат игроков</b><button type="button" class="x" id="ch-x">Закрыть</button></div><div class="chlist" id="ch-list"><p class="chempty">Загружаю…</p></div><div class="chin"><input type="text" id="ch-in" maxlength="200" placeholder="Сообщение…" autocomplete="off"><button type="button" class="mini2" id="ch-send">➤</button></div><small class="chrule">Без мата, ссылок и спама. Нажми на ник, чтобы открыть витрину игрока и вызвать его на бой.</small></div>';
+  $("ch-x").onclick=closeChat;
+  const send=async()=>{const i=$("ch-in"),t=i.value.trim();if(!t)return;$("ch-send").disabled=true;const r=await act("chat_send",{text:t});$("ch-send").disabled=false;
+    if(!r)return;i.value="";chatItems=r.items;$("ch-list").dataset.first="0";drawChat();hap("light")};
+  $("ch-send").onclick=send;$("ch-in").onkeydown=e=>{if(e.key==="Enter")send()};
+  if(!S.nick){$("ch-in").placeholder="Сначала выбери ник";$("ch-in").onfocus=()=>{closeChat();openNick(false)}}
+  pullChat();clearInterval(chatTimer);chatTimer=setInterval(pullChat,4000);chatDot()}
+function closeChat(){chatOpen=false;clearInterval(chatTimer);closeModal();chatDot()}
+$("chat-go").onclick=openChat;
+$("modal").addEventListener("click",e=>{if(e.target===$("modal")&&chatOpen)closeChat()});
 
 /* ---------- обучение для новичка ----------
    Подсвечиваем нужное место и показываем подсказку. Первый шаг ждёт, пока игрок сам откроет карточку. */

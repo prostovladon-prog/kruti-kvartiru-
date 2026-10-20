@@ -105,6 +105,39 @@ r = await call(1, "sub_check"); ok(r.ok && r.res.r === 10, "подписка н�
 r = await call(1, "sub_check"); ok(!r.ok, "за подписку награда только один раз");
 r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку нельзя получить в обход проверки");
 
+/* --- бой с настоящими игроками, уведомление и реванш --- */
+{
+  r = await call(2, "sync"); const c2 = r.S.cards.find(c => !c.listed && !c.away);
+  let d = null; for (let i = 0; i < 12 && !(d && d.ok && d.res.real); i++) d = await call(2, "duel", { id: c2.id, stat: 0, mode: 0 });
+  ok(d.ok && d.res.real && d.res.oppName && d.res.oppUid !== 2, "дуэль с картой настоящего игрока: соперник " + (d.res && d.res.oppName));
+  const def = d.res.oppUid;
+  r = await call(def, "sync"); const f = r.S.fights[0];
+  ok(f && f.seen === 0 && f.att_card === c2.id && f.w === d.res.w, "защитник получил уведомление о нападении от " + (f && f.att_name));
+  r = await call(def, "sync"); ok(r.S.fights[0].seen === 1, "уведомление показывается один раз");
+  const d2 = await call(2, "duel", { id: c2.id, stat: 1, mode: 0, rematch: d.res.opp.id });
+  ok(d2.ok && d2.res.real && d2.res.opp.id === d.res.opp.id, "реванш с той же карточкой соперника");
+  const md = await call(2, "duel", { id: c2.id, stat: 0, mode: 1 }); ok(md.ok && !md.res.real, "бой «на карточку» только с ботом, чужие карточки не отнимаются");
+}
+/* --- чат --- */
+{
+  await call(600, "nick", { nick: "Болтун" });
+  r = await call(600, "chat_send", { text: "Привет всем!" }); ok(r.ok && r.res.items.at(-1).name === "Болтун", "сообщение в чате с ником");
+  r = await call(600, "chat_send", { text: "ещё" }); ok(!r.ok && /быстро/.test(r.err), "антиспам: не чаще раза в 3 секунды");
+  r = await call(500, "chat_send", { text: "я без ника" }); ok(!r.ok && /ник/.test(r.err), "без ника писать нельзя");
+  await call(500, "nick", { nick: "Новичок_500" });
+  r = await call(500, "chat_send", { text: "заходи на t.me/scam" }); ok(!r.ok && /Ссылки/.test(r.err), "ссылки запрещены");
+  r = await call(500, "chat_send", { text: "ты сука хлеба небо" }); const tx = r.ok && r.res.items.at(-1).text;
+  ok(tx === "ты **** хлеба небо", "мат закрыт звёздочками, обычные слова целы: «" + tx + "»");
+  r = await call(1, "chat_get", { after: 0 }); ok(r.ok && r.res.items.length === 2, "история чата: " + r.res.items.length);
+  r = await call(1, "chat_del", { id: r.res.items[0].id }); ok(!r.ok, "обычный игрок не может удалять сообщения");
+  const env3 = { ...env, ADMINS: "8" };
+  const call8b = async (a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a, p }) }), env3)).json();
+  r = await call8b("chat_mute", { uid: 500, hours: 24 }); ok(r.ok, "админ выдал мут на 24 часа");
+  r = await call(500, "chat_send", { text: "снова я" }); ok(!r.ok && /запрещено/.test(r.err), "замученный не пишет: " + r.err);
+  r = await call(1, "chat_get", { after: 0 }); ok(!r.res.items.some(x => x.uid === 500), "сообщения замученного удалены");
+  r = await call(1, "sync"); ok(r.S.chatLast > 0, "в состоянии есть номер последнего сообщения для значка «новое»");
+}
+
 /* --- история --- */
 r = await call(1, "sync"); const sp1 = r.S.spins;
 r = await call(1, "story"); ok(r.ok && r.S.spins === sp1 + 10, "история: +10 прокруток");

@@ -227,7 +227,9 @@ const ACTIONS={
   duel(G){const {st,ctx,p}=G;const me=freeCard(G,p.id),stat=p.stat|0;if(stat<0||stat>4)fail("Неверная характеристика");
     const t=HEROES[me.h][2],tt=Math.max(0,Math.min(4,t+[-1,0,0,0,1][Math.floor(Math.random()*5)]));
     const cand=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
-    const opp=phantom(oh,Math.random()<.2?1:0),before=snap(me);
+    // соперник: карточка настоящего игрока (только «на интерес»), иначе бот
+    const real=G.ctx.oppCard&&!p.mode?G.ctx.oppCard:null;
+    const opp=real||phantom(oh,Math.random()<.2?1:0),before=snap(me);
     const p2=aiPick(opp,[stat]),p3=rndPick([stat,p2]),picks=[stat,p2,p3],R=fight3(me,opp,picks);
     let reward=0,gotCard=null,lostCard=false;
     if(R.w===R.l)addXp(ctx,me,15);
@@ -235,7 +237,7 @@ const ACTIONS={
       if(p.mode&&G.cards.length<CAP){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
       else{reward=Math.round(opp.v*.3+5);earn(st,reward)}}
     else{addXp(ctx,me,10);if(p.mode){burn(G,[me.id]);lostCard=true}}
-    return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard}},
+    return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null}},
 
   fduel(G){const {st,ctx,p}=G;const me=freeCard(G,p.myId),opp=p.opp,myStat=p.myStat|0;if(!opp)fail("Соперник не найден");
     const p2=p.oppStat!=null?p.oppStat|0:aiPick(opp,[myStat]);if(p2===myStat)fail("Эту характеристику уже выбрал соперник");

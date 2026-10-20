@@ -519,3 +519,23 @@ nav.tabs.onb-hl{position:fixed;border-radius:0}
 .onb-b{display:flex;gap:8px;align-items:center}
 .onb-b .ghost{box-shadow:none;font-size:12px;padding:7px 10px}
 @keyframes onbin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- чат ---------- */
+.chatbtn{position:relative}
+.chatbtn i{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid var(--ink)}
+.chwrap{display:flex;flex-direction:column;gap:8px;height:calc(100vh - 40px);height:calc(100dvh - 40px);max-height:760px}
+.chtop{display:flex;justify-content:space-between;align-items:center;color:var(--yellow);font-family:var(--display);font-size:16px;text-shadow:2px 2px 0 var(--ink)}
+.chlist{flex:1;overflow-y:auto;background:var(--paper);border:3px solid var(--ink);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;color:var(--ink)}
+.chm{background:#eef0f8;border:2px solid var(--ink);border-radius:12px 12px 12px 4px;padding:6px 10px;max-width:86%;align-self:flex-start}
+.chm.me{align-self:flex-end;background:#fff4c9;border-radius:12px 12px 4px 12px}
+.chh{display:flex;gap:8px;align-items:baseline}
+.chn{font:inherit;font-weight:900;font-size:13px;padding:0;border:0;background:none;cursor:pointer}
+.cht{font-size:10.5px;color:#5a5f80}
+.chx{font-size:14.5px;line-height:1.35;word-break:break-word}
+.chadm{display:flex;gap:6px;margin-top:4px}
+.chadm button{font-size:11px;padding:3px 7px;border-radius:7px;border:1.5px solid var(--ink);background:#fff}
+.chempty{color:#5a5f80;text-align:center;margin:auto}
+.chin{display:flex;gap:8px}
+.chin input{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 12px;border-radius:12px;border:3px solid var(--ink);background:#fff;color:var(--ink)}
+.chin .mini2{font-size:18px;padding:8px 16px}
+.chrule{color:#aab4e8;font-size:11.5px;text-align:center}
