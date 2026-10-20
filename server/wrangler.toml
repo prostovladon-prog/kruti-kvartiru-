@@ -1,0 +1,13 @@
+# Настройки для запуска сервера через wrangler (необязательно: можно всё сделать в панели Cloudflare).
+name = "voiny-epoh"
+main = "worker.js"
+compatibility_date = "2025-06-01"
+
+[vars]
+TEST = "1"   # тестовые кнопки, перед запуском поставь "0"
+DEV = "0"    # вход без Telegram для проверки, держи "0"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "voiny-epoh"
+database_id = "ВСТАВЬ_ID_БАЗЫ"
