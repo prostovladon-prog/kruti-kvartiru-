@@ -68,7 +68,8 @@
       <p>Собери всех 32 воинов и получи бонус $500 и 10 прокруток. Точки под карточкой показывают, какие виды отделки у тебя есть.</p>
     </div>
     <div class="album" id="album"></div>
-    <div class="box"><div class="rowb"><h3>Моя витрина</h3><span id="pf-t" style="font-size:12px;color:#5a5f80"></span></div><p>Три самые дорогие карточки. Их видят друзья в профиле.</p><div class="show3" id="show3"></div></div>
+    <div class="box"><div class="rowb"><h3>Моя витрина</h3><span id="pf-t" style="font-size:12px;color:#5a5f80"></span></div><p>Три самые дорогие карточки. Отправь ссылку другу, и он увидит твою витрину.</p><div class="show3" id="show3"></div><button type="button" class="linkbtn" id="sh-show">Показать витрину другу</button></div>
+    <div class="box"><h3>Друзья</h3><p>Витрины, которые тебе присылали. Нажми, чтобы посмотреть ещё раз или вызвать на бой.</p><div class="friends" id="friends"></div></div>
     <div class="box"><h3>Достижения</h3><div id="achs"></div></div>
   </section>
 
@@ -87,6 +88,7 @@
     </div>
     <div class="stats5" id="du-stats"></div>
     <button type="button" class="craftbtn" id="du-go">В бой!</button>
+    <button type="button" class="linkbtn" id="du-friend">Вызвать друга этим воином</button>
     <div class="result" id="du-res" aria-live="polite"></div>
     <div class="box"><div class="tgtinfo"><span class="step">Твои воины</span><span id="du-wins"></span></div><div class="pickrow" id="du-pick"></div></div>
     </div>
@@ -153,6 +155,7 @@
   <button type="button" role="tab" id="tab-col" aria-selected="false">Коллекция</button>
 </div></nav>
 <div class="toast" id="toast"></div>
+<div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
 <script src="game.js"></script>
 </body>
 </html>

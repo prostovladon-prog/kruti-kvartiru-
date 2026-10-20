@@ -297,6 +297,18 @@ section[hidden]{display:none!important}
 .miles{display:flex;flex-direction:column;gap:6px}
 .miles div{display:flex;justify-content:space-between;gap:10px;font-size:13px;align-items:center}
 .miles div.got{color:#1d8c3b}
+/* friends: modal, links */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(4,5,18,.95);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal[hidden]{display:none!important}
+.modal .sheet{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px}
+.modal .x{align-self:flex-end;font-size:13px;padding:8px 12px;border-radius:10px;background:var(--paper);border:2.5px solid var(--ink)}
+.who{font-family:var(--display);font-size:18px;color:var(--yellow);text-shadow:2px 2px 0 var(--ink);text-align:center;line-height:1.2}
+.who small{display:block;font-family:var(--body);font-size:13px;color:#fff;text-shadow:none;margin-top:4px;font-weight:500}
+.friends{display:flex;flex-direction:column;gap:6px}
+.fr{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13.5px;padding:8px 10px;border-radius:10px;background:#fff;border:2.5px solid var(--ink)}
+.fr small{color:#5a5f80;font-size:12px}
+.linkbtn{font-family:var(--display);font-size:13px;padding:12px;border-radius:12px;background:var(--r2);color:#fff;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);text-shadow:1px 1px 0 var(--ink)}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--ink);border-top:3px solid var(--yellow);
   padding:8px max(16px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
 nav.tabs div{max-width:440px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
