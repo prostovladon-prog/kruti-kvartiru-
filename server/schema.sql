@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
   cash     REAL    NOT NULL DEFAULT 100, -- деньги меняются только прибавлением, поэтому продажи не теряются
   state    TEXT    NOT NULL DEFAULT '{}',-- прокрутки, задания, босс и прочее
   ver      INTEGER NOT NULL DEFAULT 0,   -- защита от двойного нажатия
+  ref      INTEGER,                      -- кто пригласил
+  refs     INTEGER NOT NULL DEFAULT 0,   -- сколько друзей пригласил
+  gift_spins INTEGER NOT NULL DEFAULT 0, -- прокрутки за друзей, ещё не добавленные
   created  INTEGER,
   updated  INTEGER
 );

@@ -8,7 +8,7 @@
      DEV        — "1" разрешает вход без Telegram через ?dev=123 (только для проверки, перед запуском убери) */
 
 const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers":"Content-Type, X-Init-Data, X-Dev-User","Access-Control-Max-Age":"86400"};
+  "Access-Control-Allow-Headers":"Content-Type, X-Init-Data, X-Dev-User, X-Dev-Start","Access-Control-Max-Age":"86400"};
 const J=(o,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{...CORS,"Content-Type":"application/json; charset=utf-8"}});
 
 /* ---------- проверка, что запрос пришёл из Telegram ---------- */
@@ -21,17 +21,26 @@ async function checkInit(initData,token){
   const dcs=[...q.entries()].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0).map(([k,v])=>k+"="+v).join("\n");
   const sig=hex(await hmac(await hmac("WebAppData",token),dcs));if(sig!==hash)return null;
   if(Date.now()/1000-(+q.get("auth_date")||0)>7*86400)return null;
-  try{const u=JSON.parse(q.get("user")||"{}");if(!u.id)return null;return {id:u.id,name:String(u.first_name||"Игрок").slice(0,32)}}catch(e){return null}
+  try{const u=JSON.parse(q.get("user")||"{}");if(!u.id)return null;return {id:u.id,name:String(u.first_name||"Игрок").slice(0,32),start:q.get("start_param")||""}}catch(e){return null}
 }
 
 /* ---------- база ---------- */
+/* новые колонки добавляются сами при первом запросе, вручную в консоли ничего делать не нужно */
+let schemaOk=false;
+async function ensureSchema(env){if(schemaOk)return;
+  for(const q of ["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0"])
+    try{await env.DB.prepare(q).run()}catch(e){}
+  schemaOk=true}
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,frame:r.frame,
   away:r.away,dest:r.dest,listed:r.list_price!=null?1:0,listPrice:r.list_price||0}}
 const pub=c=>({id:c.id,h:c.h,f:c.f,no:c.no,sn:c.sn,hue:c.hue,v:c.v,stats:c.stats,xp:c.xp,wins:c.wins,frame:c.frame});
 async function loadUser(env,me){
   let u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first();
   if(!u){const st=freshState(),cash=st.cash,now=Date.now();delete st.cash;
-    await env.DB.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,created,updated) VALUES(?,?,?,?,0,?,?)").bind(me.id,me.name,cash,JSON.stringify(st),now,now).run();
+    // приглашение: ссылка t.me/бот?startapp=r_<id друга>. Засчитывается только новому игроку и не самому себе
+    const m=/^r_(\d+)$/.exec(me.start||""),inviter=m&&+m[1]!==me.id?+m[1]:null;
+    const ins=await env.DB.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,created,updated,ref) VALUES(?,?,?,?,0,?,?,?)").bind(me.id,me.name,cash,JSON.stringify(st),now,now,inviter).run();
+    if(inviter&&ins.meta.changes===1)await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+5 WHERE id=?").bind(inviter).run();
     u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first()}
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);
   return {u,cards};
@@ -48,7 +57,8 @@ async function stateFor(env,me){
   const prints={};for(const r of (await env.DB.prepare("SELECT h,f,MAX(no) AS m FROM cards WHERE f>0 GROUP BY h,f").all()).results)prints[r.h+"-"+r.f]=r.m;
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
-  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.name,test:env.TEST==="1"});
+  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.name,test:env.TEST==="1",refs:u.refs||0});
+  S.spins=(S.spins??0)+(u.gift_spins||0);
   touch(S,Date.now());return S;
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
@@ -57,17 +67,18 @@ function fixIds(o,cards,seen=new Set()){if(!o||typeof o!=="object"||seen.has(o))
   for(const k in o)fixIds(o[k],cards,seen)}
 
 /* ---------- обычное действие: правила считают, сервер записывает всё одной пачкой ---------- */
-async function doAction(env,me,name,p){
+async function doAction(env,me,name,p,extra){
   for(let attempt=0;attempt<8;attempt++){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");
-    const st=JSON.parse(u.state||"{}");st.cash=u.cash;
+    const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
+    const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
     const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
     const delta=Math.round((st.cash-u.cash)*100)/100;delete st.cash;
     // новая версия случайная: проверка ниже пропустит записи, только если именно этот запрос обновил игрока
     const nv=Math.floor(Math.random()*9e15)+1,guard="(SELECT ver FROM users WHERE id=?)=?",keep=new Set();
-    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,ver=?,name=?,updated=? WHERE id=? AND ver=?").bind(JSON.stringify(st),delta,nv,me.name,ctx.now,me.id,u.ver)];
+    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=? WHERE id=? AND ver=?").bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,me.id,u.ver)];
     for(const c of out.cards){
       if(typeof c.id==="string"){stm.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,frame,away,dest,created) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
         .bind(me.id,c.h,c.f,c.no,c.sn,classify(c.sn)?1:0,c.hue,c.v,JSON.stringify(c.stats),c.xp|0,c.wins|0,c.frame||null,c.away||0,c.dest??null,ctx.now,me.id,nv));continue}
@@ -128,13 +139,25 @@ async function cardInfo(env,p){
   if(!r)fail("Этой карточки больше нет в игре");return {card:pub(rowToCard(r)),name:r.owner_name||"Игрок",owner:r.owner};
 }
 
+/* ---------- подписка на канал (бот должен быть администратором канала) ---------- */
+const CHANNEL="@Voiny_official";
+async function subCheck(env,me){
+  if(me.dev)return doAction(env,me,"sub_reward",{},{subOk:true});   // тестовый вход без Telegram
+  const r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/getChatMember?chat_id="+encodeURIComponent(env.CHANNEL||CHANNEL)+"&user_id="+me.id);
+  const j=await r.json().catch(()=>({}));
+  if(!j.ok){console.error("getChatMember",j);fail("Не получилось проверить подписку. Попробуй через минуту")}
+  if(!["member","administrator","creator"].includes(j.result&&j.result.status))fail("Подписки пока не видно. Подпишись на канал и нажми «Проверить» ещё раз");
+  return doAction(env,me,"sub_reward",{},{subOk:true});
+}
+
 /* ---------- маршрутизация ---------- */
 export default {
   async fetch(req,env){
     if(req.method==="OPTIONS")return new Response(null,{headers:CORS});
     if(req.method==="GET")return J({ok:true,game:"Воины Эпох",server:"работает"});
     let me=null;
-    if(env.DEV==="1"&&req.headers.get("X-Dev-User"))me={id:+req.headers.get("X-Dev-User")||1,name:"Тестер "+req.headers.get("X-Dev-User")};
+    await ensureSchema(env);
+    if(env.DEV==="1"&&req.headers.get("X-Dev-User"))me={id:+req.headers.get("X-Dev-User")||1,name:"Тестер "+req.headers.get("X-Dev-User"),start:req.headers.get("X-Dev-Start")||"",dev:1};
     else me=await checkInit(req.headers.get("X-Init-Data"),env.BOT_TOKEN);
     if(!me)return J({ok:false,err:"Открой игру через бота в Telegram"},401);
     let body;try{body=await req.json()}catch(e){return J({ok:false,err:"Плохой запрос"},400)}
@@ -146,6 +169,8 @@ export default {
       if(a==="card")return J({ok:true,res:await cardInfo(env,p),S:await stateFor(env,me)});
       if(a==="fduel"){const o=await cardInfo(env,{id:p.oppId});if(o.owner===me.id)fail("Это твоя же карточка");
         const r=await doAction(env,me,"fduel",{myId:p.myId,myStat:p.myStat,oppStat:p.oppStat,key:"c"+o.card.id,opp:o.card});return J({ok:true,...r})}
+      if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
+      if(a==="sub_reward")fail("Неизвестное действие");
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
       if(!ACTIONS[a])fail("Неизвестное действие");
       const r=await doAction(env,me,a,p);return J({ok:true,...r});

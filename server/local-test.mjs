@@ -28,8 +28,8 @@ const DB = {
 };
 const env = { DB, DEV: "1", TEST: "1", BOT_TOKEN: "123:TEST" };
 
-async function call(uid, a, p = {}) {
-  const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env);
+async function call(uid, a, p = {}, start = "") {
+  const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), env);
   return r.json();
 }
 let fails = 0;
@@ -94,6 +94,15 @@ r = await call(2, "profile", { uid: 1 }); ok(r.ok && r.res.cards.length === 3 &&
 r = await call(2, "sync"); const mine2 = r.S.cards[0];
 r = await call(2, "fduel", { oppId: my[0].id, oppStat: 1, myId: mine2.id, myStat: 0 }); ok(r.ok && r.res.picks[1] === 1, "бой с другом: второй раунд по выбору друга");
 r = await call(2, "fduel", { oppId: mine2.id, oppStat: 1, myId: mine2.id, myStat: 0 }); ok(!r.ok, "со своей карточкой драться нельзя");
+
+/* --- рефералы и подписка --- */
+r = await call(1, "sync"); const sp0 = r.S.spins;
+await call(500, "sync", {}, "r_1"); await call(500, "sync", {}, "r_1"); await call(501, "sync", {}, "r_1"); await call(1, "sync", {}, "r_1");
+r = await call(1, "sync"); ok(r.S.spins === sp0 + 10 && r.S.refs === 2, "2 новых друга по ссылке: +10 прокруток, повторный вход и сам себя не считаются (" + (r.S.spins - sp0) + ")");
+r = await call(1, "open"); ok(r.ok && r.S.spins === sp0 + 9, "прокрутки за друзей тратятся как обычные");
+r = await call(1, "sub_check"); ok(r.ok && r.res.r === 5, "подписка на канал: +5 прокруток");
+r = await call(1, "sub_check"); ok(!r.ok, "за подписку награда только один раз");
+r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку нельзя получить в обход проверки");
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

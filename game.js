@@ -3,6 +3,7 @@
 /* ---------- настройки ---------- */
 const API_URL="https://autumn-hat-37ccvoiny-epoh.prostovladon.workers.dev";                              // адрес сервера, например https://voiny-epoh.твоё-имя.workers.dev (пусто = игра без сервера)
 const BOT_LINK="https://t.me/VoinyEpohBot";   // ссылка на бота, например https://t.me/VoinyEpohBot
+const CHANNEL="Voiny_official";                // канал игры, бот должен быть в нём администратором
 const PAGE_URL="https://prostovladon-prog.github.io/kruti-kvartiru-/";
 
 const $=id=>document.getElementById(id);
@@ -38,8 +39,9 @@ async function act(name,p){
       const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":(tg&&tg.initData)||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:name,p:p||{}})});
       const j=await r.json();if(!j.ok)throw new GameError(j.err||"Ошибка сервера");S=j.S;out=j.res||{};
     }else{
+      if(name==="sub_check")name="sub_reward";
       if(LOCAL[name])out=LOCAL[name](p||{});
-      else{const ctx=localCtx(),r=runAction(name,S,S.cards,ctx,p);S.cards=r.cards;out=r.res;out.events=ctx.events}
+      else{const ctx=localCtx();ctx.subOk=true;const r=runAction(name,S,S.cards,ctx,p);S.cards=r.cards;out=r.res;out.events=ctx.events}
       save();
     }
     (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!")});
@@ -797,7 +799,21 @@ function openDuel(D){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=
 function parseLocalParam(p){try{const kind=p[0],a=b64d(p.slice(2));if(a[0]!==1)return null;const n=decName(a);let i=n.i;
   if(kind==="v"){const cnt=a[i],wins=a[i+1],have=a[i+2];i+=3;const cards=[];for(let k=0;k<cnt;k++){cards.push(decCard(a,i));i+=CARD_B}return {kind,name:n.name,wins,have,cards,p}}
   if(kind==="d"){const stat=a[i];i++;return {kind,name:n.name,stat:stat%5,card:decCard(a,i),id:p.slice(2,40)}}}catch(e){}return null}
+/* ---------- бонусы: канал и рефералы ---------- */
+let subStep=0;
+function renderBonus(){if(!S)return;
+  const sb=$("sub-go"),st=$("sub-t");
+  if(S.subGot){sb.disabled=true;sb.textContent="Получено";st.textContent="Спасибо за подписку на @"+CHANNEL+"! +5 прокруток уже твои"}
+  else{sb.disabled=false;sb.textContent=subStep?"Проверить подписку":"Подписаться";st.textContent=subStep?"Подписался? Нажми «Проверить подписку», и получишь +5 прокруток":"@"+CHANNEL+": новости, события и розыгрыши. За подписку +5 прокруток"}
+  $("ref-t").textContent=ONLINE?"+5 прокруток за каждого друга, который зайдёт по твоей ссылке. Приглашено: "+(S.refs||0)+", получено "+(S.refs||0)*5+" прокруток":"+5 прокруток за каждого друга. Работает в игре через бота @VoinyEpohBot"}
+$("sub-go").onclick=async()=>{
+  if(!subStep){subStep=1;const u="https://t.me/"+CHANNEL;if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank");renderBonus();return}
+  const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +5 прокруток")};
+$("ref-go").onclick=()=>{if(!ONLINE){toast("Приглашения работают в игре через бота @VoinyEpohBot");return}
+  sendLink("Залетай в «Воины Эпох»: крути карточки воинов, собирай легенды, сражайся с друзьями и торгуй на рынке!",linkFor("r_"+S.uid))};
+
 async function openParam(p){
+  if(p.startsWith("r_"))return;   // приглашение: сервер уже засчитал его при первом входе
   if(p.startsWith("u_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const r=await act("profile",{uid:+p.slice(2)});if(r)openShowcase(Object.assign(r,{p}));return}
   if(p.startsWith("c_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const [,id,stat]=p.split("_");const r=await act("card",{id:+id});
     if(r)openDuel({name:r.name,card:r.card,stat:stat!=null&&stat!==""?(+stat)%5:null,cardId:r.card.id,id:"c"+r.card.id});return}
@@ -896,7 +912,7 @@ function renderShop(){document.querySelectorAll("#sh-seg button").forEach(b=>b.s
 function setTab(t){["spin","duel","album","craft","shop","col"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");
 function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();renderTasks();renderFree();renderStreak();$("topup").hidden=ONLINE&&!S.test}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();renderTasks();renderFree();renderStreak();renderBonus();$("topup").hidden=ONLINE&&!S.test}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
