@@ -98,11 +98,29 @@ r = await call(2, "fduel", { oppId: mine2.id, oppStat: 1, myId: mine2.id, myStat
 /* --- рефералы и подписка --- */
 r = await call(1, "sync"); const sp0 = r.S.spins;
 await call(500, "sync", {}, "r_1"); await call(500, "sync", {}, "r_1"); await call(501, "sync", {}, "r_1"); await call(1, "sync", {}, "r_1");
-r = await call(1, "sync"); ok(r.S.spins === sp0 + 10 && r.S.refs === 2, "2 новых друга по ссылке: +10 прокруток, повторный вход и сам себя не считаются (" + (r.S.spins - sp0) + ")");
-r = await call(1, "open"); ok(r.ok && r.S.spins === sp0 + 9, "прокрутки за друзей тратятся как обычные");
-r = await call(1, "sub_check"); ok(r.ok && r.res.r === 5, "подписка на канал: +5 прокруток");
+r = await call(1, "sync"); ok(r.S.spins === sp0 + 20 && r.S.refs === 2, "2 новых друга по ссылке: +20 прокруток, повторный вход и сам себя не считаются (" + (r.S.spins - sp0) + ")");
+r = await call(1, "open"); ok(r.ok && r.S.spins === sp0 + 19, "прокрутки за друзей тратятся как обычные");
+r = await call(1, "sub_check"); ok(r.ok && r.res.r === 10, "подписка на канал: +10 прокруток");
 r = await call(1, "sub_check"); ok(!r.ok, "за подписку награда только один раз");
 r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку нельзя получить в обход проверки");
+
+/* --- закалка звёздами --- */
+r = await call(1, "sync"); let fc = r.S.cards.find(c => !c.listed && !c.away && !c.xp);
+r = await call(1, "forge", { id: fc.id }); ok(!r.ok && /уровень/.test(r.err), "закалка без уровня не проходит: " + r.err);
+db.prepare("UPDATE users SET cash=cash+1000 WHERE id=1").run(); for (let i = 0; i < 3; i++) await call(1, "train", { id: fc.id });
+const v0 = fc.v; r = await call(1, "forge", { id: fc.id }); const f1 = r.ok && r.S.cards.find(c => c.id === fc.id);
+if (!r.ok) console.log("  ошибка:", r.err);
+ok(f1 && f1.stars === 1 && Math.abs(f1.v - v0 * 1.3) < .02, "закалка ★1: карточка подорожала с " + v0 + " до " + (f1 && f1.v));
+const dbRow = db.prepare("SELECT stars, v FROM cards WHERE id=?").get(fc.id); ok(dbRow.stars === 1 && Math.abs(dbRow.v - f1.v) < .01, "звезда и новая цена записаны в базу");
+
+/* --- мировой топ --- */
+r = await call(1, "top", { kind: "worth" }); ok(r.ok && r.res.items.length >= 2 && r.res.me.rank >= 1, "топ богачей: " + r.res.items.length + " игроков, моё место " + r.res.me.rank);
+ok(r.res.items.every((x, i, a) => !i || a[i - 1].score >= x.score), "топ отсортирован по убыванию");
+r = await call(1, "top", { kind: "album" }); ok(r.ok && r.res.me.rank >= 1, "топ коллекционеров");
+r = await call(1, "top", { kind: "wins" }); ok(r.ok, "топ бойцов");
+r = await call(2, "top", { kind: "cards" }); ok(r.ok && r.res.items.length > 0 && r.res.items[0].card.v >= r.res.items.at(-1).card.v, "самые дорогие карточки мира");
+r = await call(2, "top", { kind: "feed" }); ok(r.ok && Array.isArray(r.res.items), "лента выпадений: " + r.res.items.length);
+r = await call(2, "top", { kind: "x; DROP TABLE users" }); ok(!r.ok, "неизвестный рейтинг отклоняется");
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

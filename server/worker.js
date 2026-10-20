@@ -77,7 +77,15 @@ const rint=(a,b)=>Math.round(a+Math.random()*(b-a));
 /* ---------- уровни ---------- */
 function lvl(c){return Math.min(LMAX,1+Math.floor(Math.sqrt((c.xp||0)/25)))}
 function lvlNext(c){const l=lvl(c);return l>=LMAX?null:25*l*l}
-function eff(c,i){return Math.round((c.stats||[])[i]*(1+.04*(lvl(c)-1)))}
+function eff(c,i){return Math.round((c.stats||[])[i]*(1+.04*(lvl(c)-1))*(1+.1*(c.stars||0)))}
+/* ---------- закалка: звёзды ★1–★5. Карточка становится сильнее, дороже и меняется внешне ---------- */
+const STAR_MAX=5, STAR_LVL=[2,4,6,8,10], STAR_V=1.3;
+const forgeCost=c=>Math.round(40*Math.pow(2.2,c.stars||0)+c.v*.3);
+const EP1=["Гроза","Тень","Сердце","Клинок","Щит","Гнев","Страх","Призрак","Пламя","Буря","Ярость","Зов","Кошмар","Слава","Хозяин","Проклятие","Легенда","Ужас","Молот","Коготь","Рёв","Дух","Голос","Свет"];
+const EP2=["Севера","Пустошей","Бездны","Рассвета","Заката","Гор","Морей","Степей","Пепла","Грома","Крови","Льда","Тьмы","Огня","Ветров","Курганов","Вальхаллы","Империи","Арены","Ночи","Драконов","Королей","Мёртвых","Звёзд"];
+function snHash(sn){let h=2166136261;for(const ch of String(sn))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0}
+/* у каждой карточки своё прозвище, оно открывается на ★3 */
+function epithet(c){const h=snHash(c.sn+"-"+c.h);return EP1[h%EP1.length]+" "+EP2[(h>>>8)%EP2.length]}
 const away=c=>!!c.away||!!c.listed;
 const targetPrice=(h,f)=>{const [a,b]=HT[HEROES[h][2]].b;return Math.round((a+b)/2*FIN[f].m*100)/100};
 const amuCost=(h,f)=>Math.max(20,Math.round(targetPrice(h,f)*.15));
@@ -147,7 +155,7 @@ function priceOf(h,f,no,sn,top){const [a,b]=HT[HEROES[h][2]].b;let v=(a+Math.ran
 function makeCard(ctx,h,f,preset){
   if(FIN[f].run!==Infinity&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
   const no=ctx.nextNo(h,f),sn=genNumber(ctx,f),B=cardBody(h,f,preset);
-  return {id:ctx.newId(),h,f,no,sn,hue:B.hue,stats:B.stats,v:priceOf(h,f,no,sn,B.top),xp:0,wins:0,frame:null,away:0,dest:null,listed:0,listPrice:0};
+  return {id:ctx.newId(),h,f,no,sn,hue:B.hue,stats:B.stats,v:priceOf(h,f,no,sn,B.top),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0};
 }
 /* соперник для боя: не выпускается в мир, пока его не выиграли */
 function phantom(h,f){const B=cardBody(h,f);const [a,b]=HT[HEROES[h][2]].b;return {id:"opp",h,f,no:0,sn:"000000",hue:B.hue,stats:B.stats,v:Math.round((a+Math.random()*(b-a))*FIN[f].m*100)/100,xp:0}}
@@ -247,6 +255,9 @@ const ACTIONS={
     return {money,xp:D.xp,sp,card}},
 
   train(G){const c=own(G,G.p.id);if(c.listed)fail("Карточка на рынке");if(lvl(c)>=LMAX)fail("Максимальный уровень");pay(G.st,trainCost(c));addXp(G.ctx,c,50);return {}},
+  forge(G){const c=own(G,G.p.id);if(c.listed)fail("Карточка на рынке");const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");
+    if(lvl(c)<STAR_LVL[s])fail("Нужен уровень "+STAR_LVL[s]+". Качай воина в боях, походах и у тренера");
+    pay(G.st,forgeCost(c));c.stars=s+1;c.v=Math.round(c.v*STAR_V*100)/100;return {stars:c.stars,v:c.v}},
   rage(G){const B=boss(G.st,G.ctx.now);if((B.extra||0)>=2)fail("Лимит зелий на сегодня");pay(G.st,150);B.extra=(B.extra||0)+1;return {}},
   map(G){if(G.st.mapDay===today(G.ctx.now))fail("Карта уже куплена");pay(G.st,120);G.st.mapDay=today(G.ctx.now);return {}},
   frame(G){const c=own(G,G.p.id),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
@@ -255,14 +266,14 @@ const ACTIONS={
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
   ach(G){const A=ACH.find(a=>a.id===G.p.id);if(!A)fail("Нет такого достижения");if(G.st.ach[A.id])fail("Уже получено");if(!A.ok(G.st,G.cards))fail("Достижение ещё не выполнено");G.st.ach[A.id]=1;G.st.spins+=A.r;return {r:A.r,t:A.t}},
 
-  sub_reward(G){if(!G.ctx.subOk)fail("Сначала подпишись на канал");if(G.st.subGot)fail("Награда за подписку уже получена");G.st.subGot=1;G.st.spins+=5;return {r:5}},
+  sub_reward(G){if(!G.ctx.subOk)fail("Сначала подпишись на канал");if(G.st.subGot)fail("Награда за подписку уже получена");G.st.subGot=1;G.st.spins+=10;return {r:10}},
 
   topup(G){if(!G.ctx.test)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
 
-if(typeof module!=="undefined")module.exports={HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -295,19 +306,23 @@ async function checkInit(initData,token){
 /* новые колонки добавляются сами при первом запросе, вручную в консоли ничего делать не нужно */
 let schemaOk=false;
 async function ensureSchema(env){if(schemaOk)return;
-  for(const q of ["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0"])
+  for(const q of ["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN worth REAL NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN album INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN wins INTEGER NOT NULL DEFAULT 0",
+    "CREATE INDEX IF NOT EXISTS users_worth ON users(worth)","CREATE INDEX IF NOT EXISTS users_album ON users(album)","CREATE INDEX IF NOT EXISTS users_wins ON users(wins)",
+    "CREATE INDEX IF NOT EXISTS cards_v ON cards(v) WHERE owner>0"])
     try{await env.DB.prepare(q).run()}catch(e){}
   schemaOk=true}
-function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,frame:r.frame,
+function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,
   away:r.away,dest:r.dest,listed:r.list_price!=null?1:0,listPrice:r.list_price||0}}
-const pub=c=>({id:c.id,h:c.h,f:c.f,no:c.no,sn:c.sn,hue:c.hue,v:c.v,stats:c.stats,xp:c.xp,wins:c.wins,frame:c.frame});
+const pub=c=>({id:c.id,h:c.h,f:c.f,no:c.no,sn:c.sn,hue:c.hue,v:c.v,stats:c.stats,xp:c.xp,wins:c.wins,stars:c.stars||0,frame:c.frame});
 async function loadUser(env,me){
   let u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first();
   if(!u){const st=freshState(),cash=st.cash,now=Date.now();delete st.cash;
     // приглашение: ссылка t.me/бот?startapp=r_<id друга>. Засчитывается только новому игроку и не самому себе
     const m=/^r_(\d+)$/.exec(me.start||""),inviter=m&&+m[1]!==me.id?+m[1]:null;
     const ins=await env.DB.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,created,updated,ref) VALUES(?,?,?,?,0,?,?,?)").bind(me.id,me.name,cash,JSON.stringify(st),now,now,inviter).run();
-    if(inviter&&ins.meta.changes===1)await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+5 WHERE id=?").bind(inviter).run();
+    if(inviter&&ins.meta.changes===1)await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+10 WHERE id=?").bind(inviter).run();
     u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first()}
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);
   return {u,cards};
@@ -326,7 +341,12 @@ async function stateFor(env,me){
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.name,test:env.TEST==="1",refs:u.refs||0});
   S.spins=(S.spins??0)+(u.gift_spins||0);
-  touch(S,Date.now());return S;
+  touch(S,Date.now());
+  // числа для мирового топа: обновляем, только если изменились
+  const worth=Math.round(cards.reduce((a,c)=>a+c.v,0)*100)/100,album=new Set(cards.map(c=>c.h)).size,wins=S.totalWins||0;
+  if(Math.abs((u.worth||0)-worth)>.004||(u.album||0)!==album||(u.wins||0)!==wins)
+    await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=? WHERE id=?").bind(worth,album,wins,me.id).run();
+  return S;
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
 function fixIds(o,cards,seen=new Set()){if(!o||typeof o!=="object"||seen.has(o))return;seen.add(o);
@@ -347,11 +367,11 @@ async function doAction(env,me,name,p,extra){
     const nv=Math.floor(Math.random()*9e15)+1,guard="(SELECT ver FROM users WHERE id=?)=?",keep=new Set();
     const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=? WHERE id=? AND ver=?").bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,me.id,u.ver)];
     for(const c of out.cards){
-      if(typeof c.id==="string"){stm.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,frame,away,dest,created) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
-        .bind(me.id,c.h,c.f,c.no,c.sn,classify(c.sn)?1:0,c.hue,c.v,JSON.stringify(c.stats),c.xp|0,c.wins|0,c.frame||null,c.away||0,c.dest??null,ctx.now,me.id,nv));continue}
+      if(typeof c.id==="string"){stm.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,frame,away,dest,created) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
+        .bind(me.id,c.h,c.f,c.no,c.sn,classify(c.sn)?1:0,c.hue,c.v,JSON.stringify(c.stats),c.xp|0,c.wins|0,c.stars|0,c.frame||null,c.away||0,c.dest??null,ctx.now,me.id,nv));continue}
       keep.add(c.id);
-      if(before.get(c.id)!==JSON.stringify(c))stm.push(env.DB.prepare(`UPDATE cards SET xp=?,wins=?,frame=?,away=?,dest=? WHERE id=? AND owner=? AND ${guard}`)
-        .bind(c.xp|0,c.wins|0,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
+      if(before.get(c.id)!==JSON.stringify(c))stm.push(env.DB.prepare(`UPDATE cards SET xp=?,wins=?,stars=?,v=?,frame=?,away=?,dest=? WHERE id=? AND owner=? AND ${guard}`)
+        .bind(c.xp|0,c.wins|0,c.stars|0,c.v,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
     }
     for(const id of before.keys())if(!keep.has(id))stm.push(env.DB.prepare(`UPDATE cards SET owner=0 WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(id,me.id,me.id,nv));
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
@@ -406,6 +426,36 @@ async function cardInfo(env,p){
   if(!r)fail("Этой карточки больше нет в игре");return {card:pub(rowToCard(r)),name:r.owner_name||"Игрок",owner:r.owner};
 }
 
+/* ---------- мировой топ и лента выпадений ----------
+   Списки общие для всех, поэтому держим их в памяти воркера 60 секунд, чтобы не нагружать базу. */
+const BOARDS={worth:"worth",album:"album",wins:"wins"};
+let topCache={};
+async function cached(key,ms,fn){const c=topCache[key];if(c&&Date.now()-c.t<ms)return c.v;const v=await fn();topCache[key]={t:Date.now(),v};return v}
+async function top(env,me,p){
+  const S=await stateFor(env,me);   // заодно обновляет мои числа
+  const kind=p.kind;
+  if(kind==="cards"){
+    const items=await cached("cards",60e3,async()=>(await env.DB.prepare("SELECT c.*,u.name AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 ORDER BY c.v DESC LIMIT 30").all()).results
+      .map(r=>({uid:r.owner,name:r.owner_name||"Игрок",card:pub(rowToCard(r)),score:r.v})));
+    return {res:{kind,items},S};
+  }
+  if(kind==="feed"){
+    const big=HEROES.map((H,i)=>H[2]>=3?i:-1).filter(i=>i>=0).join(",");
+    const items=await cached("feed",20e3,async()=>(await env.DB.prepare(`SELECT c.*,u.name AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND (c.f>=2 OR c.nice=1 OR c.h IN (${big})) ORDER BY c.id DESC LIMIT 20`).all()).results
+      .map(r=>({uid:r.owner,name:r.owner_name||"Игрок",card:pub(rowToCard(r)),t:r.created})));
+    return {res:{kind,items},S};
+  }
+  const col=BOARDS[kind];if(!col)fail("Нет такого рейтинга");
+  const items=await cached(kind,60e3,async()=>{
+    const rows=(await env.DB.prepare(`SELECT id,name,${col} AS score FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
+    const out=[];for(const r of rows){const b=await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();
+      out.push({uid:r.id,name:r.name||"Игрок",score:r.score,card:b?pub(rowToCard(b)):null})}return out});
+  const mine=await env.DB.prepare(`SELECT ${col} AS score FROM users WHERE id=?`).bind(me.id).first();
+  const score=mine?mine.score:0;
+  const rank=score>0?(await env.DB.prepare(`SELECT COUNT(*)+1 AS n FROM users WHERE ${col}>?`).bind(score).first()).n:null;
+  return {res:{kind,items,me:{rank,score}},S};
+}
+
 /* ---------- подписка на канал (бот должен быть администратором канала) ---------- */
 const CHANNEL="@Voiny_official";
 async function subCheck(env,me){
@@ -436,6 +486,7 @@ export default {
       if(a==="card")return J({ok:true,res:await cardInfo(env,p),S:await stateFor(env,me)});
       if(a==="fduel"){const o=await cardInfo(env,{id:p.oppId});if(o.owner===me.id)fail("Это твоя же карточка");
         const r=await doAction(env,me,"fduel",{myId:p.myId,myStat:p.myStat,oppStat:p.oppStat,key:"c"+o.card.id,opp:o.card});return J({ok:true,...r})}
+      if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
       if(a==="sub_reward")fail("Неизвестное действие");
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});

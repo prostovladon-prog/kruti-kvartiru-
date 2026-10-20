@@ -285,22 +285,44 @@ function portrait(h,c,mini){
 portrait.n=0;
 /* ---------- card render ---------- */
 const front=$("front"),flip=$("flip");
-function showCard(c){
-  const H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f];
-  front.className="face front "+F.cls;front.style.setProperty("--hc",T.c);if(c.frame&&FRAMES[c.frame])front.style.setProperty("--edge",FRAMES[c.frame].bg);else front.style.removeProperty("--edge");
-  $("h-name").textContent=H[0];$("h-no").textContent="№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
-  $("h-emo").innerHTML=portrait(c.h,c);$("h-era").textContent=H[1];$("h-tier").textContent=T.k;$("h-fin").textContent=F.k;
-  $("h-pow").textContent=H[3];
-  $("h-stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
-  const lb=$("h-lvl");lb.hidden=lvl(c)<=1;lb.textContent="Ур. "+lvl(c);
-  $("h-fin").textContent=F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run);
-  const sn=c.sn||"482913",cl=classify(sn);
-  $("h-serial").innerHTML="<small>№</small>"+fmtSn(sn);$("h-serial").classList.toggle("nice",!!cl);
-  const rb=$("h-rib");rb.hidden=!cl;if(cl)rb.textContent=cl.k+", ×"+cl.m;
-  $("h-val").textContent=fmt(c.v);
-  $("p-val").textContent=fmt(c.v);
-  $("sell-v").textContent=fmt(c.v*QUICK);
+/* шаблон лицевой стороны: та же разметка, что у большой карточки, только без id */
+const FACE_TPL=front.innerHTML.replace(/ id="[^"]*"/g,"");
+function rng(seed){return ()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
+/* ошибка печати: у каждой карточки свои рваные края и откушенный угол (зависят от номера) */
+function tornPoly(sn){const R=rng(snHash(sn)),cut=Math.floor(R()*4),a=18+R()*14,b=14+R()*12,C=[[0,0],[100,0],[100,100],[0,100]];
+  const [cx,cy]=C[cut],sx=cx?-1:1,sy=cy?-1:1,inCut=(x,y)=>((x-cx)*sx)/a+((y-cy)*sy)/b<1.02;
+  const P=[];for(let k=0;k<4;k++){const e=(cut+2+k)%4,[x0,y0]=C[e],[x1,y1]=C[(e+1)%4],n=18;
+    for(let i=0;i<n;i++){const t=i/n,j=R()*2.6;let x=x0+(x1-x0)*t,y=y0+(y1-y0)*t;if(e===0)y+=j;if(e===1)x-=j;if(e===2)y-=j;if(e===3)x+=j;P.push([x,y])}}
+  const vert=cut===0||cut===2,A=vert?[cx,cy+sy*b]:[cx+sx*a,cy],B=vert?[cx+sx*a,cy]:[cx,cy+sy*b];
+  const D=[A];for(let i=1;i<7;i++){const t=i/7;D.push([A[0]+(B[0]-A[0])*t+(R()-.5)*5,A[1]+(B[1]-A[1])*t+(R()-.5)*5])}D.push(B);
+  const out=[];let done=false;for(const p of P){if(inCut(p[0],p[1])){if(!done){out.push(...D);done=true}continue}out.push(p)}
+  return "polygon("+out.map(([x,y])=>x.toFixed(1)+"% "+y.toFixed(1)+"%").join(",")+")"}
+function tearSVG(sn){const R=rng(snHash(sn)+7),left=R()<.5,y0=40+R()*45,len=35+R()*35;let d=`M${left?-2:102} ${y0}`,x=left?0:100,y=y0;
+  while(left?x<len:x>100-len){x+=(left?1:-1)*(3+R()*5);y+=(R()-.5)*7;d+=` L${x.toFixed(1)} ${y.toFixed(1)}`}
+  const bx=15+R()*60,by=95+R()*30,rot=-25+R()*14;
+  return `<svg class="tear" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="${bx}" cy="${by}" rx="${9+R()*7}" ry="${4+R()*4}" fill="#0d1030" opacity=".28" transform="rotate(${rot} ${bx} ${by})"/><path d="${d}" fill="none" stroke="#fffaf0" stroke-width="3.4" stroke-linejoin="bevel"/><path d="${d}" fill="none" stroke="#0d1030" stroke-width="1.5" stroke-linejoin="bevel"/></svg><div class="brak">БРАК</div>`}
+/* заполнить лицевую сторону карточки: используется и в барабане, и в окне просмотра */
+function fillFace(root,c){
+  const q=s=>root.querySelector(s),H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f],st=c.stars||0;
+  root.className="face front "+F.cls+(st?" star"+st:"");root.style.setProperty("--hc",T.c);
+  if(c.frame&&FRAMES[c.frame])root.style.setProperty("--edge",FRAMES[c.frame].bg);else root.style.removeProperty("--edge");
+  q(".top b").textContent=H[0];q(".top span").textContent="№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
+  q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
+  const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
+  q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
+  const lb=q(".lvl");lb.hidden=lvl(c)<=1;lb.textContent="Ур. "+lvl(c);
+  q(".finish").textContent=F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run);
+  const sn=c.sn||"482913",cl=classify(sn),se=q(".foot .sn");
+  se.innerHTML="<small>№</small>"+fmtSn(sn);se.classList.toggle("nice",!!cl);
+  const rb=q(".ribbon");rb.hidden=!cl;if(cl)rb.textContent=cl.k+", ×"+cl.m;
+  q(".foot b").textContent=fmt(c.v);
+  const art=q(".art");
+  let sb=q(".stars");if(!sb){sb=document.createElement("div");sb.className="stars";art.appendChild(sb)}
+  sb.hidden=!st;sb.innerHTML="★".repeat(st)+"<i>"+"★".repeat(STAR_MAX-st)+"</i>";
+  root.style.clipPath=c.f===4?tornPoly(sn):"";
+  root.querySelectorAll(".tear,.brak").forEach(e=>e.remove());if(c.f===4)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
 }
+function showCard(c){fillFace(front,c);$("p-val").textContent=fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
 let current=null,busy=false;
 
 /* ---------- sound (synthesised, starts on first tap) ---------- */
@@ -412,9 +434,39 @@ function renderCol(){
     if(c.sn){const cl=classify(c.sn),sn=document.createElement("div");sn.className="sn num"+(cl?" nice":"");sn.textContent="№ "+fmtSn(c.sn)+(cl?", "+cl.k.toLowerCase():"");el.querySelector(".t").appendChild(sn)}
     if(away(c)){const m=el.querySelector(".mini");m.disabled=true;m.textContent=c.listed?"На рынке":"В походе"}
     if(lvl(c)>1){const t=document.createElement("span");t.className="tg";t.style.setProperty("--s","#0d1030");t.textContent="Ур. "+lvl(c);el.querySelector(".t small").prepend(t)}
+    if(c.stars){const t=document.createElement("span");t.className="tg star";t.textContent="★"+c.stars;el.querySelector(".t small").prepend(t)}
+    thumbDeco(el.querySelector(".e"),c);
+    el.onclick=e=>{if(!e.target.closest("button"))openCardView(c,{mine:true})};
     el.querySelector(".mini").onclick=async()=>{const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))};
     box.appendChild(el)});
 }
+/* маленькая картинка карточки: рваная для ошибки печати, светится при звёздах */
+function thumbDeco(e,c){if(!e)return;e.classList.toggle("torn",c.f===4);e.classList.toggle("starred",(c.stars||0)>=3)}
+
+/* ---------- просмотр карточки и закалка ---------- */
+function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
+  const cv=document.createElement("div");cv.className="cardview";const face=document.createElement("div");face.innerHTML=FACE_TPL;cv.appendChild(face);sh.appendChild(cv);
+  const info=document.createElement("div");info.className="cv-info";sh.appendChild(info);
+  const fb=document.createElement("div");fb.className="box";sh.appendChild(fb);
+  function draw(){const cur=o.mine?(S.cards.find(y=>y.id===c.id)||c):c;fillFace(face,cur);
+    const cl=classify(cur.sn);
+    info.innerHTML="";const t=document.createElement("div");t.className="who";t.innerHTML="<span></span><small></small>";
+    t.children[0].textContent=HEROES[cur.h][0]+((cur.stars||0)>=3?" «"+epithet(cur)+"»":"");
+    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+FIN[cur.f].k+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+FIN[cur.f].run:"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.";
+    info.appendChild(t);
+    if(!o.mine){fb.hidden=true;return}
+    fb.hidden=false;const s=cur.stars||0;
+    if(s>=STAR_MAX){fb.innerHTML='<h3>Закалка ★5: максимум</h3><p>Этот воин вознесён. Сильнее карточку уже не сделать.</p>';return}
+    const need=STAR_LVL[s],cost=forgeCost(cur),okL=lvl(cur)>=need;
+    fb.innerHTML=`<h3>Закалка ★${s} → ★${s+1}</h3><div class="forge"><div><small>Сила</small><b>+10%</b></div><div><small>Цена карточки</small><b>×1,3</b></div><div><small>Уровень</small><b class="${okL?"":"bad"}">${lvl(cur)} из ${need}</b></div></div><p></p><button type="button" class="craftbtn">Закалить за ${fmt(cost)}</button>`;
+    fb.querySelector("p").textContent=[ "★1: воин начинает светиться.","★2: вокруг воина появляется аура.","★3: открывается личное прозвище, его нет больше ни у кого.","★4: от воина летят искры, карточка горит.","★5: вознесение. Космический фон и золотое имя."][s]+(okL?"":" Сначала подними уровень до "+need+": бои, походы, босс или тренер в Лавке.");
+    const b=fb.querySelector("button");b.disabled=!okL||cur.listed;if(cur.listed)b.textContent="Карточка на рынке";
+    b.onclick=async()=>{b.disabled=true;const r=await act("forge",{id:cur.id});if(!r){draw();return}
+      sfx.fanfare();hapN("success");burst(Math.min(4,r.stars));cv.classList.remove("forged");void cv.offsetWidth;cv.classList.add("forged");
+      draw();renderAll();toast(r.stars===3?"★3! Открыто прозвище: «"+epithet(cur)+"»":r.stars===5?"★5! Воин вознесён":"Закалка ★"+r.stars+"! Цена теперь "+fmt(r.v))}}
+  draw()}
+
 $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))};
 
 
@@ -803,12 +855,12 @@ function parseLocalParam(p){try{const kind=p[0],a=b64d(p.slice(2));if(a[0]!==1)r
 let subStep=0;
 function renderBonus(){if(!S)return;
   const sb=$("sub-go"),st=$("sub-t");
-  if(S.subGot){sb.disabled=true;sb.textContent="Получено";st.textContent="Спасибо за подписку на @"+CHANNEL+"! +5 прокруток уже твои"}
-  else{sb.disabled=false;sb.textContent=subStep?"Проверить подписку":"Подписаться";st.textContent=subStep?"Подписался? Нажми «Проверить подписку», и получишь +5 прокруток":"@"+CHANNEL+": новости, события и розыгрыши. За подписку +5 прокруток"}
-  $("ref-t").textContent=ONLINE?"+5 прокруток за каждого друга, который зайдёт по твоей ссылке. Приглашено: "+(S.refs||0)+", получено "+(S.refs||0)*5+" прокруток":"+5 прокруток за каждого друга. Работает в игре через бота @VoinyEpohBot"}
+  $("sub-row").hidden=!!S.subGot;   // подписался: строка больше не мешает
+  if(!S.subGot){sb.disabled=false;sb.textContent=subStep?"Проверить подписку":"Подписаться";st.textContent=subStep?"Подписался? Нажми «Проверить подписку», и получишь +10 прокруток":"@"+CHANNEL+": новости, события и розыгрыши. За подписку +10 прокруток"}
+  $("ref-t").textContent=ONLINE?"+10 прокруток за каждого друга, который зайдёт по твоей ссылке. Приглашено: "+(S.refs||0)+", получено "+(S.refs||0)*10+" прокруток":"+10 прокруток за каждого друга. Работает в игре через бота @VoinyEpohBot"}
 $("sub-go").onclick=async()=>{
   if(!subStep){subStep=1;const u="https://t.me/"+CHANNEL;if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank");renderBonus();return}
-  const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +5 прокруток")};
+  const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +10 прокруток")};
 $("ref-go").onclick=()=>{if(!ONLINE){toast("Приглашения работают в игре через бота @VoinyEpohBot");return}
   sendLink("Залетай в «Воины Эпох»: крути карточки воинов, собирай легенды, сражайся с друзьями и торгуй на рынке!",linkFor("r_"+S.uid))};
 
@@ -856,7 +908,9 @@ setInterval(tickSales,5000);
 if(ONLINE)setInterval(()=>{if(S&&!document.hidden)act("sync").then(()=>{updCash();if(!$("sec-shop").hidden&&shView==="sell")renderSell()})},30000);
 function lotRow(c,priceHTML,btn){const H=HEROES[c.h],d=document.createElement("div");d.className="lot";d.style.setProperty("--hc",HT[H[2]].c);
   d.innerHTML=`<span class="e">${portrait(c.h,c,1)}</span><span class="t"><b></b>${FIN[c.f].k}${FIN[c.f].run!==Infinity?" "+c.no+"/"+FIN[c.f].run:""}, ур. ${lvl(c)}<br>№ ${fmtSn(c.sn)}${classify(c.sn)?", "+classify(c.sn).k.toLowerCase():""}</span><span class="r">${priceHTML}</span>`;
-  d.querySelector("b").textContent=H[0];d.querySelector(".r").appendChild(btn);return d}
+  d.querySelector("b").textContent=H[0];d.querySelector(".r").appendChild(btn);thumbDeco(d.querySelector(".e"),c);
+  if(c.stars)d.querySelector(".t b").insertAdjacentHTML("beforeend",' <span class="stg">★'+c.stars+'</span>');
+  d.querySelector(".e").onclick=()=>openCardView(c,{});return d}
 async function loadMarket(force){if(mkLoading)return;if(!force&&mkCache&&NOW()-mkAt<15000){drawMarket();return}mkLoading=true;
   if(ONLINE&&!mkCache)$("mk-list").innerHTML='<div class="box"><p>Загружаю лоты…</p></div>';
   const r=await act("market");mkLoading=false;if(!r)return;mkCache=r;mkAt=NOW();drawMarket()}
@@ -908,11 +962,51 @@ function renderShop(){document.querySelectorAll("#sh-seg button").forEach(b=>b.s
   ["buy","sell","lavka"].forEach(v=>$("sh-"+v).style.display=v===shView?"flex":"none");
   if(shView==="buy")loadMarket();if(shView==="sell")renderSell();if(shView==="lavka")renderLavka()}
 
+/* ---------- мировой топ ----------
+   С сервером это настоящие игроки. Без сервера показываем пример с ботами. */
+let tpView="worth";const tpCache={};let tpLoading={};
+const TP={worth:{t:"Самые богатые коллекции",u:v=>fmt(v)},cards:{t:"Самые дорогие карточки в мире",u:v=>fmt(v)},album:{t:"Больше всего разных воинов",u:v=>v+" из "+NHEROES},wins:{t:"Больше всего побед в боях",u:v=>fmtN(v)+" побед"}};
+Object.assign(LOCAL,{top(p){const k=p.kind,R=rng(snHash(todayL()+k)),names=SELLERS.slice().sort(()=>R()-.5);
+  const fake=(h,f)=>{const c=phantom(h,f);c.sn=String(Math.floor(R()*1e6)).padStart(6,"0");c.no=1+Math.floor(R()*Math.min(FIN[f].run,999));c.stars=f>=2&&R()<.5?1+Math.floor(R()*4):0;c.id="b"+Math.floor(R()*1e9);return c};
+  const bestH=()=>{const hs=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]>=2);return hs[Math.floor(R()*hs.length)]};
+  if(k==="feed")return {items:names.slice(0,8).map((n,i)=>({name:n,card:fake(bestH(),R()<.25?3:R()<.5?2:1),t:NOW()-(i+R())*25*60e3}))};
+  if(k==="cards"){const items=names.map(n=>{const c=fake(bestH(),R()<.15?4:R()<.4?3:2);c.v=Math.round(c.v*(1+R()*3));return {name:n,card:c,score:c.v}});
+    S.cards.forEach(c=>items.push({name:myName()+" (ты)",card:c,score:c.v,me:1}));items.sort((a,b)=>b.score-a.score);return {items:items.slice(0,30)}}
+  const mine=k==="worth"?S.cards.reduce((a,c)=>a+c.v,0):k==="album"?new Set(S.cards.map(c=>c.h)).size:(S.totalWins||0);
+  const base=k==="worth"?[184200,92300,51200,23800,12400,6100,3050,1420,610,280]:k==="album"?[32,31,29,27,24,21,18,14,11,7]:[1840,960,512,301,188,97,52,30,12,5];
+  const items=names.map((n,i)=>({name:n,score:base[i],card:fake(bestH(),R()<.3?3:2)}));
+  if(mine>0)items.push({name:myName()+" (ты)",score:Math.round(mine*100)/100,card:[...S.cards].sort((a,b)=>b.v-a.v)[0]||null,me:1});
+  items.sort((a,b)=>b.score-a.score);const rank=mine>0?items.findIndex(x=>x.me)+1:null;return {items,me:{rank,score:mine}}}});
+async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.at<30000)return c.r;if(tpLoading[kind])return null;tpLoading[kind]=1;
+  const r=await act("top",{kind});tpLoading[kind]=0;if(r)tpCache[kind]={at:NOW(),r};return r}
+function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" мин назад":m<1440?Math.round(m/60)+" ч назад":Math.round(m/1440)+" дн назад"}
+function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.type="button";d.className="trow"+(it.me||(ONLINE&&it.uid===S.uid)?" me":"")+(i<3?" p"+(i+1):"");
+  d.innerHTML=`<span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="e"></span><span class="t"><b></b><small></small></span><span class="sc num"></span>`;
+  d.querySelector("b").textContent=it.name;d.querySelector(".sc").textContent=TP[kind].u(it.score);
+  if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=portrait(c.h,c,1);thumbDeco(e,c);
+    d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
+  d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
+async function renderTop(force){document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
+  $("top-h").textContent=TP[tpView].t;
+  const box=$("top-list");if(!tpCache[tpView])box.innerHTML='<p style="margin:0;color:#5a5f80">Загружаю…</p>';
+  const kind=tpView,r=await loadTop(kind,force);if(!r||kind!==tpView)return;
+  box.innerHTML="";r.items.forEach((it,i)=>box.appendChild(topRow(it,i,kind)));
+  if(!r.items.length)box.innerHTML='<p style="margin:0;color:#5a5f80">Пока пусто. Стань первым!</p>';
+  const me=r.me;$("top-rank").textContent=kind==="cards"?"":me&&me.rank?"#"+fmtN(me.rank):"—";
+  $("top-t").textContent=kind==="cards"?"Нажми на карточку, чтобы рассмотреть. Закаляй свои, чтобы попасть сюда.":me&&me.rank?(me.rank===1?"Ты на первом месте в мире! Держи позицию.":"Твоё место в мире. До следующего места: "+(r.items[me.rank-2]?TP[kind].u(Math.max(0,r.items[me.rank-2].score-me.score)):"чуть-чуть")):"Открой карточки, чтобы попасть в рейтинг.";
+  const fd=await loadTop("feed");if(!fd)return;const fb=$("feed");fb.innerHTML="";
+  fd.items.slice(0,8).forEach(it=>{const c=it.card,d=document.createElement("button");d.type="button";d.className="fitem";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
+    d.innerHTML=`<span class="e"></span><span><b></b><small></small></span>`;const e=d.querySelector(".e");e.innerHTML=portrait(c.h,c,1);thumbDeco(e,c);
+    d.querySelector("b").textContent=it.name+" выбил";d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
+    d.onclick=()=>openCardView(c,{owner:it.name,mine:ONLINE&&it.uid===S.uid});fb.appendChild(d)});
+  if(!fd.items.length)fb.innerHTML='<p style="margin:0;color:#5a5f80">Пока никто не выбил ничего редкого.</p>'}
+document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
+
 /* ---------- вкладки ---------- */
-function setTab(t){["spin","duel","album","craft","shop","col"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
-$("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");
+function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
+$("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();renderTasks();renderFree();renderStreak();renderBonus();$("topup").hidden=ONLINE&&!S.test}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();$("topup").hidden=ONLINE&&!S.test}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}

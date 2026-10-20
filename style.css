@@ -345,8 +345,8 @@ section[hidden]{display:none!important}
 .chk input{width:20px;height:20px;accent-color:var(--r1)}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--ink);border-top:3px solid var(--yellow);
   padding:8px max(16px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
-nav.tabs div{max-width:440px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
-nav.tabs button{background:none;color:#aab4e8;font-size:11px;padding:9px 0;border-radius:11px}
+nav.tabs div{max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+nav.tabs button{background:none;color:#aab4e8;font-size:10.5px;padding:9px 0;border-radius:11px;min-width:0}
 nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--ink)}
 .toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translate(-50%,-30px);opacity:0;z-index:40;background:var(--yellow);color:var(--ink);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);
   padding:9px 14px;border-radius:14px;font-weight:700;font-size:14px;transition:.25s;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
@@ -354,3 +354,75 @@ nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--ink)}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30}
 .tgrid{grid-template-columns:repeat(8,1fr)}
 @media (prefers-reduced-motion:reduce){.boss.hit,.boss .dmg.show{animation:none}.stage.tease .aura,.stage.epic .rays,.flip.shake,.vs.clash{animation:none}.art .hero .eyes{animation:none}.flip{transition:none}.front.holo,.front .in::after,.price.big b{animation:none!important}}
+
+/* ---------- ошибка печати: рваная карточка ---------- */
+.front.error{box-shadow:none}
+.front.error .in{border-style:dashed}
+.front.error .power{filter:blur(.4px);letter-spacing:.04em}
+.front.error .stats{transform:translateX(3px)}
+.tear{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
+.brak{position:absolute;left:12%;top:30%;z-index:7;font-family:var(--display);font-size:20px;color:#e0102f;border:3px solid #e0102f;border-radius:6px;padding:2px 8px;transform:rotate(-18deg);opacity:.8;mix-blend-mode:multiply;pointer-events:none;letter-spacing:.06em}
+.e.torn,.pv.torn{clip-path:polygon(0 3%,9% 0,18% 4%,30% 1%,44% 5%,57% 0,70% 3%,82% 0,100% 4%,97% 18%,100% 31%,96% 46%,100% 60%,62% 100%,48% 96%,34% 100%,20% 96%,6% 100%,0 88%,4% 74%,0 60%,3% 44%,0 30%,4% 16%);border-style:dashed!important}
+.e.torn svg{filter:drop-shadow(-2px 0 0 rgba(255,0,80,.8)) drop-shadow(2px 0 0 rgba(0,200,255,.8))}
+.e.starred{box-shadow:0 0 0 2px var(--yellow),0 0 12px 2px color-mix(in srgb,var(--hc) 80%,#fff)}
+
+/* ---------- закалка: звёзды на карточке ---------- */
+.art .era,.art .tier,.art .finish,.art .lvl,.art .ribbon{z-index:5}
+.stars{position:absolute;right:8px;top:40px;z-index:4;font-size:13px;line-height:1;letter-spacing:-1px;color:var(--yellow);background:var(--ink);border:2px solid var(--yellow);padding:2px 5px 3px;border-radius:7px;text-shadow:0 0 6px rgba(255,214,10,.9)}
+.stars i{font-style:normal;color:#3b4170;text-shadow:none}
+.art::before,.art::after{content:"";position:absolute;pointer-events:none;opacity:0}
+.art .hero{z-index:2}
+.front.star1 .art .hero svg{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--hc) 70%,#fff)) drop-shadow(4px 4px 0 rgba(13,16,48,.6))}
+.front.star2 .art .hero svg,.front.star3 .art .hero svg,.front.star4 .art .hero svg{filter:drop-shadow(0 0 10px var(--hc)) drop-shadow(0 0 3px #fff) drop-shadow(4px 4px 0 rgba(13,16,48,.6))}
+.front.star2 .art::before,.front.star3 .art::before,.front.star4 .art::before{inset:12% 6% 0;opacity:1;z-index:1;border-radius:50% 50% 0 0;background:radial-gradient(ellipse at 50% 60%,color-mix(in srgb,var(--hc) 80%,#fff) 0,color-mix(in srgb,var(--hc) 50%,transparent) 35%,transparent 68%);animation:aurap 1.8s ease-in-out infinite alternate}
+@keyframes aurap{from{transform:scale(.92);opacity:.7}to{transform:scale(1.06);opacity:1}}
+.front.star3 .art svg.burst,.front.star4 .art svg.burst,.front.star5 .art svg.burst{animation:spinb 14s linear infinite;opacity:1}
+@keyframes spinb{to{transform:rotate(360deg)}}
+.front.star4 .art::after,.front.star5 .art::after{inset:0;opacity:1;z-index:3;background:radial-gradient(circle,#fff 0 1.2px,transparent 2px) 10% 100%/36px 46px,radial-gradient(circle,#ffd60a 0 1.6px,transparent 2.4px) 60% 100%/48px 54px,radial-gradient(circle,#ff7a1a 0 1.4px,transparent 2.2px) 30% 100%/40px 60px;animation:embers 2.6s linear infinite}
+@keyframes embers{from{background-position:10% 100%,60% 100%,30% 100%}to{background-position:14% -10%,56% -20%,34% -15%}}
+.front.star4{--edge:linear-gradient(180deg,#ffe14d,#ff7a1a 45%,#d0141f)}
+.front.star4 .in{box-shadow:inset 0 0 18px 2px rgba(255,122,26,.7)}
+.front.star5{--edge:conic-gradient(from var(--ang,0deg),#fff3b0,#e0a92e,#7a3cff,#2a8cff,#fff3b0);animation:spinang 3s linear infinite;box-shadow:6px 6px 0 var(--ink),0 0 28px 6px rgba(255,214,10,.55)}
+.front.star5 .art{background:radial-gradient(circle at 50% 45%,#7a5cff 0,#2a1a6b 40%,#0a0820 75%),#0a0820}
+.front.star5 .art svg.burst{color:#ffd60a;opacity:.55}
+.front.star5 .art .hero svg{filter:drop-shadow(0 0 14px #ffd60a) drop-shadow(0 0 4px #fff)}
+.front.star5 .top{background:linear-gradient(90deg,#b47b10,#ffe48a,#b47b10)}
+.front.star5 .top b{color:#fff8d0;text-shadow:1.5px 1.5px 0 #6b3a00,0 0 8px #fff}
+.front.star5 .era{background:#ffd60a}
+.front.star5 .front.error.star5{box-shadow:none}
+.it .tg.star{--s:#0d1030;color:var(--yellow)}
+.stg{color:#c98a00;font-family:var(--display);font-size:11px}
+
+/* ---------- окно карточки ---------- */
+.cardview{position:relative;width:min(290px,78vw);aspect-ratio:5/7;margin:0 auto}
+.cardview .face{position:absolute;inset:0}
+.cardview.forged{animation:forged .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes forged{0%{transform:scale(.85);filter:brightness(3)}60%{filter:brightness(1.4)}100%{transform:scale(1);filter:none}}
+.forge{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.forge div{background:#eef0f8;border:2px solid var(--ink);border-radius:10px;padding:6px;text-align:center}
+.forge small{display:block;font-size:10.5px;color:#5a5f80;font-weight:700}
+.forge b{font-family:var(--display);font-size:13px}
+.forge b.bad{color:var(--red)}
+.craftbtn:disabled{background:#c9cde0;color:#5a5f80;text-shadow:none;box-shadow:none}
+
+/* ---------- топ мира ---------- */
+.seg.seg4{grid-template-columns:repeat(4,1fr)}
+.seg.seg4 button{font-size:12px}
+.topr{font-family:var(--display);font-size:20px;color:var(--red)}
+.trow{display:grid;grid-template-columns:30px 44px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:14px;padding:7px 10px;box-shadow:3px 3px 0 var(--ink);font:inherit}
+.trow .rk{font-family:var(--display);font-size:14px;text-align:center}
+.trow.p1 .rk,.trow.p2 .rk,.trow.p3 .rk{font-size:22px;font-family:var(--body)}
+.trow.p1{background:linear-gradient(135deg,#fff4c9,#ffe08a)}
+.trow.me{outline:3px solid var(--red);outline-offset:2px}
+.trow .e,.fitem .e{width:44px;height:54px;border-radius:8px;border:2.5px solid var(--ink);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;background:color-mix(in srgb,var(--hc,#8f9bb3) 35%,#fff)}
+.trow .e svg,.fitem .e svg{width:120%;height:auto;flex-shrink:0}
+.trow .t{min-width:0}
+.trow .t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .t small{display:block;font-size:11.5px;color:#5a5f80;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .sc{font-family:var(--display);font-size:12.5px;text-align:right}
+.feed{display:flex;flex-direction:column;gap:6px}
+.fitem{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;text-align:left;background:#fff;border:2px solid var(--ink);border-radius:12px;padding:5px 8px;font:inherit;color:var(--ink)}
+.fitem b{display:block;font-size:13px}
+.fitem small{display:block;font-size:11.5px;color:#5a5f80}
+.it{cursor:pointer}
+@media (prefers-reduced-motion:reduce){.art::before,.art::after,.art svg.burst,.front.star5{animation:none!important}}

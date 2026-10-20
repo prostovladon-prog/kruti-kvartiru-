@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
   ref      INTEGER,                      -- кто пригласил
   refs     INTEGER NOT NULL DEFAULT 0,   -- сколько друзей пригласил
   gift_spins INTEGER NOT NULL DEFAULT 0, -- прокрутки за друзей, ещё не добавленные
+  worth    REAL    NOT NULL DEFAULT 0,   -- стоимость коллекции (для мирового топа)
+  album    INTEGER NOT NULL DEFAULT 0,   -- сколько разных воинов собрано
+  wins     INTEGER NOT NULL DEFAULT 0,   -- побед в боях
   created  INTEGER,
   updated  INTEGER
 );
@@ -29,6 +32,7 @@ CREATE TABLE IF NOT EXISTS cards (
   stats      TEXT    NOT NULL,
   xp         INTEGER NOT NULL DEFAULT 0,
   wins       INTEGER NOT NULL DEFAULT 0,
+  stars      INTEGER NOT NULL DEFAULT 0, -- закалка ★1–★5
   frame      TEXT,
   away       INTEGER NOT NULL DEFAULT 0, -- время возвращения из похода
   dest       INTEGER,
@@ -41,6 +45,10 @@ CREATE INDEX IF NOT EXISTS cards_owner  ON cards(owner);
 CREATE INDEX IF NOT EXISTS cards_market ON cards(listed_at) WHERE list_price IS NOT NULL;
 CREATE INDEX IF NOT EXISTS cards_nice   ON cards(nice) WHERE nice = 1;
 CREATE INDEX IF NOT EXISTS cards_print  ON cards(h, f, no);
+CREATE INDEX IF NOT EXISTS cards_v      ON cards(v) WHERE owner > 0;
+CREATE INDEX IF NOT EXISTS users_worth  ON users(worth);
+CREATE INDEX IF NOT EXISTS users_album  ON users(album);
+CREATE INDEX IF NOT EXISTS users_wins   ON users(wins);
 
 -- История продаж на рынке.
 CREATE TABLE IF NOT EXISTS sales (

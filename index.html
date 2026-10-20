@@ -51,8 +51,8 @@
     <div class="box"><div class="rowb"><h3>Серия входов</h3><button type="button" class="mini2" id="st-go">Забрать</button></div><div class="streak" id="streak"></div><p id="st-t"></p></div>
     <div class="box"><div class="rowb"><h3>Гарантия</h3><b class="num" id="pity-n" style="font-family:var(--display)"></b></div><div class="bar"><i id="pity-bar" style="background:var(--r3)"></i></div><p id="pity-t"></p></div>
     <div class="box" id="bonus"><h3>Бонусы</h3>
-      <div class="shopi"><b>Подпишись на канал</b><button type="button" class="mini2" id="sub-go">Подписаться</button><small id="sub-t">@Voiny_official: новости, события и розыгрыши. За подписку +5 прокруток</small></div>
-      <div class="shopi"><b>Приглашай друзей</b><button type="button" class="mini2" id="ref-go">Пригласить</button><small id="ref-t">+5 прокруток за каждого друга, который зайдёт по твоей ссылке</small></div>
+      <div class="shopi" id="sub-row"><b>Подпишись на канал</b><button type="button" class="mini2" id="sub-go">Подписаться</button><small id="sub-t">@Voiny_official: новости, события и розыгрыши. За подписку +10 прокруток</small></div>
+      <div class="shopi"><b>Приглашай друзей</b><button type="button" class="mini2" id="ref-go">Пригласить</button><small id="ref-t">+10 прокруток за каждого друга, который зайдёт по твоей ссылке</small></div>
     </div>
     <div class="box"><h3>Задания дня</h3><div id="tasks" style="display:flex;flex-direction:column;gap:10px"></div></div>
     <div class="box">
@@ -175,6 +175,12 @@
       <div class="box"><span class="step">Выбери воина</span><div class="pickrow" id="lv-pick"></div></div>
     </div>
   </section>
+  <section id="sec-top" hidden>
+    <div class="box"><div class="rowb"><h3 id="top-h">Топ мира</h3><b class="num topr" id="top-rank"></b></div><p id="top-t"></p></div>
+    <div class="seg seg4" id="top-seg"><button type="button" data-v="worth" aria-pressed="true">Богачи</button><button type="button" data-v="cards" aria-pressed="false">Карточки</button><button type="button" data-v="album" aria-pressed="false">Альбом</button><button type="button" data-v="wins" aria-pressed="false">Бойцы</button></div>
+    <div class="list" id="top-list"></div>
+    <div class="box"><h3>Прямо сейчас выбили</h3><div class="feed" id="feed"></div></div>
+  </section>
   <section id="sec-col" hidden>
     <div class="box cap"><div><h3>Коллекция</h3><p class="num" id="col-n"></p></div><button type="button" class="ghost" id="sellcommon">Продать все обычные</button></div>
     <div class="box merge"><h3>Слияние</h3><p>Три одинаковых воина с одной отделкой превращаются в одного с отделкой выше.</p><div id="merge"></div></div>
@@ -187,7 +193,8 @@
   <button type="button" role="tab" id="tab-album" aria-selected="false">Альбом</button>
   <button type="button" role="tab" id="tab-craft" aria-selected="false">Крафт</button>
   <button type="button" role="tab" id="tab-shop" aria-selected="false">Рынок</button>
-  <button type="button" role="tab" id="tab-col" aria-selected="false">Коллекция</button>
+  <button type="button" role="tab" id="tab-col" aria-selected="false">Мои</button>
+  <button type="button" role="tab" id="tab-top" aria-selected="false">Топ</button>
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
