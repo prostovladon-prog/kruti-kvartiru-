@@ -187,6 +187,10 @@ function noteCard(st,c){st.best=Math.max(st.best||0,HEROES[c.h][2]);st.bestFin=M
 /* ---------- помощники для действий ---------- */
 function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточка не найдена");return c}
 function freeCard(G,id){const c=own(G,id);if(c.away)fail("Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
+/* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
+const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
+function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(TROPHY_MSG);return c}
+function burnable(c){if(FIN[c.f].excl)fail("«Основателя» нельзя продать системе или сжечь. Его можно выставить на рынок");return c}
 function addCard(G,c){if(G.cards.length>=CAP)fail("Коллекция заполнена ("+CAP+"). Продай лишнее");G.cards.push(c);noteCard(G.st,c)}
 /* карточка уходит из игры: её номер и место в тираже освобождаются и снова могут выпасть в прокрутках */
 function burn(G,ids){G.cards.forEach(x=>{if(ids.includes(x.id)&&G.ctx.release)G.ctx.release(x)});G.cards=G.cards.filter(x=>!ids.includes(x.id))}
@@ -210,7 +214,7 @@ const ACTIONS={
     st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;
     addCard(G,c);day(st,ctx.now).opened++;return {card:c}},
 
-  sell(G){const c=freeCard(G,G.p.id),got=Math.round(c.v*QUICK*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
+  sell(G){const c=burnable(freeCard(G,G.p.id)),got=Math.round(c.v*QUICK*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
 
   sellcommon(G){const list=G.cards.filter(c=>!away(c)&&c.f===0&&HEROES[c.h][2]===0);if(!list.length)fail("Обычных карточек нет");
     const got=Math.round(list.reduce((a,c)=>a+c.v*QUICK,0)*100)/100;burn(G,list.map(c=>c.id));earn(G.st,got);return {got,n:list.length}},
@@ -218,7 +222,7 @@ const ACTIONS={
   craft(G){const {st,ctx,p}=G;const ids=[...new Set(p.ids||[])];if(!ids.length||ids.length>5)fail("Выбери от 1 до 5 карточек");
     const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
     if(FIN[f].run!==Infinity&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
-    const inp=ids.map(id=>freeCard(G,id)),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),amu=p.amu?.1:0;
+    const inp=ids.map(id=>burnable(freeCard(G,id))),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),amu=p.amu?.1:0;
     if(amu)pay(st,amuCost(h,f));
     const pr=Math.min(PMAX+amu,HOUSE*sum/t+amu);if(pr<=0)fail("Шанс слишком мал");
     burn(G,ids);day(st,ctx.now).crafts++;const win=Math.random()<pr;let card=null;
@@ -229,7 +233,7 @@ const ACTIONS={
     const same=G.cards.filter(c=>c.h===h&&c.f===f&&!away(c)).sort((a,b)=>a.v-b.v);if(same.length<3)fail("Нужно три одинаковых карточки");
     burn(G,same.slice(0,3).map(c=>c.id));const card=makeCard(ctx,h,f+1);addCard(G,card);return {card}},
 
-  duel(G){const {st,ctx,p}=G;const me=freeCard(G,p.id),stat=p.stat|0;if(stat<0||stat>4)fail("Неверная характеристика");
+  duel(G){const {st,ctx,p}=G;const me=battleCard(G,p.id),stat=p.stat|0;if(stat<0||stat>4)fail("Неверная характеристика");
     const t=HEROES[me.h][2],tt=Math.max(0,Math.min(4,t+[-1,0,0,0,1][Math.floor(Math.random()*5)]));
     const cand=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
     // соперник: карточка настоящего игрока (сервер подбирает её сам), иначе бот
@@ -246,7 +250,7 @@ const ACTIONS={
     else{addXp(ctx,me,10);if(p.mode){if(real)ctx.giveAway=me.id;burn(G,[me.id]);lostCard=true}}   // с игроком карточка уходит к нему
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null}},
 
-  fduel(G){const {st,ctx,p}=G;const me=freeCard(G,p.myId),opp=p.opp,myStat=p.myStat|0;if(!opp)fail("Соперник не найден");
+  fduel(G){const {st,ctx,p}=G;const me=battleCard(G,p.myId),opp=p.opp,myStat=p.myStat|0;if(!opp)fail("Соперник не найден");if(FIN[opp.f]&&FIN[opp.f].excl)fail("С карточкой «Основатель» драться нельзя: это трофей");
     const p2=p.oppStat!=null?p.oppStat|0:aiPick(opp,[myStat]);if(p2===myStat)fail("Эту характеристику уже выбрал соперник");
     const picks=[myStat,p2,rndPick([myStat,p2])],before=snap(me),R=fight3(me,opp,picks);
     const key=String(p.key||"x")+"_"+me.h,first=!st.doneCh[key];let reward=0;
@@ -254,7 +258,7 @@ const ACTIONS={
     else if(R.w<R.l&&first){addXp(ctx,me,10);st.doneCh[key]=1}
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,first}},
 
-  boss_squad(G){const B=boss(G.st,G.ctx.now),ids=(G.p.ids||[]).slice(0,3);ids.forEach(id=>freeCard(G,id));B.squad=ids;return {}},
+  boss_squad(G){const B=boss(G.st,G.ctx.now),ids=(G.p.ids||[]).slice(0,3);ids.forEach(id=>battleCard(G,id));B.squad=ids;return {}},
   boss_hit(G){const {st,ctx}=G;const B=boss(st,ctx.now);if(B.dmg>=BOSS.hp)fail("Босс уже повержен");if(B.hits>=3+(B.extra||0))fail("Удары на сегодня закончились");
     const team=(B.squad||[]).map(id=>G.cards.find(c=>c.id===id)).filter(c=>c&&!away(c));if(!team.length)fail("Поставь воинов в отряд");
     let dmg=team.reduce((a,c)=>a+eff(c,0)*(1.6+Math.random()*.8),0);const crit=Math.random()<.18;if(crit)dmg*=2.5;dmg=Math.round(dmg);

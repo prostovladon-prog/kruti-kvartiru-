@@ -183,6 +183,13 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
   r = await call(7000, "sync"); ok(!r.S.founderNew && r.S.foundersLeft === 2, "уведомление один раз, в казне осталось " + r.S.foundersLeft);
   for (let i = 16; i <= 20; i++) await call(70000 + i, "sync", {}, "r_7000");
   r = await call(7000, "sync"); ok(r.S.cards.filter(c => c.f === 5).length === 1, "второй карточки за тех же друзей не будет");
+  r = await call(7000, "duel", { id: fc.id, stat: 0, mode: 0 }); ok(!r.ok && /коллекционная/.test(r.err), "«Основатель» не дерётся в дуэли");
+  r = await call(7000, "boss_squad", { ids: [fc.id] }); ok(!r.ok, "«Основатель» не идёт на босса");
+  r = await call(7000, "sell", { id: fc.id }); ok(!r.ok && /рынок/.test(r.err), "«Основателя» нельзя продать системе");
+  r = await call(7000, "list", { id: fc.id, price: 300000 }); ok(r.ok, "«Основателя» можно выставить на рынок");
+  await call(7000, "unlist", { id: fc.id });
+  r = await call(1, "sync"); const anyMine = r.S.cards.find(c => !c.listed && !c.away);
+  r = await call(1, "fduel", { oppId: fc.id, oppStat: 1, myId: anyMine.id, myStat: 0 }); ok(!r.ok, "против «Основателя» по ссылке тоже нельзя");
   await call(7000, "open"); r = await call(7000, "sync"); r = await call(7000, "craft", { ids: [r.S.cards.find(c => c.f !== 5).id], h: 0, f: 5 }); ok(!r.ok, "«Основателя» нельзя скрафтить");
 }
 
