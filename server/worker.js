@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ⚠️ Файл собран автоматически из rules.js и server/server.js (tools/build_worker.py). Правь исходники, а не его.
 /* rules.js — общие правила «Воинов Эпох».
    Этот файл работает и в браузере (локальный режим), и на сервере (Cloudflare Worker).
