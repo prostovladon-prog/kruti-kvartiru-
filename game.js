@@ -291,7 +291,7 @@ const front=$("front"),flip=$("flip");
 const FACE_TPL=front.innerHTML.replace(/ id="[^"]*"/g,"");
 function rng(seed){return ()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
 /* ошибка печати: у каждой карточки свои рваные края и откушенный угол (зависят от номера) */
-function tornPoly(sn){const R=rng(snHash(sn)),cut=[0,1,2][Math.floor(R()*3)],a=11+R()*8,b=7+R()*6,/* нижний левый угол с номером не трогаем */C=[[0,0],[100,0],[100,100],[0,100]];
+function tornPoly(sn){const R=rng(snHash(sn)),cut=1,a=11+R()*8,b=7+R()*6,/* откусан правый верхний угол: имя, номер и цена всегда видны */C=[[0,0],[100,0],[100,100],[0,100]];
   const [cx,cy]=C[cut],sx=cx?-1:1,sy=cy?-1:1,inCut=(x,y)=>((x-cx)*sx)/a+((y-cy)*sy)/b<1.02;
   const P=[];for(let k=0;k<4;k++){const e=(cut+2+k)%4,[x0,y0]=C[e],[x1,y1]=C[(e+1)%4],n=18;
     for(let i=0;i<n;i++){const t=i/n,j=R()*2.6;let x=x0+(x1-x0)*t,y=y0+(y1-y0)*t;if(e===0)y+=j;if(e===1)x-=j;if(e===2)y-=j;if(e===3)x+=j;P.push([x,y])}}
