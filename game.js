@@ -41,7 +41,8 @@ async function act(name,p){
   try{let out;
     if(ONLINE){
       const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":(tg&&tg.initData)||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:name,p:p||{}})});
-      const j=await r.json();if(!j.ok)throw new GameError(j.err||"Ошибка сервера");S=j.S;out=j.res||{};
+      let j;try{j=await r.json()}catch(e){throw new GameError(r.status===429||r.status>=500?"Сервер перегружен, попробуй через пару минут":"Нет связи с сервером. Попробуй ещё раз")}
+      if(!j.ok)throw new GameError(j.err||"Ошибка сервера");if(j.S)S=j.S;out=j.res||{};
     }else{
       if(name==="sub_check")name="sub_reward";
       if(LOCAL[name])out=LOCAL[name](p||{});
@@ -1099,7 +1100,7 @@ function tickSales(){if(ONLINE||!S)return;let sold=false;S.cards.forEach(c=>{if(
     S.news=(S.news||[]).concat([{h:c.h,buyer:SELLERS[Math.floor(Math.random()*SELLERS.length)],price:c.listPrice,got}])}});
   if(sold){S.cards=S.cards.filter(c=>!c.sold);save();news();renderAll()}}
 setInterval(tickSales,5000);
-if(ONLINE)setInterval(()=>{if(S&&!document.hidden)act("sync").then(()=>{updCash();if(!$("sec-shop").hidden&&shView==="sell")renderSell()})},30000);
+if(ONLINE)setInterval(()=>{if(S&&!document.hidden&&!chatOpen)act("sync").then(()=>{updCash();if(!$("sec-shop").hidden&&shView==="sell")renderSell()})},60000);
 function lotRow(c,priceHTML,btn){const H=HEROES[c.h],d=document.createElement("div");d.className="lot";d.style.setProperty("--hc",HT[H[2]].c);
   d.innerHTML=`<span class="e">${miniSlot(c)}</span><span class="t"><b></b>${FIN[c.f].k}${FIN[c.f].run!==Infinity?" "+c.no+"/"+FIN[c.f].run:""}, ур. ${lvl(c)}<br>№ ${fmtSn(c.sn)}${classify(c.sn)?", "+classify(c.sn).k.toLowerCase():""}</span><span class="r">${priceHTML}</span>`;
   d.querySelector("b").textContent=H[0];d.querySelector(".r").appendChild(btn);thumbDeco(d.querySelector(".e"),c);
@@ -1288,7 +1289,8 @@ function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scroll
     box.appendChild(d)});
   if(atEnd||box.dataset.first!=="1"){box.scrollTop=box.scrollHeight;box.dataset.first="1"}
   const last=chatItems.length?chatItems[chatItems.length-1].id:0;if(ONLINE)try{localStorage.setItem(CHAT_SEEN,String(Math.max(last,S.chatLast||0)))}catch(e){}chatDot()}
-async function pullChat(){if(!chatOpen)return;const r=await act("chat_get",{after:0});if(r&&chatOpen){chatItems=r.items;drawChat()}}
+async function pullChat(){if(!chatOpen)return;const last=chatItems.length?chatItems[chatItems.length-1].id:0;const r=await act("chat_get",{after:ONLINE?last:0});
+  if(r&&chatOpen){if(!ONLINE||!last)chatItems=r.items;else if(r.items.length)chatItems=chatItems.concat(r.items.filter(x=>x.id>last)).slice(-80);else return;drawChat()}}
 function openChat(){chatOpen=true;const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   sh.innerHTML='<div class="chwrap"><div class="chtop"><b>Чат игроков</b><button type="button" class="x" id="ch-x">Закрыть</button></div><div class="chlist" id="ch-list"><p class="chempty">Загружаю…</p></div><div class="chin"><input type="text" id="ch-in" maxlength="200" placeholder="Сообщение…" autocomplete="off"><button type="button" class="mini2" id="ch-send">➤</button></div><small class="chrule">Без мата, ссылок и спама. Нажми на ник, чтобы открыть витрину игрока и вызвать его на бой.</small></div>';
   $("ch-x").onclick=closeChat;
@@ -1296,7 +1298,7 @@ function openChat(){chatOpen=true;const m=$("modal"),sh=$("msheet");sh.innerHTML
     if(!r)return;i.value="";chatItems=r.items;$("ch-list").dataset.first="0";drawChat();hap("light")};
   $("ch-send").onclick=send;$("ch-in").onkeydown=e=>{if(e.key==="Enter")send()};
   if(!S.nick){$("ch-in").placeholder="Сначала выбери ник";$("ch-in").onfocus=()=>{closeChat();openNick(false)}}
-  pullChat();clearInterval(chatTimer);chatTimer=setInterval(pullChat,4000);chatDot()}
+  pullChat();clearInterval(chatTimer);chatTimer=setInterval(pullChat,6000);chatDot()}
 function closeChat(){chatOpen=false;clearInterval(chatTimer);closeModal();chatDot()}
 $("chat-go").onclick=openChat;
 $("modal").addEventListener("click",e=>{if(e.target===$("modal")&&chatOpen)closeChat()});
