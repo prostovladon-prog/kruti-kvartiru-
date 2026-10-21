@@ -225,7 +225,7 @@ const ACTIONS={
     const inp=ids.map(id=>burnable(freeCard(G,id))),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),amu=p.amu?.1:0;
     if(amu)pay(st,amuCost(h,f));
     const pr=Math.min(PMAX+amu,HOUSE*sum/t+amu);if(pr<=0)fail("Шанс слишком мал");
-    burn(G,ids);day(st,ctx.now).crafts++;const win=Math.random()<pr;let card=null;
+    burn(G,ids);day(st,ctx.now).crafts++;const win=!!ctx.luck||Math.random()<pr;let card=null;   // режим удачи администратора: крафт всегда удаётся
     if(win){st.crafted=(st.crafted||0)+1;card=makeCard(ctx,h,f);addCard(G,card)}
     return {win,p:pr,card,lost:Math.round(sum*100)/100}},
 

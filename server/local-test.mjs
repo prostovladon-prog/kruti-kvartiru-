@@ -277,6 +277,9 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await call8("luck_set", { on: 1 }); ok(r.ok && r.res.on, "режим удачи включён");
   let rare = 0, nice = 0; for (let i = 0; i < 4; i++) { r = await call8("open"); if (r.ok) { if (r.res.card.f >= 1) rare++; if (classify(r.res.card.sn)) nice++ } }
   ok(rare >= 3 && nice >= 3, "с удачей: редких отделок " + rare + "/4, красивых номеров " + nice + "/4");
+  r = await call8("sync"); let wins = 0;
+  for (let i = 0; i < 3; i++) { r = await call8("sync"); const cheap = r.S.cards.filter(c => c.f !== 5).sort((a, b) => a.v - b.v)[0]; if (!cheap) break; const cr = await call8("craft", { ids: [cheap.id], h: 30, f: 3 }); if (cr.ok && cr.res.win) wins++; }
+  ok(wins === 3, "с удачей крафт всегда удаётся, даже с маленьким шансом (" + wins + "/3)");
   r = await call8("luck_set", { on: 0 }); ok(r.ok && !r.res.on, "режим удачи выключен");
   r = await call8("stats"); const T = r.res;
   ok(r.ok && T.players >= 8 && T.newToday >= 8 && T.activeToday >= 3 && T.today.open >= 4 && T.fromRef >= 3 && T.days.length === 14, "статистика: игроков " + T.players + ", новых сегодня " + T.newToday + ", активных " + T.activeToday + ", прокруток " + T.today.open + ", по приглашению " + T.fromRef);

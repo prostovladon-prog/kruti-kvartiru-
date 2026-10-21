@@ -352,7 +352,6 @@ nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--ink)}
   padding:9px 14px;border-radius:14px;font-weight:700;font-size:14px;transition:.25s;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30}
-.tgrid{grid-template-columns:repeat(8,1fr)}
 @media (prefers-reduced-motion:reduce){.boss.hit,.boss .dmg.show{animation:none}.stage.tease .aura,.stage.epic .rays,.flip.shake,.vs.clash{animation:none}.art .hero .eyes{animation:none}.flip{transition:none}.front.holo,.front .in::after,.price.big b{animation:none!important}}
 
 /* ---------- ошибка печати: рваная карточка ---------- */
@@ -558,3 +557,15 @@ nav.tabs.onb-hl{position:fixed;border-radius:0}
 .ctile .cbtn{position:relative}
 .forgeb{position:absolute;left:50%;top:-9px;transform:translateX(-50%);z-index:2;white-space:nowrap;font-size:11px;font-weight:900;background:var(--yellow);color:var(--ink);border:2px solid var(--ink);border-radius:9px;padding:2px 8px;box-shadow:2px 2px 0 var(--ink);animation:fbp 1.6s ease-in-out infinite}
 @keyframes fbp{50%{transform:translateX(-50%) scale(1.08)}}
+
+/* крафт: цели одной прокручиваемой строкой */
+.tgrid{display:flex;gap:6px;overflow-x:auto;padding:3px 2px 8px;scroll-snap-type:x proximity}
+.tgrid .tg2{flex:0 0 54px;width:54px;scroll-snap-align:start}
+.crintro{font-size:12.5px;color:#5a5f80;margin:0}
+/* выпавшая карточка */
+.modal:has(.drop-t){align-items:center}
+.drop-t span{font-size:24px}
+.cardview.dropin{animation:dropin .6s cubic-bezier(.2,1.5,.4,1)}
+@keyframes dropin{0%{transform:scale(.3) rotate(-12deg);opacity:0;filter:brightness(3)}60%{opacity:1;filter:brightness(1.5)}100%{transform:none;filter:none}}
+.drop-p{text-align:center;color:#c8d3ff;font-weight:700;font-size:13px}
+.drop-p b{display:block;font-family:var(--display);font-size:30px;color:var(--yellow);text-shadow:3px 3px 0 var(--ink)}

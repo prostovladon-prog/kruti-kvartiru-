@@ -531,6 +531,7 @@ function renderCraft(){
   HEROES.forEach((H,i)=>{const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",i===crH);b.setAttribute("aria-label",H[0]);b.title=H[0];b.innerHTML=portrait(i,null,1);
     b.onclick=()=>{if(crBusy)return;crH=i;renderCraft()};tg.appendChild(b)});
+  const sel=tg.querySelector('[aria-pressed="true"]');if(sel&&!tg.dataset.scrolled){tg.dataset.scrolled="1";requestAnimationFrame(()=>{tg.scrollLeft=sel.offsetLeft-tg.clientWidth/2+sel.clientWidth/2})}
   const F=FIN[crF],left=F.run===Infinity?Infinity:F.run-issuedOfUI(crH,crF);
   $("cr-tname").innerHTML="";const nb=document.createElement("b");nb.textContent=HEROES[crH][0]+", "+F.k.toLowerCase();$("cr-tname").appendChild(nb);
   $("cr-trun").textContent=left===Infinity?HT[HEROES[crH][2]].k:(left>0?"осталось "+left+" из "+F.run:"тираж закончился");
@@ -547,6 +548,15 @@ function renderCraft(){
   else if(!crBusy)$("cr-res").textContent="";
   $("cr-res").className="result";
 }
+/* выпавшая карточка крупно на весь экран */
+function showDrop(c,title){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  const w=document.createElement("div");w.className="who drop-t";w.innerHTML="<span></span><small></small>";w.children[0].textContent="🎉 "+title;
+  const cl=classify(c.sn);w.children[1].textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(FIN[c.f].run!==Infinity?" "+c.no+"/"+FIN[c.f].run:"")+", № "+fmtSn(c.sn)+(cl?" ("+cl.k.toLowerCase()+")":"");
+  const cv=document.createElement("div");cv.className="cardview dropin";const face=document.createElement("div");face.innerHTML=FACE_TPL;cv.appendChild(face);fillFace(face,c);
+  const pr=document.createElement("div");pr.className="drop-p";pr.innerHTML='<small>Цена карточки</small><b class="num"></b>';
+  const ok=document.createElement("button");ok.type="button";ok.className="craftbtn";ok.textContent="Забрать";ok.onclick=closeModal;
+  sh.append(w,cv,pr,ok);countUp([pr.querySelector("b")],c.v,1200);sfx.fanfare();hapN("success");burst(Math.min(4,Math.max(c.f,HEROES[c.h][2])+1))}
+
 /* звук колеса: щелчок каждые 15° настоящего поворота стрелки, в зелёной зоне выше тоном */
 function wheelSound(el,ms,pp){if(reduce)return;whoosh(.5,.16);let last=null,acc=0,lastTick=0;const t0=performance.now();
   (function f(t){const m=getComputedStyle(el).transform,v=m&&/matrix\(([^)]+)\)/.exec(m);
@@ -570,7 +580,7 @@ $("cr-go").onclick=async()=>{
   $("cr-res").textContent="Крутим...";$("cr-res").className="result";
   setTimeout(()=>{
     let msg;
-    if(win){const c=r.card;current=c;showCard(c);$("sell").disabled=false;burst(Math.max(c.f,HEROES[c.h][2])+1);
+    if(win){const c=r.card;current=c;showCard(c);$("sell").disabled=false;burst(Math.max(c.f,HEROES[c.h][2])+1);setTimeout(()=>showDrop(c,"Крафт удался!"),350);
       msg="Получилось! "+HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+", № "+fmtSn(c.sn)+", "+fmt(c.v);}
     else msg="Не повезло. Сгорело "+ids.length+" шт. на "+fmt(r.lost);
     crBusy=false;renderCraft();renderAll();
