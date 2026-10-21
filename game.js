@@ -613,8 +613,18 @@ function leftTxt(){const ms=Math.max(0,(S.refillAt||NOW())-NOW()),sec=Math.ceil(
 let refillAsked=0;
 function renderFree(){if(!S)return;
   if(S.refillAt&&NOW()>=S.refillAt){if(ONLINE){if(NOW()-refillAsked>10000){refillAsked=NOW();act("sync").then(()=>renderAll())}}else{refill(S,NOW());save()}}
-  const n=S.spins??0;$("free-n").textContent=n<=SPINS_MAX?n+"/"+SPINS_MAX:String(n);$("open-n").textContent=n>0?"осталось "+n:"через "+leftTxt();
-  $("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся 3 бесплатных прокрутки":"Новые 3 прокрутки через "+leftTxt();$("open").classList.toggle("empty",n<=0)}
+  const n=S.spins??0,cap=spinCap(S);$("free-n").textContent=n<=cap?n+"/"+cap:String(n);$("open-n").textContent=n>0?"осталось "+n:"через "+leftTxt();
+  const pw=cap>=5?"бесплатных прокруток":"бесплатные прокрутки";$("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся "+cap+" "+pw+(cap>SPINS_MAX?" 👑":""):"Новые "+cap+" "+(cap>=5?"прокруток":"прокрутки")+" через "+leftTxt();$("open").classList.toggle("empty",n<=0);renderPromo()}
+/* ---------- акция и VIP ---------- */
+const isVip=()=>!!S&&(S.vipUntil||0)>NOW();
+function renderPromo(){if(!S)return;const P=S.promo,box=$("promo");
+  const on=!!P&&P.end>NOW()&&!isVip();box.hidden=!on;
+  if(on){$("promo-left").textContent=tleft(P.end-NOW());const h=Math.min(P.have,P.need);
+    $("promo-t").innerHTML="";$("promo-t").textContent="Пригласи "+P.need+" друзей, пока идёт таймер, и получи 👑 VIP на 7 дней: "+VIP_SPINS+" прокруток вместо "+SPINS_MAX+", значок VIP в топе и чате и золотое оформление. У тебя "+h+" из "+P.need;
+    $("promo-bar").style.width=h/P.need*100+"%"}
+  const vb=$("vipbox");vb.hidden=!isVip();if(isVip())$("vip-t").textContent="ещё "+Math.ceil((S.vipUntil-NOW())/864e5)+" дн. · "+VIP_SPINS+" прокруток каждые 4 часа";
+  document.body.classList.toggle("vip",isVip())}
+$("promo-go").onclick=()=>$("ref-go").click();
 setInterval(renderFree,1000);
 
 /* ---------- бой в три раунда: результат считают правила, здесь только анимация ---------- */
@@ -929,7 +939,7 @@ function friendsGet(){try{return JSON.parse(localStorage.getItem("we-friends")||
 function friendsPut(F){try{localStorage.setItem("we-friends",JSON.stringify(F))}catch(e){}}
 function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
-  const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent="Витрина: "+(F.pi?"🏅 ":"")+F.name;
+  const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent="Витрина: "+(F.vip?"👑 ":"")+(F.pi?"🏅 ":"")+F.name;
   w.children[1].textContent="Собрано воинов: "+F.have+" из "+NHEROES+", побед в боях: "+F.wins;sh.appendChild(w);
   const g=document.createElement("div");g.className="show3";F.cards.forEach(c=>{const d=bigMc(c,0);d.querySelector(".v").innerHTML=`<small>${FIN[c.f].k}, ур. ${lvl(c)}</small><b class="num">${fmt(c.v)}</b>`;g.appendChild(d)});
   if(!F.cards.length){const e=document.createElement("div");e.className="mc empty";e.textContent="Пока нет карточек";g.appendChild(e)}sh.appendChild(g);
@@ -1188,7 +1198,7 @@ async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.a
 function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" мин назад":m<1440?Math.round(m/60)+" ч назад":Math.round(m/1440)+" дн назад"}
 function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.type="button";d.className="trow"+(it.me||(ONLINE&&it.uid===S.uid)?" me":"")+(i<3?" p"+(i+1):"");
   d.innerHTML=`<span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="e"></span><span class="t"><b></b><small></small></span><span class="sc num"></span>`;
-  d.querySelector("b").textContent=(it.pi?"🏅 ":"")+it.name;d.querySelector(".sc").textContent=kind==="worth"||kind==="cards"?fmtC(it.score):TP[kind].u(it.score);
+  d.querySelector("b").textContent=(it.pi?"🏅 ":"")+it.name;if(it.vip||(it.me&&isVip())){d.classList.add("vipr");d.querySelector("b").insertAdjacentHTML("afterbegin",'<span class="vipb">VIP</span> ')}d.querySelector(".sc").textContent=kind==="worth"||kind==="cards"?fmtC(it.score):TP[kind].u(it.score);
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
@@ -1217,7 +1227,14 @@ function drawStats(){const R=stData,b=$("st-body");if(!R)return;
   <p class="stnote">Дни по минскому времени. «Вернулись на 2-й день» считается по игрокам, которые пришли с 8 по 1 день назад.</p>`;
   b.querySelectorAll(".stlist em").forEach((e,i)=>e.textContent=R.inviters[i].name)}
 $("st-reload").onclick=()=>loadStats(true);
-function renderAdmin(){const sb=$("admin-stats");sb.hidden=!(S.admin&&ONLINE);if(S.admin&&ONLINE)loadStats();
+function renderAdminPromo(){const b=$("admin-promo");b.hidden=!(S.admin&&ONLINE);if(b.hidden)return;const P=S.promo;
+  $("ap-t").textContent=P&&P.end>NOW()?"Акция идёт: «"+P.need+" друга → VIP», осталось "+tleft(P.end-NOW())+".":"Акция не запущена.";
+  $("ap-go").textContent=P&&P.end>NOW()?"Остановить акцию":"Запустить акцию «друзья → VIP на 7 дней»"}
+$("ap-go").onclick=async()=>{const P=S.promo,on=!(P&&P.end>NOW());const r=await act("promo_set",on?{hours:+$("ap-hours").value||3,need:+$("ap-need").value||2}:{hours:0});if(r){renderAdminPromo();renderPromo();toast(on?"Акция запущена":"Акция остановлена")}};
+$("bc-go").onclick=async()=>{const text=$("bc-text").value.trim();if(!text){toast("Напиши текст рассылки");return}const b=$("bc-go");b.disabled=true;let after=0,sent=0,total=0,done=false,guard=0;
+  while(!done&&guard++<200){$("bc-res").textContent="Отправляю… "+sent;const r=await act("broadcast",{text,after});if(!r)break;sent+=r.sent;total=r.total;after=r.last;done=r.done}
+  b.disabled=false;$("bc-res").textContent=done?"Готово: доставлено "+sent+" из "+total+" (остальные заблокировали бота)":"Рассылка прервалась на "+sent+", нажми ещё раз";if(done)$("bc-text").value=""};
+function renderAdmin(){renderAdminPromo();const sb=$("admin-stats");sb.hidden=!(S.admin&&ONLINE);if(S.admin&&ONLINE)loadStats();
   const box=$("admin-box");box.hidden=!S.admin;if(!S.admin)return;const on=(S.luckUntil||0)>NOW();
   $("luck-t").textContent=on?"Включён ещё "+tleft(S.luckUntil-NOW())+". Выпадают легендарные и мифические воины, дорогие отделки и красивые номера. Видишь эту панель только ты.":"Выключен. На 3 часа делает прокрутки на твоём аккаунте очень удачными. Проданные карточки потом вернутся в общий пул.";
   $("luck-go").textContent=on?"Выключить":"Включить на 3 часа";$("luck-go").style.background=on?"var(--red)":""}
@@ -1261,7 +1278,7 @@ function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scroll
   if(!chatItems.length)box.innerHTML='<p class="chempty">Пока тихо. Напиши первым!</p>';
   chatItems.forEach(m=>{const d=document.createElement("div");const mine=ONLINE?m.uid===S.uid:m.uid===0;d.className="chm"+(mine?" me":"");
     d.innerHTML='<div class="chh"><button type="button" class="chn"></button><span class="cht"></span></div><div class="chx"></div>';
-    const n=d.querySelector(".chn");n.textContent=(m.pi?"🏅 ":"")+m.name+(m.a?" ★":"");n.style.color=m.a?"#d4380d":nickCol(m.name);
+    const n=d.querySelector(".chn");n.textContent=(m.vip?"👑 ":"")+(m.pi?"🏅 ":"")+m.name+(m.a?" ★":"");if(m.vip)d.classList.add("vipm");n.style.color=m.a?"#d4380d":nickCol(m.name);
     d.querySelector(".cht").textContent=new Date(m.t).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     d.querySelector(".chx").textContent=m.text;
     n.onclick=()=>{if(ONLINE&&m.uid>0&&m.uid!==S.uid){closeChat();openParam("u_"+m.uid)}};

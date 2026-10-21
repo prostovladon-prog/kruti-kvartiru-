@@ -338,5 +338,35 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   globalThis.fetch = realFetch;
 }
 
+/* --- акция «2 друга» → VIP и рассылка --- */
+{
+  const sent = []; const realFetch = globalThis.fetch;
+  globalThis.fetch = async (u, o) => { sent.push(JSON.parse(o.body)); return new Response('{"ok":true}') };
+  const envA = { ...env, ADMINS: "8", NOTIFY_TEST: "1" };
+  const ca = async (uid, a, p = {}, start = "") => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), envA)).json();
+  r = await ca(9500, "promo_set", { hours: 3, need: 2 }); ok(!r.ok, "обычный игрок не может запустить акцию");
+  r = await ca(8, "promo_set", { hours: 3, need: 2 }); ok(r.ok, "админ запустил акцию на 3 часа");
+  await ca(9500, "sync"); await ca(9500, "pm_on");
+  r = await ca(9500, "sync"); ok(r.S.promo && r.S.promo.have === 0 && r.S.promo.need === 2, "игрок видит акцию: 0 из 2");
+  await ca(9501, "sync", {}, "r_9500");
+  r = await ca(9500, "sync"); ok(r.S.promo.have === 1 && !(r.S.vipUntil > Date.now()), "1 друг: ещё не VIP");
+  await ca(9502, "sync", {}, "r_9500");
+  r = await ca(9500, "sync"); ok(r.S.vipUntil > Date.now() + 6 * 864e5, "2 друга за время акции: VIP на 7 дней");
+  ok(sent.some(m => m.chat_id === 9500 && /VIP/.test(m.text)), "бот поздравил с VIP");
+  // VIP получает 5 прокруток при пополнении
+  db.prepare("UPDATE users SET gift_spins=0 WHERE id=9500").run();
+  const st = JSON.parse(db.prepare("SELECT state FROM users WHERE id=9500").get().state); st.spins = 0; st.refillAt = Date.now() - 1; db.prepare("UPDATE users SET state=? WHERE id=9500").run(JSON.stringify(st));
+  r = await ca(9500, "open"); ok(r.ok && r.S.spins === 4, "VIP: пополнение до 5 прокруток (после открытия осталось " + r.S.spins + ")");
+  r = await ca(9500, "top", { kind: "worth" }); const me = r.res.items.find(x => x.uid === 9500); ok(me && me.vip === 1, "в топе отмечен VIP");
+  // рассылка порциями
+  for (let i = 0; i < 45; i++) db.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,pm) VALUES(?,?,0,'{}',0,1)").run(200000 + i, "b");
+  const b0 = sent.length; let after = 0, total = 0, rounds = 0, done = false;
+  while (!done && rounds < 10) { r = await ca(8, "broadcast", { text: "Привет всем!", after }); rounds++; total += r.res.sent; after = r.res.last; done = r.res.done }
+  ok(total === r.res.total && rounds >= 2, "рассылка: " + total + " из " + r.res.total + " за " + rounds + " порции");
+  r = await ca(9500, "broadcast", { text: "спам" }); ok(!r.ok, "обычный игрок не может делать рассылку");
+  await ca(8, "promo_set", { hours: 0 }); r = await ca(9500, "sync"); ok(!r.S.promo, "акция выключена");
+  globalThis.fetch = realFetch;
+}
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

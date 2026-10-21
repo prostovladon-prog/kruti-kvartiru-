@@ -586,3 +586,28 @@ nav.tabs.onb-hl{position:fixed;border-radius:0}
 .trow .t b,.trow .t small,.lot .t b{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
 .trow .sc{white-space:nowrap}
 @media (max-width:340px){header{gap:6px}.logo{font-size:12px}.logo small{display:none}.cash small{display:none}.cash{padding:6px 8px}.sound.ico{min-width:32px;padding:5px 6px}}
+
+/* ---------- акция ---------- */
+.promo{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:16px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);color:#fff;
+  background:linear-gradient(135deg,#ff3b30,#ff7a1a 55%,#ffb800);animation:promop 1.6s ease-in-out infinite}
+@keyframes promop{50%{box-shadow:4px 4px 0 var(--ink),0 0 22px 4px rgba(255,140,0,.7)}}
+.promo-h{font-family:var(--display);font-size:15px;text-shadow:2px 2px 0 var(--ink);display:flex;justify-content:space-between}
+.promo-h b{font-size:18px;color:var(--yellow)}
+.promo-t{font-size:13.5px;font-weight:700;line-height:1.35;text-shadow:1px 1px 0 rgba(0,0,0,.35)}
+.promo .bar{background:rgba(255,255,255,.35)}.promo .bar i{background:var(--yellow)}
+.promo .craftbtn{background:var(--yellow);color:var(--ink);text-shadow:none}
+/* ---------- VIP ---------- */
+.vipbox{text-align:center;font-weight:800;font-size:14px;padding:8px 12px;border-radius:14px;border:3px solid #000;color:#3a2600;
+  background:linear-gradient(115deg,#b47b10,#ffe48a 30%,#fff6c8 45%,#ffd60a 60%,#b47b10);background-size:200% 100%;animation:vipsh 3s linear infinite;box-shadow:3px 3px 0 #000}
+.vipbox b{font-family:var(--display)}
+@keyframes vipsh{to{background-position:-200% 0}}
+body.vip .cash{background:linear-gradient(135deg,#fff6c8,#ffd60a);border-color:#000;box-shadow:3px 3px 0 #000,0 0 14px rgba(255,214,10,.7)}
+body.vip .cash small::after{content:" 👑"}
+body.vip .open{background:linear-gradient(135deg,#ffe48a,#ffb800)}
+.vipb{display:inline-block;font-family:var(--display);font-size:10px;padding:1px 6px;border-radius:6px;background:linear-gradient(135deg,#ffe48a,#ffb800);color:#3a2600;border:1.5px solid #000;vertical-align:1px}
+.trow.vipr{background:linear-gradient(135deg,#fffbe6,#ffe9a8);box-shadow:3px 3px 0 var(--ink),0 0 12px rgba(255,184,0,.6)}
+.chm.vipm{border-color:#b47b10;background:#fff4c9}
+/* ---------- админка акции ---------- */
+.aprow{display:flex;gap:10px}.aprow label{flex:1;font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:4px}
+.aprow input,#bc-text{font:inherit;font-size:15px;padding:8px 10px;border-radius:10px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);width:100%}
+#bc-text{resize:vertical}

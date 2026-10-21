@@ -143,7 +143,10 @@ function fail(m){throw new GameError(m)}
 function freshState(){return {cash:START_CASH,spins:SPINS_MAX+2,refillAt:null,pity:0,guar:0,best:0,bestFin:0,niceCount:0,crafted:0,totalWins:0,ach:{},doneCh:{},squad:[]}}
 function day(st,now){if(!st.day||st.day.d!==today(now))st.day={d:today(now),opened:0,wins:0,crafts:0,got:[]};return st.day}
 function boss(st,now){if(!st.boss||st.boss.w!==weekKey(now))st.boss={w:weekKey(now),dmg:0,got:[],day:"",hits:0,extra:0,squad:[]};if(st.boss.day!==today(now)){st.boss.day=today(now);st.boss.hits=0;st.boss.extra=0}return st.boss}
-function refill(st,now){if(st.spins==null)st.spins=SPINS_MAX;if(st.refillAt&&now>=st.refillAt){st.spins=Math.max(st.spins,SPINS_MAX);st.refillAt=null}}
+/* сколько прокруток даётся раз в 4 часа: VIP получает 5 (сервер ставит st.vipUntil) */
+const VIP_SPINS=5;
+const spinCap=st=>(st.vipUntil||0)>Date.now()?VIP_SPINS:SPINS_MAX;
+function refill(st,now){const cap=spinCap(st);if(st.spins==null)st.spins=cap;if(st.refillAt&&now>=st.refillAt){st.spins=Math.max(st.spins,cap);st.refillAt=null}}
 function checkStreak(st,now){const t=today(now);if(st.streak&&st.streak.last===t)return;const n=st.streak&&st.streak.last===yday(now)?st.streak.n%7+1:1;st.streak={last:t,n,claimed:false}}
 function touch(st,now){refill(st,now);checkStreak(st,now);day(st,now);boss(st,now);st.ach=st.ach||{};st.doneCh=st.doneCh||{}}
 
@@ -209,7 +212,7 @@ const ACTIONS={
   open(G){const {st,ctx}=G;refill(st,ctx.now);
     if(st.spins<=0)fail("Прокрутки закончились");
     if(G.cards.length>=CAP)fail("Коллекция заполнена ("+CAP+"). Продай лишнее");
-    st.spins--;if(st.spins<SPINS_MAX&&!st.refillAt)st.refillAt=ctx.now+REFILL_MS;
+    st.spins--;if(st.spins<spinCap(st)&&!st.refillAt)st.refillAt=ctx.now+REFILL_MS;
     const epic=(st.guar||0)>0||(st.pity||0)>=PITY-1;const c=rollCard(ctx,epic);if(epic&&(st.guar||0)>0)st.guar--;
     st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;
     addCard(G,c);day(st,ctx.now).opened++;return {card:c}},
@@ -305,4 +308,4 @@ const ACTIONS={
 /* выполнить действие: проверки времени, затем само действие */
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
 
-if(typeof module!=="undefined")module.exports={checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
