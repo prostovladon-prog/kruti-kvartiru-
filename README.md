@@ -78,6 +78,13 @@
 6. **Проверка.** Открой адрес воркера (вида `https://voiny-epoh.твоё-имя.workers.dev`) в браузере. Должно показать `"server":"работает"`.
 7. **Подключи игру.** В `game.js` пропиши этот адрес в `API_URL` и ссылку на бота в `BOT_LINK`, залей на GitHub. Игра с сервером работает только при открытии через бота в Telegram.
 
+## Свой сервер (VPS) вместо Cloudflare
+
+1. На чистом VPS (Ubuntu 22.04/24.04) от root: `curl -fsSL https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/tools/vps-setup.sh -o setup.sh && bash setup.sh`. Скрипт спросит домен (можно без него: будет адрес `IP.sslip.io`) и токен бота, поставит Node.js, Caddy с HTTPS, игру, автозапуск и ежедневные бэкапы в `/var/backups/voiny`.
+2. Перенос базы со старого воркера: `bash /opt/voiny/tools/migrate.sh`. Старый воркер должен быть последней версии (с `/export`). На время переноса он переходит в «технические работы».
+3. В `game.js` поменять `API_URL` на новый адрес и открыть `https://новый-адрес/setup`, чтобы бот слушал новый сервер.
+4. Обновление игры на сервере после изменений на GitHub: `voiny-update`.
+
 ## Как подключить к боту
 
 1. **GitHub Pages:** Settings → Pages → ветка `main`, папка `/ (root)` → Save. Адрес игры: `https://prostovladon-prog.github.io/kruti-kvartiru-/`.

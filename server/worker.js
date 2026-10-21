@@ -715,7 +715,7 @@ async function notify(env,uid,text,btn,url){
   try{const r=await tgApi(env,"sendMessage",{chat_id:uid,text,reply_markup:{inline_keyboard:[[{text:btn||"Играть",web_app:{url:url||PAGE}}]]}});
     if(!r.ok&&(r.error_code===403||r.error_code===400))await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(uid).run();   // заблокировал бота
     return !!r.ok}catch(e){return false}}
-async function reminders(env){await ensureSchema(env);const now=Date.now(),h=new Date(now+TZ).getUTCHours();
+async function reminders(env){await ensureSchema(env);if(await maintenance(env))return {sent:0,maintenance:true};const now=Date.now(),h=new Date(now+TZ).getUTCHours();
   if((h>=23||h<9)&&!env.NOTIFY_TEST)return {sent:0,quiet:true};
   const due=(await env.DB.prepare("SELECT id,refill_at FROM users WHERE pm=1 AND refill_at>0 AND refill_at<=? AND refill_note<refill_at LIMIT 60").bind(now).all()).results;
   let sent=0;for(const u of due){await env.DB.prepare("UPDATE users SET refill_note=? WHERE id=?").bind(u.refill_at,u.id).run();
@@ -732,6 +732,21 @@ const BOT_TEXT={
   desc:"⚔️ ВОИНЫ ЭПОХ: коллекционная игра с карточками воинов\n\n🎴 Бесплатные прокрутки каждые 4 часа: от ополченца до Сёгуна и Мерлина\n💎 Каждая карточка одна в своём роде: свой номер, тираж и отделка. Ошибка печати одна на всю игру\n🔥 Закаляй воинов до ★5\n⚔️ Бои с друзьями, босс недели, рынок между игроками\n🏆 Поднимайся в топ мира\n\nЖми «Начать» 👇",
   cmds:[{command:"start",description:"Играть"},{command:"help",description:"Как играть"},{command:"invite",description:"Пригласить друга (+10 прокруток)"}]};
 async function tgApi(env,method,body){const r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});return r.json().catch(()=>({ok:false}))}
+/* ---------- переезд на свой сервер: выгрузка базы и режим «технические работы» ----------
+   Ключ выгрузки считается из токена бота, поэтому его знает только тот, у кого есть токен. */
+async function exportKey(env){return hex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("export:"+env.BOT_TOKEN)))).slice(0,40)}
+const EXPORT_TABLES=["users","cards","sales","stats","fights","chat","kv"];
+async function exportChunk(env,url){
+  const t=url.searchParams.get("table"),after=+url.searchParams.get("after")||0;
+  if(url.searchParams.get("freeze")==="1"){await kvSet(env,"maintenance",{on:1,t:Date.now()});delete topCache.maint}
+  if(url.searchParams.get("freeze")==="0"){await kvSet(env,"maintenance",{on:0});delete topCache.maint}
+  if(!t)return J({ok:true,tables:EXPORT_TABLES});
+  if(!EXPORT_TABLES.includes(t))return J({ok:false,err:"нет такой таблицы"},400);
+  const key=t==="stats"||t==="kv"?"rowid":(t==="users"?"id":"id");
+  const rows=(await env.DB.prepare(`SELECT ${key} AS _k,* FROM ${t} WHERE ${key}>? ORDER BY ${key} LIMIT 500`).bind(after).all()).results;
+  return J({ok:true,table:t,rows,last:rows.length?rows[rows.length-1]._k:null,done:rows.length<500});
+}
+async function maintenance(env){return cached("maint",5e3,async()=>{try{const m=await kvGet(env,"maintenance");return !!(m&&m.on)}catch(e){return false}})}
 async function hookSecret(env){return hex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("hook:"+env.BOT_TOKEN)))).slice(0,48)}
 async function setup(env,origin){const out={};
   out.webhook=await tgApi(env,"setWebhook",{url:origin+"/tg",secret_token:await hookSecret(env),allowed_updates:["message"]});
@@ -768,12 +783,14 @@ async function handle(req,env){{
     const url=new URL(req.url);
     if(req.method==="GET"&&url.pathname==="/setup"){await ensureSchema(env);return setup(env,url.origin)}
     if(req.method==="GET"&&url.pathname==="/remind"&&env.DEV==="1")return J(await reminders(env));   // только для проверки
+    if(req.method==="GET"&&url.pathname==="/export"){await ensureSchema(env);if(req.headers.get("X-Export-Key")!==await exportKey(env))return J({ok:false,err:"нет доступа"},403);return exportChunk(env,url)}
     if(req.method==="GET")return J({ok:true,game:"Воины Эпох",server:"работает"});
     if(url.pathname==="/tg"){   // сообщения боту от Telegram
       if(req.headers.get("X-Telegram-Bot-Api-Secret-Token")!==await hookSecret(env))return new Response("no",{status:403});
       await ensureSchema(env);try{await onUpdate(env,await req.json())}catch(e){console.error("bot",e)}return new Response("ok")}
     let me=null;
     await ensureSchema(env);
+    if(await maintenance(env))return J({ok:false,err:"Технические работы: игра переезжает на новый сервер. Вернёмся через несколько минут ⚔️"});
     if(env.DEV==="1"&&req.headers.get("X-Dev-User"))me={id:+req.headers.get("X-Dev-User")||1,name:"Тестер "+req.headers.get("X-Dev-User"),start:req.headers.get("X-Dev-Start")||"",dev:1};
     else me=await checkInit(req.headers.get("X-Init-Data"),env.BOT_TOKEN);
     if(!me)return J({ok:false,err:"Открой игру через бота в Telegram"},401);
