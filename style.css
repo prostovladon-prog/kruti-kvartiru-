@@ -554,3 +554,7 @@ nav.tabs.onb-hl{position:fixed;border-radius:0}
 .front.founder .power b{color:#ffd60a}
 .front.founder .finish{background:linear-gradient(90deg,#ffd60a,#ff3b30);color:#000}
 .front.founder .in::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;background:linear-gradient(115deg,transparent 30%,rgba(255,240,180,.9) 47%,transparent 62%);background-size:250% 100%;animation:sweep 2.2s linear infinite}
+
+.ctile .cbtn{position:relative}
+.forgeb{position:absolute;left:50%;top:-9px;transform:translateX(-50%);z-index:2;white-space:nowrap;font-size:11px;font-weight:900;background:var(--yellow);color:var(--ink);border:2px solid var(--ink);border-radius:9px;padding:2px 8px;box-shadow:2px 2px 0 var(--ink);animation:fbp 1.6s ease-in-out infinite}
+@keyframes fbp{50%{transform:translateX(-50%) scale(1.08)}}

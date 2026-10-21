@@ -45,7 +45,8 @@ async function act(name,p){
       else{const ctx=localCtx();ctx.subOk=true;const r=runAction(name,S,S.cards,ctx,p);S.cards=r.cards;out=r.res;out.events=ctx.events}
       save();
     }
-    (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!")});
+    (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!"+(STAR_LVL.includes(e.lv)?" Его можно закалить ★"+(STAR_LVL.indexOf(e.lv)+1)+" во вкладке «Мои»":""))});
+    if(name==="open")setTimeout(()=>{if(S&&S.spins<=0)askPm()},4500);
     news();fightNews();chatDot();return out;
   }catch(e){if(!(e instanceof GameError))console.error(e);toast(e instanceof GameError?e.message:"Нет связи с сервером. Попробуй ещё раз");return null}
 }
@@ -448,6 +449,7 @@ function renderCol(){
     const m=el.querySelector(".mini");
     if(away(c)){m.disabled=true;m.textContent=c.listed?"На рынке":"В походе"}
     else if(FIN[c.f].excl){m.disabled=true;m.textContent="Трофей"}
+    if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";el.querySelector(".cbtn").appendChild(fb)}
     m.onclick=async()=>{const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))};
     box.appendChild(el)});
 }
@@ -967,6 +969,28 @@ $("sub-go").onclick=async()=>{
   const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +10 прокруток")};
 /* история в Telegram: открываем редактор с готовой картинкой и личной ссылкой, затем забираем награду */
 let storyStep=0;
+/* ---------- напоминания от бота ----------
+   Telegram разрешает боту писать только тем, кто согласился. Спрашиваем, когда кончились прокрутки: тогда это реально полезно. */
+const canPmAsk=()=>ONLINE&&!S.pm&&tg&&tg.requestWriteAccess&&(!tg.isVersionAtLeast||tg.isVersionAtLeast("6.9"));
+function renderPm(){const row=$("pm-row");if(row)row.hidden=!canPmAsk()}
+function enablePm(){if(!canPmAsk())return;try{tg.requestWriteAccess(ok=>{if(ok){act("pm_on").then(()=>{S.pm=1;renderPm();toast("🔔 Напоминания включены! Бот напишет, когда прокрутки будут готовы")})}else toast("Без разрешения бот не сможет напомнить о прокрутках")})}catch(e){}}
+$("pm-go").onclick=enablePm;
+function askPm(){if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{asked=localStorage.getItem("we-pm-ask")}catch(e){}if(asked)return;try{localStorage.setItem("we-pm-ask","1")}catch(e){}
+  const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="box nickbox"><h3>🔔 Напомнить о прокрутках?</h3><p>Новые 3 прокрутки будут через 4 часа. Бот напишет, когда они будут готовы, а ещё если кто-то нападёт на твоих воинов или купит твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pm-yes">Да, напоминать</button><button type="button" class="ghost" id="pm-no">Не надо</button></div>';
+  $("pm-yes").onclick=()=>{closeModal();enablePm()};$("pm-no").onclick=closeModal}
+
+/* ---------- подсказка про закалку ---------- */
+const canForge=c=>!FIN[c.f].excl&&(c.stars||0)<STAR_MAX&&lvl(c)>=STAR_LVL[c.stars||0];
+function forgeHint(){if(!S||onbStep>=0||!$("modal").hidden||$("onb"))return;let shown=null;try{shown=localStorage.getItem("we-forge-hint")}catch(e){}if(shown)return;
+  if(S.cards.some(c=>c.stars))return;const c=S.cards.find(canForge);if(!c)return;try{localStorage.setItem("we-forge-hint","1")}catch(e){}
+  const el=$("tab-col");el.classList.add("onb-hl");const b=document.createElement("div");b.id="onb";b.className="onb";
+  b.innerHTML='<div class="onb-n">Новое</div><p></p><div class="onb-b"><button type="button" class="mini2" id="fh-go">Показать</button><button type="button" class="ghost" id="fh-no">Потом</button></div>';
+  b.querySelector("p").textContent="⭐ "+HEROES[c.h][0]+" дорос до "+lvl(c)+" уровня! Его можно закалить: +10% к силе, цена ×1,3 и новый вид карточки. Закалка во вкладке «Мои»: нажми на карточку.";
+  document.body.appendChild(b);const r=el.getBoundingClientRect();b.style.top=Math.max(10,r.top-14-b.offsetHeight)+"px";
+  const done=()=>{el.classList.remove("onb-hl");b.remove()};
+  $("fh-no").onclick=done;$("fh-go").onclick=()=>{done();setTab("col");setTimeout(()=>openCardView(c,{mine:true}),300)}}
+
 /* основатели: 3 эксклюзивные карточки первым трём, кто пригласит 15 друзей */
 function renderFounder(){const row=$("fnd-row");if(!row)return;const left=S.foundersLeft??3,refs=S.refs||0;
   row.hidden=!S.founder&&left<=0;if(row.hidden)return;
@@ -1194,7 +1218,7 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();$("topup").hidden=ONLINE&&!S.test&&!S.admin}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}

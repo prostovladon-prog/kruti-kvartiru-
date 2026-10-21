@@ -286,5 +286,39 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   await call(7, "sync"); ok(db.prepare("SELECT d1 FROM users WHERE id=7").get().d1 === 1, "вернувшийся на второй день отмечен");
 }
 
+/* --- напоминания от бота --- */
+{
+  const sent = []; const realFetch = globalThis.fetch;
+  globalThis.fetch = async (u, o) => { const b = JSON.parse(o.body); sent.push(b); return new Response(b.chat_id === 8888 ? '{"ok":false,"error_code":403}' : '{"ok":true}') };
+  const envN = { ...env, NOTIFY_TEST: "1" };
+  const callN = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envN)).json();
+  // игрок тратит прокрутки — появляется время пополнения
+  await callN(8100, "sync"); for (let i = 0; i < 3; i++) await callN(8100, "open");
+  let row = db.prepare("SELECT refill_at, pm FROM users WHERE id=8100").get(); ok(row.refill_at > Date.now(), "время пополнения прокруток записано");
+  await callN(8100, "pm_on");
+  db.prepare("UPDATE users SET refill_at=? WHERE id=8100").run(Date.now() - 1000);
+  const ctxW = { waitUntil: p => ctxW.p = p }; await worker.scheduled({}, envN, ctxW); await ctxW.p;
+  ok(sent.some(m => m.chat_id === 8100 && /прокрутки готовы/.test(m.text)), "бот прислал «прокрутки готовы»");
+  const n1 = sent.length; await worker.scheduled({}, envN, ctxW); await ctxW.p; ok(sent.length === n1, "одно напоминание на одно пополнение");
+  // без разрешения не пишем
+  await callN(8101, "sync"); for (let i = 0; i < 3; i++) await callN(8101, "open"); db.prepare("UPDATE users SET refill_at=? WHERE id=8101").run(Date.now() - 1000);
+  await worker.scheduled({}, envN, ctxW); await ctxW.p; ok(!sent.some(m => m.chat_id === 8101), "без разрешения бот не пишет");
+  // заблокировал бота
+  await callN(8888, "sync"); await callN(8888, "pm_on"); for (let i = 0; i < 3; i++) await callN(8888, "open"); db.prepare("UPDATE users SET refill_at=? WHERE id=8888").run(Date.now() - 1000);
+  await worker.scheduled({}, envN, ctxW); await ctxW.p; ok(db.prepare("SELECT pm FROM users WHERE id=8888").get().pm === 0, "заблокировал бота — больше не пишем");
+  // нападение и продажа
+  db.prepare("UPDATE users SET pm=1, att_note=0 WHERE id IN (1,2)").run();
+  r = await callN(2, "sync"); const mine2 = r.S.cards.find(c => !c.listed && !c.away && c.f !== 5);
+  r = await callN(1, "sync"); const c1 = r.S.cards.find(c => !c.listed && !c.away && c.f !== 5);
+  const before = sent.length; r = await callN(2, "fduel", { oppId: c1.id, oppStat: 1, myId: mine2.id, myStat: 0 });
+  const am = sent.slice(before).find(m => m.chat_id === 1);
+  ok(r.ok && am && /startapp=c_/.test(am.reply_markup.inline_keyboard[0][0].web_app.url), "защитнику пришло сообщение с кнопкой «Реванш»");
+  const b2 = sent.length; await callN(2, "fduel", { oppId: c1.id, oppStat: 2, myId: mine2.id, myStat: 0 }); ok(!sent.slice(b2).some(m => m.chat_id === 1), "о нападениях не чаще раза в 30 минут");
+  db.prepare("UPDATE users SET cash=cash+1000 WHERE id=2").run();
+  await callN(1, "list", { id: c1.id, price: 5 }); const b3 = sent.length; r = await callN(2, "buy", { id: c1.id, price: 5 });
+  ok(r.ok && sent.slice(b3).some(m => m.chat_id === 1 && /купил/.test(m.text)), "продавцу пришло «твою карточку купили»");
+  globalThis.fetch = realFetch;
+}
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
