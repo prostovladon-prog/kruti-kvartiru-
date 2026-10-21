@@ -347,7 +347,7 @@ async function chatAdmin(env,me,a,p){
 }
 
 /* ---------- подписка на канал (бот должен быть администратором канала) ---------- */
-const CHANNEL="@Voiny_official";
+const CHANNEL="@voinyepoh";
 async function subCheck(env,me){
   if(me.dev)return doAction(env,me,"sub_reward",{},{subOk:true});   // тестовый вход без Telegram
   const r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/getChatMember?chat_id="+encodeURIComponent(env.CHANNEL||CHANNEL)+"&user_id="+me.id);

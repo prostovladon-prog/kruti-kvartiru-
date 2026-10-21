@@ -3,7 +3,7 @@
 /* ---------- настройки ---------- */
 const API_URL="https://autumn-hat-37ccvoiny-epoh.prostovladon.workers.dev";                              // адрес сервера, например https://voiny-epoh.твоё-имя.workers.dev (пусто = игра без сервера)
 const BOT_LINK="https://t.me/VoinyEpohBot";   // ссылка на бота, например https://t.me/VoinyEpohBot
-const CHANNEL="Voiny_official";                // канал игры, бот должен быть в нём администратором
+const CHANNEL="voinyepoh";                     // канал игры, бот должен быть в нём администратором
 const PAGE_URL="https://prostovladon-prog.github.io/kruti-kvartiru-/";
 
 const $=id=>document.getElementById(id);
@@ -971,8 +971,8 @@ function parseLocalParam(p){try{const kind=p[0],a=b64d(p.slice(2));if(a[0]!==1)r
 let subStep=0;
 function renderBonus(){if(!S)return;
   const sb=$("sub-go"),st=$("sub-t");
-  $("sub-row").hidden=!!S.subGot;   // подписался: строка больше не мешает
-  if(!S.subGot){sb.disabled=false;sb.textContent=subStep?"Проверить подписку":"Подписаться";st.textContent=subStep?"Подписался? Нажми «Проверить подписку», и получишь +10 прокруток":"@"+CHANNEL+": новости, события и розыгрыши. За подписку +10 прокруток"}
+  $("sub-row").hidden=!!S.subGot2;   // подписался: строка больше не мешает
+  if(!S.subGot2){sb.disabled=false;sb.textContent=subStep?"Проверить подписку":"Подписаться";st.textContent=subStep?"Подписался? Нажми «Проверить подписку», и получишь +10 прокруток":"@"+CHANNEL+": новости, события и розыгрыши. За подписку +10 прокруток"}
   $("ref-t").textContent=ONLINE?"+10 прокруток за каждого друга, который зайдёт по твоей ссылке. Приглашено: "+(S.refs||0)+", получено "+(S.refs||0)*10+" прокруток":"+10 прокруток за каждого друга. Работает в игре через бота @VoinyEpohBot"}
 $("sub-go").onclick=async()=>{
   if(!subStep){subStep=1;const u="https://t.me/"+CHANNEL;if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank");renderBonus();return}
