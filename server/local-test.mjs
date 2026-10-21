@@ -151,6 +151,17 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
   ok(moved, "бой на карточку с живым игроком состоялся (попыток " + tries + ")");
   const sn = db.prepare("SELECT COUNT(*) n, COUNT(DISTINCT sn) d FROM cards").get(); ok(sn.n === sn.d, "после передач номера по-прежнему уникальны");
 }
+/* --- настоящие id Telegram длиннее 32 бит: бой на карточку не должен падать --- */
+{
+  const B = [6724818967, 7123456789];
+  for (const u of B) { await call(u, "sync"); for (let i = 0; i < 5; i++) await call(u, "open"); await call(u, "stake_set", { on: 1 }) }
+  db.prepare("UPDATE cards SET v=10 WHERE owner IN (?,?)").run(B[0], B[1]);
+  let busy = 0, real = 0;
+  for (let i = 0; i < 20; i++) { const u = B[i % 2]; r = await call(u, "sync"); const c = r.S.cards.find(c => !c.listed && !c.away); if (!c) continue; const d = await call(u, "duel", { id: c.id, stat: i % 5, mode: 1 }); if (!d.ok && /занят/.test(d.err)) busy++; if (d.ok && d.res.real) real++ }
+  ok(busy === 0 && real > 0, "длинные id Telegram: боёв с игроком " + real + ", ошибок «Сервер занят» " + busy);
+  r = await call(B[1], "profile", { uid: B[0] }); ok(r.ok, "витрина игрока с длинным id открывается");
+}
+
 /* --- чат --- */
 {
   await call(600, "nick", { nick: "Болтун" });

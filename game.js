@@ -641,7 +641,7 @@ function renderDuel(){
   const me=S.cards.find(c=>c.id===duMine),mel=$("du-me");
   if(!duBusy){
     if(me){mel.className="mc";mel.style.setProperty("--hc",HT[HEROES[me.h][2]].c);mel.innerHTML=mcHTML(me,duStat)}
-    else{mel.className="mc empty";mel.textContent=S.cards.length?"Выбери воина внизу":"Сначала открой карточки на вкладке «Крутить»"}
+    else{mel.className="mc empty";mel.textContent=S.cards.length?"Выбери воина выше":"Сначала открой карточки на вкладке «Крутить»"}
     const op=$("du-op");op.className="mc back";op.innerHTML="<span>СОПЕР<br>НИК</span>";
   }
   const sb=$("du-stats");sb.innerHTML="";
@@ -652,7 +652,7 @@ function renderDuel(){
   [...S.cards].filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>eff(b,duStat)-eff(a,duStat)).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===duMine);
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${eff(c,duStat)}</span><b>Ур. ${lvl(c)}${c.wins?", побед "+c.wins:""}</b>`;b.children[1].textContent=H[0];
-    b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel()};pk.appendChild(b)});
+    b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel();setTimeout(()=>$("du-go").scrollIntoView({block:"end",behavior:reduce?"auto":"smooth"}),60)};pk.appendChild(b)});
   $("du-wins").textContent="Побед сегодня: "+day(S,NOW()).wins;
   $("du-mode").title=duMode?"На карточку дерёшься с ботами: чужие карточки не отнимаются":"";
   renderAttacks();renderStake();
@@ -703,7 +703,7 @@ $("du-go").onclick=async()=>{
 
 
 /* ---------- Telegram ---------- */
-try{if(tg){tg.ready();tg.expand();tg.setHeaderColor&&tg.setHeaderColor("#1d44c8");tg.setBackgroundColor&&tg.setBackgroundColor("#1d44c8")}}catch(e){}
+try{if(tg){tg.ready();tg.expand();try{tg.disableVerticalSwipes&&tg.disableVerticalSwipes()}catch(e){}tg.setHeaderColor&&tg.setHeaderColor("#1d44c8");tg.setBackgroundColor&&tg.setBackgroundColor("#1d44c8")}}catch(e){}
 function hap(k){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.impactOccurred(k)}catch(e){}}
 function hapN(k){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred(k)}catch(e){}}
 $("share").onclick=()=>{
@@ -929,21 +929,22 @@ function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hid
 function openDuel(D){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;let stat=D.stat===0?1:0,mine=null,busy2=false;
   const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
   const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent=D.name+" вызывает тебя!";sh.appendChild(w);
+  const box=document.createElement("div");box.className="box";box.innerHTML='<span class="step">Выбери воина</span>';const pk=document.createElement("div");pk.className="pickrow";box.appendChild(pk);sh.appendChild(box);
   const rds=document.createElement("div");rds.className="rounds";sh.appendChild(rds);
-  const ar=document.createElement("div");ar.className="arena";const left=document.createElement("div"),vs=document.createElement("div"),right=bigMc(D.card,stat);
-  left.className="mc empty";left.textContent="Выбери воина внизу";vs.className="vs";vs.textContent="VS";ar.append(left,vs,right);sh.appendChild(ar);
+  const ar=document.createElement("div");ar.className="arena";const left=document.createElement("div"),vs=document.createElement("div"),right=bigMc(D.card,stat,"?");
+  left.className="mc empty";left.textContent="Выбери воина выше";vs.className="vs";vs.textContent="VS";ar.append(left,vs,right);sh.appendChild(ar);
   const bst=document.createElement("div");bst.className="bstatus";sh.appendChild(bst);
   const st=document.createElement("div");st.className="stats5";sh.appendChild(st);
   const go=document.createElement("button");go.type="button";go.className="craftbtn";go.textContent="В бой!";sh.appendChild(go);
   const res=document.createElement("div");res.className="result";sh.appendChild(res);
-  const box=document.createElement("div");box.className="box";box.innerHTML='<span class="step">Твои воины</span>';const pk=document.createElement("div");pk.className="pickrow";box.appendChild(pk);sh.appendChild(box);
+
   function draw(){w.children[1].textContent=D.stat==null?"Три раунда: первый выбираешь ты, второй соперник, третий случайно":"Соперник уже выбрал «"+STN[D.stat]+"» для второго раунда";
-    if(!busy2){rds.innerHTML=pipsHTML([stat,D.stat,null],[],0,D.stat!=null?[0,1]:[0]);bst.textContent="Раунд 1: выбери характеристику";right.innerHTML=mcHTML(D.card,stat)}
+    if(!busy2){rds.innerHTML=pipsHTML([stat,D.stat,null],[],0,D.stat!=null?[0,1]:[0]);bst.textContent="Раунд 1: выбери характеристику";right.innerHTML=mcHTML(D.card,stat,"?")}
     st.innerHTML="";STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===stat);b.disabled=D.stat!=null&&i===D.stat;if(b.disabled)b.title="Эту характеристику уже выбрал соперник";
       b.innerHTML=`${n}<b class="num">${mine?eff(mine,i):"—"}</b>`;b.onclick=()=>{if(busy2)return;stat=i;draw()};st.appendChild(b)});
     if(mine&&!busy2){left.className="mc";left.style.setProperty("--hc",HT[HEROES[mine.h][2]].c);left.innerHTML=mcHTML(mine,stat)}
     pk.innerHTML="";S.cards.filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>eff(b,stat)-eff(a,stat)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",mine&&c.id===mine.id);
-      b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[stat]}: ${eff(c,stat)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{if(busy2)return;mine=c;draw()};pk.appendChild(b)});
+      b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[stat]}: ${eff(c,stat)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{if(busy2)return;mine=c;draw();setTimeout(()=>go.scrollIntoView({block:"end",behavior:reduce?"auto":"smooth"}),60)};pk.appendChild(b)});
     if(!S.cards.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">У тебя пока нет карточек. Закрой окно и открой несколько на вкладке «Крутить».</p>';
     go.disabled=!mine||busy2}
   go.onclick=async()=>{if(!mine||busy2)return;busy2=true;draw();ac();go.disabled=true;

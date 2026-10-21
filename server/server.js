@@ -152,7 +152,7 @@ async function doAction(env,me,name,p,extra){
     const nv=Math.floor(Math.random()*9e15)+1,guard="(SELECT ver FROM users WHERE id=?)=?",keep=new Set();
     // бой на карточку с игроком: сначала карточка соперника переходит ко мне, и только если это удалось, записывается всё остальное
     const take=ctx.takeCard?env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0").bind(me.id,ctx.takeCard,ctx.oppUid):null;
-    const own=take?" AND (SELECT owner FROM cards WHERE id="+(ctx.takeCard|0)+")="+(me.id|0):"";
+    const own=take?" AND (SELECT owner FROM cards WHERE id="+Math.floor(+ctx.takeCard)+")="+Math.floor(+me.id):"";   // id в Telegram больше 32 бит: без |0
     const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,me.id,u.ver)];
     for(const c of out.cards){
       if(typeof c.id==="string"){stm.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,frame,away,dest,created) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
@@ -210,7 +210,7 @@ async function buy(env,me,p){
 
 /* ---------- друзья ---------- */
 async function profile(env,p){
-  const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,state,pioneer FROM users WHERE id=?").bind(p.uid|0).first();if(!u)fail("Игрок не найден");
+  const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,state,pioneer FROM users WHERE id=?").bind(Math.floor(+p.uid||0)).first();if(!u)fail("Игрок не найден");
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 3").bind(u.id).all()).results.map(r=>pub(rowToCard(r)));
   const have=await env.DB.prepare("SELECT COUNT(DISTINCT h) AS n FROM cards WHERE owner=?").bind(u.id).first();
   return {name:u.name||"Игрок",pi:u.pioneer||0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id};
@@ -341,8 +341,8 @@ async function chatAdmin(env,me,a,p){
   if(!isAdmin(env,me.id))fail("Нет доступа");
   if(a==="chat_del"){await env.DB.prepare("DELETE FROM chat WHERE id=?").bind(p.id|0).run();return {}}
   const h=Math.max(0,Math.min(24*30,+p.hours||24));
-  await env.DB.prepare("UPDATE users SET muted=? WHERE id=?").bind(h?Date.now()+h*36e5:0,p.uid|0).run();
-  if(h)await env.DB.prepare("DELETE FROM chat WHERE uid=?").bind(p.uid|0).run();
+  await env.DB.prepare("UPDATE users SET muted=? WHERE id=?").bind(h?Date.now()+h*36e5:0,Math.floor(+p.uid||0)).run();
+  if(h)await env.DB.prepare("DELETE FROM chat WHERE uid=?").bind(Math.floor(+p.uid||0)).run();
   return {};
 }
 
