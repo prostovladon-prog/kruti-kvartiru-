@@ -546,7 +546,8 @@ function renderCraft(){
   const sel=tg.querySelector('[aria-pressed="true"]');if(sel&&!tg.dataset.scrolled){tg.dataset.scrolled="1";requestAnimationFrame(()=>{tg.scrollLeft=sel.offsetLeft-tg.clientWidth/2+sel.clientWidth/2})}
   const F=FIN[crF],left=F.run===Infinity?Infinity:F.run-issuedOfUI(crH,crF);
   $("cr-tname").innerHTML="";const nb=document.createElement("b");nb.textContent=HEROES[crH][0]+", "+F.k.toLowerCase();$("cr-tname").appendChild(nb);
-  $("cr-trun").textContent=left===Infinity?HT[HEROES[crH][2]].k:(left>0?"осталось "+left+" из "+F.run:"тираж закончился");
+  const mineT=S.cards.some(c=>c.h===crH&&c.f===crF);
+  $("cr-trun").textContent=left===Infinity?HT[HEROES[crH][2]].k:(left>0?"осталось "+left+" из "+F.run:mineT?"единственная уже у тебя":"все "+F.run+" уже у игроков");
   const tv=targetPrice(crH,crF);$("cr-tv").textContent=fmt(tv);
   // wheel
   let p=left>0?crChance():0;const showLast=!crSel.size&&crLast!=null;if(showLast)p=crLast;
@@ -555,7 +556,7 @@ function renderCraft(){
   $("cr-p").textContent=(p*100<1&&p>0?"<1":Math.round(p*100))+"%";
   $("cr-amu-t").textContent="Амулет удачи: +10% к шансу за "+fmt(amuCost(crH,crF));
   const go=$("cr-go");go.disabled=crBusy||!crSel.size||left<=0||crChance()<=0;
-  go.textContent=left<=0?"Тираж закончился":!crSel.size?"Выбери карточки":"Крутить колесо, шанс "+$("cr-p").textContent;
+  go.textContent=left<=0?(mineT&&F.run===1?"Эта карточка уже у тебя":"Все "+F.run+" уже выпали"):!crSel.size?"Выбери карточки":"Крутить колесо, шанс "+$("cr-p").textContent;
   if(!crBusy&&crSel.size&&HOUSE*crSum()/tv>PMAX)$("cr-res").textContent="Больше 80% шанса не бывает. Выбери цель подороже или отдай меньше.";
   else if(!crBusy)$("cr-res").textContent="";
   $("cr-res").className="result";
