@@ -8,6 +8,9 @@ const PAGE_URL="https://prostovladon-prog.github.io/kruti-kvartiru-/";
 
 const $=id=>document.getElementById(id);
 const fmt=n=>{n=+n||0;if(Math.abs(n)<100&&Math.abs(n-Math.round(n))>.004)return "$"+n.toFixed(2).replace(".",",");return "$"+Math.round(n).toLocaleString("ru-RU").replace(/[\u00a0\u202f,]/g," ")};
+/* коротко для тесных мест: $12 345, $1,49 млн, $33,2 млн, $1,2 млрд */
+const fmtC=n=>{n=+n||0;const a=Math.abs(n),k=(v,u)=>"$"+(v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v)).replace(".",",").replace(/,?0+$/,m=>m.includes(",")&&/,\d*[1-9]/.test(m)?m:"")+" "+u;
+  if(a>=1e9)return k(n/1e9,"млрд");if(a>=1e6)return k(n/1e6,"млн");return fmt(n)};
 const fmtN=n=>Math.round(n).toLocaleString("ru-RU").replace(/[ ,]/g," ");
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const tg=window.Telegram&&window.Telegram.WebApp;
@@ -299,8 +302,8 @@ function tornPoly(sn){const R=rng(snHash(sn)),cut=1,a=11+R()*8,b=7+R()*6,/* от
   const D=[A];for(let i=1;i<7;i++){const t=i/7;D.push([A[0]+(B[0]-A[0])*t+(R()-.5)*5,A[1]+(B[1]-A[1])*t+(R()-.5)*5])}D.push(B);
   const out=[];let done=false;for(const p of P){if(inCut(p[0],p[1])){if(!done){out.push(...D);done=true}continue}out.push(p)}
   return "polygon("+out.map(([x,y])=>x.toFixed(1)+"% "+y.toFixed(1)+"%").join(",")+")"}
-function tearSVG(sn){const R=rng(snHash(sn)+7),left=R()<.5,y0=40+R()*45,len=35+R()*35;let d=`M${left?-2:102} ${y0}`,x=left?0:100,y=y0;
-  while(left?x<len:x>100-len){x+=(left?1:-1)*(3+R()*5);y+=(R()-.5)*7;d+=` L${x.toFixed(1)} ${y.toFixed(1)}`}
+function tearSVG(sn){const R=rng(snHash(sn)+7),left=R()<.5,y0=26+R()*22,len=30+R()*30;   /* надрыв в верхней части картинки: подписи внизу не закрывает */let d=`M${left?-2:102} ${y0}`,x=left?0:100,y=y0;
+  while(left?x<len:x>100-len){x+=(left?1:-1)*(3+R()*5);y=Math.max(20,Math.min(55,y+(R()-.5)*7));d+=` L${x.toFixed(1)} ${y.toFixed(1)}`}
   const bx=15+R()*60,by=95+R()*30,rot=-25+R()*14;
   return `<svg class="tear" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true"><ellipse cx="${bx}" cy="${by}" rx="${9+R()*7}" ry="${4+R()*4}" fill="#0d1030" opacity=".28" transform="rotate(${rot} ${bx} ${by})"/><path d="${d}" fill="none" stroke="#fffaf0" stroke-width="3.4" stroke-linejoin="bevel"/><path d="${d}" fill="none" stroke="#0d1030" stroke-width="1.5" stroke-linejoin="bevel"/></svg><div class="brak">БРАК</div>`}
 /* заполнить лицевую сторону карточки: используется и в барабане, и в окне просмотра */
@@ -354,7 +357,7 @@ const sfx={tick:(hi)=>tone(hi?1700:1100,.04,"square",.035),
   lose:()=>{tone(392,.25,"triangle",.1);tone(330,.25,"triangle",.1,.18);tone(262,.5,"triangle",.1,.36)},
   coin:()=>{tone(1320,.08,"square",.05);tone(1760,.12,"square",.05,.07)}};
 $("topup").onclick=async()=>{if(await act("topup")){renderFree();sfx.coin();toast("+3 тестовые прокрутки")}};
-$("snd").onclick=()=>{muted=!muted;$("snd").setAttribute("aria-pressed",!muted);if(!muted)sfx.coin()};
+$("snd").onclick=()=>{muted=!muted;$("snd").setAttribute("aria-pressed",!muted);$("snd").textContent=muted?"🔇":"🔊";if(!muted)sfx.coin()};
 
 /* ---------- reveal theatre ---------- */
 function niceLevel(sn){const cl=classify(sn);if(!cl)return 0;return cl.m>=15?4:cl.m>=8?3:cl.m>=3?2:1}
@@ -420,6 +423,7 @@ async function open(){
 $("open").onclick=()=>open();$("stage").onclick=()=>open();
 $("stage").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}};
 $("sell").onclick=async()=>{if(!current||busy)return;if(!S.cards.some(x=>x.id===current.id)){toast("Эта карточка уже не у тебя");return}
+  if(current.v>=500&&!(await confirmSell(current)))return;
   const r=await act("sell",{id:current.id});if(!r)return;toast("Продано за "+fmt(r.got));current=null;$("sell").disabled=true;renderAll()};
 
 
@@ -443,17 +447,25 @@ function renderCol(){
   if(!S.cards.length){box.className="list";box.innerHTML='<div class="empty-msg">Тут пока пусто. Открой первую карточку на вкладке «Крутить»</div>';return}
   [...S.cards].sort((a,b)=>b.v-a.v).forEach(c=>{
     const el=document.createElement("div");el.className="ctile";
-    el.innerHTML=`<button type="button" class="cbtn" aria-label="Рассмотреть карточку">${miniSlot(c)}</button><div class="cr"><b class="num">${fmt(c.v)}</b><button type="button" class="mini">Продать</button></div>`;
+    el.innerHTML=`<button type="button" class="cbtn" aria-label="Рассмотреть карточку">${miniSlot(c)}</button><div class="cr"><b class="num">${fmtC(c.v)}</b><button type="button" class="mini sellx" aria-label="Продать за ${fmt(c.v*QUICK)}" title="Продать">🗑</button></div>`;
     el.querySelector(".cbtn").setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");
     el.querySelector(".cbtn").onclick=()=>openCardView(c,{mine:true});
     const m=el.querySelector(".mini");
-    if(away(c)){m.disabled=true;m.textContent=c.listed?"На рынке":"В походе"}
-    else if(FIN[c.f].excl){m.disabled=true;m.textContent="Трофей"}
+    if(away(c)){m.disabled=true;m.textContent=c.listed?"🏷":"🧭";m.title=c.listed?"На рынке":"В походе";m.setAttribute("aria-label",m.title)}
+    else if(FIN[c.f].excl){m.disabled=true;m.textContent="🏆";m.title="Трофей";m.setAttribute("aria-label","Трофей")}
     if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";el.querySelector(".cbtn").appendChild(fb)}
-    m.onclick=async()=>{const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))};
+    m.onclick=async()=>{if(!(await confirmSell(c)))return;const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))};
     box.appendChild(el)});
 }
 $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))};
+
+/* подтверждение продажи системе: чтобы не продать дорогую карточку случайным нажатием */
+function confirmSell(c){return new Promise(res=>{const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="box nickbox"><h3>Продать карточку?</h3><div class="sellprev"></div><p></p><button type="button" class="craftbtn" id="cs-yes"></button><button type="button" class="ghost" id="cs-no">Отмена</button></div>';
+  sh.querySelector(".sellprev").innerHTML=miniSlot(c);
+  sh.querySelector("p").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+", № "+fmtSn(c.sn)+". Быстрая продажа системе: "+fmt(c.v*QUICK)+" (85% оценки). Карточка уйдёт из игры, и её номер снова сможет выпасть другим. На рынке можно продать дороже.";
+  $("cs-yes").textContent="Продать за "+fmtC(c.v*QUICK);
+  $("cs-yes").onclick=()=>{closeModal();res(true)};$("cs-no").onclick=()=>{closeModal();res(false)}})}
 
 /* маленькая картинка карточки: рваная для ошибки печати, светится при звёздах */
 function thumbDeco(e,c){}
@@ -1091,13 +1103,13 @@ function drawMarket(){const box=$("mk-list"),M=mkCache||{items:[]};box.innerHTML
   M.items.forEach(it=>{const c=it.card,r=it.price/c.v,b=document.createElement("button");b.type="button";b.className="mini2";b.textContent="Купить";
     b.onclick=async()=>{b.disabled=true;const res=await act("buy",{id:it.id,price:it.price});if(!res){b.disabled=false;loadMarket(true);return}
       sfx.coin();hapN("success");if(HEROES[c.h][2]>=3||c.f>=3)burst(3);mkCache.items=mkCache.items.filter(x=>x.id!==it.id);renderAll();toast("Куплено у "+it.seller+": "+HEROES[c.h][0])};
-    box.appendChild(lotRow(c,`<b class="num">${fmt(it.price)}</b><small class="${r<1?"cheap":r>1.2?"dear":""}">${r<1?"−"+Math.round((1-r)*100)+"% от оценки":r>1?"+"+Math.round((r-1)*100)+"% к оценке":"по оценке"}</small><small style="color:#5a5f80;font-weight:500"></small>`,b));
+    box.appendChild(lotRow(c,`<b class="num">${fmtC(it.price)}</b><small class="${r<1?"cheap":r>1.2?"dear":""}">${r<1?"−"+Math.round((1-r)*100)+"% от оценки":r>1?"+"+Math.round((r-1)*100)+"% к оценке":"по оценке"}</small><small style="color:#5a5f80;font-weight:500"></small>`,b));
     box.lastChild.querySelector(".r small:last-of-type").textContent=it.seller})}
 function renderSell(){const lots=$("lots");lots.innerHTML="";const mine=S.cards.filter(c=>c.listed);
   if(!mine.length)lots.innerHTML='<p style="margin:0;color:#5a5f80">Ты ничего не выставил.</p>';
   mine.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="mini2";b.textContent="Снять";
     b.onclick=async()=>{if(await act("unlist",{id:c.id})){renderAll();toast("Снято с продажи")}};
-    lots.appendChild(lotRow(c,`<b class="num">${fmt(c.listPrice)}</b><small style="color:#5a5f80">${ONLINE?"ждёт покупателя":"шанс продажи ~"+Math.round(sellChance(c)*100)+"% в минуту"}</small>`,b))});
+    lots.appendChild(lotRow(c,`<b class="num">${fmtC(c.listPrice)}</b><small style="color:#5a5f80">${ONLINE?"ждёт покупателя":"шанс продажи ~"+Math.round(sellChance(c)*100)+"% в минуту"}</small>`,b))});
   const pk=$("sl-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c));
   if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных карточек.</p>';
   free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===slPick);
@@ -1175,7 +1187,7 @@ async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.a
 function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" мин назад":m<1440?Math.round(m/60)+" ч назад":Math.round(m/1440)+" дн назад"}
 function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.type="button";d.className="trow"+(it.me||(ONLINE&&it.uid===S.uid)?" me":"")+(i<3?" p"+(i+1):"");
   d.innerHTML=`<span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="e"></span><span class="t"><b></b><small></small></span><span class="sc num"></span>`;
-  d.querySelector("b").textContent=(it.pi?"🏅 ":"")+it.name;d.querySelector(".sc").textContent=TP[kind].u(it.score);
+  d.querySelector("b").textContent=(it.pi?"🏅 ":"")+it.name;d.querySelector(".sc").textContent=kind==="worth"||kind==="cards"?fmtC(it.score):TP[kind].u(it.score);
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
@@ -1228,7 +1240,7 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 /* ---------- вкладки ---------- */
 function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
-function updCash(){if(S)$("cash").textContent=fmt(S.cash)}
+function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash);e.title=fmt(S.cash)}
 function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}

@@ -492,7 +492,7 @@ async function market(env,me){
   return {items:rows.map(r=>({id:r.id,card:pub(rowToCard(r)),price:r.list_price,seller:r.seller_name||"Игрок"}))};
 }
 async function list(env,me,p){
-  const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e7))fail("Цена от $1 до $10 000 000");
+  const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e11))fail("Цена от $1 до $100 000 000 000");
   const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
     .bind(price,Date.now(),p.id|0,me.id,me.id,MAX_LOTS).run();
   if(r.meta.changes!==1)fail("Карточку нельзя выставить: она в походе, уже на рынке или у тебя уже "+MAX_LOTS+" лотов");

@@ -34,6 +34,9 @@ async function call(uid, a, p = {}, start = "") {
 }
 const { classify } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify };").toString("base64"));
 let fails = 0;
+/* свободная карточка игрока; если всё проиграно в боях, тестовый игрок открывает новую */
+async function anyCard(uid, callf) { callf = callf || call; let s = await callf(uid, "sync"); let c = s.S.cards.find(c => !c.listed && !c.away && c.f !== 5);
+  if (!c) { db.prepare("UPDATE users SET gift_spins=gift_spins+3 WHERE id=?").run(uid); const o = await callf(uid, "open"); c = o.res.card } return c }
 const ok = (cond, msg) => { console.log((cond ? "✓ " : "✗ ") + msg); if (!cond) fails++; };
 
 /* --- проверка подписи Telegram --- */
@@ -120,7 +123,7 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
 
 /* --- бой с настоящими игроками, уведомление и реванш --- */
 {
-  r = await call(2, "sync"); const c2 = r.S.cards.find(c => !c.listed && !c.away);
+  const c2 = await anyCard(2);
   let d = null; for (let i = 0; i < 12 && !(d && d.ok && d.res.real); i++) d = await call(2, "duel", { id: c2.id, stat: 0, mode: 0 });
   ok(d.ok && d.res.real && d.res.oppName && d.res.oppUid !== 2, "дуэль с картой настоящего игрока: соперник " + (d.res && d.res.oppName));
   const def = d.res.oppUid;
@@ -199,7 +202,7 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
   r = await call(7000, "sell", { id: fc.id }); ok(!r.ok && /рынок/.test(r.err), "«Основателя» нельзя продать системе");
   r = await call(7000, "list", { id: fc.id, price: 300000 }); ok(r.ok, "«Основателя» можно выставить на рынок");
   await call(7000, "unlist", { id: fc.id });
-  r = await call(1, "sync"); const anyMine = r.S.cards.find(c => !c.listed && !c.away);
+  const anyMine = await anyCard(1);
   r = await call(1, "fduel", { oppId: fc.id, oppStat: 1, myId: anyMine.id, myStat: 0 }); ok(!r.ok, "против «Основателя» по ссылке тоже нельзя");
   await call(7000, "open"); r = await call(7000, "sync"); r = await call(7000, "craft", { ids: [r.S.cards.find(c => c.f !== 5).id], h: 0, f: 5 }); ok(!r.ok, "«Основателя» нельзя скрафтить");
 }
@@ -210,7 +213,8 @@ r = await call(1, "story"); ok(r.ok && r.S.spins === sp1 + 10, "история: 
 r = await call(1, "story"); ok(!r.ok && /неделе/.test(r.err), "история: второй раз на неделе нельзя");
 
 /* --- закалка звёздами --- */
-r = await call(1, "sync"); let fc = r.S.cards.find(c => !c.listed && !c.away && !c.xp);
+r = await call(1, "sync"); let fc = r.S.cards.find(c => !c.listed && !c.away && !c.xp && c.f !== 5);
+if (!fc) { await call(1, "topup"); const o = await call(1, "open"); fc = o.res.card }
 r = await call(1, "forge", { id: fc.id }); ok(!r.ok && /уровень/.test(r.err), "закалка без уровня не проходит: " + r.err);
 db.prepare("UPDATE users SET cash=cash+1000 WHERE id=1").run(); for (let i = 0; i < 3; i++) await call(1, "train", { id: fc.id });
 const v0 = fc.v; r = await call(1, "forge", { id: fc.id }); const f1 = r.ok && r.S.cards.find(c => c.id === fc.id);
@@ -264,11 +268,12 @@ r = await call(1, "nick", { nick: "Новый" }); ok(!r.ok && /1000/.test(r.err
 {
   db.prepare("UPDATE users SET cash=cash+100000 WHERE id=7").run(); await call(7, "sync");
   // выпускаем весь тираж «ошибки печати» Ополченца и продаём её
-  db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,created) VALUES(7,0,4,1,'314159',0,0,100,'[1,1,1,1,1]',0)").run();
+  db.prepare("DELETE FROM cards WHERE h=0 AND f=4").run();db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,created) VALUES(7,0,4,1,'314159',0,0,100,'[1,1,1,1,1]',0)").run();
   const mis = db.prepare("SELECT id FROM cards WHERE h=0 AND f=4").get().id;
   r = await call(7, "sell", { id: mis }); ok(r.ok && !db.prepare("SELECT 1 FROM cards WHERE id=?").get(mis), "проданная карточка удалена из игры");
   ok(!db.prepare("SELECT 1 FROM cards WHERE sn='314159'").get(), "её номер 314 159 снова свободен");
   // золотые: тираж 10 выпущен целиком, одну продали — следующая получит её место
+  db.prepare("DELETE FROM cards WHERE h=1 AND f=3").run();
   for (let i = 1; i <= 10; i++) db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,created) VALUES(7,1,3,?,?,0,0,100,'[1,1,1,1,1]',0)").run(i, "5550" + String(i).padStart(2, "0"));
   const g3 = db.prepare("SELECT id FROM cards WHERE h=1 AND f=3 AND no=3").get().id;
   r = await call(7, "sell", { id: g3 }); ok(r.ok, "продал золотую 3/10");
@@ -322,8 +327,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   await worker.scheduled({}, envN, ctxW); await ctxW.p; ok(db.prepare("SELECT pm FROM users WHERE id=8888").get().pm === 0, "заблокировал бота — больше не пишем");
   // нападение и продажа
   db.prepare("UPDATE users SET pm=1, att_note=0 WHERE id IN (1,2)").run();
-  r = await callN(2, "sync"); const mine2 = r.S.cards.find(c => !c.listed && !c.away && c.f !== 5);
-  r = await callN(1, "sync"); const c1 = r.S.cards.find(c => !c.listed && !c.away && c.f !== 5);
+  const mine2 = await anyCard(2, callN), c1 = await anyCard(1, callN);
   const before = sent.length; r = await callN(2, "fduel", { oppId: c1.id, oppStat: 1, myId: mine2.id, myStat: 0 });
   const am = sent.slice(before).find(m => m.chat_id === 1);
   ok(r.ok && am && /startapp=c_/.test(am.reply_markup.inline_keyboard[0][0].web_app.url), "защитнику пришло сообщение с кнопкой «Реванш»");
