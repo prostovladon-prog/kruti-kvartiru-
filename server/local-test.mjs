@@ -439,6 +439,21 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await call(7801, "camp_top", { per: "d" }); ok(r.ok && r.res.items[0].uid === 7800 && r.res.me.rank === 2 && r.res.me.score === 10 + 0 || r.res.me.score >= 10, "топ лагеря за день: 1-й 7800, я на " + r.res.me.rank + " месте");
   r = await call(7801, "camp_top", { per: "w" }); ok(r.ok && r.res.per === "w" && r.res.items.length >= 2 && r.res.left > 0 && r.res.left <= 7 * 864e5, "топ лагеря за неделю");
 }
+/* --- разовый пересчёт лагеря Царь_Татарстана --- */
+{
+  await call(7900, "sync"); await call(7901, "sync"); await call(7901, "camp_tap", { n: 30 });
+  db.prepare("UPDATE users SET nick='Царь_Татарстана',nick_key='царь_татарстана' WHERE id=7900").run();
+  const st = JSON.parse(db.prepare("SELECT state FROM users WHERE id=7900").get().state); const now = Date.now();
+  st.camp = { runes: 100465, en: 100, at: now, lv: { pw: 20, en: 15, rg: 12, cr: 16, sq: 3 }, t: 5, hp: 50, kills: 9, total: 100465, sqAt: now, tapAt: 0, dK: "x", dR: 100465 };
+  db.prepare("UPDATE users SET state=?,camp_dk=?,camp_dr=100465 WHERE id=7900").run(JSON.stringify(st), new Date(now + 3 * 3600e3).toISOString().slice(0, 10));
+  const sp0 = (await call(7900, "sync")).S.spins;
+  await worker.tick(env); await worker.tick(env);
+  r = await call(7900, "sync"); const C = r.S.camp;
+  ok(C.dR === 15000 && C.lv.pw === 3 && C.t === 0 && Math.floor(C.runes) === 2150 && r.S.spins === sp0 + 5 && /извини/i.test(r.S.notice || ""), "пересчёт: 15 000 рун за день, прокачка частично, +5 прокруток, сообщение");
+  r = await call(7901, "camp_top", { per: "d" }); ok(r.res.items[0].uid === 7900, "он остаётся первым в топе дня");
+  r = await call(7900, "notice_ok"); ok(r.ok && !r.S.notice, "сообщение закрыто и больше не показывается");
+  await worker.tick(env); r = await call(7900, "sync"); ok(r.S.spins === sp0 + 5, "пересчёт выполняется только один раз");
+}
 /* --- колесо фортуны --- */
 {
   await call(7700, "sync"); r = await call(7700, "wheel"); ok(r.ok && r.res.i >= 0 && r.res.i < 8, "колесо фортуны: выпал сектор " + (r.ok && r.res.i));

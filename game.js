@@ -51,10 +51,14 @@ async function act(name,p){
     }
     (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!"+(STAR_LVL.includes(e.lv)?" Его можно закалить ★"+(STAR_LVL.indexOf(e.lv)+1)+" во вкладке «Мои»":""))});
     if(name==="open")setTimeout(()=>{if(S&&S.spins<=0)askPm()},4500);
-    news();fightNews();chatDot();return out;
+    news();fightNews();chatDot();showNotice();return out;
   }catch(e){if(!(e instanceof GameError))console.error(e);toast(e instanceof GameError?e.message:"Нет связи с сервером. Попробуй ещё раз");return null}
 }
 /* новости: кто купил твои карточки на рынке */
+let noticeShown="";
+function showNotice(){if(!S||!S.notice||noticeShown===S.notice||!$("modal").hidden)return;noticeShown=S.notice;const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="box nickbox"><h3>Сообщение от команды игры</h3><p class="ntc"></p><button type="button" class="craftbtn" id="ntc-ok">Понятно, спасибо!</button></div>';
+  sh.querySelector(".ntc").textContent=S.notice;$("ntc-ok").onclick=async()=>{closeModal();await act("notice_ok");renderAll()}}
 function news(){const n=(S&&S.news)||[];if(!n.length)return;n.forEach(x=>toast("Продано! "+HEROES[x.h][0]+" ушёл к "+x.buyer+" за "+fmt(x.price)+", тебе "+fmt(x.got)));S.news=[];sfx.coin();hapN("success");save()}
 
 
