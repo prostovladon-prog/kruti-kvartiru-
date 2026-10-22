@@ -1,7 +1,7 @@
 /* game.js — интерфейс «Воинов Эпох». Правила игры лежат в rules.js. */
 
 /* ---------- настройки ---------- */
-const API_URL="https://autumn-hat-37ccvoiny-epoh.prostovladon.workers.dev";                              // адрес сервера, например https://voiny-epoh.твоё-имя.workers.dev (пусто = игра без сервера)
+const API_URL="https://77-221-147-102.sslip.io";                              // адрес сервера, например https://voiny-epoh.твоё-имя.workers.dev (пусто = игра без сервера)
 const BOT_LINK="https://t.me/VoinyEpohBot";   // ссылка на бота, например https://t.me/VoinyEpohBot
 const CHANNEL="voinyepoh";                     // канал игры, бот должен быть в нём администратором
 const PAGE_URL="https://prostovladon-prog.github.io/kruti-kvartiru-/";
