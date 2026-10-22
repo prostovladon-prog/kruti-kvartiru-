@@ -410,5 +410,43 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await call(A, "room_cancel", { room: room3 }); ok(r.ok && db.prepare("SELECT room_id FROM cards WHERE id=?").get(c3.id).room_id === null, "отмена боя возвращает карточку");
 }
 
+/* --- покупка прокруток --- */
+{
+  await call(7800, "sync"); db.prepare("UPDATE users SET cash=1000 WHERE id=7800").run();
+  r = await call(7800, "sync"); const s0 = r.S.spins;
+  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price === 200 && r.S.spins === s0 + 1, "первая прокрутка за $200");
+  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price === 400, "вторая вдвое дороже: $" + (r.res && r.res.price));
+  db.prepare("UPDATE users SET cash=40000000 WHERE id=7800").run();
+  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price >= 790000, "богатому дорого: третья за $" + (r.res && r.res.price));
+  { const st = JSON.parse(db.prepare("SELECT state FROM users WHERE id=7800").get().state); st.buyN = 10; db.prepare("UPDATE users SET state=? WHERE id=7800").run(JSON.stringify(st)) }
+  r = await call(7800, "buy_spin"); ok(!r.ok && /10/.test(r.err), "не больше 10 в день: " + r.err);
+}
+/* --- колесо фортуны --- */
+{
+  await call(7700, "sync"); r = await call(7700, "wheel"); ok(r.ok && r.res.i >= 0 && r.res.i < 8, "колесо фортуны: выпал сектор " + (r.ok && r.res.i));
+  r = await call(7700, "wheel"); ok(!r.ok && /завтра/.test(r.err), "второй раз за день нельзя");
+}
+/* --- турнир выходных --- */
+{
+  const envT = { ...env, ADMINS: "8" };
+  const ct = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envT)).json();
+  const P = [5101, 5102, 5103, 5104, 5105];
+  r = await ct(5101, "tour_get"); ok(r.ok && r.res.phase === "reg" && new Date(r.res.start + 3 * 3600e3).getUTCDay() === 6 && new Date(r.res.start + 3 * 3600e3).getUTCHours() === 20, "турнир назначен на субботу 20:00 по Минску");
+  for (const u of P) { await ct(u, "sync"); const c = await anyCard(u, ct); r = await ct(u, "tour_join", { id: c.id }) }
+  r = await ct(5101, "tour_get"); ok(r.res.count === 5 && r.res.me, "записались 5 игроков");
+  r = await ct(5101, "tour_admin", { min: 0 }); ok(!r.ok, "обычный игрок не может запустить турнир");
+  r = await ct(8, "tour_admin", { min: 0 }); ok(r.ok, "админ запустил турнир сейчас");
+  await worker.tick(envT);
+  r = await ct(5101, "tour_get"); ok(r.res.phase === "run" && r.res.matches.filter(m => m.round === 1).length === 4, "сетка на 8 мест: 4 матча, 3 прохода без соперника");
+  let guard = 0;
+  while (guard++ < 40) { db.prepare("UPDATE rooms SET until=0 WHERE tour IS NOT NULL AND phase IN ('p0','s0','p1','s1','s2')").run(); await worker.tick(envT); r = await ct(5101, "tour_get"); if (r.res.phase !== "run") break }
+  const last = db.prepare("SELECT * FROM tours ORDER BY id DESC LIMIT 1 OFFSET 1").get() || db.prepare("SELECT * FROM tours WHERE phase='done' ORDER BY id DESC LIMIT 1").get();
+  const done = db.prepare("SELECT * FROM tours WHERE phase='done' AND champion IS NOT NULL ORDER BY id DESC LIMIT 1").get();
+  ok(done && P.includes(done.champion), "турнир завершён, чемпион " + (done && done.champion_name) + " (циклов " + guard + ")");
+  r = await ct(done.champion, "sync"); ok(r.S.vipUntil > Date.now() && r.S.champion && r.S.champion.uid === done.champion, "чемпион получил VIP и кубок");
+  r = await ct(5101, "tour_get"); ok(r.res.phase === "reg" && r.res.last && r.res.last.uid === done.champion, "следующий турнир уже открыт для записи");
+  const locked = db.prepare("SELECT COUNT(*) n FROM cards WHERE room_id IS NOT NULL").get().n; ok(locked === 0, "после турнира все карточки разблокированы");
+}
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

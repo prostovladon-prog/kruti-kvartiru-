@@ -57,4 +57,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   /* напоминания о прокрутках: раньше это делал Cron в Cloudflare */
   const tick = () => worker.scheduled({}, env, { waitUntil: p => p && p.catch && p.catch(e => console.error("reminders", e)) });
   setInterval(tick, 10 * 60e3); setTimeout(tick, 30e3);
+  /* турнир: раз в 5 секунд сервер двигает раунды */
+  setInterval(() => worker.tick && worker.tick(env).catch(e => console.error("tick", e)), 5000);
 }

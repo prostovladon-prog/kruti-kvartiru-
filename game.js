@@ -421,6 +421,8 @@ async function open(){
   for(let i=0;i<Math.floor(tease/160);i++)setTimeout(()=>sfx.rumble(i*(L>=2?1:.3)),i*160);
   setTimeout(reveal,tease);
 }
+$("buy-go").onclick=async()=>{const price=spinPrice(S,NOW());if(S.cash<price){toast("Не хватает "+fmt(price-S.cash));return}
+const r=await act("buy_spin",{price});if(r){sfx.coin();renderAll();toast("+1 прокрутка за "+fmt(r.price))}};
 $("open").onclick=()=>open();$("stage").onclick=()=>open();
 $("stage").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}};
 $("sell").onclick=async()=>{if(!current||busy)return;if(!S.cards.some(x=>x.id===current.id)){toast("Эта карточка уже не у тебя");return}
@@ -614,6 +616,8 @@ function leftTxt(){const ms=Math.max(0,(S.refillAt||NOW())-NOW()),sec=Math.ceil(
 let refillAsked=0;
 function renderFree(){if(!S)return;
   if(S.refillAt&&NOW()>=S.refillAt){if(ONLINE){if(NOW()-refillAsked>10000){refillAsked=NOW();act("sync").then(()=>renderAll())}}else{refill(S,NOW());save()}}
+  const bb=$("buy-go"),bn=S.buyDay===today(NOW())?(S.buyN||0):0;if(bb){bb.hidden=false;bb.disabled=bn>=BUY_MAX;
+    bb.innerHTML=bn>=BUY_MAX?"Сегодня куплено "+BUY_MAX+" из "+BUY_MAX+". Завтра цены сбросятся":"🎴 Купить прокрутку за <b>"+fmtC(spinPrice(S,NOW()))+"</b><small>куплено сегодня "+bn+" из "+BUY_MAX+", каждая следующая ×2</small>"}
   const n=S.spins??0,cap=spinCap(S);$("free-n").textContent=n<=cap?n+"/"+cap:String(n);$("open-n").textContent=n>0?"осталось "+n:"через "+leftTxt();
   const pw=cap>=5?"бесплатных прокруток":"бесплатные прокрутки";$("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся "+cap+" "+pw+(cap>SPINS_MAX?" 👑":""):"Новые "+cap+" "+(cap>=5?"прокруток":"прокрутки")+" через "+leftTxt();$("open").classList.toggle("empty",n<=0);renderPromo()}
 /* ---------- акция и VIP ---------- */
@@ -791,7 +795,7 @@ async function arOpen(id,code){arRoom=id;arCode=code||null;const r=await act("ro
 function renderArena(){if(!ONLINE){$("ar-lobby").innerHTML='<div class="box"><p>Арена работает в игре через Telegram.</p></div>';return}
   $("ar-room").hidden=!arRoom;$("ar-lobby").style.display=arRoom?"none":"flex";
   if(arRoom){drawRoom();if(!arPoll)arStart();return}arStop();drawLobby();if(NOW()-arListAt>5000)loadArena()}
-async function loadArena(){arListAt=NOW();const r=await act("arena_list");if(!r)return;arList=r;if(r.mine&&!arRoom){arOpen(r.mine);return}if(arVisible()&&!arRoom)drawLobby()}
+async function loadArena(){arListAt=NOW();loadTour();const r=await act("arena_list");if(!r)return;arList=r;if(r.mine&&!arRoom){arOpen(r.mine);return}if(arVisible()&&!arRoom)drawLobby()}
 setInterval(()=>{if(arVisible()&&!arRoom&&!document.hidden)loadArena()},6000);
 function drawLobby(){
   const pk=$("ar-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>b.v-a.v);
@@ -1028,7 +1032,7 @@ function friendsGet(){try{return JSON.parse(localStorage.getItem("we-friends")||
 function friendsPut(F){try{localStorage.setItem("we-friends",JSON.stringify(F))}catch(e){}}
 function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
-  const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent="Витрина: "+(F.vip?"👑 ":"")+(F.pi?"🏅 ":"")+F.name;
+  const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent="Витрина: "+champMark(F.uid)+(F.vip?"👑 ":"")+(F.pi?"🏅 ":"")+F.name;
   w.children[1].textContent="Собрано воинов: "+F.have+" из "+NHEROES+", побед в боях: "+F.wins;sh.appendChild(w);
   const g=document.createElement("div");g.className="show3";F.cards.forEach(c=>{const d=bigMc(c,0);d.querySelector(".v").innerHTML=`<small>${FIN[c.f].k}, ур. ${lvl(c)}</small><b class="num">${fmt(c.v)}</b>`;g.appendChild(d)});
   if(!F.cards.length){const e=document.createElement("div");e.className="mc empty";e.textContent="Пока нет карточек";g.appendChild(e)}sh.appendChild(g);
@@ -1288,7 +1292,7 @@ async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.a
 function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" мин назад":m<1440?Math.round(m/60)+" ч назад":Math.round(m/1440)+" дн назад"}
 function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.type="button";d.className="trow"+(it.me||(ONLINE&&it.uid===S.uid)?" me":"")+(i<3?" p"+(i+1):"");
   d.innerHTML=`<span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="e"></span><span class="t"><b></b><small></small></span><span class="sc num"></span>`;
-  d.querySelector("b").textContent=(it.pi?"🏅 ":"")+it.name;if(it.vip||(it.me&&isVip())){d.classList.add("vipr");d.querySelector("b").insertAdjacentHTML("afterbegin",'<span class="vipb">VIP</span> ')}d.querySelector(".sc").textContent=kind==="worth"||kind==="cards"?fmtC(it.score):TP[kind].u(it.score);
+  d.querySelector("b").textContent=champMark(it.uid)+(it.pi?"🏅 ":"")+it.name;if(it.vip||(it.me&&isVip())){d.classList.add("vipr");d.querySelector("b").insertAdjacentHTML("afterbegin",'<span class="vipb">VIP</span> ')}d.querySelector(".sc").textContent=kind==="worth"||kind==="cards"?fmtC(it.score):TP[kind].u(it.score);
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
@@ -1349,7 +1353,7 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 function setTab(t){["spin","duel","album","craft","shop","col","top"].forEach(k=>{$("tab-"+k).setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash);e.title=fmt(S.cash)}
-function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
+function renderAll(){if(!S)return;updCash();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
@@ -1368,7 +1372,7 @@ function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scroll
   if(!chatItems.length)box.innerHTML='<p class="chempty">Пока тихо. Напиши первым!</p>';
   chatItems.forEach(m=>{const d=document.createElement("div");const mine=ONLINE?m.uid===S.uid:m.uid===0;d.className="chm"+(mine?" me":"");
     d.innerHTML='<div class="chh"><button type="button" class="chn"></button><span class="cht"></span></div><div class="chx"></div>';
-    const n=d.querySelector(".chn");n.textContent=(m.vip?"👑 ":"")+(m.pi?"🏅 ":"")+m.name+(m.a?" ★":"");if(m.vip)d.classList.add("vipm");n.style.color=m.a?"#d4380d":nickCol(m.name);
+    const n=d.querySelector(".chn");n.textContent=champMark(m.uid)+(m.vip?"👑 ":"")+(m.pi?"🏅 ":"")+m.name+(m.a?" ★":"");if(m.vip)d.classList.add("vipm");n.style.color=m.a?"#d4380d":nickCol(m.name);
     d.querySelector(".cht").textContent=new Date(m.t).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     d.querySelector(".chx").textContent=m.text;
     n.onclick=()=>{if(ONLINE&&m.uid>0&&m.uid!==S.uid){closeChat();openParam("u_"+m.uid)}};
@@ -1391,6 +1395,52 @@ function openChat(){chatOpen=true;const m=$("modal"),sh=$("msheet");sh.innerHTML
 function closeChat(){chatOpen=false;clearInterval(chatTimer);closeModal();chatDot()}
 $("chat-go").onclick=openChat;
 $("modal").addEventListener("click",e=>{if(e.target===$("modal")&&chatOpen)closeChat()});
+
+/* ---------- колесо фортуны ---------- */
+let wfRot=0,wfBusy=false;
+(function drawWheel(){const n=WHEEL.length,R=100;let g="";
+  WHEEL.forEach((W,i)=>{const a0=(i/n)*2*Math.PI-Math.PI/2,a1=((i+1)/n)*2*Math.PI-Math.PI/2,x0=R*Math.cos(a0),y0=R*Math.sin(a0),x1=R*Math.cos(a1),y1=R*Math.sin(a1),am=(a0+a1)/2,deg=am*180/Math.PI+90;
+    g+=`<path d="M0 0 L${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${W.c}" stroke="#0d1030" stroke-width="3"/>`;
+    g+=`<g transform="rotate(${deg}) translate(0 -66)"><text text-anchor="middle" font-family="Rubik,sans-serif" font-weight="900" font-size="${W.t.length>5?11:16}" fill="${W.leg?"#ffd60a":"#fff"}" stroke="#0d1030" stroke-width="3" paint-order="stroke">${W.t}</text>${W.s?`<text y="14" text-anchor="middle" font-family="Rubik,sans-serif" font-weight="700" font-size="8" fill="#fff" stroke="#0d1030" stroke-width="2" paint-order="stroke">${W.s}</text>`:""}</g>`});
+  $("wf-svg").innerHTML=`<g id="wf-rot">${g}</g><circle r="18" fill="#ffd60a" stroke="#0d1030" stroke-width="4"/><text y="6" text-anchor="middle" font-size="18">🎡</text>`;
+  const tot=WHEEL.reduce((a,x)=>a+x.w,0);$("wf-odds").innerHTML=WHEEL.map(W=>`<div><span>${W.t} ${W.s}</span><b>${W.w}%</b></div>`).join("")})();
+function renderWheel(){if(!S)return;const used=S.wheelDay===today(NOW()),b=$("wf-go");if(wfBusy)return;b.disabled=used;
+  const ms=Date.UTC(...(d=>[d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1])(new Date(NOW())))-NOW();
+  b.textContent=used?"Следующее вращение через "+tleft(ms):"Крутить бесплатно";$("wf-t").textContent=used?"✔️":"1 раз в день"}
+setInterval(()=>{if(!$("sec-spin").hidden)renderWheel()},1000);
+$("wf-go").onclick=async()=>{if(wfBusy)return;wfBusy=true;$("wf-go").disabled=true;ac();const r=await act("wheel");if(!r){wfBusy=false;renderWheel();return}
+  const n=WHEEL.length,seg=360/n,target=360-(r.i*seg+seg/2)+(Math.random()-.5)*seg*.6;wfRot=wfRot-(wfRot%360)+360*6+target;
+  const g=$("wf-rot");g.style.transition=reduce?"none":"transform 4.5s cubic-bezier(.12,.7,.12,1)";g.style.transform=`rotate(${wfRot}deg)`;
+  let last=0;const t0=performance.now();if(!reduce)(function tk(t){const k=Math.min(1,(t-t0)/4500),e=1-Math.pow(1-k,3.2),ang=e*wfRot;if(Math.floor(ang/seg)!==last){last=Math.floor(ang/seg);sfx.tick(false);hap("light")}if(k<1)requestAnimationFrame(tk)})(t0);
+  setTimeout(()=>{wfBusy=false;const W=WHEEL[r.i];renderAll();if(r.card)showDrop(r.card,"Колесо: легенда!");else{sfx.fanfare();burst(W.w<=8?3:1);hapN("success");toast("🎡 Выпало: "+W.t+" "+W.s)}},reduce?50:4700)};
+
+/* ---------- турнир выходных ---------- */
+let trData=null,trAt=0;
+async function loadTour(force){if(!ONLINE)return;if(!force&&trData&&NOW()-trAt<5000){drawTour();return}trAt=NOW();const r=await act("tour_get");if(r){trData=r;trData._t=NOW();drawTour()}}
+const champMark=uid=>S&&S.champion&&S.champion.uid===uid?"🏆 ":"";
+function drawTour(){const T=trData,box=$("tr-box");if(!T||!box)return;const left=Math.max(0,(T.left||0)-(NOW()-T._t));
+  const d=Math.floor(left/864e5),hm=tleft(left%864e5);$("tr-cnt").textContent=T.phase==="reg"?T.count+" / "+T.max:"Раунд "+T.round;
+  const when=new Date(T.start).toLocaleString("ru-RU",{weekday:"long",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Minsk"});
+  $("tr-t").textContent=T.phase==="reg"?"Старт: "+when+" (через "+(d?d+" дн ":"")+hm+"). Сетка на выбывание, каждый бой — живой на арене. Приз: "+T.prize+"."+(T.last?" Чемпион прошлой недели: 🏆 "+T.last.name+".":"")
+    :"Турнир идёт! Каждый матч — живой бой, смотри любой. Приз: "+T.prize+".";
+  const me=$("tr-me"),bt=$("tr-btns");me.innerHTML="";bt.innerHTML="";
+  const mk=(t,cls,fn)=>{const b=document.createElement("button");b.type="button";b.className=cls;b.textContent=t;b.onclick=fn;bt.appendChild(b)};
+  if(T.phase==="reg"){const c=T.me&&S.cards.find(x=>x.id===T.me.card);
+    if(T.me){me.innerHTML='<p class="trin">✅ Ты в турнире'+(c?" с воином <b></b>":"")+'. Не забудь зайти в субботу к 20:00 — бот напомнит.</p>';if(c)me.querySelector("b").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()}
+    const pc=S.cards.find(x=>x.id===arPickId);mk(T.me?(pc&&pc.id!==T.me.card?"Сменить воина на выбранного":"Ты записан ✔️"):"Записаться выбранным воином","craftbtn",async()=>{if(!pc){toast("Выбери воина ниже, в блоке «Арена»");return}if(T.me&&pc.id===T.me.card)return;if(await act("tour_join",{id:pc.id})){toast("🏆 Ты в турнире!");loadTour(true)}});
+    if(T.me)mk("Выйти из турнира","ghost",async()=>{if(await act("tour_leave"))loadTour(true)});
+    if(S.admin)mk("Админ: начать турнир через 1 минуту","linkbtn",async()=>{if(await act("tour_admin",{min:1})){toast("Турнир начнётся через минуту");loadTour(true)}})}
+  const br=$("tr-bracket");br.innerHTML="";
+  if(T.matches&&T.matches.length){const rounds=[...new Set(T.matches.map(m=>m.round))],total=Math.log2(T.matches.filter(m=>m.round===1).length*2);
+    rounds.forEach(rd=>{const ms=T.matches.filter(m=>m.round===rd),h=document.createElement("div");h.className="trh";
+      h.textContent=ms.length===1?"🏆 Финал":ms.length===2?"Полуфинал":ms.length===4?"Четвертьфинал":"Раунд "+rd;br.appendChild(h);
+      ms.forEach(m=>{const d=document.createElement("div");d.className="trm"+(m.a===S.uid||m.b===S.uid?" me":"");
+        d.innerHTML='<span class="pa"></span><span class="vs2">vs</span><span class="pb"></span><span class="act"></span>';
+        d.querySelector(".pa").textContent=m.an;d.querySelector(".pb").textContent=m.bn||"— проход";
+        if(m.winner){d.querySelector(m.winner===m.a?".pa":".pb").classList.add("w");d.querySelector(".act").textContent="✔️"}
+        else if(m.live&&m.room){const b=document.createElement("button");b.type="button";b.className="mini2";b.textContent=m.code?"В бой!":"🔴 Смотреть";b.onclick=()=>arOpen(m.room,m.code);d.querySelector(".act").appendChild(b)}
+        br.appendChild(d)})})}}
+setInterval(()=>{if(arVisible()&&!arRoom&&!document.hidden)loadTour()},5000);
 
 /* ---------- помощь и сообщение о баге ---------- */
 const SUPPORT="voinivadmin";

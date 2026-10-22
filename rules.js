@@ -135,6 +135,17 @@ function checkNick(n){n=String(n||"").trim().replace(/\s+/g,"_");
   if(NICK_BAD.test(n.replace(/[_.\-]/g,"")))fail("Такой ник нельзя, придумай другой");
   return n}
 
+/* ---------- колесо фортуны: одно бесплатное вращение в день ---------- */
+const WHEEL=[{t:"+1",s:"прокрутка",w:28,sp:1,c:"#34c759"},{t:"$50",s:"",w:20,cash:50,c:"#0a84ff"},{t:"+2",s:"прокрутки",w:15,sp:2,c:"#ff9f0a"},{t:"$200",s:"",w:12,cash:200,c:"#bf5af2"},
+  {t:"+3",s:"прокрутки",w:9,sp:3,c:"#ff3b30"},{t:"ЭПИК",s:"гарантия",w:8,guar:1,c:"#5ac8fa"},{t:"$1000",s:"",w:6,cash:1000,c:"#ffd60a"},{t:"ЛЕГЕНДА",s:"карточка",w:2,leg:1,c:"#0d1030"}];
+
+/* ---------- покупка прокруток за игровые $ ----------
+   Каждая следующая за день вдвое дороже, база — $200 или 0,5% баланса (что больше), не больше 10 в день.
+   Богатый игрок не скупит редкие карточки: 10-я прокрутка за день стоит в 512 раз дороже первой. */
+const BUY_MAX=10;
+function spinPrice(st,now){const n=st.buyDay===today(now)?(st.buyN||0):0;return Math.round(Math.max(200,(st.cash||0)*.005)*Math.pow(2,n))}
+function spinsBought(st,now){return st.buyDay===today(now)?(st.buyN||0):0}
+
 /* ---------- ошибки ---------- */
 class GameError extends Error{}
 function fail(m){throw new GameError(m)}
@@ -303,6 +314,17 @@ const ACTIONS={
   /* режим удачи на 3 часа: только администратор (сервер передаёт ctx.admin) */
   luck_set(G){if(!G.ctx.admin)fail("Нет доступа");G.st.luckUntil=G.p.on?G.ctx.now+3*3600e3:0;return {on:!!G.p.on,until:G.st.luckUntil}},
 
+  buy_spin(G){const {st,ctx}=G;if(spinsBought(st,ctx.now)>=BUY_MAX)fail("Сегодня уже куплено "+BUY_MAX+" прокруток. Завтра цены сбросятся");
+    const price=spinPrice(st,ctx.now);if(G.p.price&&Math.abs(G.p.price-price)>1)fail("Цена изменилась, попробуй ещё раз");pay(st,price);
+    if(st.buyDay!==today(ctx.now)){st.buyDay=today(ctx.now);st.buyN=0}st.buyN++;st.spins+=1;return {price}},
+  wheel(G){const {st,ctx}=G;if(st.wheelDay===today(ctx.now))fail("Колесо уже крутилось сегодня. Приходи завтра");
+    st.wheelDay=today(ctx.now);const i=pick(WHEEL.map(x=>x.w)),W=WHEEL[i];let card=null;
+    if(W.sp)st.spins+=W.sp;if(W.cash)earn(st,W.cash);if(W.guar)st.guar=(st.guar||0)+1;
+    if(W.leg){if(G.cards.length<CAP){const pool=HEROES.map((H,k)=>k).filter(k=>HEROES[k][2]===3);card=makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],0);addCard(G,card)}else{st.guar=(st.guar||0)+1;earn(st,1000)}}
+    return {i,card}},
+  /* призы турнира: только сервер */
+  tour_prize(G){if(!G.ctx.tour)fail("Неизвестное действие");const {st,p}=G;if(p.cash)earn(st,p.cash);if(p.sp)st.spins+=p.sp;if(p.guar)st.guar=(st.guar||0)+p.guar;return {}},
+
   /* итог живого боя на арене: только сервер (ctx.pvp) */
   pvp_result(G){if(!G.ctx.pvp)fail("Неизвестное действие");const {st,ctx,p}=G;const c=G.cards.find(x=>x.id===p.id);
     if(p.res==="w"){st.totalWins=(st.totalWins||0)+1;day(st,ctx.now).wins++;if(c){c.wins=(c.wins||0)+1;addXp(ctx,c,30)}}
@@ -313,4 +335,4 @@ const ACTIONS={
 /* выполнить действие: проверки времени, затем само действие */
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
 
-if(typeof module!=="undefined")module.exports={aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
