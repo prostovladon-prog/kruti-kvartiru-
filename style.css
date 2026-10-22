@@ -620,3 +620,12 @@ body.vip .open{background:linear-gradient(135deg,#ffe48a,#ffb800)}
 #ar-room .who span{font-size:16px}
 #ar-stats button:not(:disabled){animation:arpick 1.2s ease-in-out infinite}
 @keyframes arpick{50%{box-shadow:0 0 0 3px var(--yellow)}}
+
+/* бой: полноценные карточки */
+.mc:has(.mcf){aspect-ratio:auto;border:none;background:none;box-shadow:none;overflow:visible;display:flex;flex-direction:column;gap:6px}
+.mc .mcf{width:100%}
+.mc:has(.mcf) .v{border:3px solid var(--ink);border-radius:12px;box-shadow:3px 3px 0 var(--ink);padding:4px}
+.mc.win:has(.mcf){box-shadow:none;transform:scale(1.04)}
+.mc.win:has(.mcf) .mcf .face{box-shadow:0 0 0 4px var(--yellow),0 0 26px 6px var(--yellow)}
+.mc.win:has(.mcf) .v{background:var(--yellow);color:var(--ink)}.mc.win:has(.mcf) .v small{color:var(--ink)}
+.show3 .mc:has(.mcf) .v small{font-size:9px}

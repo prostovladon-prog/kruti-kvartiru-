@@ -657,7 +657,8 @@ function runBattle(o){const rounds=[];let i=0;const shown=o.shown||[0];
 let duMine=null,duStat=0,duMode=0,duBusy=false;
 const BOTN=["Артём_777","lena.k","Тимур","Max_Rich","Ксюша","Vlad_B","Самурай228","Олег"];
 
-function mcHTML(c,stat,show){const H=HEROES[c.h];return `<div class="t">${H[0].replace(/</g,"")}</div><div class="p">${portrait(c.h,c,1)}</div><div class="v"><small>${STN[stat]}</small><b class="num">${show==null?eff(c,stat):show}</b></div>`}
+/* карточка в бою: та же настоящая карточка, что в коллекции, а под ней плашка с характеристикой раунда */
+function mcHTML(c,stat,show){return `<div class="mcf">${miniSlot(c)}</div><div class="v"><small>${STN[stat]}</small><b class="num">${show==null?(c.stats?eff(c,stat):"?"):show}</b></div>`}
 function renderDuel(){
   if(duMine&&!S.cards.some(c=>c.id===duMine))duMine=null;
   const md=$("du-mode");md.innerHTML="";
