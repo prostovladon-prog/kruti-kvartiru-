@@ -632,22 +632,36 @@ const TG_SVG=[
  `<path d="M30 120q-30-60 20-100 0 40 30 50z" fill="#bf2a2a" stroke="#0d1030" stroke-width="5"/><path d="M170 120q30-60-20-100 0 40-30 50z" fill="#bf2a2a" stroke="#0d1030" stroke-width="5"/><path d="M40 140q0-90 60-90t60 90q0 60-60 104-60-44-60-104z" fill="#e24b4a" stroke="#0d1030" stroke-width="5"/><path d="M70 60l-14-40 30 26M130 60l14-40-30 26" fill="#ffd60a" stroke="#0d1030" stroke-width="4"/><path d="M62 118l26 10M138 118l-26 10" stroke="#0d1030" stroke-width="6"/><circle cx="78" cy="124" r="7" fill="#ffd60a"/><circle cx="122" cy="124" r="7" fill="#ffd60a"/><path d="M76 200q24 16 48 0" stroke="#0d1030" stroke-width="5" fill="none"/><path d="M84 202l6 12 6-12M104 202l6 12 6-12" fill="#fff" stroke="#0d1030" stroke-width="2"/><circle cx="88" cy="180" r="5" fill="#0d1030"/><circle cx="112" cy="180" r="5" fill="#0d1030"/>`];
 /* что видит игрок прямо сейчас: энергия по времени минус ещё не отправленные удары */
 function campView(){const C=S.camp||{runes:0,en:CAMP_E0,at:NOW(),lv:{pw:0,en:0,rg:0,cr:0,sq:0},t:0,hp:TARGETS[0].hp,sqAt:NOW(),kills:0,total:0};
-  const mx=campMax(C),en=Math.min(mx,C.en+Math.max(0,NOW()-C.at)/campFull(C)*mx)-cpPend-cpFly,pw=campPow(C);
+  const mx=campMax(C),en=Math.min(mx,C.en+Math.max(0,NOW()-C.at)/campFull(C)*mx)-cpPend-cpFly,pw=campPow(C,S.cards);
   return {C,mx,en:Math.max(0,en),pw,runes:Math.floor(C.runes+(cpPend+cpFly)*pw),sq:campSq(C,NOW()),full:campFull(C)}}
 function openCamp(){setTab("camp");cpHp=null;renderCamp();sfx.lock();loadCampTop(true)}
 async function campFlush(){if(cpBusy||cpPend<1)return;cpBusy=true;cpFly=cpPend;cpPend=0;const r=await act("camp_tap",{n:cpFly});cpFly=0;cpBusy=false;
-  if(r){if(r.crits)campFloat("💥 КРИТ ×"+r.crits,"crit");if(r.chests){campFloat("📦 +"+fmtN(r.chestR),"chest");sfx.reveal(3);hapN("success");toast("Мишень разбита! Сундук: +"+fmtN(r.chestR)+" рун")}cpHp=null}
+  if(r){if(r.crits){campFloat("💥 КРИТ ×"+r.crits,"crit");campShake();hap("heavy")}if(r.chests){campShake();campFloat("📦 +"+fmtN(r.chestR),"chest");sfx.reveal(3);hapN("success");toast("Мишень разбита! Сундук: +"+fmtN(r.chestR)+" рун")}cpHp=null}
   renderCamp()}
 function campFloat(t,cls,x,y){const ar=$("cp-ar");if(!ar)return;const f=document.createElement("div");f.className="cpf "+(cls||"");f.textContent=t;
   const r=ar.getBoundingClientRect();f.style.left=(x!=null?x-r.left:r.width/2)+"px";f.style.top=(y!=null?y-r.top:r.height*.35)+"px";ar.append(f);setTimeout(()=>f.remove(),900)}
+let cpCombo=0,cpLast=0,cpTrH=-2;
+function campFx(x,y,big){const ar=$("cp-ar"),r=ar.getBoundingClientRect(),lx=x-r.left,ly=y-r.top;
+  const sl=document.createElementNS("http://www.w3.org/2000/svg","svg");sl.setAttribute("viewBox","0 0 100 100");sl.setAttribute("class","cp-slash");sl.style.left=lx+"px";sl.style.top=ly+"px";sl.style.setProperty("--r",(Math.random()*120-60)+"deg");
+  sl.innerHTML='<path d="M8 70 Q50 -6 92 34" fill="none" stroke="#fff" stroke-width="'+(big?12:8)+'" stroke-linecap="round" opacity=".95"/><path d="M14 66 Q50 6 86 36" fill="none" stroke="#ffd60a" stroke-width="3" stroke-linecap="round"/>';ar.append(sl);setTimeout(()=>sl.remove(),300);
+  for(let i=0;i<(big?9:5);i++){const p=document.createElement("i");p.className="cp-sp";const a=Math.random()*Math.PI*2,d=30+Math.random()*(big?70:40);p.style.left=lx+"px";p.style.top=ly+"px";p.style.setProperty("--dx",Math.cos(a)*d+"px");p.style.setProperty("--dy",Math.sin(a)*d+"px");ar.append(p);setTimeout(()=>p.remove(),460)}}
+function campShake(){const a=$("cp-ar");a.classList.remove("shake");void a.offsetWidth;a.classList.add("shake")}
 function campHit(e){const V=campView();if(V.en<1){$("cp-tg").classList.remove("no");void $("cp-tg").offsetWidth;$("cp-tg").classList.add("no");hapN("error");
     $("cp-eh").textContent="Энергия кончилась. Полная через "+tleft(Math.ceil((1-V.en/V.mx)*V.full))+" — бот напомнит";return}
   cpPend++;const T=TARGETS[V.C.t];cpHp=(cpHp==null?V.C.hp:cpHp)-V.pw;if(cpHp<=0)cpHp=T.hp;
+  const now=performance.now();cpCombo=now-cpLast<450?cpCombo+1:1;cpLast=now;const cb=$("cp-combo");
+  if(cpCombo>=5){cb.textContent="КОМБО ×"+cpCombo;cb.classList.add("on");cb.classList.remove("pop");void cb.offsetWidth;cb.classList.add("pop")}
   const g=$("cp-tg");g.classList.remove("hit");void g.offsetWidth;g.classList.add("hit");
-  campFloat("+"+fmtN(V.pw),"",e.clientX,e.clientY);hap("light");tone(160+Math.random()*90,.05,"square",.05);
+  const h=$("cp-hero");h.classList.remove("atk");void h.offsetWidth;h.classList.add("atk");
+  const tr=g.getBoundingClientRect(),x=tr.left+tr.width*(.35+Math.random()*.3),y=tr.top+tr.height*(.25+Math.random()*.35);
+  campFx(x,y,cpCombo>=10);campFloat("+"+String(V.pw).replace(".",","),"",x,y-20);hap(cpCombo>=10?"medium":"light");tone(140+Math.random()*80+Math.min(cpCombo,30)*6,.05,"square",.05);
+  $("cp-tip").style.opacity=0;
   if(cpPend>=25)campFlush();renderCamp(true)}
+setInterval(()=>{if(performance.now()-cpLast>700&&$("cp-combo"))$("cp-combo").classList.remove("on")},300);
 function renderCamp(light){if(!S||$("sec-camp").hidden)return;const V=campView(),C=V.C,T=TARGETS[C.t];updCash();
-  $("cp-ru").textContent=fmtN(V.runes);$("cp-stat").textContent="удар +"+fmtN(V.pw)+" · крит "+Math.round(campCrit(C)*100)+"%";
+  $("cp-ru").textContent=fmtN(V.runes);const tr=campTrainer(S.cards),tb=campBonus(S.cards);
+  $("cp-stat").innerHTML="удар <b>+"+String(V.pw).replace(".",",")+"</b> · крит <b>"+Math.round(campCrit(C)*100)+"%</b>"+(tb?"<br>тренер <b>+"+Math.round(tb*100)+"%</b>":"");
+  const th=tr?tr.h:-1;if(th!==cpTrH){cpTrH=th;$("cp-hpic").innerHTML=th>=0?portrait(th,tr):portrait(0,null);$("cp-hn").textContent=th>=0?HEROES[th][0]:"Новобранец"}
   $("cp-eb").style.width=(V.en/V.mx*100)+"%";$("cp-et").textContent=Math.floor(V.en)+"/"+V.mx;
   const hp=cpHp==null?C.hp:cpHp;$("cp-hpb").style.width=Math.max(0,hp/T.hp*100)+"%";$("cp-hpt").textContent=fmtN(Math.max(0,hp))+" / "+fmtN(T.hp)+" · сундук "+fmtN(T.chest)+" 💠";
   if(V.en>=1)$("cp-eh").textContent=V.en>=V.mx?"Энергия полная — тапай по мишени!":"Полная энергия через "+tleft(Math.ceil((1-V.en/V.mx)*V.full));
@@ -663,7 +677,7 @@ function renderCamp(light){if(!S||$("sec-camp").hidden)return;const V=campView()
   $("cp-tgs").innerHTML=TARGETS.map((X,i)=>`<div class="cpr${i===C.t?" on":""}${i>C.t+1?" lock":""}"><span class="cpi">${i<=C.t?"✅":i===C.t+1?"🎯":"🔒"}</span><div><b>${X.n}</b><small>×${String(X.m).replace(".",",")} руны за удар · ${fmtN(X.hp)} HP · сундук ${fmtN(X.chest)}</small></div>${i===C.t+1?`<button type="button" class="mini2${V.runes<X.cost?" dim":""}" data-tg="${i}">${fmtN(X.cost)} 💠</button>`:i===C.t?"<em>сейчас</em>":""}</div>`).join("");
   $("cp-ups").innerHTML=Object.entries(CAMP_UP).map(([k,U])=>{const l=C.lv[k]||0,mx=l>=U.max,c=mx?0:U.c(l);
     return `<div class="cpr"><span class="cpi">${UP_IC[k]}</span><div><b>${U.n} <i>ур. ${l}/${U.max}</i></b><small>${U.v(l)}${mx?"":" → "+U.v(l+1)}</small></div><button type="button" class="mini2${mx||V.runes<c?" dim":""}" data-up="${k}">${mx?"Макс.":fmtN(c)+" 💠"}</button></div>`}).join("")}
-$("cp-tg").addEventListener("pointerdown",e=>{e.preventDefault();campHit(e)});
+$("cp-ar").addEventListener("pointerdown",e=>{e.preventDefault();campHit(e)});
 $("cp-back").onclick=()=>setTab("spin");
 $("cp-buy").onclick=async()=>{await campFlush();const pr=spinPrice(S,NOW());if(spinsBought(S,NOW())>=BUY_MAX)return;if(campView().runes<pr){toast("Не хватает "+fmtN(pr-campView().runes)+" рун — потренируйся ещё");return}
   const r=await act("buy_spin");if(r){sfx.coin();hapN("success");toast("+1 прокрутка за "+fmtN(r.price)+" рун");renderCamp()}};
@@ -1442,9 +1456,9 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 
 /* ---------- вкладки ---------- */
 function setTab(t){if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
-$("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
-function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash);e.title=fmt(S.cash);try{$("cash-r").textContent="💠 "+fmtN(campView().runes)}catch(x){}}
-$("cash-r").onclick=()=>openCamp();
+$("tab-spin").onclick=()=>setTab("spin");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
+let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
+$("cash-rw").onclick=()=>openCamp();
 function renderAll(){if(!S)return;updCash();if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
@@ -1541,7 +1555,7 @@ function openSupport(kind){const id=S&&S.uid?S.uid:"—",info="ID: "+id+(S&&S.ni
   toast("Твой ID скопирован — вставь его в сообщение");const u="https://t.me/"+SUPPORT;
   setTimeout(()=>{if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank")},700)}
 function openHelp(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  const Q=[["Как получить прокрутки?","3 бесплатные каждые 4 часа (VIP — 5), +1 за серию входов, задания дня, +10 за подписку на канал, +10 за историю, +10 за каждого друга по твоей ссылке и до 5 в день за руны в Тренировочном лагере."],["Что такое Тренировочный лагерь?","Игра в игре: тапай по мишени, каждый удар тратит ⚡ энергию и приносит 💠 руны. Энергия восстанавливается сама, бот напомнит, когда она полная. За руны прокачивай силу удара, энергию, крит и оруженосца, открывай мишени сильнее (до Дракона) и покупай прокрутки. Разбил мишень — получи сундук рун."],
+  const Q=[["Как получить прокрутки?","3 бесплатные каждые 4 часа (VIP — 5), +1 за серию входов, задания дня, +10 за подписку на канал, +10 за историю, +10 за каждого друга по твоей ссылке и до 5 в день за руны в Тренировочном лагере."],["Что такое Тренировочный лагерь?","Игра в игре: тапай по мишени, каждый удар тратит ⚡ энергию и приносит 💠 руны. Энергия восстанавливается сама, бот напомнит, когда она полная. За руны прокачивай силу удара, энергию, крит и оруженосца, открывай мишени сильнее (до Дракона) и покупай прокрутки. Разбил мишень — получи сундук рун. Тренирует твой самый редкий воин: редкий даёт +10% рун, эпический +25%, легендарный +50%, мифический +100%."],
    ["От чего зависит цена карточки?","От редкости воина, отделки (блестящая, голограмма, золото, ошибка печати), красивого номера (777 777, 000 001) и закалки ★."],
    ["Как усилить воина?","Бои, походы и босс дают опыт. С уровнем открывается закалка ★1–★5 во вкладке «Мои» — нажми на карточку."],
    ["Как сражаться с живыми игроками?","«Бой» → «⚡ Арена». Создай бой или прими чужой. Можно позвать друга по ссылке и биться вживую."],

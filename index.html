@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=2ef4dd76">
+<link rel="stylesheet" href="style.css?v=a5548fb2">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -16,7 +16,7 @@
   <div class="dimmer" id="dimmer"></div>
   <header>
     <div class="logo">Воины<br>Эпох<small>Серия 1, 32 карточки</small></div>
-    <div class="hdr-r"><button type="button" class="sound" id="topup" title="Тестовые прокрутки для прототипа">+3</button><button type="button" class="sound ico" id="help-go" aria-label="Помощь" title="Помощь">❓</button><button type="button" class="sound chatbtn ico" id="chat-go" aria-label="Чат" title="Чат">💬<i id="chat-dot" hidden></i></button><button type="button" class="sound ico" id="snd" aria-pressed="true" aria-label="Звук" title="Звук">🔊</button><div class="cash" id="cash-box" title="Деньги и руны"><b class="num" id="cash">$0</b><span class="cash-r" id="cash-r">💠 0</span></div></div>
+    <div class="hdr-r"><button type="button" class="sound" id="topup" title="Тестовые прокрутки для прототипа">+3</button><button type="button" class="sound ico" id="help-go" aria-label="Помощь" title="Помощь">❓</button><button type="button" class="sound chatbtn ico" id="chat-go" aria-label="Чат" title="Чат">💬<i id="chat-dot" hidden></i></button><button type="button" class="sound ico" id="snd" aria-pressed="true" aria-label="Звук" title="Звук">🔊</button><div class="cash" id="cash-box" title="Деньги и руны"><div class="cur"><i class="ci ci-c">$</i><b class="num" id="cash">0</b></div><div class="cur cur-r" id="cash-rw"><i class="ci ci-r"></i><b class="num" id="cash-r">0</b></div></div></div>
   </header>
 
   <section id="sec-spin">
@@ -220,10 +220,27 @@
   <section id="sec-camp" hidden>
     <div class="cp-top"><button type="button" class="mini2" id="cp-back">← Назад</button><b>🎯 Тренировочный лагерь</b></div>
     <div class="cp-bal"><div class="cp-ru">💠 <b class="num" id="cp-ru">0</b><small>руны</small></div><div class="cp-stat" id="cp-stat"></div></div>
-    <div class="cp-ar" id="cp-ar">
+    <div class="cp-ar" id="cp-ar" role="button" aria-label="Тапай, чтобы бить мишень">
+      <svg class="cp-bg" viewBox="0 0 360 330" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <defs><linearGradient id="cpSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1c8f"/><stop offset=".55" stop-color="#c2417a"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient>
+        <radialGradient id="cpSun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ffd23f" stop-opacity="0"/></radialGradient>
+        <linearGradient id="cpGr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8692e"/><stop offset="1" stop-color="#6b3d17"/></linearGradient></defs>
+        <rect width="360" height="330" fill="url(#cpSky)"/><circle cx="270" cy="150" r="70" fill="url(#cpSun)"/>
+        <path d="M0 190 L50 140 L95 175 L150 118 L210 172 L260 132 L310 168 L360 140 V230 H0Z" fill="#5b2a86" opacity=".75"/>
+        <path d="M0 210 L40 185 L90 205 L140 178 L200 206 L250 186 L300 204 L360 182 V240 H0Z" fill="#3d1d63" opacity=".9"/>
+        <path d="M24 205v-38h8v-8h6v8h8v-8h6v8h8v38zM38 175v-16h-4l7-12 7 12h-4v16z" fill="#2a1446"/>
+        <path d="M0 236 Q180 214 360 236 V330 H0Z" fill="url(#cpGr)"/>
+        <g stroke="#3b2210" stroke-width="5" stroke-linecap="round"><path d="M10 248v-34M60 244v-34M300 244v-34M350 248v-34"/><path d="M6 222h58M296 222h58" stroke-width="4"/><path d="M6 236h58M296 236h58" stroke-width="4"/></g>
+        <g fill="#e8b84a"><path d="M30 300l6-14 4 14zM70 312l5-12 4 12zM300 305l6-14 4 14zM250 318l5-11 4 11zM120 318l4-10 4 10z"/></g>
+        <ellipse cx="200" cy="300" rx="90" ry="14" fill="#000" opacity=".22"/>
+      </svg>
+      <i class="cp-torch" style="left:14px"></i><i class="cp-torch" style="right:14px"></i>
       <div class="cp-tname" id="cp-tname"></div>
       <div class="cp-hp"><i id="cp-hpb"></i><span id="cp-hpt"></span></div>
-      <div class="cp-tg" id="cp-tg" role="button" aria-label="Ударить мишень"></div>
+      <div class="cp-combo" id="cp-combo"></div>
+      <div class="cp-tg" id="cp-tg"></div>
+      <div class="cp-hero" id="cp-hero"><div class="cp-hpic" id="cp-hpic"></div><span id="cp-hn"></span></div>
+      <div class="cp-tip" id="cp-tip">👆 тапай по арене</div>
     </div>
     <div class="cp-en"><span>⚡</span><div class="cp-bar"><i id="cp-eb"></i></div><b class="num" id="cp-et"></b></div>
     <div class="cp-eh" id="cp-eh"></div>
@@ -257,6 +274,7 @@
 </div>
 <nav class="tabs" role="tablist"><div>
   <button type="button" role="tab" id="tab-spin" aria-selected="true">Крутить</button>
+  <button type="button" role="tab" id="tab-camp" aria-selected="false">Лагерь<i class="tdot" id="camp-dot" hidden></i></button>
   <button type="button" role="tab" id="tab-duel" aria-selected="false">Бой</button>
   <button type="button" role="tab" id="tab-album" aria-selected="false">Альбом</button>
   <button type="button" role="tab" id="tab-craft" aria-selected="false">Крафт</button>
@@ -266,7 +284,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=07f7dd6c"></script>
-<script src="game.js?v=a301ebae"></script>
+<script src="rules.js?v=814e3fcd"></script>
+<script src="game.js?v=6b458459"></script>
 </body>
 </html>
