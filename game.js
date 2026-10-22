@@ -761,11 +761,21 @@ setInterval(()=>{if(chData&&!$("chal").hidden){const l=Math.max(0,chData.left-(N
 setInterval(loadChal,30000);setTimeout(loadChal,1500);
 /* ---------- самые редкие воины на главной ---------- */
 let rareDrawn="";
+/* сколько раз воин с отделкой уже выпал в игре (сервер считает и проданные — номер всё равно был выдан) */
+const everIssued=(h,f)=>ONLINE?((S.prints||{})[h+"-"+f]||0):localCtx().issuedOf(h,f);
 function renderRare(){const g=$("rare-g");if(!g||!S)return;const own=new Set(S.cards.map(c=>c.h)),tot=HEROES.reduce((a,H)=>a+HW[H[2]],0);
   const list=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]>=3).sort((a,b)=>HEROES[b][2]-HEROES[a][2]);
-  const key=list.map(i=>own.has(i)?1:0).join("");if(key===rareDrawn)return;rareDrawn=key;
-  g.innerHTML=list.map(i=>{const H=HEROES[i],t=H[2],p=HW[t]/tot,one=Math.round(1/p);
-    return '<div class="rare-c'+(t===4?' myth':'')+'" style="--c:'+HT[t].c+'">'+(own.has(i)?'<span class="own" title="Есть у тебя">✅</span>':'')+'<div class="p">'+portrait(i,null,1)+'</div><b>'+H[0]+'</b><small>'+HT[t].k+'</small><i>1 из '+fmtN(one)+'</i></div>'}).join("")}
+  const ever=h=>ONLINE?FIN.reduce((a,F,f)=>a+((S.prints||{})[h+"-"+f]||0),0):S.cards.filter(c=>c.h===h).length;
+  const errFree=HEROES.map((H,i)=>i).filter(i=>everIssued(i,4)<1),goldLeft=list.map(i=>[i,FIN[3].run-everIssued(i,3)]);
+  const key=JSON.stringify([list.map(i=>own.has(i)?1:0),list.map(ever),errFree,goldLeft]);if(key===rareDrawn)return;rareDrawn=key;
+  g.innerHTML=list.map(i=>{const H=HEROES[i],t=H[2],p=HW[t]/tot,one=Math.round(1/p),n=ever(i);
+    return '<div class="rare-c'+(t===4?' myth':'')+'" style="--c:'+HT[t].c+'">'+(own.has(i)?'<span class="own" title="Есть у тебя">✅</span>':'')+'<div class="p">'+portrait(i,null,1)+'</div><b>'+H[0]+'</b><small>'+HT[t].k+'</small><i>1 из '+fmtN(one)+'</i>'+
+      (n?'<em class="ev">выбит '+n+' раз</em>':'<em class="ev none">🔥 никто не выбил!</em>')+'</div>'}).join("")+
+    '<div class="rare-free"><h4>🎯 Ещё ни у кого нет</h4>'+
+    '<div class="rf-row"><b>❌ Ошибка печати</b><span>одна на весь мир для каждого воина · свободно <i>'+errFree.length+' из '+NHEROES+'</i></span></div>'+
+    '<div class="rf-chips">'+errFree.filter(i=>HEROES[i][2]>=2).sort((a,b)=>HEROES[b][2]-HEROES[a][2]).map(i=>'<span style="--c:'+HT[HEROES[i][2]].c+'">'+portrait(i,null,1)+HEROES[i][0]+'</span>').join("")+'</div>'+
+    '<div class="rf-row"><b>🥇 Золотые редкие</b><span>тираж 10 на воина · осталось выпустить</span></div>'+
+    '<div class="rf-chips">'+goldLeft.map(([i,l])=>'<span style="--c:'+HT[HEROES[i][2]].c+'" class="'+(l<=0?'out':'')+'">'+portrait(i,null,1)+HEROES[i][0]+' <i>'+Math.max(0,l)+'/10</i></span>').join("")+'</div></div>'}
 $("rare-all").onclick=()=>{colView="beauty";setTab("col")};
 /* ---------- акция и VIP ---------- */
 const isVip=()=>!!S&&(S.vipUntil||0)>NOW();

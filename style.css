@@ -838,3 +838,8 @@ header{min-width:0}.logo{min-width:0}.hdr-r{gap:5px}.sound.ico{min-width:34px;pa
 .rare-c i{display:block;font-style:normal;font-family:var(--display);font-size:13px;color:var(--ink)}
 .rare-c .own{position:absolute;right:4px;top:3px;font-size:13px}
 .rare-c.myth{animation:tl2g 2s ease-in-out infinite;box-shadow:0 0 14px var(--c),2px 2px 0 var(--ink)}
+.rare-c .ev{display:block;font-style:normal;font-size:10px;font-weight:800;color:#5a5f80;margin-top:2px}.rare-c .ev.none{color:#ff3b30;animation:evp 1.4s ease-in-out infinite}@keyframes evp{50%{opacity:.55}}
+.rare-free{grid-column:1/-1;margin-top:4px;border-top:2px dashed rgba(0,0,0,.12);padding-top:8px}.rare-free h4{margin:0 0 6px;font-size:14px}
+.rf-row{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:12px;margin:6px 0 4px}.rf-row b{font-size:13px;white-space:nowrap}.rf-row span{color:#5a5f80;text-align:right}.rf-row i{font-style:normal;font-weight:900;color:#ff2e63}
+.rf-chips{display:flex;flex-wrap:wrap;gap:5px}.rf-chips span{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;padding:2px 8px 2px 2px;border-radius:14px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 15%,#fff)}
+.rf-chips span svg{width:22px;height:22px;border-radius:50%;background:#fff}.rf-chips i{font-style:normal;color:#b8860b}.rf-chips span.out{opacity:.4;text-decoration:line-through}
