@@ -629,3 +629,12 @@ body.vip .open{background:linear-gradient(135deg,#ffe48a,#ffb800)}
 .mc.win:has(.mcf) .mcf .face{box-shadow:0 0 0 4px var(--yellow),0 0 26px 6px var(--yellow)}
 .mc.win:has(.mcf) .v{background:var(--yellow);color:var(--ink)}.mc.win:has(.mcf) .v small{color:var(--ink)}
 .show3 .mc:has(.mcf) .v small{font-size:9px}
+
+.faq{gap:0;padding:4px 14px}
+.faq details{border-bottom:2px dashed #d5d9ec;padding:10px 0}.faq details:last-child{border-bottom:0}
+.faq summary{font-weight:800;font-size:14.5px;cursor:pointer;list-style:none}.faq summary::before{content:"▸ ";color:var(--red)}
+.faq details[open] summary::before{content:"▾ "}
+.faq p{margin:6px 0 0;font-size:13.5px;color:#3a3f60;line-height:1.4}
+/* шапка с четырьмя кнопками */
+header{min-width:0}.logo{min-width:0}.hdr-r{gap:5px}.sound.ico{min-width:34px;padding:6px 7px;font-size:15px}
+@media (max-width:430px){.logo small{display:none}.logo{font-size:14px}.cash small{font-size:10px}.cash b{font-size:14px}.cash{padding:5px 9px}}

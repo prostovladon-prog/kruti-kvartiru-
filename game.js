@@ -1392,6 +1392,25 @@ function closeChat(){chatOpen=false;clearInterval(chatTimer);closeModal();chatDo
 $("chat-go").onclick=openChat;
 $("modal").addEventListener("click",e=>{if(e.target===$("modal")&&chatOpen)closeChat()});
 
+/* ---------- помощь и сообщение о баге ---------- */
+const SUPPORT="voinivadmin";
+function openSupport(kind){const id=S&&S.uid?S.uid:"—",info="ID: "+id+(S&&S.nick?" ("+S.nick+")":"")+(kind==="bug"?"\nБаг: ":"\nВопрос: ");
+  try{navigator.clipboard&&navigator.clipboard.writeText(info)}catch(e){}
+  toast("Твой ID скопирован — вставь его в сообщение");const u="https://t.me/"+SUPPORT;
+  setTimeout(()=>{if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank")},700)}
+function openHelp(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  const Q=[["Как получить прокрутки?","3 бесплатные каждые 4 часа (VIP — 5), +1 за серию входов, задания дня, +10 за подписку на канал, +10 за историю и +10 за каждого друга по твоей ссылке."],
+   ["От чего зависит цена карточки?","От редкости воина, отделки (блестящая, голограмма, золото, ошибка печати), красивого номера (777 777, 000 001) и закалки ★."],
+   ["Как усилить воина?","Бои, походы и босс дают опыт. С уровнем открывается закалка ★1–★5 во вкладке «Мои» — нажми на карточку."],
+   ["Как сражаться с живыми игроками?","«Бой» → «⚡ Арена». Создай бой или прими чужой. Можно позвать друга по ссылке и биться вживую."],
+   ["Как продать карточку дороже?","«Рынок» → «Продать»: поставь свою цену, другие игроки купят. Корзина в «Моих» — быстрая продажа системе за 85% цены."],
+   ["Пропали карточки или деньги?","Напиши в поддержку и укажи свой ID — мы проверим."]];
+  sh.innerHTML='<button type="button" class="x">Закрыть</button><div class="who"><span>❓ Помощь</span><small></small></div><div class="box faq"></div><button type="button" class="craftbtn" id="hp-bug">🐞 Сообщить о баге</button><button type="button" class="linkbtn" id="hp-msg">✉️ Написать в поддержку</button>';
+  sh.querySelector(".x").onclick=closeModal;sh.querySelector(".who small").textContent="Твой ID: "+(S&&S.uid?S.uid:"—")+" · поддержка @"+SUPPORT;
+  const f=sh.querySelector(".faq");Q.forEach(([q,a])=>{const d=document.createElement("details");d.innerHTML="<summary></summary><p></p>";d.querySelector("summary").textContent=q;d.querySelector("p").textContent=a;f.appendChild(d)});
+  $("hp-bug").onclick=()=>openSupport("bug");$("hp-msg").onclick=()=>openSupport("msg")}
+$("help-go").onclick=openHelp;
+
 /* ---------- обучение для новичка ----------
    Подсвечиваем нужное место и показываем подсказку. Первый шаг ждёт, пока игрок сам откроет карточку. */
 const ONB=[
