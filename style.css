@@ -830,3 +830,11 @@ header{min-width:0}.logo{min-width:0}.hdr-r{gap:5px}.sound.ico{min-width:34px;pa
 .freecamp>span:first-child{font-size:24px}.freecamp>span:nth-child(2){flex:1;min-width:0}.freecamp b{display:block;font-size:13.5px}.freecamp small{display:block;font-size:12px;color:#5a5f80;font-weight:700}
 .freecamp i{font-style:normal;font-family:var(--display);font-size:18px}
 .freecamp.hot{animation:cpready 1.4s ease-in-out infinite;background:linear-gradient(135deg,#ffe27a,#ffb800)}
+.rarebox .rare-n{font-size:12px;color:#5a5f80;margin:2px 0 8px}
+.rare-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rare-c{position:relative;border-radius:14px;padding:6px 4px 7px;text-align:center;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--c) 40%,#fff),#fff 75%);border:2.5px solid var(--c);box-shadow:2px 2px 0 var(--ink)}
+.rare-c .p{width:64px;height:64px;margin:0 auto}.rare-c .p svg{width:100%;height:100%}
+.rare-c b{display:block;font-size:12px;line-height:1.15;margin-top:2px}.rare-c small{display:block;font-size:10.5px;font-weight:800;color:var(--c)}
+.rare-c i{display:block;font-style:normal;font-family:var(--display);font-size:13px;color:var(--ink)}
+.rare-c .own{position:absolute;right:4px;top:3px;font-size:13px}
+.rare-c.myth{animation:tl2g 2s ease-in-out infinite;box-shadow:0 0 14px var(--c),2px 2px 0 var(--ink)}

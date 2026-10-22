@@ -386,7 +386,7 @@ async function open(){
   if(busy||!S)return;
   if((S.spins??0)<=0&&!(S.refillAt&&NOW()>=S.refillAt)){toast("Прокрутки закончились. Новые через "+leftTxt());return}
   busy=true;ac();$("p-lbl").textContent="Цена карточки";
-  if(onbStep===0)onbClear();
+  if(onbStep===0&&ONBS===ONB)onbClear();
   const stg=$("stage");
   if(!reduce){flip.classList.add("back");whoosh();stg.classList.add("tease");stg.style.setProperty("--aura","#ffffff");stg.style.setProperty("--ai",.2)}
   const t0=NOW(),r=await act("open");
@@ -425,7 +425,7 @@ async function open(){
   for(let i=0;i<Math.floor(tease/160);i++)setTimeout(()=>sfx.rumble(i*(L>=2?1:.3)),i*160);
   setTimeout(reveal,tease);
 }
-$("buy-go").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
+$("buy-go").onclick=()=>openCamp();
 $("open").onclick=()=>open();$("stage").onclick=()=>open();
 $("stage").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}};
 $("sell").onclick=async()=>{if(!current||busy)return;if(!S.cards.some(x=>x.id===current.id)){toast("Эта карточка уже не у тебя");return}
@@ -657,7 +657,7 @@ function renderFree(){if(!S)return;
     $("free-camp-t").textContent=left<=0?"Сегодня куплено "+BUY_MAX+" из "+BUY_MAX+" — завтра ещё, а пока тапай руны":"Купи за руны в Тренировочном лагере: следующая за "+fmtN(pr)+" 💠 (у тебя "+fmtN(ru)+"), ещё "+left+" сегодня";
     fc.classList.toggle("hot",(S.spins??0)<=0&&left>0)}}
   const n=S.spins??0,cap=spinCap(S);$("free-n").textContent=n<=cap?n+"/"+cap:String(n);$("open-n").textContent=n>0?"осталось "+n:"через "+leftTxt();
-  const pw=cap>=5?"бесплатных прокруток":"бесплатные прокрутки";$("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся "+cap+" "+pw+(cap>SPINS_MAX?" 👑":""):"Новые "+cap+" "+(cap>=5?"прокруток":"прокрутки")+" через "+leftTxt();$("open").classList.toggle("empty",n<=0);renderPromo()}
+  const pw=cap>=5?"бесплатных прокруток":"бесплатные прокрутки";$("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся "+cap+" "+pw+(cap>SPINS_MAX?" 👑":""):"Новые "+cap+" "+(cap>=5?"прокруток":"прокрутки")+" через "+leftTxt();$("open").classList.toggle("empty",n<=0);renderPromo();renderRare()}
 /* ---------- Тренировочный лагерь ---------- */
 let cpPend=0,cpFly=0,cpBusy=false,cpHp=null,cpLastT=-1;
 const UP_IC={pw:"👊",en:"🔋",rg:"⏱",cr:"💥",sq:"🛡"};
@@ -759,6 +759,14 @@ function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if
 $("chal-go").onclick=()=>$("ref-go").click();
 setInterval(()=>{if(chData&&!$("chal").hidden){const l=Math.max(0,chData.left-(NOW()-chData._t));if(l<=0&&chData.phase!=="done"&&NOW()-chAt>5000)loadChal();else if(chData.phase!=="done")$("chal-left").textContent=(chData.phase==="soon"?"через ":"")+tleft(l)}},1000);
 setInterval(loadChal,30000);setTimeout(loadChal,1500);
+/* ---------- самые редкие воины на главной ---------- */
+let rareDrawn="";
+function renderRare(){const g=$("rare-g");if(!g||!S)return;const own=new Set(S.cards.map(c=>c.h)),tot=HEROES.reduce((a,H)=>a+HW[H[2]],0);
+  const list=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]>=3).sort((a,b)=>HEROES[b][2]-HEROES[a][2]);
+  const key=list.map(i=>own.has(i)?1:0).join("");if(key===rareDrawn)return;rareDrawn=key;
+  g.innerHTML=list.map(i=>{const H=HEROES[i],t=H[2],p=HW[t]/tot,one=Math.round(1/p);
+    return '<div class="rare-c'+(t===4?' myth':'')+'" style="--c:'+HT[t].c+'">'+(own.has(i)?'<span class="own" title="Есть у тебя">✅</span>':'')+'<div class="p">'+portrait(i,null,1)+'</div><b>'+H[0]+'</b><small>'+HT[t].k+'</small><i>1 из '+fmtN(one)+'</i></div>'}).join("")}
+$("rare-all").onclick=()=>{colView="beauty";setTab("col")};
 /* ---------- акция и VIP ---------- */
 const isVip=()=>!!S&&(S.vipUntil||0)>NOW();
 function renderPromo(){if(!S)return;const P=S.promo,box=$("promo");
@@ -1496,7 +1504,7 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 function setTab(t){if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
-$("cash-rw").onclick=()=>openCamp();
+$("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
 function renderAll(){if(!S)return;updCash();if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
@@ -1608,25 +1616,35 @@ $("help-go").onclick=openHelp;
 /* ---------- обучение для новичка ----------
    Подсвечиваем нужное место и показываем подсказку. Первый шаг ждёт, пока игрок сам откроет карточку. */
 const ONB=[
-  {el:"open",t:"Привет, воин! ⚔️ Жми «Открыть» или просто тапни по карточке: выпадет случайный воин. На старте у тебя 5 бесплатных прокруток.",wait:true},
-  {el:"stage",t:"Это твоя первая карточка! Цена зависит от трёх вещей: редкости воина, отделки (блестящая, голограмма, золото, ошибка печати) и номера. Красивые номера вроде 777 777 стоят в разы дороже."},
-  {el:"free-box",t:"Каждые 4 часа даётся 3 бесплатные прокрутки. Заходи почаще, чтобы не терять их."},
-  {el:"bonus",t:"Здесь бесплатные прокрутки сверху: +10 за подписку на канал, +10 за историю и +10 за каждого друга."},
-  {el:"tabs",t:"Внизу всё остальное: «Бой» с дуэлями и боссом, «Альбом», «Крафт», «Рынок» с настоящими игроками, «Мои» с закалкой карточек и «Топ» мира. Удачи! 🍀"}];
-let onbStep=-1;
-function startOnb(){let done=null;try{done=localStorage.getItem("we-onb")}catch(e){}if(done||!S||S.cards.length)return false;onbStep=0;showOnb();return true}
-function onbEnd(){onbClear();onbStep=-1;try{localStorage.setItem("we-onb","1")}catch(e){}setTimeout(askNick,400)}
+  {el:"open",t:"Привет, воин! ⚔️ Жми «Открыть» или тапни по карточке — выпадет случайный воин. На старте у тебя 5 бесплатных прокруток.",wait:true},
+  {el:"stage",t:"Цена карточки зависит от редкости воина, отделки (блестящая, голограмма, золото, ошибка печати) и номера. Красивые номера вроде 777 777 стоят в разы дороже."},
+  {el:"free-box",t:"Каждые 4 часа — 3 бесплатные прокрутки. Ещё: +10 за подписку на канал и +10 за каждого друга."},
+  {el:"tab-camp",t:"🎯 Лагерь — игра в игре: тапай по мишени, копи руны 💠, прокачивайся и покупай за руны прокрутки."},
+  {el:"cash-box",t:"Сверху твои деньги 🪙 и руны 💠."},
+  {el:"rare-box",t:"💎 А вот за кем охотиться: самые редкие воины и шанс их выбить."},
+  {el:"tabs",t:"Внизу остальное: бои и арена с друзьями, альбом, крафт, рынок, «Мои» с витриной редкостей и топ мира. Удачи! 🍀"}];
+/* «Что нового» для тех, кто уже играл: коротко про новые функции, один раз */
+const ONB_NEW=[
+  {el:"tab-camp",t:"Новое! 🎯 Лагерь — тапай по мишени, копи руны 💠 и прокачивайся. Чем реже твой лучший воин, тем больше рун."},
+  {el:"free-camp",t:"Прокрутки теперь покупаются за руны в Лагере — до 5 в день."},
+  {el:"cash-box",t:"Руны 💠 видны сверху рядом с деньгами. Нажми на них — откроется Лагерь."},
+  {el:"rare-box",t:"💎 Здесь самые редкие воины игры и шанс их выбить. Сёгун и Мерлин — 1 на ~2500 прокруток!"},
+  {el:"tab-col",t:"В «Мои» — сортировка, витрина всех видов карточек и слияние. Удачи! 🍀"}];
+let onbStep=-1,ONBS=ONB,ONBK="we-onb";
+function startOnb(){let done=null;try{done=localStorage.getItem("we-onb")}catch(e){}if(done||!S||S.cards.length)return false;ONBS=ONB;ONBK="we-onb";onbStep=0;showOnb();return true}
+function startWhatsNew(){let done=null;try{done=localStorage.getItem("we-new1")}catch(e){}if(done||!S)return false;ONBS=ONB_NEW;ONBK="we-new1";onbStep=0;showOnb();return true}
+function onbEnd(){onbClear();onbStep=-1;try{localStorage.setItem(ONBK,"1");localStorage.setItem("we-new1","1")}catch(e){}if(ONBK==="we-onb")setTimeout(askNick,400)}
 function onbClear(){document.querySelectorAll(".onb-hl").forEach(e=>e.classList.remove("onb-hl"));const b=$("onb");if(b)b.remove()}
-function showOnb(){onbClear();const st=ONB[onbStep];if(!st){onbEnd();return}
-  const el=st.el==="tabs"?document.querySelector("nav.tabs"):$(st.el);if(!el){onbStep++;showOnb();return}
-  if(st.el!=="tabs")el.scrollIntoView({block:"center",behavior:reduce?"auto":"smooth"});
+function showOnb(){onbClear();const st=ONBS[onbStep];if(!st){onbEnd();return}
+  const el=st.el==="tabs"?document.querySelector("nav.tabs"):$(st.el);if(!el||el.hidden){onbStep++;showOnb();return}
+  if(el.closest("header"))scrollTo({top:0,behavior:reduce?"auto":"smooth"});else if(st.el!=="tabs"&&!el.closest("nav"))el.scrollIntoView({block:"center",behavior:reduce?"auto":"smooth"});
   setTimeout(()=>{el.classList.add("onb-hl");const r=el.getBoundingClientRect(),b=document.createElement("div");b.id="onb";b.className="onb";
-    b.innerHTML=`<div class="onb-n">${onbStep+1} из ${ONB.length}</div><p></p><div class="onb-b">${st.wait?"":`<button type="button" class="mini2" id="onb-next">${onbStep===ONB.length-1?"Играть!":"Дальше"}</button>`}<button type="button" class="ghost" id="onb-skip">Пропустить</button></div>`;
+    b.innerHTML=`<div class="onb-n">${ONBS===ONB_NEW?"Что нового · ":""}${onbStep+1} из ${ONBS.length}</div><p></p><div class="onb-b">${st.wait?"":`<button type="button" class="mini2" id="onb-next">${onbStep===ONBS.length-1?"Играть!":"Дальше"}</button>`}<button type="button" class="ghost" id="onb-skip">Пропустить</button></div>`;
     b.querySelector("p").textContent=st.t;document.body.appendChild(b);
     const h=b.offsetHeight,below=r.bottom+14+h<innerHeight-10;b.style.top=(below?r.bottom+14:Math.max(10,r.top-14-h))+"px";b.classList.add(below?"down":"up");
     if($("onb-next"))$("onb-next").onclick=()=>{onbStep++;showOnb()};$("onb-skip").onclick=onbEnd},reduce?0:350)}
 /* первый шаг: после открытия первой карточки идём дальше */
-function onbOpened(){if(onbStep===0){onbClear();setTimeout(()=>{onbStep=1;showOnb()},1600)}}
+function onbOpened(){if(onbStep===0&&ONBS===ONB){onbClear();setTimeout(()=>{onbStep=1;showOnb()},1600)}}
 
 /* ---------- запуск ---------- */
 const sample={id:0,h:19,f:2,no:37,sn:"123321",hue:0,v:1236,stats:[331,352,296,348,361]};
@@ -1639,6 +1657,6 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   renderAll();handleStart();
   if(new URLSearchParams(location.search).get("camp"))setTimeout(()=>{try{openCamp()}catch(e){}},600);
   const fromLink=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param);
-  if(!fromLink)setTimeout(()=>{if(!startOnb())askNick()},600);
+  if(!fromLink)setTimeout(()=>{if(!startOnb()&&!(S.cards.length&&startWhatsNew()))askNick()},600);
 })();
 
