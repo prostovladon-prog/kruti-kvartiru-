@@ -768,3 +768,27 @@ header{min-width:0}.logo{min-width:0}.hdr-r{gap:5px}.sound.ico{min-width:34px;pa
 .cp-stat b{color:#fff}
 .bc-photo{width:100%;margin:6px 0;padding:9px 10px;border:2px solid var(--ink);border-radius:10px;font-size:13px;box-sizing:border-box}
 .ntc{white-space:pre-line;font-size:14px;line-height:1.45}
+/* ---------- «Ошибка печати»: живой глитч ----------
+   Большую часть времени карточка спокойная, а каждые ~3 секунды «сбоит»: сдвиг цветов, рваные полосы, дрожь. */
+.front.error .hero{animation:errRGB 3.4s steps(1) infinite}
+@keyframes errRGB{0%,100%{filter:drop-shadow(-5px 0 0 rgba(255,0,80,.75)) drop-shadow(5px 0 0 rgba(0,200,255,.75));transform:none}
+  62%{filter:drop-shadow(-11px 0 0 rgba(255,0,80,.9)) drop-shadow(11px 0 0 rgba(0,200,255,.9));transform:translate(4px,-1px) skewX(-6deg)}
+  64%{filter:drop-shadow(8px 0 0 rgba(255,0,80,.9)) drop-shadow(-8px 0 0 rgba(0,255,170,.9)) hue-rotate(90deg);transform:translate(-5px,1px)}
+  66%{filter:drop-shadow(-5px 0 0 rgba(255,0,80,.75)) drop-shadow(5px 0 0 rgba(0,200,255,.75));transform:none}
+  86%{filter:drop-shadow(-14px 0 0 rgba(255,0,80,.9)) drop-shadow(14px 0 0 rgba(0,200,255,.9)) saturate(2);transform:translate(3px,0) scaleY(1.03)}
+  87%{filter:drop-shadow(-5px 0 0 rgba(255,0,80,.75)) drop-shadow(5px 0 0 rgba(0,200,255,.75));transform:none}}
+.front.error .in::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:6;mix-blend-mode:screen;
+  background:linear-gradient(transparent 0 30%,rgba(255,46,99,.55) 30% 33%,transparent 33% 58%,rgba(0,210,255,.5) 58% 60%,transparent 60% 81%,rgba(255,255,255,.6) 81% 82%,transparent 82%);
+  opacity:0;animation:errBars 3.4s steps(1) infinite}
+@keyframes errBars{0%,100%{opacity:0;transform:none}62%{opacity:1;transform:translateX(-8px)}64%{opacity:1;transform:translate(10px,-14px) scaleY(.7)}66%{opacity:0}
+  86%{opacity:.9;transform:translate(6px,22px)}87%{opacity:0}}
+.front.error .in::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.06) 0 1px,transparent 1px 3px);animation:errScan 7s linear infinite}
+@keyframes errScan{to{background-position:0 120px}}
+.front.error .top b{animation:errTxt 3.4s steps(1) infinite}
+@keyframes errTxt{0%,100%{text-shadow:-2px 0 #ff2e63,2px 0 #00d2ff;transform:none}62%{text-shadow:-5px 0 #ff2e63,5px 0 #00d2ff;transform:translateX(3px)}64%{text-shadow:4px 0 #ff2e63,-4px 0 #00ffaa;transform:translateX(-4px)}66%{text-shadow:-2px 0 #ff2e63,2px 0 #00d2ff;transform:none}}
+.front.error .stats{animation:errShift 3.4s steps(1) infinite}
+@keyframes errShift{0%,100%{transform:translateX(3px)}63%{transform:translateX(-6px)}65%{transform:translateX(3px)}86%{transform:translateX(9px)}87%{transform:translateX(3px)}}
+.front.error .in{animation:errJit 3.4s steps(1) infinite}
+@keyframes errJit{0%,100%{transform:rotate(-1.2deg) translate(2px,1px)}62%{transform:rotate(-1.2deg) translate(-2px,1px)}64%{transform:rotate(-.6deg) translate(4px,-1px)}66%{transform:rotate(-1.2deg) translate(2px,1px)}}
+@media (prefers-reduced-motion:reduce){.front.error .hero,.front.error .in,.front.error .in::after,.front.error .in::before,.front.error .top b,.front.error .stats{animation:none}}
