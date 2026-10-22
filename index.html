@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=5f949dd6">
+<link rel="stylesheet" href="style.css?v=e2f21fe0">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -164,33 +164,37 @@
     </div>
   </section>
   <section id="sec-craft" hidden>
-    <div class="box">
-      <div class="tgtinfo"><span class="step">1. Что хочешь получить</span><b class="num" id="cr-tv">$0</b></div>
-      <p class="crintro">Отдай карточки и крути колесо. Не повезёт — отданные сгорят.</p>
+    <div class="kz"><i class="gm g1"></i><i class="gm g2"></i><i class="gm g3"></i><i class="gm g4"></i><div class="kz-in"><div class="fembers" aria-hidden="true"></div>
+      <div class="fhd">⚒ 1. Что выковать <small>цена цели <b class="num" id="cr-tv">$0</b></small></div>
+      <div class="fprev"><div class="fcard" id="cr-prev"></div><div><b class="fname" id="cr-tname"></b><p class="fdesc" id="cr-tdesc"></p><div class="frun" id="cr-trun"></div></div></div>
       <div class="fins" id="cr-fins"></div>
       <div class="tgrid" id="cr-tgt"></div>
-      <div class="tgtinfo"><span id="cr-tname"></span><span id="cr-trun"></span></div>
-    </div>
-    <div class="box">
-      <div class="tgtinfo"><span class="step">2. Что отдаёшь</span><b class="num" id="cr-sum">$0</b></div>
-      <p id="cr-hint">Выбери от 1 до 5 карточек из коллекции.</p>
+      <p class="crintro">Отдай карточки в горн и крути. Не повезёт — отданные сгорят.</p>
+    </div></div>
+    <div class="kz"><i class="gm g1"></i><i class="gm g2"></i><i class="gm g3"></i><i class="gm g4"></i><div class="kz-in">
+      <div class="fhd">🔥 2. В горн <small><span id="cr-hint">от 1 до 5 карточек</span> · <b class="num" id="cr-sum">$0</b></small></div>
+      <div class="fslots" id="cr-slots"></div>
+      <div class="fsub">Твоя коллекция — нажми, чтобы положить в горн</div>
       <div class="pickrow" id="cr-pick"></div>
-    </div>
-    <div class="wheelbox">
-      <div class="formula"><span>Отдаёшь</span><b class="num" id="cr-f1">$0</b><span class="ar">→</span><span>Получаешь</span><b class="num" id="cr-f2">$0</b></div>
+    </div></div>
+    <div class="kz"><i class="gm g1"></i><i class="gm g2"></i><i class="gm g3"></i><i class="gm g4"></i><div class="kz-in wheelbox">
+      <div class="formula"><span>Отдаёшь</span><b class="num" id="cr-f1">$0</b><span class="ar">➜</span><span>Получаешь</span><b class="num" id="cr-f2">$0</b></div>
       <div class="wheel">
         <svg viewBox="0 0 200 200" aria-hidden="true">
-          <circle cx="100" cy="100" r="92" fill="#ff3b30" stroke="#0d1030" stroke-width="6"/>
-          <path id="cr-arc" fill="#34c759" stroke="#0d1030" stroke-width="3"/>
+          <defs><linearGradient id="crFire" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".45" stop-color="#ff9f0a"/><stop offset="1" stop-color="#ff2e1f"/></linearGradient>
+          <radialGradient id="crBase"><stop offset=".55" stop-color="#1a0806"/><stop offset="1" stop-color="#3a1206"/></radialGradient></defs>
+          <circle cx="100" cy="100" r="96" fill="#07040f"/>
+          <circle cx="100" cy="100" r="92" fill="url(#crBase)" stroke="#5a2410" stroke-width="3"/>
+          <path id="cr-arc" fill="url(#crFire)" stroke="#07040f" stroke-width="2"/>
           <g id="cr-ticks"></g>
         </svg>
-        <div class="needle" id="cr-needle"><svg viewBox="0 0 200 200"><path d="M100 100 L93 96 L100 8 L107 96 Z" fill="#ffd60a" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/></svg></div>
-        <div class="chance"><div><span><b class="num" id="cr-p">0%</b><small>шанс</small></span></div></div>
+        <div class="needle" id="cr-needle"><svg viewBox="0 0 200 200"><path d="M100 100 L92 95 L100 6 L108 95 Z" fill="#fff6c8" stroke="#07040f" stroke-width="4" stroke-linejoin="round"/></svg></div>
+        <div class="chance"><div><span><i class="anv">⚒</i><b class="num" id="cr-p">0%</b><small>шанс</small></span></div></div>
       </div>
       <label class="chk"><input type="checkbox" id="cr-amu"> <span id="cr-amu-t">Амулет удачи: +10% к шансу</span></label>
-      <button type="button" class="craftbtn" id="cr-go">Крутить колесо</button>
+      <button type="button" class="craftbtn fgo" id="cr-go">🔥 Ковать</button>
       <div class="result" id="cr-res" aria-live="polite"></div>
-    </div>
+    </div></div>
   </section>
   <section id="sec-shop" hidden>
     <div class="seg" id="sh-seg"><button type="button" data-v="buy" aria-pressed="true">Купить</button><button type="button" data-v="sell" aria-pressed="false">Продать</button><button type="button" data-v="lavka" aria-pressed="false">Лавка</button></div>
@@ -293,6 +297,6 @@
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
 <script src="rules.js?v=62aca3e9"></script>
-<script src="game.js?v=62fa7c91"></script>
+<script src="game.js?v=24943501"></script>
 </body>
 </html>

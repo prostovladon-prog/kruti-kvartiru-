@@ -598,7 +598,7 @@ function renderCraft(){
     b.onclick=()=>{if(crBusy)return;crLast=null;if(crSel.has(c.id))crSel.delete(c.id);else{if(crSel.size>=5){toast("Можно отдать максимум 5 карточек");return}crSel.add(c.id)}renderCraft()};
     pk.appendChild(b)});
   $("cr-sum").textContent=fmt(crSum());
-  $("cr-hint").textContent=crSel.size?"Выбрано "+crSel.size+" из 5":"Выбери от 1 до 5 карточек из коллекции.";
+  $("cr-hint").textContent=crSel.size?"в горне "+crSel.size+" из 5":"от 1 до 5 карточек";
   // target finishes
   const fb=$("cr-fins");fb.innerHTML="";
   FIN.forEach((F,i)=>{if(F.excl)return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
@@ -609,7 +609,15 @@ function renderCraft(){
     b.onclick=()=>{if(crBusy)return;crH=i;renderCraft()};tg.appendChild(b)});
   const sel=tg.querySelector('[aria-pressed="true"]');if(sel&&!tg.dataset.scrolled){tg.dataset.scrolled="1";requestAnimationFrame(()=>{tg.scrollLeft=sel.offsetLeft-tg.clientWidth/2+sel.clientWidth/2})}
   const F=FIN[crF],left=F.run===Infinity?Infinity:F.run-issuedOfUI(crH,crF);
-  $("cr-tname").innerHTML="";const nb=document.createElement("b");nb.textContent=HEROES[crH][0]+", "+F.k.toLowerCase();$("cr-tname").appendChild(nb);
+  $("cr-tname").textContent=HEROES[crH][0];
+  $("cr-tdesc").textContent=F.k+(F.run===Infinity?" — без ограничений.":" — тираж всего "+F.run+(F.run===1?", одна на весь мир.":" на воина."))+" Цена ×"+F.m+".";
+  // большая карточка-цель в новом дизайне (одна и та же, пока не сменишь цель)
+  const pk2=crH+"-"+crF;if($("cr-prev").dataset.k!==pk2){$("cr-prev").dataset.k=pk2;let c;try{c=makeCard({issuedOf:()=>0,nextNo:()=>Math.max(1,(F.run===Infinity?1:F.run-left+1)),snFree:()=>true,takeSn:()=>{},newId:()=>"prev",now:NOW(),events:[]},crH,crF)}catch(e){c={h:crH,f:crF,no:1,sn:"482913",hue:0,v:0,stats:[300,300,300,300,300],xp:0,wins:0,stars:0}}c.v=targetPrice(crH,crF);$("cr-prev").innerHTML=miniSlot(c)}
+  // слоты горна
+  const sl=$("cr-slots"),selC=[...crSel].map(id=>S.cards.find(c=>c.id===id)).filter(Boolean);sl.innerHTML="";
+  for(let i=0;i<5;i++){const c=selC[i],d=document.createElement("button");d.type="button";d.className="fslot"+(c?" f":"");
+    if(c){d.innerHTML=miniSlot(c);d.setAttribute("aria-label","Убрать "+HEROES[c.h][0]+" из горна");d.onclick=()=>{if(crBusy)return;crSel.delete(c.id);crLast=null;renderCraft()}}else{d.textContent="+";d.disabled=true}
+    sl.appendChild(d)}
   const mineT=S.cards.some(c=>c.h===crH&&c.f===crF);
   $("cr-trun").textContent=left===Infinity?HT[HEROES[crH][2]].k:(left>0?"осталось "+left+" из "+F.run:mineT?"единственная уже у тебя":"все "+F.run+" уже у игроков");
   const tv=targetPrice(crH,crF);$("cr-tv").textContent=fmt(tv);
@@ -620,7 +628,7 @@ function renderCraft(){
   $("cr-p").textContent=(p*100<1&&p>0?"<1":Math.round(p*100))+"%";
   $("cr-amu-t").textContent="Амулет удачи: +10% к шансу за "+fmt(amuCost(crH,crF));
   const go=$("cr-go");go.disabled=crBusy||!crSel.size||left<=0||crChance()<=0;
-  go.textContent=left<=0?(mineT&&F.run===1?"Эта карточка уже у тебя":"Все "+F.run+" уже выпали"):!crSel.size?"Выбери карточки":"Крутить колесо, шанс "+$("cr-p").textContent;
+  go.textContent=left<=0?(mineT&&F.run===1?"Эта карточка уже у тебя":"Все "+F.run+" уже выпали"):!crSel.size?"Положи карточки в горн":"🔥 Ковать · шанс "+$("cr-p").textContent;
   if(!crBusy&&crSel.size&&HOUSE*crSum()/tv>PMAX)$("cr-res").textContent="Больше 80% шанса не бывает. Выбери цель подороже или отдай меньше.";
   else if(!crBusy)$("cr-res").textContent="";
   $("cr-res").className="result";
@@ -666,7 +674,8 @@ $("cr-go").onclick=async()=>{
   },reduce?50:4300);
 };
 
-(function ticks(){let t="";for(let i=0;i<20;i++){const a=i/20*2*Math.PI;t+=`<line x1="${100+80*Math.sin(a)}" y1="${100-80*Math.cos(a)}" x2="${100+88*Math.sin(a)}" y2="${100-88*Math.cos(a)}" stroke="#fff" stroke-width="2" opacity=".6"/>`}$("cr-ticks").innerHTML=t})();
+(function ticks(){let t="";for(let i=0;i<24;i++){const a=i/24*2*Math.PI;t+=`<line x1="${100+82*Math.sin(a)}" y1="${100-82*Math.cos(a)}" x2="${100+90*Math.sin(a)}" y2="${100-90*Math.cos(a)}" stroke="#ffb38a" stroke-width="2" opacity=".45"/>`}$("cr-ticks").innerHTML=t;
+  let e="";for(let i=0;i<16;i++)e+=`<i style="left:${(i*37)%100}%;--d:${2.4+(i%5)*.6}s;--dl:-${((i*.53)%3).toFixed(2)}s;--dx:${((i*29)%40)-20}px"></i>`;document.querySelector("#sec-craft .fembers").innerHTML=e})();
 /* ---------- прокрутки + задания дня ---------- */
 function renderTasks(){const box=$("tasks");if(!box||!S)return;const D=day(S,NOW());box.innerHTML="";
   TASKS.forEach((T,i)=>{const v=Math.min(D[T.k],T.n),done=v>=T.n,got=D.got.includes(i),el=document.createElement("div");el.className="task";
