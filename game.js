@@ -425,7 +425,7 @@ async function open(){
   for(let i=0;i<Math.floor(tease/160);i++)setTimeout(()=>sfx.rumble(i*(L>=2?1:.3)),i*160);
   setTimeout(reveal,tease);
 }
-$("buy-go").onclick=()=>openCamp();
+$("buy-go").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
 $("open").onclick=()=>open();$("stage").onclick=()=>open();
 $("stage").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}};
 $("sell").onclick=async()=>{if(!current||busy)return;if(!S.cards.some(x=>x.id===current.id)){toast("Эта карточка уже не у тебя");return}
@@ -653,6 +653,9 @@ function renderFree(){if(!S)return;
   const bb=$("buy-go");if(bb){bb.hidden=false;const V=campView();
     bb.innerHTML="<span class=\"cpe-ic\">🎯</span><span class=\"cpe-t\"><b>Тренировочный лагерь</b><small>⚡ "+Math.floor(V.en)+"/"+V.mx+" · 💠 "+fmtN(V.runes)+" рун"+(V.sq>0?" · 🛡 +"+fmtN(V.sq):"")+"</small></span><span class=\"cpe-go\">Тапать</span>";
     bb.classList.toggle("ready",V.en>=V.mx*.99)}
+  {const fc=$("free-camp");if(fc){const left=BUY_MAX-spinsBought(S,NOW()),pr=spinPrice(S,NOW()),ru=campView().runes;
+    $("free-camp-t").textContent=left<=0?"Сегодня куплено "+BUY_MAX+" из "+BUY_MAX+" — завтра ещё, а пока тапай руны":"Купи за руны в Тренировочном лагере: следующая за "+fmtN(pr)+" 💠 (у тебя "+fmtN(ru)+"), ещё "+left+" сегодня";
+    fc.classList.toggle("hot",(S.spins??0)<=0&&left>0)}}
   const n=S.spins??0,cap=spinCap(S);$("free-n").textContent=n<=cap?n+"/"+cap:String(n);$("open-n").textContent=n>0?"осталось "+n:"через "+leftTxt();
   const pw=cap>=5?"бесплатных прокруток":"бесплатные прокрутки";$("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся "+cap+" "+pw+(cap>SPINS_MAX?" 👑":""):"Новые "+cap+" "+(cap>=5?"прокруток":"прокрутки")+" через "+leftTxt();$("open").classList.toggle("empty",n<=0);renderPromo()}
 /* ---------- Тренировочный лагерь ---------- */

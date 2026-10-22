@@ -825,3 +825,8 @@ header{min-width:0}.logo{min-width:0}.hdr-r{gap:5px}.sound.ico{min-width:34px;pa
 .bbx{background:var(--paper);border:3px solid var(--ink);border-radius:16px;box-shadow:3px 3px 0 var(--ink);padding:8px 6px;color:var(--ink)}
 .bsr{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.bsr>div{text-align:center;font-size:10px;font-weight:800;text-shadow:1px 1px 0 rgba(13,16,48,.35)}.bsr .ms{margin-bottom:4px}
 .bnm{display:grid;grid-template-columns:1fr auto auto;gap:8px;font-size:13px;font-weight:700;padding:6px 8px;border-bottom:1px dashed rgba(0,0,0,.15)}.bnm:last-child{border-bottom:0}.bnm span:nth-child(2){font-family:var(--display);color:#0a84ff}.bnm span:last-child{color:#34c759}
+#free-box{display:block}.free-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.freecamp{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;padding:9px 12px;border-radius:12px;border:2.5px solid var(--ink);background:linear-gradient(135deg,#fff8d6,#ffe27a);box-shadow:2px 2px 0 var(--ink);text-align:left;color:var(--ink)}
+.freecamp>span:first-child{font-size:24px}.freecamp>span:nth-child(2){flex:1;min-width:0}.freecamp b{display:block;font-size:13.5px}.freecamp small{display:block;font-size:12px;color:#5a5f80;font-weight:700}
+.freecamp i{font-style:normal;font-family:var(--display);font-size:18px}
+.freecamp.hot{animation:cpready 1.4s ease-in-out infinite;background:linear-gradient(135deg,#ffe27a,#ffb800)}
