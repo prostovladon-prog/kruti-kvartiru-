@@ -627,11 +627,12 @@ async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=
 function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
   const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
   $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
-  $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinivadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":"Зови друзей до "+hm(C.end)+": топ-3 получают подарки Telegram или звёзды ⭐";
+  $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinivadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
   $("chal-p").innerHTML=C.prizes.map((p,k)=>`<div>${["🥇","🥈","🥉"][k]}<b>${p}</b>подарок</div>`).join("");
   const M=C.me;$("chal-me").innerHTML="";const mb=document.createElement("div");
   mb.textContent=C.phase==="soon"?"Подготовь список друзей — счёт начнётся в "+hm(C.start):M.place?"Ты на "+M.place+" месте · "+M.n+" "+plural(M.n,"друг","друга","друзей"):"У тебя пока 0 — пригласи первого друга!";
-  const sm=document.createElement("small");sm.textContent="Твои друзья: "+M.d+" · друзья твоих друзей: "+M.l2;$("chal-me").append(mb);if(C.phase!=="soon")$("chal-me").append(sm);
+  const lead=C.top[0],gap=lead&&!lead.me?lead.n-M.n+1:0;
+  const sm=document.createElement("small");sm.textContent=(C.phase==="on"&&gap>0?"До 1 места: ещё "+gap+" "+plural(gap,"друг","друга","друзей")+" · ":"")+"твои друзья: "+M.d+" · друзья друзей: "+M.l2;$("chal-me").append(mb);if(C.phase!=="soon")$("chal-me").append(sm);
   const T=$("chal-top");T.innerHTML="";
   if(!C.top.length&&C.phase!=="soon"){T.innerHTML='<div class="empty">Пока никого — первое место свободно!</div>'}
   for(const r of C.top){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";
@@ -1111,7 +1112,7 @@ function renderBonus(){if(!S)return;
   const sb=$("sub-go"),st=$("sub-t");
   $("sub-row").hidden=!!S.subGot2;   // подписался: строка больше не мешает
   if(!S.subGot2){sb.disabled=false;sb.textContent=subStep?"Проверить подписку":"Подписаться";st.textContent=subStep?"Подписался? Нажми «Проверить подписку», и получишь +10 прокруток":"@"+CHANNEL+": новости, события и розыгрыши. За подписку +10 прокруток"}
-  $("ref-t").textContent=ONLINE?"+10 прокруток за каждого друга, который зайдёт по твоей ссылке. Приглашено: "+(S.refs||0)+", получено "+(S.refs||0)*10+" прокруток":"+10 прокруток за каждого друга. Работает в игре через бота @VoinyEpohBot"}
+  $("ref-t").textContent=ONLINE?(chData&&chData.x2?"🔥 Сегодня ×2: +20":"+10")+" прокруток за каждого друга, который зайдёт по твоей ссылке. Приглашено: "+(S.refs||0)+", получено "+(S.refs||0)*10+" прокруток":"+10 прокруток за каждого друга. Работает в игре через бота @VoinyEpohBot"}
 $("sub-go").onclick=async()=>{
   if(!subStep){subStep=1;const u="https://t.me/"+CHANNEL;if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank");renderBonus();return}
   const r=await act("sub_check");if(!r){renderBonus();return}sfx.coin();hapN("success");burst(2);renderAll();toast("Спасибо за подписку! +10 прокруток")};

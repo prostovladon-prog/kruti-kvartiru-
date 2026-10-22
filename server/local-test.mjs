@@ -27,6 +27,8 @@ const DB = {
   async batch(list) { db.exec("BEGIN"); try { const out = list.map(s => s._exec()); db.exec("COMMIT"); return out; } catch (e) { db.exec("ROLLBACK"); throw e; } }
 };
 const env = { DB, DEV: "1", TEST: "1", BOT_TOKEN: "123:TEST" };
+// челлендж по умолчанию выключен, чтобы тесты не зависели от текущей даты
+db.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)"); db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES('chal',?)").run(JSON.stringify({ id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] }));
 
 async function call(uid, a, p = {}, start = "") {
   const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), env);
@@ -458,13 +460,15 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   await cc(6001, "sync");
   await cc(6002, "sync", {}, "r_6001"); for (let i = 0; i < 3; i++) await cc(6002, "open");
   await cc(6003, "sync", {}, "r_6002"); for (let i = 0; i < 3; i++) await cc(6003, "open");
-  await cc(6004, "sync", {}, "r_6001"); await cc(6004, "open");
+  const g0 = (await cc(6001, "sync")).S.spins;
+  r = await cc(6004, "sync", {}, "r_6001"); const o4 = await cc(6004, "open"); ok(o4.ok && o4.res.card.h >= 19, "во время челленджа другу выпадает гарантированная эпическая");
+  const g1 = (await cc(6001, "sync")).S.spins; ok(g1 - g0 === 20, "пригласившему ×2: +20 прокруток (" + (g1 - g0) + ")");
   r = await cc(6001, "chal_get"); ok(r.ok && r.res.phase === "on" && r.res.me.n === 2 && r.res.me.d === 1 && r.res.me.l2 === 1 && r.res.me.place === 1, "друг + друг друга = 2 очка, пустой аккаунт не считается (" + JSON.stringify(r.res && r.res.me) + ")");
   r = await cc(6002, "chal_get"); ok(r.res.me.n === 1 && r.res.me.place === 2, "друг на 2 месте с 1 очком");
   await cc(8, "chal_set", { cfg: { id: "t1", start: now - 36e5, end: Date.now() - 1, prizes: ["$20", "$10", "$7"], slots: [] } });
   await worker.tick(envC); await worker.tick(envC);
   r = await cc(6001, "chal_get"); ok(r.res.phase === "done" && r.res.top[0].n === 2 && r.res.top[0].me === 1, "итоги зафиксированы");
-  await cc(8, "chal_set", { cfg: null });
+  await cc(8, "chal_set", { cfg: { id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] } });
 }
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
