@@ -741,7 +741,7 @@ async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=
 function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
   const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
   $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
-  $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinivadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
+  $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinovadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
   $("chal-p").innerHTML=C.prizes.map((p,k)=>`<div>${["🥇","🥈","🥉"][k]}<b>${p}</b>подарок</div>`).join("");
   const M=C.me;$("chal-me").innerHTML="";const mb=document.createElement("div");
   mb.textContent=C.phase==="soon"?"Подготовь список друзей — счёт начнётся в "+hm(C.start):M.place?"Ты на "+M.place+" месте · "+M.n+" "+plural(M.n,"друг","друга","друзей"):"У тебя пока 0 — пригласи первого друга!";
@@ -752,7 +752,7 @@ function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if
   for(const r of C.top){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";
     d.children[0].textContent=r.place<=3?["🥇","🥈","🥉"][r.place-1]:r.place;d.children[1].textContent=(r.vip?"👑 ":"")+r.name;d.children[2].textContent=r.n;T.append(d)}
   $("chal-go").hidden=C.phase!=="on";
-  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Если твой друг пригласит своего друга, он засчитывается и другу, и тебе. При равном счёте выше тот, кто набрал его раньше. Время — минское. Призы выдаёт @voinivadmin: подарок Telegram или звёзды на ту же сумму. Накрутка ботами и пустыми аккаунтами = снятие с челленджа."}
+  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Если твой друг пригласит своего друга, он засчитывается и другу, и тебе. При равном счёте выше тот, кто набрал его раньше. Время — минское. Призы выдаёт @voinovadmin: подарок Telegram или звёзды на ту же сумму. Накрутка ботами и пустыми аккаунтами = снятие с челленджа."}
 $("chal-go").onclick=()=>$("ref-go").click();
 setInterval(()=>{if(chData&&!$("chal").hidden){const l=Math.max(0,chData.left-(NOW()-chData._t));if(l<=0&&chData.phase!=="done"&&NOW()-chAt>5000)loadChal();else if(chData.phase!=="done")$("chal-left").textContent=(chData.phase==="soon"?"через ":"")+tleft(l)}},1000);
 setInterval(loadChal,30000);setTimeout(loadChal,1500);
@@ -1584,7 +1584,7 @@ function drawTour(){const T=trData,box=$("tr-box");if(!T||!box)return;const left
 setInterval(()=>{if(arVisible()&&!arRoom&&!document.hidden)loadTour()},5000);
 
 /* ---------- помощь и сообщение о баге ---------- */
-const SUPPORT="voinivadmin";
+const SUPPORT="voinovadmin";
 function openSupport(kind){const id=S&&S.uid?S.uid:"—",info="ID: "+id+(S&&S.nick?" ("+S.nick+")":"")+(kind==="bug"?"\nБаг: ":"\nВопрос: ");
   try{navigator.clipboard&&navigator.clipboard.writeText(info)}catch(e){}
   toast("Твой ID скопирован — вставь его в сообщение");const u="https://t.me/"+SUPPORT;
