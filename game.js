@@ -1431,7 +1431,7 @@ function renderAdminPromo(){const b=$("admin-promo");b.hidden=!(S.admin&&ONLINE)
   $("ap-go").textContent=P&&P.end>NOW()?"Остановить акцию":"Запустить акцию «друзья → VIP на 7 дней»"}
 $("ap-go").onclick=async()=>{const P=S.promo,on=!(P&&P.end>NOW()),b=$("ap-go");if(b.disabled)return;b.disabled=true;b.textContent=on?"Запускаю…":"Останавливаю…";const r=await act("promo_set",on?{hours:+$("ap-hours").value||3,need:+$("ap-need").value||2}:{hours:0});b.disabled=false;renderAdminPromo();if(r){renderPromo();toast(on?"Акция запущена":"Акция остановлена")}};
 $("bc-go").onclick=async()=>{const text=$("bc-text").value.trim();if(!text){toast("Напиши текст рассылки");return}const b=$("bc-go");b.disabled=true;let after=0,sent=0,total=0,done=false,guard=0;
-  while(!done&&guard++<200){$("bc-res").textContent="Отправляю… "+sent;const r=await act("broadcast",{text,after});if(!r)break;sent+=r.sent;total=r.total;after=r.last;done=r.done}
+  while(!done&&guard++<200){$("bc-res").textContent="Отправляю… "+sent;const r=await act("broadcast",{text,after,photo:($("bc-photo").value||"").trim()});if(!r)break;sent+=r.sent;total=r.total;after=r.last;done=r.done}
   b.disabled=false;$("bc-res").textContent=done?"Готово: доставлено "+sent+" из "+total+" (остальные заблокировали бота)":"Рассылка прервалась на "+sent+", нажми ещё раз";if(done)$("bc-text").value=""};
 function renderAdmin(){renderAdminPromo();const sb=$("admin-stats");sb.hidden=!(S.admin&&ONLINE);if(S.admin&&ONLINE)loadStats();
   const box=$("admin-box");box.hidden=!S.admin;if(!S.admin)return;const on=(S.luckUntil||0)>NOW();

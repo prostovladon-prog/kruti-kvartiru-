@@ -804,7 +804,9 @@ async function handle(req,env){{
       if(a==="broadcast"){if(!isAdmin(env,me.id))fail("Нет доступа");const text=String(p.text||"").trim().slice(0,1500);if(!text)fail("Пустой текст");
         // не больше 40 сообщений за запрос (лимит Cloudflare), игра присылает следующие порции сама
         const rows=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 40").bind(+p.after||0).all()).results;let sent=0;
-        for(const r of rows)if(await notify(env,r.id,text,"⚔️ Играть"))sent++;
+        const photo=/^https:\/\/[^\s]{5,400}$/.test(String(p.photo||""))?String(p.photo):null;   // картинка к рассылке (подпись до 1024 символов)
+        if(photo&&text.length>1024)fail("С картинкой текст должен быть не длиннее 1024 символов");
+        for(const r of rows)if(await notify(env,r.id,text,"⚔️ Играть",null,photo))sent++;
         const total=((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE pm=1").first())||{}).n||0;
         return J({ok:true,res:{sent,last:rows.length?rows[rows.length-1].id:null,done:rows.length<40,total}})}
       if(a==="stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await adminStats(env),S:await stateFor(env,me)})}
