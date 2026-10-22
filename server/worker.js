@@ -917,9 +917,10 @@ async function subCheck(env,me){
    Бот пишет только тем, кто разрешил (написал боту или нажал «Разрешить» в игре).
    Прокрутки: раз в 10 минут Cloudflare будит воркер (Cron Trigger), ночью с 23:00 до 9:00 по Минску не пишем. */
 const fmtD=n=>(Math.round(n*100)/100).toLocaleString("ru-RU").replace(/[\u00a0\u202f]/g," ");
-async function notify(env,uid,text,btn,url){
+async function notify(env,uid,text,btn,url,photo){
   if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return false;
-  try{const r=await tgApi(env,"sendMessage",{chat_id:uid,text,reply_markup:{inline_keyboard:[[{text:btn||"Играть",web_app:{url:url||PAGE}}]]}});
+  try{const kb={inline_keyboard:[[{text:btn||"Играть",web_app:{url:url||PAGE}}]]};
+    const r=photo?await tgApi(env,"sendPhoto",{chat_id:uid,photo,caption:text.slice(0,1024),reply_markup:kb}):await tgApi(env,"sendMessage",{chat_id:uid,text,reply_markup:kb});
     if(!r.ok&&(r.error_code===403||r.error_code===400))await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(uid).run();   // заблокировал бота
     return !!r.ok}catch(e){return false}}
 async function reminders(env){await ensureSchema(env);if(await maintenance(env))return {sent:0,maintenance:true};
@@ -1022,7 +1023,7 @@ function chanPost(C,slot,now){const pr=chalPrizes(C),bot="\n\n👉 @VoinyEpohBot
   return null}
 async function chanSend(env,C,P){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return false;
   const kb={inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]};
-  try{const r=P.photo?await tgApi(env,"sendPhoto",{chat_id:C.chan,photo:PAGE+"assets/post-challenge.jpg",caption:P.text,reply_markup:kb}):await tgApi(env,"sendMessage",{chat_id:C.chan,text:P.text,reply_markup:kb});return !!r.ok}catch(e){return false}}
+  try{const r=P.photo?await tgApi(env,"sendPhoto",{chat_id:C.chan,photo:PAGE+"assets/post-challenge.jpg?v=2",caption:P.text,reply_markup:kb}):await tgApi(env,"sendMessage",{chat_id:C.chan,text:P.text,reply_markup:kb});return !!r.ok}catch(e){return false}}
 async function chanCheck(env,C){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
   const k=(await kvGet(env,"chan_chk:"+C.id))||{ok:0,at:0,warned:0};if(k.ok||now-k.at<10*60e3)return;k.at=now;
   let ok=false;try{const r=await tgApi(env,"getChatMember",{chat_id:C.chan,user_id:+String(env.BOT_TOKEN).split(":")[0]});ok=!!(r.ok&&(r.result.status==="creator"||r.result.status==="administrator"&&r.result.can_post_messages))}catch(e){}
@@ -1051,7 +1052,7 @@ async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{con
   if(st.slot!==s){st.slot=s;st.after=0;st.done=0;st.n=0}
   const rows=now>=C.start?await chalBoard(env,C):[],text=chalText(C,s,rows,now);
   const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-  for(const u of us){if(await notify(env,u.id,text,"👥 Открыть таблицу"))st.n++;st.after=u.id}
+  for(const u of us){if(await notify(env,u.id,text,"👥 Открыть таблицу",null,s===0?PAGE+"assets/post-challenge.jpg?v=2":null))st.n++;st.after=u.id}
   if(us.length<25)st.done=1;await kvSet(env,"chal_st:"+C.id,st)})().finally(()=>{chalBusy=null});return chalBusy}
 
 /* ---------- маршрутизация ---------- */
