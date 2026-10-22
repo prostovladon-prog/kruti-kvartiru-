@@ -1403,7 +1403,7 @@ let wfRot=0,wfBusy=false;
     g+=`<path d="M0 0 L${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${W.c}" stroke="#0d1030" stroke-width="3"/>`;
     g+=`<g transform="rotate(${deg}) translate(0 -66)"><text text-anchor="middle" font-family="Rubik,sans-serif" font-weight="900" font-size="${W.t.length>5?11:16}" fill="${W.leg?"#ffd60a":"#fff"}" stroke="#0d1030" stroke-width="3" paint-order="stroke">${W.t}</text>${W.s?`<text y="14" text-anchor="middle" font-family="Rubik,sans-serif" font-weight="700" font-size="8" fill="#fff" stroke="#0d1030" stroke-width="2" paint-order="stroke">${W.s}</text>`:""}</g>`});
   $("wf-svg").innerHTML=`<g id="wf-rot">${g}</g><circle r="18" fill="#ffd60a" stroke="#0d1030" stroke-width="4"/><text y="6" text-anchor="middle" font-size="18">🎡</text>`;
-  const tot=WHEEL.reduce((a,x)=>a+x.w,0);$("wf-odds").innerHTML=WHEEL.map(W=>`<div><span>${W.t} ${W.s}</span><b>${W.w}%</b></div>`).join("")})();
+  const tot=WHEEL.reduce((a,x)=>a+x.w,0);$("wf-odds").innerHTML=WHEEL.map(W=>`<div><span>${W.t} ${W.s}</span><b>${String(W.w).replace(".",",")}%</b></div>`).join("")})();
 function renderWheel(){if(!S)return;const used=S.wheelDay===today(NOW()),b=$("wf-go");if(wfBusy)return;b.disabled=used;
   const ms=Date.UTC(...(d=>[d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1])(new Date(NOW())))-NOW();
   b.textContent=used?"Следующее вращение через "+tleft(ms):"Крутить бесплатно";$("wf-t").textContent=used?"✔️":"1 раз в день"}
