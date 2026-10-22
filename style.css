@@ -729,3 +729,4 @@ header{min-width:0}.logo{min-width:0}.hdr-r{gap:5px}.sound.ico{min-width:34px;pa
 .cpt b{font-family:var(--display);font-size:14px;color:#0a84ff}.cpt.me b{color:var(--ink)}
 .cp-me{margin-top:8px;font-size:13px;font-weight:800;text-align:center;background:var(--ink);color:#fff;border-radius:10px;padding:7px}
 .cp-empty{text-align:center;font-size:13px;color:#5a5f80;padding:6px}
+.cash-r{display:block;font-size:12px;font-weight:800;color:#0a84ff;line-height:1.1;white-space:nowrap;cursor:pointer}

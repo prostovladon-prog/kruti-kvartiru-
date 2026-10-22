@@ -646,7 +646,7 @@ function campHit(e){const V=campView();if(V.en<1){$("cp-tg").classList.remove("n
   const g=$("cp-tg");g.classList.remove("hit");void g.offsetWidth;g.classList.add("hit");
   campFloat("+"+fmtN(V.pw),"",e.clientX,e.clientY);hap("light");tone(160+Math.random()*90,.05,"square",.05);
   if(cpPend>=25)campFlush();renderCamp(true)}
-function renderCamp(light){if(!S||$("sec-camp").hidden)return;const V=campView(),C=V.C,T=TARGETS[C.t];
+function renderCamp(light){if(!S||$("sec-camp").hidden)return;const V=campView(),C=V.C,T=TARGETS[C.t];updCash();
   $("cp-ru").textContent=fmtN(V.runes);$("cp-stat").textContent="удар +"+fmtN(V.pw)+" · крит "+Math.round(campCrit(C)*100)+"%";
   $("cp-eb").style.width=(V.en/V.mx*100)+"%";$("cp-et").textContent=Math.floor(V.en)+"/"+V.mx;
   const hp=cpHp==null?C.hp:cpHp;$("cp-hpb").style.width=Math.max(0,hp/T.hp*100)+"%";$("cp-hpt").textContent=fmtN(Math.max(0,hp))+" / "+fmtN(T.hp)+" · сундук "+fmtN(T.chest)+" 💠";
@@ -1443,7 +1443,8 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 /* ---------- вкладки ---------- */
 function setTab(t){if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
-function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash);e.title=fmt(S.cash)}
+function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash);e.title=fmt(S.cash);try{$("cash-r").textContent="💠 "+fmtN(campView().runes)}catch(x){}}
+$("cash-r").onclick=()=>openCamp();
 function renderAll(){if(!S)return;updCash();if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}

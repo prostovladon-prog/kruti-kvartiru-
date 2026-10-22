@@ -143,7 +143,7 @@ const WHEEL=[{t:"+1",s:"прокрутка",w:31,sp:1,c:"#34c759"},{t:"$50",s:""
    Энергия тратится на удары по мишени, за удары дают руны. Руны идут на прокачку и на прокрутки
    (не больше BUY_MAX в день, каждая следующая вдвое дороже), поэтому редкие карточки не обесцениваются.
    Сервер сам считает энергию по времени и не даёт натапать больше, чем возможно (защита от автокликера). */
-const CAMP_E0=300,TAP_RATE=12,CRIT_X=5,SQ_HOURS=3,BUY_MAX=5,BUY_BASE=500;
+const CAMP_E0=1000,TAP_RATE=12,CRIT_X=5,SQ_HOURS=3,BUY_MAX=5,BUY_BASE=500;
 const TARGETS=[
  {n:"Соломенное чучело",m:1,hp:150,cost:0,chest:60},
  {n:"Мишень лучника",m:1.5,hp:350,cost:2500,chest:200},
@@ -153,11 +153,11 @@ const TARGETS=[
  {n:"Дракон",m:6,hp:9000,cost:300000,chest:15000}];
 const CAMP_UP={
  pw:{n:"Сила удара",max:20,c:l=>Math.round(150*Math.pow(1.55,l)),v:l=>"+"+(1+l)+" за удар"},
- en:{n:"Запас энергии",max:15,c:l=>Math.round(250*Math.pow(1.6,l)),v:l=>(CAMP_E0+100*l)+" ⚡"},
+ en:{n:"Запас энергии",max:15,c:l=>Math.round(250*Math.pow(1.6,l)),v:l=>(CAMP_E0+250*l)+" ⚡"},
  rg:{n:"Восстановление",max:12,c:l=>Math.round(350*Math.pow(1.65,l)),v:l=>"полная за "+(60-3*l)+" мин"},
  cr:{n:"Критический удар",max:16,c:l=>Math.round(400*Math.pow(1.6,l)),v:l=>(3+2*l)+"% на удар ×"+CRIT_X},
  sq:{n:"Оруженосец",max:15,c:l=>Math.round(1000*Math.pow(1.7,l)),v:l=>l?40*l+" рун в час":"не нанят"}};
-const campMax=C=>CAMP_E0+100*C.lv.en, campFull=C=>(60-3*C.lv.rg)*60e3, campPow=C=>(1+C.lv.pw)*TARGETS[C.t].m;
+const campMax=C=>CAMP_E0+250*C.lv.en, campFull=C=>(60-3*C.lv.rg)*60e3, campPow=C=>(1+C.lv.pw)*TARGETS[C.t].m;
 const campCrit=C=>.03+.02*C.lv.cr, campSqRate=C=>40*C.lv.sq*TARGETS[C.t].m;
 function camp(st,now){const C=st.camp||(st.camp={runes:0,en:CAMP_E0,at:now,lv:{pw:0,en:0,rg:0,cr:0,sq:0},t:0,hp:TARGETS[0].hp,kills:0,total:0,sqAt:now,tapAt:0});
   const mx=campMax(C);if(C.en<mx)C.en=Math.min(mx,C.en+Math.max(0,now-C.at)/campFull(C)*mx);C.at=now;
@@ -351,7 +351,7 @@ const ACTIONS={
     return {n,gain,crits,chests,chestR}},
   camp_up(G){const {st,ctx}=G;const C=camp(st,ctx.now),k=G.p.k,U=CAMP_UP[k];if(!U)fail("Нет такой прокачки");const l=C.lv[k]||0;if(l>=U.max)fail("Уже максимальный уровень");
     const c=U.c(l);if(C.runes<c)fail("Не хватает рун: нужно "+c);if(k==="sq"&&C.lv.sq){const g=campSq(C,ctx.now);C.runes+=g;campEarn(C,ctx.now,g)}C.runes-=c;C.lv[k]=l+1;
-    if(k==="en")C.en+=100;if(k==="sq")C.sqAt=ctx.now;camp(st,ctx.now);return {k,l:l+1}},
+    if(k==="en")C.en+=250;if(k==="sq")C.sqAt=ctx.now;camp(st,ctx.now);return {k,l:l+1}},
   camp_target(G){const {st,ctx}=G;const C=camp(st,ctx.now);if(C.t>=TARGETS.length-1)fail("Это самая сильная мишень");
     const T=TARGETS[C.t+1];if(C.runes<T.cost)fail("Не хватает рун: нужно "+T.cost);if(C.lv.sq){const g=campSq(C,ctx.now);C.runes+=g;campEarn(C,ctx.now,g)}C.sqAt=ctx.now;C.runes-=T.cost;C.t++;C.hp=T.hp;return {t:C.t}},
   camp_collect(G){const {st,ctx}=G;const C=camp(st,ctx.now);if(!C.lv.sq)fail("Сначала найми оруженосца");const g=campSq(C,ctx.now);if(g<1)fail("Оруженосец ещё ничего не натренировал");
