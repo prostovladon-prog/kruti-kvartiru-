@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=ddf6f37f">
+<link rel="stylesheet" href="style.css?v=46c9c703">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -217,6 +217,21 @@
       <div class="box"><span class="step">Выбери воина</span><div class="pickrow" id="lv-pick"></div></div>
     </div>
   </section>
+  <section id="sec-camp" hidden>
+    <div class="cp-top"><button type="button" class="mini2" id="cp-back">← Назад</button><b>🎯 Тренировочный лагерь</b></div>
+    <div class="cp-bal"><div class="cp-ru">💠 <b class="num" id="cp-ru">0</b><small>руны</small></div><div class="cp-stat" id="cp-stat"></div></div>
+    <div class="cp-ar" id="cp-ar">
+      <div class="cp-tname" id="cp-tname"></div>
+      <div class="cp-hp"><i id="cp-hpb"></i><span id="cp-hpt"></span></div>
+      <div class="cp-tg" id="cp-tg" role="button" aria-label="Ударить мишень"></div>
+    </div>
+    <div class="cp-en"><span>⚡</span><div class="cp-bar"><i id="cp-eb"></i></div><b class="num" id="cp-et"></b></div>
+    <div class="cp-eh" id="cp-eh"></div>
+    <div class="box cp-sq" id="cp-sq"></div>
+    <div class="box cp-buyb"><button type="button" class="craftbtn" id="cp-buy"></button><small id="cp-buyt"></small></div>
+    <div class="box"><h3>🎯 Мишени</h3><p class="cp-note">Чем сильнее мишень, тем больше рун за удар. Разбей её — получишь сундук.</p><div id="cp-tgs"></div></div>
+    <div class="box"><h3>⚒ Прокачка</h3><div id="cp-ups"></div></div>
+  </section>
   <section id="sec-top" hidden>
     <div class="box"><div class="rowb"><h3 id="top-h">Топ мира</h3><b class="num topr" id="top-rank"></b></div><p id="top-t"></p>
       <div class="nickrow"><span>Твой ник: <b id="my-nick"></b></span><button type="button" class="mini2" id="nick-go">Выбрать</button></div></div>
@@ -249,7 +264,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=2b73c575"></script>
-<script src="game.js?v=2dfc9603"></script>
+<script src="rules.js?v=ada60599"></script>
+<script src="game.js?v=ba6ab349"></script>
 </body>
 </html>

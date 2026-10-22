@@ -139,12 +139,32 @@ function checkNick(n){n=String(n||"").trim().replace(/\s+/g,"_");
 const WHEEL=[{t:"+1",s:"прокрутка",w:31,sp:1,c:"#34c759"},{t:"$50",s:"",w:23,cash:50,c:"#0a84ff"},{t:"+2",s:"прокрутки",w:15,sp:2,c:"#ff9f0a"},{t:"$200",s:"",w:12.5,cash:200,c:"#bf5af2"},
   {t:"+3",s:"прокрутки",w:9,sp:3,c:"#ff3b30"},{t:"ЭПИК",s:"гарантия",w:3,guar:1,c:"#5ac8fa"},{t:"$1000",s:"",w:6,cash:1000,c:"#ffd60a"},{t:"ЛЕГЕНДА",s:"карточка",w:0.5,leg:1,c:"#0d1030"}];
 
-/* ---------- покупка прокруток за игровые $ ----------
-   Каждая следующая за день вдвое дороже, база — $200 или 0,5% баланса (что больше), не больше 10 в день.
-   Богатый игрок не скупит редкие карточки: 10-я прокрутка за день стоит в 512 раз дороже первой. */
-const BUY_MAX=10;
-function spinPrice(st,now){const n=st.buyDay===today(now)?(st.buyN||0):0;return Math.round(Math.max(200,(st.cash||0)*.005)*Math.pow(2,n))}
-function spinsBought(st,now){return st.buyDay===today(now)?(st.buyN||0):0}
+/* ---------- Тренировочный лагерь: тапалка, руны и прокачка ----------
+   Энергия тратится на удары по мишени, за удары дают руны. Руны идут на прокачку и на прокрутки
+   (не больше BUY_MAX в день, каждая следующая вдвое дороже), поэтому редкие карточки не обесцениваются.
+   Сервер сам считает энергию по времени и не даёт натапать больше, чем возможно (защита от автокликера). */
+const CAMP_E0=300,TAP_RATE=12,CRIT_X=5,SQ_HOURS=3,BUY_MAX=5,BUY_BASE=500;
+const TARGETS=[
+ {n:"Соломенное чучело",m:1,hp:150,cost:0,chest:60},
+ {n:"Мишень лучника",m:1.5,hp:350,cost:2500,chest:200},
+ {n:"Рыцарские доспехи",m:2,hp:800,cost:10000,chest:600},
+ {n:"Каменный голем",m:3,hp:1800,cost:35000,chest:1800},
+ {n:"Золотой идол",m:4,hp:4000,cost:100000,chest:5000},
+ {n:"Дракон",m:6,hp:9000,cost:300000,chest:15000}];
+const CAMP_UP={
+ pw:{n:"Сила удара",max:20,c:l=>Math.round(150*Math.pow(1.55,l)),v:l=>"+"+(1+l)+" за удар"},
+ en:{n:"Запас энергии",max:15,c:l=>Math.round(250*Math.pow(1.6,l)),v:l=>(CAMP_E0+100*l)+" ⚡"},
+ rg:{n:"Восстановление",max:12,c:l=>Math.round(350*Math.pow(1.65,l)),v:l=>"полная за "+(60-3*l)+" мин"},
+ cr:{n:"Критический удар",max:16,c:l=>Math.round(400*Math.pow(1.6,l)),v:l=>(3+2*l)+"% на удар ×"+CRIT_X},
+ sq:{n:"Оруженосец",max:15,c:l=>Math.round(1000*Math.pow(1.7,l)),v:l=>l?40*l+" рун в час":"не нанят"}};
+const campMax=C=>CAMP_E0+100*C.lv.en, campFull=C=>(60-3*C.lv.rg)*60e3, campPow=C=>(1+C.lv.pw)*TARGETS[C.t].m;
+const campCrit=C=>.03+.02*C.lv.cr, campSqRate=C=>40*C.lv.sq*TARGETS[C.t].m;
+function camp(st,now){const C=st.camp||(st.camp={runes:0,en:CAMP_E0,at:now,lv:{pw:0,en:0,rg:0,cr:0,sq:0},t:0,hp:TARGETS[0].hp,kills:0,total:0,sqAt:now,tapAt:0});
+  const mx=campMax(C);if(C.en<mx)C.en=Math.min(mx,C.en+Math.max(0,now-C.at)/campFull(C)*mx);C.at=now;
+  C.fullAt=C.en>=mx?0:Math.round(now+(mx-C.en)/mx*campFull(C));return C}
+function campSq(C,now){return C.lv.sq?Math.floor(Math.min(SQ_HOURS*3600e3,Math.max(0,now-C.sqAt))/3600e3*campSqRate(C)):0}
+function spinsBought(st,now){const C=st.camp;return C&&C.buyDay===today(now)?(C.buyN||0):0}
+function spinPrice(st,now){return BUY_BASE*Math.pow(2,spinsBought(st,now))}
 
 /* ---------- ошибки ---------- */
 class GameError extends Error{}
@@ -314,9 +334,24 @@ const ACTIONS={
   /* режим удачи на 3 часа: только администратор (сервер передаёт ctx.admin) */
   luck_set(G){if(!G.ctx.admin)fail("Нет доступа");G.st.luckUntil=G.p.on?G.ctx.now+3*3600e3:0;return {on:!!G.p.on,until:G.st.luckUntil}},
 
-  buy_spin(G){const {st,ctx}=G;if(spinsBought(st,ctx.now)>=BUY_MAX)fail("Сегодня уже куплено "+BUY_MAX+" прокруток. Завтра цены сбросятся");
-    const price=spinPrice(st,ctx.now);if(G.p.price&&Math.abs(G.p.price-price)>1)fail("Цена изменилась, попробуй ещё раз");pay(st,price);
-    if(st.buyDay!==today(ctx.now)){st.buyDay=today(ctx.now);st.buyN=0}st.buyN++;st.spins+=1;return {price}},
+  buy_spin(G){const {st,ctx}=G;const C=camp(st,ctx.now);if(spinsBought(st,ctx.now)>=BUY_MAX)fail("Сегодня уже куплено "+BUY_MAX+" прокруток. Завтра цены сбросятся");
+    const price=spinPrice(st,ctx.now);if(C.runes<price)fail("Не хватает рун: нужно "+price+", у тебя "+Math.floor(C.runes));
+    C.runes-=price;if(C.buyDay!==today(ctx.now)){C.buyDay=today(ctx.now);C.buyN=0}C.buyN++;st.spins+=1;return {price}},
+  /* удары по мишени пачкой: игра присылает число тапов раз в секунду */
+  camp_tap(G){const {st,ctx}=G;const C=camp(st,ctx.now);let n=Math.max(0,Math.min(400,Math.floor(+G.p.n||0)));
+    const room=C.tapAt?Math.floor((ctx.now-C.tapAt)/1000*TAP_RATE)+20:60;n=Math.min(n,Math.floor(C.en),room);C.tapAt=ctx.now;
+    let gain=0,crits=0,chests=0,chestR=0;const pw=campPow(C),cc=campCrit(C);
+    for(let i=0;i<n;i++){const cr=Math.random()<cc,d=pw*(cr?CRIT_X:1);if(cr)crits++;gain+=d;C.hp-=d;
+      if(C.hp<=0){chests++;chestR+=TARGETS[C.t].chest;C.kills++;C.hp=TARGETS[C.t].hp}}
+    gain=Math.round(gain)+chestR;C.en-=n;C.runes+=gain;C.total+=gain;C.fullAt=C.en>=campMax(C)?0:Math.round(ctx.now+(campMax(C)-C.en)/campMax(C)*campFull(C));
+    return {n,gain,crits,chests,chestR}},
+  camp_up(G){const {st,ctx}=G;const C=camp(st,ctx.now),k=G.p.k,U=CAMP_UP[k];if(!U)fail("Нет такой прокачки");const l=C.lv[k]||0;if(l>=U.max)fail("Уже максимальный уровень");
+    const c=U.c(l);if(C.runes<c)fail("Не хватает рун: нужно "+c);if(k==="sq"&&C.lv.sq){C.runes+=campSq(C,ctx.now)}C.runes-=c;C.lv[k]=l+1;
+    if(k==="en")C.en+=100;if(k==="sq")C.sqAt=ctx.now;camp(st,ctx.now);return {k,l:l+1}},
+  camp_target(G){const {st,ctx}=G;const C=camp(st,ctx.now);if(C.t>=TARGETS.length-1)fail("Это самая сильная мишень");
+    const T=TARGETS[C.t+1];if(C.runes<T.cost)fail("Не хватает рун: нужно "+T.cost);if(C.lv.sq)C.runes+=campSq(C,ctx.now);C.sqAt=ctx.now;C.runes-=T.cost;C.t++;C.hp=T.hp;return {t:C.t}},
+  camp_collect(G){const {st,ctx}=G;const C=camp(st,ctx.now);if(!C.lv.sq)fail("Сначала найми оруженосца");const g=campSq(C,ctx.now);if(g<1)fail("Оруженосец ещё ничего не натренировал");
+    C.runes+=g;C.total+=g;C.sqAt=ctx.now;return {gain:g}},
   wheel(G){const {st,ctx}=G;if(st.wheelDay===today(ctx.now))fail("Колесо уже крутилось сегодня. Приходи завтра");
     st.wheelDay=today(ctx.now);const i=pick(WHEEL.map(x=>x.w)),W=WHEEL[i];let card=null;
     if(W.sp)st.spins+=W.sp;if(W.cash)earn(st,W.cash);if(W.guar)st.guar=(st.guar||0)+1;
@@ -335,4 +370,4 @@ const ACTIONS={
 /* выполнить действие: проверки времени, затем само действие */
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
 
-if(typeof module!=="undefined")module.exports={spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

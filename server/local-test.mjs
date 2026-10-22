@@ -412,16 +412,29 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await call(A, "room_cancel", { room: room3 }); ok(r.ok && db.prepare("SELECT room_id FROM cards WHERE id=?").get(c3.id).room_id === null, "отмена боя возвращает карточку");
 }
 
-/* --- покупка прокруток --- */
+/* --- тренировочный лагерь: тапалка, руны, прокачка, прокрутки за руны --- */
 {
-  await call(7800, "sync"); db.prepare("UPDATE users SET cash=1000 WHERE id=7800").run();
-  r = await call(7800, "sync"); const s0 = r.S.spins;
-  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price === 200 && r.S.spins === s0 + 1, "первая прокрутка за $200");
-  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price === 400, "вторая вдвое дороже: $" + (r.res && r.res.price));
-  db.prepare("UPDATE users SET cash=40000000 WHERE id=7800").run();
-  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price >= 790000, "богатому дорого: третья за $" + (r.res && r.res.price));
-  { const st = JSON.parse(db.prepare("SELECT state FROM users WHERE id=7800").get().state); st.buyN = 10; db.prepare("UPDATE users SET state=? WHERE id=7800").run(JSON.stringify(st)) }
-  r = await call(7800, "buy_spin"); ok(!r.ok && /10/.test(r.err), "не больше 10 в день: " + r.err);
+  const runes = () => JSON.parse(db.prepare("SELECT state FROM users WHERE id=7800").get().state).camp.runes;
+  const setCamp = f => { const st = JSON.parse(db.prepare("SELECT state FROM users WHERE id=7800").get().state); f(st.camp); db.prepare("UPDATE users SET state=? WHERE id=7800").run(JSON.stringify(st)) };
+  await call(7800, "sync");
+  r = await call(7800, "buy_spin"); ok(!r.ok && /рун/.test(r.err), "за $ прокрутки больше не купить, нужны руны: " + r.err);
+  r = await call(7800, "camp_tap", { n: 40 }); ok(r.ok && r.res.n === 40 && r.res.gain >= 40 && runes() === r.res.gain, "40 ударов → " + r.res.gain + " рун");
+  r = await call(7800, "camp_tap", { n: 400 }); ok(r.ok && r.res.n <= 40, "автокликер упирается в лимит по времени: засчитано " + r.res.n + " из 400");
+  setCamp(C => { C.en = 5; C.at = Date.now(); C.tapAt = 0 });
+  r = await call(7800, "camp_tap", { n: 50 }); ok(r.res.n === 5, "энергии 5 — засчитано только 5 ударов");
+  setCamp(C => { C.runes = 100000; C.tapAt = 0 });
+  r = await call(7800, "camp_up", { k: "pw" }); ok(r.ok && r.S.camp.lv.pw === 1 && r.S.camp.runes === 100000 - 150, "прокачка силы удара за 150 рун");
+  r = await call(7800, "camp_target"); ok(r.ok && r.S.camp.t === 1 && r.S.camp.hp === 350, "открыта мишень лучника");
+  r = await call(7800, "camp_up", { k: "sq" }); setCamp(C => { C.sqAt = Date.now() - 10 * 3600e3 });
+  r = await call(7800, "camp_collect"); ok(r.ok && r.res.gain === Math.floor(3 * 40 * 1.5), "оруженосец копит максимум 3 часа: " + r.res.gain);
+  const s0 = (await call(7800, "sync")).S.spins;
+  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price === 500 && r.S.spins === s0 + 1, "первая прокрутка за 500 рун");
+  r = await call(7800, "buy_spin"); ok(r.ok && r.res.price === 1000, "вторая вдвое дороже: " + r.res.price);
+  for (let i = 0; i < 3; i++) await call(7800, "buy_spin");
+  r = await call(7800, "buy_spin"); ok(!r.ok && /5/.test(r.err), "не больше 5 в день: " + r.err);
+  setCamp(C => { C.hp = 3; C.tapAt = 0; C.en = 100 });
+  r = await call(7800, "camp_tap", { n: 3 }); ok(r.res.chests === 1 && r.res.chestR === 200, "мишень разбита — сундук 200 рун");
+  ok(db.prepare("SELECT camp_at FROM users WHERE id=7800").get().camp_at > Date.now(), "время полной энергии записано для напоминания");
 }
 /* --- колесо фортуны --- */
 {
