@@ -1044,7 +1044,7 @@ async function onUpdate(env,upd){const m=upd.message;if(!m||!m.chat||m.chat.type
    (чтобы «пустые» аккаунты не засчитывались). Друг друга (2-й уровень) засчитывается и пригласившему, и его пригласившему.
    Рассылка ботом в слоты (минское время), итоги — в конце. Настройки можно переопределить в kv "chal". */
 const CHAL_OPEN=3,CHAL_LATE=50*60e3;
-const CHAL_DEFAULT={id:"2026-10-22",start:Date.UTC(2026,9,22,5,30),end:Date.UTC(2026,9,22,17),prizes:["$20","$10","$7"],slots:[8.5,11.5,14.5,17.5],chan:"@voinyepoh"};
+const CHAL_DEFAULT={id:"2026-10-22",start:Date.UTC(2026,9,22,5,30),end:Date.UTC(2026,9,22,19),prizes:["$20","$10","$7"],slots:[8.5,11.5,14.5,17.5,19,20,21],ext:19,chan:"@voinyepoh"};
 async function chalCfg(env){return await cached("chalcfg",30e3,async()=>(await kvGet(env,"chal"))||CHAL_DEFAULT)}
 async function chalBoard(env,C){return await cached("chalb",20e3,async()=>{
   const q="json_extract(c.state,'$.day.opened')>=? AND c.created>=? AND c.created<?";
@@ -1070,9 +1070,10 @@ const MEDAL=["🥇","🥈","🥉"],frN=n=>n+" "+(n%10===1&&n%100!==11?"друг"
 function chalPrizes(C){return MEDAL.map((m,k)=>m+" подарок Telegram на "+C.prizes[k]).join("\n")+"\nПриз можно забрать подарком или звёздами ⭐"}
 function chalText(C,slot,rows,now){const last=slot===C.slots.length-1,pr=chalPrizes(C);
   const top=rows.slice(0,3).map((r,k)=>MEDAL[k]+" "+r.name+" — "+r.n).join("\n");
+  if(C.ext&&C.slots[slot]===C.ext)return "⏰ ВЫ ПРОСИЛИ — МЫ ПРОДЛИЛИ!\n\nМногие были на работе, в школе и по делам и не успели позвать друзей. Поэтому челлендж продлён до "+hmM(C.end)+"! 🔥\n\n"+chalHook(C,rows)+"\n\n"+(top?"Сейчас в топе:\n"+top+"\n\n":"")+"Призы:\n"+pr+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
   if(slot===0)return "🔥 СТАРТ! ЧЕЛЛЕНДЖ ДНЯ: КТО ПРИГЛАСИТ БОЛЬШЕ ДРУЗЕЙ\n\nПрямо сейчас и до "+hmM(C.end)+" зови друзей в «Воины Эпох». Топ-3 получают призы:\n"+pr+"\n\n👥 Считаются только друзья, пришедшие сегодня по твоей ссылке. Позовёт твой друг своего друга — он засчитается и тебе!\n✅ Друг засчитывается, когда откроет "+CHAL_OPEN+" карточки.\n\n📊 Таблица лидеров — в игре на вкладке «Крутить». Жми «Пригласить» и отправляй ссылку!";
   return (last?"⏰ ФИНАЛЬНЫЙ РЫВОК — до конца челленджа "+fmtLeft(C.end-now)+"!":"⚡ ЧЕЛЛЕНДЖ ИДЁТ — до конца "+fmtLeft(C.end-now))+"\n\n"+chalHook(C,rows)+"\n\n"+(top?"Сейчас в топе:\n"+top+"\n\n":"")+CHAL_X2+"\n\nПризы:\n"+pr+"\n\nЗовёшь друга — +1. Он зовёт своего — тебе тоже +1. Итоги в "+hmM(C.end)+" 👇"}
-const CHAL_X2="🔥 До 20:00 награда ×2: +"+20+" прокруток за каждого друга, а другу — гарантированная эпическая карточка!";
+const CHAL_X2="🔥 До 22:00 награда ×2: +"+20+" прокруток за каждого друга, а другу — гарантированная эпическая карточка!";
 const frA=n=>n+" "+(n%10===1&&n%100!==11?"друга":"друзей");
 function chalHook(C,rows){const L=rows[0];if(!L)return "🤯 В таблице пока пусто! Пригласи 1 друга — и ты сразу на 1 месте с подарком на "+C.prizes[0]+"!";
   if(L.n<=5)return "🤯 ШАНС ОГРОМНЫЙ! У лидера всего "+frN(L.n)+". Пригласи "+frA(L.n+1)+" — и ты на 1 месте с подарком на "+C.prizes[0]+"!";
@@ -1080,8 +1081,9 @@ function chalHook(C,rows){const L=rows[0];if(!L)return "🤯 В таблице �
 /* посты в канал: бот должен быть админом канала с правом публикации */
 function chanPost(C,slot,now,rows){rows=rows||[];const pr=chalPrizes(C),bot="\n\n👉 @VoinyEpohBot",hook=chalHook(C,rows)+"\n\n"+CHAL_X2+"\n\n";
   if(slot===0)return {photo:1,text:"🔥 ЧЕЛЛЕНДЖ ДНЯ — разыгрываем подарки Telegram!\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+": кто пригласит больше друзей в «Воины Эпох», тот забирает приз 👇\n"+pr+"\n\n💡 Фишка: если твой друг позовёт своего друга, он засчитается и тебе. Чем длиннее цепочка, тем выше ты в таблице!\n\n📊 Таблица лидеров онлайн — вкладка «Крутить»"+bot};
+  const H=C.slots[slot];if(H===C.ext)return null;
   if(slot===C.slots.length-1)return {text:"⏰ До конца челленджа "+fmtLeft(C.end-now)+"!\n\n"+hook+"В "+hmM(C.end)+" таблица замирает, и топ-3 получают подарки Telegram. Успей позвать ещё пару друзей 🔥"+bot};
-  if(slot===C.slots.length-2)return {text:"⚡ Половина челленджа позади!\n\n"+hook+"Открой игру, глянь таблицу на вкладке «Крутить» и кинь ссылку в пару чатов.\n\nДо "+hmM(C.end)+bot};
+  if(H===14.5)return {text:"⚡ Половина челленджа позади!\n\n"+hook+"Открой игру, глянь таблицу на вкладке «Крутить» и кинь ссылку в пару чатов.\n\nДо "+hmM(C.end)+bot};
   return null}
 async function chanSend(env,C,P){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return false;
   const kb={inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]};
@@ -1114,7 +1116,7 @@ async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{con
   if(st.slot!==s){st.slot=s;st.after=0;st.done=0;st.n=0}
   const rows=now>=C.start?await chalBoard(env,C):[],text=chalText(C,s,rows,now);
   const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-  for(const u of us){if(await notify(env,u.id,text,"👥 Открыть таблицу",null,s===0?PAGE+"assets/post-challenge.jpg?v=2":null))st.n++;st.after=u.id}
+  for(const u of us){if(await notify(env,u.id,text,"👥 Открыть таблицу",null,s===0?PAGE+"assets/post-challenge.jpg?v=2":C.ext&&C.slots[s]===C.ext?PAGE+"assets/post-extend.jpg?v=1":null))st.n++;st.after=u.id}
   if(us.length<25)st.done=1;await kvSet(env,"chal_st:"+C.id,st)})().finally(()=>{chalBusy=null});return chalBusy}
 
 /* ---------- топ лагеря: кто больше всех заработал рун за день и за неделю ---------- */
