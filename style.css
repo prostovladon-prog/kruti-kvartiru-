@@ -953,3 +953,23 @@ button,.stage,.flip,[role=button]{touch-action:manipulation}
 .fgo:disabled{background:#3a2a24;color:#9a8478;box-shadow:0 5px 0 #07040f}
 #sec-craft .result{color:#fff}
 @media (prefers-reduced-motion:reduce){.fembers i{animation:none!important}}
+
+/* ================= КОЛЕСО ФОРТУНЫ (новое) ================= */
+#wf-box{position:relative;color:#fff;border-radius:22px;border:0;padding:16px 14px 14px;background:radial-gradient(ellipse at 50% 42%,#4a1fa8,#1a0850 60%,#0c0428);box-shadow:0 0 0 6px #e0a92e,0 0 0 9px #07040f,6px 6px 0 9px var(--ink),0 0 30px -4px #ffd23f;overflow:hidden;margin:6px 4px}
+#wf-box::before{content:"";position:absolute;left:50%;top:46%;width:900px;height:900px;margin:-450px;background:repeating-conic-gradient(rgba(255,214,10,.13) 0 4deg,transparent 4deg 12deg);-webkit-mask:radial-gradient(circle,#000 0 16%,transparent 50%);mask:radial-gradient(circle,#000 0 16%,transparent 50%);animation:spinb 40s linear infinite;pointer-events:none}
+#wf-box>*{position:relative}
+#wf-box h3{font-family:var(--display);color:#ffd23f;text-shadow:2px 2px 0 #07040f,0 0 14px #ff9f0a;font-size:16px}
+#wf-box #wf-t{color:#cfc8ff}
+#wf-box .wfw{width:min(320px,92%);margin:6px auto 10px}
+#wf-box .wfw svg{filter:drop-shadow(0 10px 14px rgba(0,0,0,.55))}
+.wb{stroke:#07040f;stroke-width:1.5;fill:#a8781a}
+.wb.b0{fill:#fff6c8;filter:drop-shadow(0 0 5px #ffd60a)}
+#wf-bulbs:not(.alt):not(.win) .wb.b0{animation:wbl 1.6s ease-in-out infinite}
+#wf-bulbs.alt .wb.b0{fill:#a8781a;filter:none}#wf-bulbs.alt .wb.b1{fill:#fff6c8;filter:drop-shadow(0 0 5px #ffd60a)}
+#wf-bulbs.win .wb{animation:wbw .25s steps(2) infinite}
+@keyframes wbl{50%{fill:#ffe48a}}@keyframes wbw{50%{fill:#fff6c8;filter:drop-shadow(0 0 6px #ffd60a)}}
+#wf-box #wf-go{background:linear-gradient(180deg,#fff1a8,#ffb800 45%,#ff5a1f);color:#07040f;border:3px solid #07040f;box-shadow:0 5px 0 #07040f,0 0 22px #ff9f0a;font-size:17px}
+#wf-box #wf-go:disabled{background:#2a1a5a;color:#cfc8ff;box-shadow:0 5px 0 #07040f}
+#wf-box .wfodds summary{color:#cfc8ff}
+#wf-box .wfodds div{color:#e8e3ff}#wf-box .wfodds b{color:#ffd23f}
+@media (prefers-reduced-motion:reduce){#wf-box::before,#wf-bulbs .wb{animation:none!important}}

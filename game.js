@@ -1596,12 +1596,34 @@ $("modal").addEventListener("click",e=>{if(e.target===$("modal")&&chatOpen)close
 
 /* ---------- колесо фортуны ---------- */
 let wfRot=0,wfBusy=false;
-(function drawWheel(){const n=WHEEL.length,R=100;let g="";
-  WHEEL.forEach((W,i)=>{const a0=(i/n)*2*Math.PI-Math.PI/2,a1=((i+1)/n)*2*Math.PI-Math.PI/2,x0=R*Math.cos(a0),y0=R*Math.sin(a0),x1=R*Math.cos(a1),y1=R*Math.sin(a1),am=(a0+a1)/2,deg=am*180/Math.PI+90;
-    g+=`<path d="M0 0 L${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${W.c}" stroke="#0d1030" stroke-width="3"/>`;
-    g+=`<g transform="rotate(${deg}) translate(0 -66)"><text text-anchor="middle" font-family="Rubik,sans-serif" font-weight="900" font-size="${W.t.length>5?11:16}" fill="${W.leg?"#ffd60a":"#fff"}" stroke="#0d1030" stroke-width="3" paint-order="stroke">${W.t}</text>${W.s?`<text y="14" text-anchor="middle" font-family="Rubik,sans-serif" font-weight="700" font-size="8" fill="#fff" stroke="#0d1030" stroke-width="2" paint-order="stroke">${W.s}</text>`:""}</g>`});
-  $("wf-svg").innerHTML=`<g id="wf-rot">${g}</g><circle r="18" fill="#ffd60a" stroke="#0d1030" stroke-width="4"/><text y="6" text-anchor="middle" font-size="18">🎡</text>`;
-  const tot=WHEEL.reduce((a,x)=>a+x.w,0);$("wf-odds").innerHTML=WHEEL.map(W=>`<div><span>${W.t} ${W.s}</span><b>${String(W.w).replace(".",",")}%</b></div>`).join("")})();
+/* колесо фортуны: золотой обод с бегущими огнями, нарисованные призы */
+const WIC={
+  spins:n=>[...Array(n)].map((_,i)=>`<g transform="rotate(${(i-(n-1)/2)*18}) translate(0 -2)"><rect x="-11" y="-30" width="22" height="31" rx="3" fill="#e5312a" stroke="#07040f" stroke-width="2"/><rect x="-11" y="-30" width="22" height="31" rx="3" fill="url(#wcbk)"/><circle cx="0" cy="-15" r="6.5" fill="#ffd60a" stroke="#07040f" stroke-width="1.5"/></g>`).join(""),
+  coins:n=>[...Array(n)].map((_,i)=>`<g transform="translate(${(i%2?7:-6)} ${-i*6})"><ellipse rx="13" ry="5" fill="#b8740f" stroke="#07040f" stroke-width="1.5"/><rect x="-13" y="-5" width="26" height="5" fill="#e0a92e"/><ellipse cy="-5" rx="13" ry="5" fill="url(#wcoin)" stroke="#07040f" stroke-width="1.5"/></g>`).join(""),
+  gem:()=>`<g transform="translate(0 -12)"><path d="M-17 -8 L-9 -17 H9 L17 -8 L0 14Z" fill="url(#wgem)" stroke="#07040f" stroke-width="2"/><path d="M-17 -8 H17 M-9 -17 L-4 -8 L0 14 L4 -8 L9 -17 M-4 -8 L0 -17 L4 -8" fill="none" stroke="#e8f7ff" stroke-width="1" opacity=".8"/></g>`,
+  crown:()=>`<g transform="translate(0 -10)"><rect x="-13" y="-6" width="26" height="30" rx="3" fill="#2a1446" stroke="#ffd23f" stroke-width="2"/><circle cy="9" r="6" fill="#bf5af2"/><path d="M-16 -6 L-16 -22 L-8 -13 L0 -26 L8 -13 L16 -22 L16 -6Z" fill="url(#wcoin)" stroke="#07040f" stroke-width="2"/><circle cy="-26" r="3" fill="#ff2e63" stroke="#07040f"/></g>`};
+const WCOL=[["#34c759","#063d1a"],["#0a84ff","#041d4a"],["#ff9f0a","#4a2200"],["#bf5af2","#2a0a50"],["#ff3b30","#4a0505"],["#5ac8fa","#06304f"],["#ffd60a","#4a3500"],["#7a2ad6","#0a0218"]];
+(function drawWheel(){const n=WHEEL.length,R=150,seg=360/n;let d=`<defs><radialGradient id="wcoin" cx=".35" cy=".3"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#c88a10"/></radialGradient>
+  <linearGradient id="wcbk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="wgem" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8f9ff"/><stop offset=".5" stop-color="#5ac8fa"/><stop offset="1" stop-color="#0a5aa8"/></linearGradient>
+  <linearGradient id="wrim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".25" stop-color="#e0a92e"/><stop offset=".5" stop-color="#7a4a08"/><stop offset=".75" stop-color="#ffd23f"/><stop offset="1" stop-color="#8a5208"/></linearGradient>
+  <linearGradient id="wrim2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8d0"/><stop offset=".5" stop-color="#b47b10"/><stop offset="1" stop-color="#ffe48a"/></linearGradient>
+  <radialGradient id="whub" cx=".4" cy=".35"><stop offset="0" stop-color="#fff5b0"/><stop offset=".5" stop-color="#ff9f0a"/><stop offset="1" stop-color="#6a3204"/></radialGradient>
+  <radialGradient id="wsh" cx="0" cy="0" r="150" gradientUnits="userSpaceOnUse"><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".4"/></radialGradient>`;
+  let g="",lab="",sep="",pins="";
+  WHEEL.forEach((W,i)=>{const a0=(i*seg-90)*Math.PI/180,a1=((i+1)*seg-90)*Math.PI/180,C=WCOL[i%WCOL.length];
+    d+=`<radialGradient id="wsg${i}" cx="0" cy="0" r="${R}" gradientUnits="userSpaceOnUse"><stop offset=".2" stop-color="${C[1]}"/><stop offset=".62" stop-color="${C[0]}"/><stop offset=".92" stop-color="${C[1]}"/></radialGradient>`;
+    g+=`<path d="M0 0 L${(R*Math.cos(a0)).toFixed(1)} ${(R*Math.sin(a0)).toFixed(1)} A${R} ${R} 0 0 1 ${(R*Math.cos(a1)).toFixed(1)} ${(R*Math.sin(a1)).toFixed(1)}Z" fill="url(#wsg${i})"/>`;
+    sep+=`<line x2="${(R*Math.cos(a0)).toFixed(1)}" y2="${(R*Math.sin(a0)).toFixed(1)}" stroke="url(#wrim2)" stroke-width="5"/>`;pins+=`<circle cx="${((R-3)*Math.cos(a0)).toFixed(1)}" cy="${((R-3)*Math.sin(a0)).toFixed(1)}" r="6" fill="url(#wcoin)" stroke="#07040f" stroke-width="2"/>`;
+    const ic=W.sp?WIC.spins(W.sp):W.cash?WIC.coins(W.cash>=1000?4:W.cash>=200?3:2):W.guar?WIC.gem():WIC.crown();
+    lab+=`<g transform="rotate(${i*seg+seg/2})"><g transform="translate(0 -112) scale(1.3)">${ic}</g><text y="-70" text-anchor="middle" font-family="Rubik Mono One,Rubik,sans-serif" font-weight="900" font-size="${W.t.length>5?13:W.t.length>3?16:21}" fill="${W.leg?"#ffd60a":"#fff"}" stroke="#07040f" stroke-width="4.5" paint-order="stroke">${W.t}</text></g>`});
+  d+="</defs>";let bulbs="";for(let i=0;i<32;i++){const a=i*11.25*Math.PI/180;bulbs+=`<circle class="wb b${i%2}" cx="${(168*Math.cos(a)).toFixed(1)}" cy="${(168*Math.sin(a)).toFixed(1)}" r="5.5"/>`}
+  $("wf-svg").innerHTML=d+`<ellipse cx="0" cy="190" rx="120" ry="12" fill="#000" opacity=".4"/><circle r="190" fill="#07040f"/><circle r="186" fill="url(#wrim)"/><circle r="176" fill="none" stroke="#07040f" stroke-width="2" opacity=".45"/><g id="wf-bulbs">${bulbs}</g><circle r="157" fill="#07040f"/><circle r="155" fill="url(#wrim2)"/>
+    <g id="wf-rot">${g}${sep}${lab}${pins}</g><circle r="${R}" fill="url(#wsh)"/><circle r="${R}" fill="none" stroke="#07040f" stroke-width="3"/>
+    <circle r="44" fill="#07040f"/><circle r="41" fill="url(#wrim)"/><circle r="33" fill="url(#whub)" stroke="#07040f" stroke-width="3"/>
+    <path d="M-14 12 L12 -14 M-10 -14 L14 12" stroke="#07040f" stroke-width="7" stroke-linecap="round"/><path d="M-14 12 L12 -14 M-10 -14 L14 12" stroke="#fff6c8" stroke-width="3.5" stroke-linecap="round"/><circle r="5" fill="#ff2e63" stroke="#07040f" stroke-width="2"/>
+    <g transform="translate(0 -188)"><path d="M0 46 L-16 8 Q0 -10 16 8Z" fill="#ff2e63" stroke="#07040f" stroke-width="3.5"/><path d="M0 40 L-9 10 Q0 0 9 10Z" fill="#ff7a9a"/><circle cy="10" r="5" fill="#fff" opacity=".85"/></g>`;
+  const tot=WHEEL.reduce((a,x)=>a+x.w,0);$("wf-odds").innerHTML=WHEEL.map(W=>`<div><span>${W.sp?"🎴":W.cash?"💰":W.guar?"💎":"👑"} ${W.t} ${W.s}</span><b>${String(W.w).replace(".",",")}%</b></div>`).join("")})();
 function renderWheel(){if(!S)return;const used=S.wheelDay===today(NOW()),b=$("wf-go");if(wfBusy)return;b.disabled=used;
   const ms=Date.UTC(...(d=>[d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1])(new Date(NOW())))-NOW();
   b.textContent=used?"Следующее вращение через "+tleft(ms):"Крутить бесплатно";$("wf-t").textContent=used?"✔️":"1 раз в день"}
@@ -1609,8 +1631,8 @@ setInterval(()=>{if(!$("sec-spin").hidden)renderWheel()},1000);
 $("wf-go").onclick=async()=>{if(wfBusy)return;wfBusy=true;$("wf-go").disabled=true;ac();const r=await act("wheel");if(!r){wfBusy=false;renderWheel();return}
   const n=WHEEL.length,seg=360/n,target=360-(r.i*seg+seg/2)+(Math.random()-.5)*seg*.6;wfRot=wfRot-(wfRot%360)+360*6+target;
   const g=$("wf-rot");g.style.transition=reduce?"none":"transform 4.5s cubic-bezier(.12,.7,.12,1)";g.style.transform=`rotate(${wfRot}deg)`;
-  let last=0;const t0=performance.now();if(!reduce)(function tk(t){const k=Math.min(1,(t-t0)/4500),e=1-Math.pow(1-k,3.2),ang=e*wfRot;if(Math.floor(ang/seg)!==last){last=Math.floor(ang/seg);sfx.tick(false);hap("light")}if(k<1)requestAnimationFrame(tk)})(t0);
-  setTimeout(()=>{wfBusy=false;const W=WHEEL[r.i];renderAll();if(r.card)showDrop(r.card,"Колесо: легенда!");else{sfx.fanfare();burst(W.w<=8?3:1);hapN("success");toast("🎡 Выпало: "+W.t+" "+W.s)}},reduce?50:4700)};
+  let last=0;const t0=performance.now(),bl=$("wf-bulbs");if(!reduce)(function tk(t){const k=Math.min(1,(t-t0)/4500),e=1-Math.pow(1-k,3.2),ang=e*wfRot;if(Math.floor(ang/seg)!==last){last=Math.floor(ang/seg);sfx.tick(false);hap("light");bl.classList.toggle("alt")}if(k<1)requestAnimationFrame(tk)})(t0);
+  setTimeout(()=>{wfBusy=false;const W=WHEEL[r.i];renderAll();const bl2=$("wf-bulbs");bl2.classList.add("win");setTimeout(()=>bl2.classList.remove("win"),2600);if(r.card)showDrop(r.card,"Колесо: легенда!");else{sfx.fanfare();burst(W.w<=8?3:1);hapN("success");toast("🎡 Выпало: "+W.t+" "+W.s)}},reduce?50:4700)};
 
 /* ---------- турнир выходных ---------- */
 let trData=null,trAt=0;
