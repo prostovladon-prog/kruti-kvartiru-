@@ -507,7 +507,8 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await cc(6002, "chal_get"); ok(r.res.me.n === 1 && r.res.me.place === 2, "друг на 2 месте с 1 очком");
   await cc(8, "chal_set", { cfg: { id: "t1", start: now - 36e5, end: Date.now() - 1, prizes: ["$20", "$10", "$7"], slots: [] } });
   await worker.tick(envC); await worker.tick(envC);
-  r = await cc(6001, "chal_get"); ok(r.res.phase === "done" && r.res.top[0].n === 2 && r.res.top[0].me === 1, "итоги зафиксированы");
+  r = await cc(6001, "chal_get"); ok(r.ok && r.res === null, "после конца конкурса блок с таблицей убирается");
+  { const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:t1'").get().v); ok(fin.rows[0].n === 2 && fin.rows[0].uid === 6001, "итоги зафиксированы"); }
   await cc(8, "chal_set", { cfg: { id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] } });
 }
 

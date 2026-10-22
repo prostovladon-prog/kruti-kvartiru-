@@ -678,7 +678,7 @@ async function chalBoard(env,C){return await cached("chalb",20e3,async()=>{
     rows=rows.map(r=>{const u=nm.get(r.uid)||{};return {...r,name:u.name||"Игрок",vip:(u.vip_until||0)>Date.now()?1:0,last:u.last||0}})}
   rows.sort((a,b)=>b.n-a.n||b.d-a.d||a.last-b.last);return rows})}
 const chalPhase=(C,now)=>now<C.start?"soon":now<C.end?"on":"done";
-async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(!C||now>C.end+20*36e5)return null;
+async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(!C||now>=C.end)return null;   // конкурс закончился — блок с таблицей убираем
   const fin=now>=C.end?await kvGet(env,"chal_res:"+C.id):null,rows=fin?fin.rows:(now<C.start?[]:await chalBoard(env,C));
   const i=rows.findIndex(r=>r.uid===me.id),mine=i>=0?{...rows[i],place:i+1}:{d:0,l2:0,n:0,place:0};
   return {id:C.id,start:C.start,end:C.end,left:Math.max(0,(now<C.start?C.start:C.end)-now),phase:chalPhase(C,now),prizes:C.prizes,need:CHAL_OPEN,x2:now>=C.start&&now<C.end?1:0,
