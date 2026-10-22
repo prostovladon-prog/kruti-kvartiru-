@@ -634,7 +634,7 @@ const TG_SVG=[
 function campView(){const C=S.camp||{runes:0,en:CAMP_E0,at:NOW(),lv:{pw:0,en:0,rg:0,cr:0,sq:0},t:0,hp:TARGETS[0].hp,sqAt:NOW(),kills:0,total:0};
   const mx=campMax(C),en=Math.min(mx,C.en+Math.max(0,NOW()-C.at)/campFull(C)*mx)-cpPend-cpFly,pw=campPow(C);
   return {C,mx,en:Math.max(0,en),pw,runes:Math.floor(C.runes+(cpPend+cpFly)*pw),sq:campSq(C,NOW()),full:campFull(C)}}
-function openCamp(){setTab("camp");cpHp=null;renderCamp();sfx.lock()}
+function openCamp(){setTab("camp");cpHp=null;renderCamp();sfx.lock();loadCampTop(true)}
 async function campFlush(){if(cpBusy||cpPend<1)return;cpBusy=true;cpFly=cpPend;cpPend=0;const r=await act("camp_tap",{n:cpFly});cpFly=0;cpBusy=false;
   if(r){if(r.crits)campFloat("💥 КРИТ ×"+r.crits,"crit");if(r.chests){campFloat("📦 +"+fmtN(r.chestR),"chest");sfx.reveal(3);hapN("success");toast("Мишень разбита! Сундук: +"+fmtN(r.chestR)+" рун")}cpHp=null}
   renderCamp()}
@@ -674,6 +674,17 @@ $("cp-ups").onclick=async e=>{const b=e.target.closest("[data-up]");if(!b)return
   const r=await act("camp_up",{k});if(r){sfx.coin();hapN("success");toast(U.n+": уровень "+r.l);renderCamp()}};
 setInterval(()=>{if(cpPend>0)campFlush();if(S&&!$("sec-camp").hidden)renderCamp(true)},1000);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)campFlush()});
+/* топ лагеря: день / неделя */
+let cpPer="d",cpTop=null,cpTopAt=0;
+async function loadCampTop(force){if(!ONLINE||$("sec-camp").hidden)return;if(!force&&NOW()-cpTopAt<30000){drawCampTop();return}cpTopAt=NOW();const r=await act("camp_top",{per:cpPer});if(r){cpTop=r;cpTop._t=NOW();drawCampTop()}}
+function drawCampTop(){const T=cpTop,box=$("cp-top");if(!box)return;if(!ONLINE){box.innerHTML='<div class="cp-empty">Топ работает в игре через бота</div>';return}if(!T||T.per!==cpPer){box.innerHTML='<div class="cp-empty">Загружаю…</div>';return}
+  $("cp-topn").textContent=(cpPer==="d"?"Сколько рун заработано сегодня. Новый день через ":"Сколько рун заработано за неделю. Новая неделя через ")+(()=>{const l=Math.max(0,T.left-(NOW()-T._t));return l>=864e5?Math.floor(l/864e5)+" дн "+Math.floor(l%864e5/36e5)+" ч":tleft(l)})();
+  box.innerHTML="";if(!T.items.length)box.innerHTML='<div class="cp-empty">Пока пусто — стань первым!</div>';
+  T.items.slice(0,10).forEach((it,i)=>{const d=document.createElement("div");d.className="cpt"+(it.uid===S.uid?" me":"");d.innerHTML="<i></i><span></span><b></b>";
+    d.children[0].textContent=i<3?["🥇","🥈","🥉"][i]:i+1;d.children[1].textContent=champMark(it.uid)+(it.vip?"👑 ":"")+(it.pi?"🏅 ":"")+it.name;d.children[2].textContent=fmtN(it.score)+" 💠";box.append(d)});
+  $("cp-me").textContent=T.me.rank?"Ты на "+T.me.rank+" месте · "+fmtN(T.me.score)+" рун":"Ты пока не в топе — тапай, и попадёшь в таблицу"}
+$("cp-seg").onclick=e=>{const b=e.target.closest("[data-per]");if(!b||b.dataset.per===cpPer)return;cpPer=b.dataset.per;$("cp-seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));drawCampTop();loadCampTop(true)};
+setInterval(()=>{if(S&&!$("sec-camp").hidden){if(cpTop)drawCampTop();loadCampTop()}},5000);
 /* ---------- челлендж приглашений ---------- */
 let chData=null,chAt=0;
 const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};

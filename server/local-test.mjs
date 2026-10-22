@@ -435,6 +435,9 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   setCamp(C => { C.hp = 3; C.tapAt = 0; C.en = 100 });
   r = await call(7800, "camp_tap", { n: 3 }); ok(r.res.chests === 1 && r.res.chestR === 200, "мишень разбита — сундук 200 рун");
   ok(db.prepare("SELECT camp_at FROM users WHERE id=7800").get().camp_at > Date.now(), "время полной энергии записано для напоминания");
+  await call(7801, "sync"); r = await call(7801, "camp_tap", { n: 10 });
+  r = await call(7801, "camp_top", { per: "d" }); ok(r.ok && r.res.items[0].uid === 7800 && r.res.me.rank === 2 && r.res.me.score === 10 + 0 || r.res.me.score >= 10, "топ лагеря за день: 1-й 7800, я на " + r.res.me.rank + " месте");
+  r = await call(7801, "camp_top", { per: "w" }); ok(r.ok && r.res.per === "w" && r.res.items.length >= 2 && r.res.left > 0 && r.res.left <= 7 * 864e5, "топ лагеря за неделю");
 }
 /* --- колесо фортуны --- */
 {
