@@ -447,22 +447,53 @@ function renderAlbum(){
 }
 
 /* ---------- collection ---------- */
+let colView="cards",colSort="v";
+const RK=["обычн.","редкие","эпич.","легенд.","миф."];
 function renderCol(){
-  const box=$("col");box.innerHTML="";box.className="cgrid";
-  $("col-n").textContent=S.cards.length+" из "+CAP+" мест, на "+fmt(S.cards.reduce((a,c)=>a+c.v,0));
+  // шапка коллекции
+  const tot=S.cards.reduce((a,c)=>a+c.v,0),best=[...S.cards].sort((a,b)=>b.v-a.v)[0],cnt=[0,0,0,0,0];S.cards.forEach(c=>cnt[HEROES[c.h][2]]++);
+  $("col-head").innerHTML='<div class="t">🗂 МОЯ КОЛЛЕКЦИЯ <span></span></div><div class="v"></div><div class="s"></div><div class="bar"><i></i></div><div class="rc">'+HT.map((t,i)=>'<div style="--c:'+t.c+'"><b>'+cnt[i]+'</b>'+RK[i]+'</div>').join("")+'</div>';
+  const H=$("col-head");H.querySelector(".t span").textContent=S.cards.length+" / "+CAP;H.querySelector(".v").textContent=fmt(tot);
+  H.querySelector(".s").textContent=best?"стоимость коллекции · лучшая: "+HEROES[best.h][0]+", "+FIN[best.f].k.toLowerCase():"открой первую карточку на вкладке «Крутить»";
+  H.querySelector(".bar i").style.width=Math.min(100,S.cards.length/CAP*100)+"%";
+  ["cards","beauty","merge"].forEach(k=>{$("colp-"+k).hidden=k!==colView});
+  $("col-seg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===colView));
+  if(colView==="beauty"){renderBeauty();return}
+  if(colView==="merge"){renderMerge();return}
+  $("col-sort").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===colSort));
+  const box=$("col");box.innerHTML="";box.className="cgrid2";
   if(!S.cards.length){box.className="list";box.innerHTML='<div class="empty-msg">Тут пока пусто. Открой первую карточку на вкладке «Крутить»</div>';return}
-  [...S.cards].sort((a,b)=>b.v-a.v).forEach(c=>{
-    const el=document.createElement("div");el.className="ctile";
-    el.innerHTML=`<button type="button" class="cbtn" aria-label="Рассмотреть карточку">${miniSlot(c)}</button><div class="cr"><b class="num">${fmtC(c.v)}</b><button type="button" class="mini sellx" aria-label="Продать за ${fmt(c.v*QUICK)}" title="Продать">🗑</button></div>`;
-    el.querySelector(".cbtn").setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");
-    el.querySelector(".cbtn").onclick=()=>openCardView(c,{mine:true});
-    const m=el.querySelector(".mini");
-    if(away(c)){m.disabled=true;m.textContent=c.listed?"🏷":"🧭";m.title=c.listed?"На рынке":"В походе";m.setAttribute("aria-label",m.title)}
-    else if(FIN[c.f].excl){m.disabled=true;m.textContent="🏆";m.title="Трофей";m.setAttribute("aria-label","Трофей")}
-    if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";el.querySelector(".cbtn").appendChild(fb)}
-    m.onclick=async()=>{if(!(await confirmSell(c)))return;const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))};
-    box.appendChild(el)});
+  const pw=c=>[0,1,2,3,4].reduce((a,i)=>a+(c.stats?eff(c,i):0),0),tier=c=>HEROES[c.h][2];
+  const cmp={v:(a,b)=>b.v-a.v,r:(a,b)=>tier(b)-tier(a)||b.v-a.v,f:(a,b)=>b.f-a.f||b.v-a.v,n:(a,b)=>(b.created||0)-(a.created||0)||String(b.id).localeCompare(String(a.id)),p:(a,b)=>pw(b)-pw(a)}[colSort];
+  [...S.cards].sort(cmp).forEach(c=>{const t=tier(c),el=document.createElement("div");el.className="tl2"+(t===3?" leg":t===4?" myth":"");el.style.setProperty("--c",HT[t].c);
+    el.innerHTML=`<span class="rb">${HT[t].k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
+    const cb=el.querySelector(".cbtn");cb.setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");cb.onclick=()=>openCardView(c,{mine:true});
+    if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";cb.appendChild(fb)}
+    const m=el.querySelector(".more");
+    if(away(c)){m.textContent=c.listed?"🏷":c.lock?"⚔️":"🧭";m.title=c.listed?"На рынке":c.lock?"В бою на арене":"В походе"}else if(FIN[c.f].excl){m.textContent="🏆";m.title="Трофей"}
+    m.onclick=()=>cardMenu(c);box.appendChild(el)});
 }
+/* меню «⋯»: рассмотреть или продать — чтобы не продать карточку случайным нажатием */
+function cardMenu(c){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const busy=away(c),tro=FIN[c.f].excl;
+  sh.innerHTML='<div class="box nickbox cmenu"><div class="sellprev"></div><h3></h3><button type="button" class="craftbtn" id="cm-view">🔍 Рассмотреть и закалить</button>'+(busy||tro?'<p class="cm-note"></p>':'<button type="button" class="linkbtn" id="cm-sell"></button>')+'<button type="button" class="ghost" id="cm-x">Закрыть</button></div>';
+  sh.querySelector(".sellprev").innerHTML=miniSlot(c);sh.querySelector("h3").textContent=HEROES[c.h][0]+" · "+FIN[c.f].k+" · "+fmtC(c.v);
+  $("cm-view").onclick=()=>{closeModal();openCardView(c,{mine:true})};$("cm-x").onclick=closeModal;
+  if(busy||tro)sh.querySelector(".cm-note").textContent=tro?"🏆 Трофей «Основатель» нельзя продать системе — только на рынке.":c.listed?"🏷 Карточка выставлена на рынок.":c.lock?"⚔️ Карточка сейчас в бою на арене.":"🧭 Воин в походе.";
+  else{$("cm-sell").textContent="💰 Продать за "+fmtC(c.v*QUICK);$("cm-sell").onclick=async()=>{closeModal();if(!(await confirmSell(c)))return;const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))}}}
+/* витрина красоты: все виды карточек, что уже есть у игрока */
+function renderBeauty(){const B=$("beauty"),ownF=new Set(S.cards.map(c=>c.f)),ownT=new Set(S.cards.map(c=>HEROES[c.h][2])),ownS=new Set(S.cards.map(c=>c.stars||0));
+  const ctx={issuedOf:()=>0,nextNo:()=>1,snFree:()=>true,takeSn:()=>{},newId:()=>"demo"+Math.random(),now:NOW(),events:[]};
+  const demo=(h,f,o)=>{let c;try{c=makeCard(ctx,h,f)}catch(e){c={h,f,no:1,sn:"482913",hue:0,v:0,stats:[300,300,300,300,300],xp:0,wins:0,stars:0}}Object.assign(c,o||{});return c};
+  const slot=c=>'<div class="ms">'+miniSlot(c)+'</div>',got=FIN.filter((F,i)=>ownF.has(i)).length;
+  let v='<div class="colhead"><div class="t">✨ ВИТРИНА КРАСОТЫ</div><div class="s" style="margin-top:6px">Все виды карточек в игре: какие бывают, как часто выпадают и сколько их всего. Собери все!</div><div class="bar"><i style="width:'+(got/FIN.length*100)+'%"></i></div><div class="s">собрано отделок: '+got+' из '+FIN.length+'</div></div><div class="bvh">Отделки</div>';
+  const H5=[11,20,23,26,30,31];
+  FIN.forEach((F,i)=>{const o=ownF.has(i);v+='<div class="bfr'+(o?'':' lock')+'">'+slot(demo(H5[i],i,{sn:i===4?"000001":undefined}))+'<div><h4><span>'+F.k+'</span><em>'+(F.excl?'15 друзей':String(F.w).replace(".",",")+'%')+'</em></h4><p>'+(F.excl?'Не выпадает. Только 3 штуки на всю игру — за 15 приглашённых друзей.':(F.run===Infinity?'Без ограничений':'Тираж: всего '+F.run+(F.run===1?' на каждого воина — одна на весь мир':' на каждого воина'))+' · цена ×'+F.m)+'</p><div class="own '+(o?'ok':'no')+'">'+(o?'✅ У тебя есть':'🔒 Ещё нет')+'</div></div></div>'});
+  v+='<div class="bvh">Редкость воинов</div><div class="bbx"><div class="bsr">'+[3,11,20,26,30].map((h,i)=>'<div class="'+(ownT.has(i)?'':'lock')+'">'+slot(demo(h,0))+'<span style="color:'+HT[i].c+'">'+HT[i].k+'</span></div>').join("")+'</div></div>';
+  v+='<div class="bvh">Красивые номера</div><div class="bbx">'+NICE.map(n=>'<div class="bnm"><span>'+n.k+'</span><span>'+n.ex+'</span><span>×'+n.m+'</span></div>').join("")+'</div>';
+  v+='<div class="bvh">Закалка ★1–★5</div><div class="bbx"><div class="bsr">'+[1,2,3,4,5].map(s=>'<div class="'+(ownS.has(s)?'':'lock')+'">'+slot(demo(20,0,{stars:s,xp:2500}))+'<span style="color:var(--ink)">★'+s+'</span></div>').join("")+'</div></div>';
+  B.innerHTML=v}
+$("col-seg").onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;colView=b.dataset.v;renderCol();sfx.tick&&sfx.tick()};
+$("col-sort").onclick=e=>{const b=e.target.closest("[data-s]");if(!b)return;colSort=b.dataset.s;renderCol()};
 $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))};
 
 /* подтверждение продажи системе: чтобы не продать дорогую карточку случайным нажатием */

@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=acfdf9c2">
+<link rel="stylesheet" href="style.css?v=b22817cf">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -267,9 +267,15 @@
     <div class="box" id="admin-box" hidden><h3>Админ: режим удачи</h3><p id="luck-t"></p><button type="button" class="craftbtn" id="luck-go"></button></div>
   </section>
   <section id="sec-col" hidden>
-    <div class="box cap"><div><h3>Коллекция</h3><p class="num" id="col-n"></p></div><button type="button" class="ghost" id="sellcommon">Продать все обычные</button></div>
-    <div class="box merge"><h3>Слияние</h3><p>Три одинаковых воина с одной отделкой превращаются в одного с отделкой выше.</p><div id="merge"></div></div>
-    <div class="list" id="col"></div>
+    <div class="colhead" id="col-head"></div>
+    <div class="colseg" id="col-seg" role="tablist"><button type="button" data-v="cards" aria-pressed="true">🃏 Карточки</button><button type="button" data-v="beauty" aria-pressed="false">✨ Витрина красоты</button><button type="button" data-v="merge" aria-pressed="false">🔀 Слияние</button></div>
+    <div id="colp-cards">
+      <div class="colsort" id="col-sort"><button type="button" data-s="v" aria-pressed="true">💰 Цена</button><button type="button" data-s="r" aria-pressed="false">💎 Редкость</button><button type="button" data-s="f" aria-pressed="false">✨ Отделка</button><button type="button" data-s="n" aria-pressed="false">🕐 Новые</button><button type="button" data-s="p" aria-pressed="false">⚔️ Сила</button></div>
+      <div class="list" id="col"></div>
+      <button type="button" class="ghost colsell" id="sellcommon">Продать все обычные</button>
+    </div>
+    <div id="colp-beauty" hidden><div id="beauty"></div></div>
+    <div id="colp-merge" hidden><div class="box merge"><h3>Слияние</h3><p>Три одинаковых воина с одной отделкой превращаются в одного с отделкой выше.</p><div id="merge"></div></div></div>
   </section>
 </div>
 <nav class="tabs" role="tablist"><div>
@@ -285,6 +291,6 @@
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
 <script src="rules.js?v=62aca3e9"></script>
-<script src="game.js?v=555bd6d7"></script>
+<script src="game.js?v=7563e1e8"></script>
 </body>
 </html>
