@@ -84,7 +84,28 @@
   </section>
 
   <section id="sec-duel" hidden>
-    <div class="seg" id="bt-seg"><button type="button" data-v="duel" aria-pressed="true">Дуэль</button><button type="button" data-v="boss" aria-pressed="false">Босс</button><button type="button" data-v="exp" aria-pressed="false">Походы</button></div>
+    <div class="seg seg4" id="bt-seg"><button type="button" data-v="arena" aria-pressed="false">⚡ Арена</button><button type="button" data-v="duel" aria-pressed="true">Дуэль</button><button type="button" data-v="boss" aria-pressed="false">Босс</button><button type="button" data-v="exp" aria-pressed="false">Походы</button></div>
+    <div id="bt-arena" style="display:none;flex-direction:column;gap:14px">
+      <div id="ar-room" hidden style="display:flex;flex-direction:column;gap:12px">
+        <div class="who" id="ar-who"><span></span><small></small></div>
+        <div class="rounds" id="ar-rounds"></div>
+        <div class="arena"><div class="mc" id="ar-l"></div><div class="vs" id="ar-vs">VS</div><div class="mc back" id="ar-r"><span>СОПЕР<br>НИК</span></div></div>
+        <div class="bstatus" id="ar-st"></div>
+        <div class="artimer" id="ar-timer"></div>
+        <div class="stats5" id="ar-stats"></div>
+        <div class="result" id="ar-res"></div>
+        <div id="ar-btns" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div id="ar-lobby" style="display:flex;flex-direction:column;gap:14px">
+        <div class="box"><h3>⚡ Арена: живые бои</h3><p>Бой в реальном времени: ты и соперник видите его одновременно, каждый на своём телефоне. На выбор характеристики 20 секунд.</p>
+          <span class="step">1. Выбери воина</span><div class="pickrow" id="ar-pick"></div>
+          <span class="step">2. Режим</span><div class="fins" id="ar-mode"></div>
+          <button type="button" class="craftbtn" id="ar-create">Создать бой</button>
+          <button type="button" class="linkbtn" id="ar-friend">Позвать друга в живой бой</button></div>
+        <div class="box"><div class="rowb"><h3>Ждут соперника</h3><button type="button" class="mini2" id="ar-refresh">Обновить</button></div><div id="ar-open" class="list"></div></div>
+        <div class="box"><h3>🔴 Идут сейчас</h3><div id="ar-live" class="list"></div></div>
+      </div>
+    </div>
     <div id="bt-duel" style="display:flex;flex-direction:column;gap:14px">
     <div class="box">
       <h3>Дуэль</h3>

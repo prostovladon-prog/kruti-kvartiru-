@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS cards (
   xp         INTEGER NOT NULL DEFAULT 0,
   wins       INTEGER NOT NULL DEFAULT 0,
   stars      INTEGER NOT NULL DEFAULT 0, -- закалка ★1–★5
+  room_id    INTEGER,                    -- карточка сейчас в бою на арене
   frame      TEXT,
   away       INTEGER NOT NULL DEFAULT 0, -- время возвращения из похода
   dest       INTEGER,
@@ -68,6 +69,10 @@ CREATE INDEX IF NOT EXISTS users_seen    ON users(seen);
 -- Бои с настоящими игроками: кто на кого нападал (для уведомлений и реванша).
 CREATE TABLE IF NOT EXISTS fights (id INTEGER PRIMARY KEY AUTOINCREMENT, att INTEGER, att_name TEXT, att_card INTEGER, att_h INTEGER, def INTEGER, def_card INTEGER, def_h INTEGER, w INTEGER, l INTEGER, t INTEGER, seen INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS fights_def ON fights(def, t);
+
+-- Арена: живые бои игрок против игрока.
+CREATE TABLE IF NOT EXISTS rooms (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT, priv INTEGER NOT NULL DEFAULT 0, mode INTEGER NOT NULL DEFAULT 0, host INTEGER, host_name TEXT, hc TEXT, guest INTEGER, guest_name TEXT, gc TEXT, phase TEXT NOT NULL DEFAULT 'open', until INTEGER NOT NULL DEFAULT 0, picks TEXT NOT NULL DEFAULT '[]', rounds TEXT NOT NULL DEFAULT '[]', applied INTEGER NOT NULL DEFAULT 0, ver INTEGER NOT NULL DEFAULT 0, created INTEGER, updated INTEGER);
+CREATE INDEX IF NOT EXISTS rooms_phase ON rooms(phase, created);
 
 -- Общий чат.
 CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, name TEXT, text TEXT, t INTEGER);

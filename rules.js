@@ -88,7 +88,7 @@ const EP2=["Севера","Пустошей","Бездны","Рассвета","
 function snHash(sn){let h=2166136261;for(const ch of String(sn))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0}
 /* у каждой карточки своё прозвище, оно открывается на ★3 */
 function epithet(c){const h=snHash(c.sn+"-"+c.h);return EP1[h%EP1.length]+" "+EP2[(h>>>8)%EP2.length]}
-const away=c=>!!c.away||!!c.listed;
+const away=c=>!!c.away||!!c.listed||!!c.lock;   // lock: карточка сейчас в бою на арене
 const targetPrice=(h,f)=>{const [a,b]=HT[HEROES[h][2]].b;return Math.round((a+b)/2*FIN[f].m*100)/100};
 const amuCost=(h,f)=>Math.max(20,Math.round(targetPrice(h,f)*.15));
 const trainCost=c=>Math.round(40*Math.pow(lvl(c),1.6));
@@ -189,7 +189,7 @@ function noteCard(st,c){st.best=Math.max(st.best||0,HEROES[c.h][2]);st.bestFin=M
 
 /* ---------- помощники для действий ---------- */
 function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточка не найдена");return c}
-function freeCard(G,id){const c=own(G,id);if(c.away)fail("Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
+function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail("Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 /* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
 function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(TROPHY_MSG);return c}
@@ -303,9 +303,14 @@ const ACTIONS={
   /* режим удачи на 3 часа: только администратор (сервер передаёт ctx.admin) */
   luck_set(G){if(!G.ctx.admin)fail("Нет доступа");G.st.luckUntil=G.p.on?G.ctx.now+3*3600e3:0;return {on:!!G.p.on,until:G.st.luckUntil}},
 
+  /* итог живого боя на арене: только сервер (ctx.pvp) */
+  pvp_result(G){if(!G.ctx.pvp)fail("Неизвестное действие");const {st,ctx,p}=G;const c=G.cards.find(x=>x.id===p.id);
+    if(p.res==="w"){st.totalWins=(st.totalWins||0)+1;day(st,ctx.now).wins++;if(c){c.wins=(c.wins||0)+1;addXp(ctx,c,30)}}
+    else if(c)addXp(ctx,c,p.res==="d"?15:10);return {}},
+
   topup(G){if(!G.ctx.test&&!G.ctx.admin)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
 
-if(typeof module!=="undefined")module.exports={spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

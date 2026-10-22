@@ -630,9 +630,9 @@ setInterval(renderFree,1000);
 
 /* ---------- бой в три раунда: результат считают правила, здесь только анимация ---------- */
 const RN=["Твой выбор","Выбор соперника","Случайная"];
-function pipsHTML(picks,rounds,cur,shown){shown=shown||[0];return [0,1,2].map(k=>{const r=rounds[k],known=r||shown.includes(k);
+function pipsHTML(picks,rounds,cur,shown,labels){shown=shown||[0];labels=labels||RN;return [0,1,2].map(k=>{const r=rounds[k],known=r||shown.includes(k);
   const cls=r?(r.a>r.b?"w":r.a<r.b?"l":"d"):(k===cur?"cur":"");
-  return `<div class="rd ${cls}"><small>Раунд ${k+1}</small><b>${known&&picks[k]!=null?STN[picks[k]]:"?"}</b><span>${r?r.a+" : "+r.b:RN[k]}</span></div>`}).join("")}
+  return `<div class="rd ${cls}"><small>Раунд ${k+1}</small><b>${known&&picks[k]!=null?STN[picks[k]]:"?"}</b><span>${r?r.a+" : "+r.b:labels[k]}</span></div>`}).join("")}
 function runBattle(o){const rounds=[];let i=0;const shown=o.shown||[0];
   const pips=()=>{o.roundsEl.innerHTML=pipsHTML(o.picks,rounds,i,shown)};
   const fight=()=>{const s=o.picks[i];if(!shown.includes(i))shown.push(i);pips();o.statusEl.textContent="Раунд "+(i+1)+" — "+STN[s];
@@ -776,8 +776,95 @@ function renderMerge(){const box=$("merge");if(!box)return;box.innerHTML="";cons
 let btView="duel";
 document.querySelectorAll("#bt-seg button").forEach(b=>b.onclick=()=>{btView=b.dataset.v;renderBattle()});
 function renderBattle(){document.querySelectorAll("#bt-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===btView));
-  ["duel","boss","exp"].forEach(v=>$("bt-"+v).style.display=v===btView?"flex":"none");
-  if(btView==="duel")renderDuel();if(btView==="boss")renderBoss();if(btView==="exp")renderExp()}
+  ["arena","duel","boss","exp"].forEach(v=>$("bt-"+v).style.display=v===btView?"flex":"none");
+  if(btView==="arena")renderArena();if(btView==="duel")renderDuel();if(btView==="boss")renderBoss();if(btView==="exp")renderExp()}
+/* ---------- арена: живые бои ----------
+   Пока открыт бой, игра раз в секунду спрашивает у сервера его состояние; оба игрока и зрители видят одно и то же. */
+let arRoom=null,arCode=null,arData=null,arMode=0,arPickId=null,arPoll=0,arList=null,arListAt=0,arDeadline=0,arAnim="",arDone="";
+const arVisible=()=>!$("sec-duel").hidden&&btView==="arena";
+function arStop(){clearInterval(arPoll);arPoll=0}
+function arStart(){arStop();arPoll=setInterval(()=>{if(!arVisible()||!arRoom||document.hidden)return;arFetch()},1000)}
+async function arFetch(){const r=await act("room_get",{room:arRoom});if(!r){return}arData=r;arDeadline=NOW()+r.left;drawRoom()}
+async function arOpen(id,code){arRoom=id;arCode=code||null;const r=await act("room_get",{room:id});if(!r){arRoom=null;renderArena();return}
+  arData=r;arDeadline=NOW()+r.left;if(r.phase==="open"&&!r.role){arRoom=null;arJoinDialog(r,code);renderArena();return}renderArena()}
+function renderArena(){if(!ONLINE){$("ar-lobby").innerHTML='<div class="box"><p>Арена работает в игре через Telegram.</p></div>';return}
+  $("ar-room").hidden=!arRoom;$("ar-lobby").style.display=arRoom?"none":"flex";
+  if(arRoom){drawRoom();if(!arPoll)arStart();return}arStop();drawLobby();if(NOW()-arListAt>5000)loadArena()}
+async function loadArena(){arListAt=NOW();const r=await act("arena_list");if(!r)return;arList=r;if(r.mine&&!arRoom){arOpen(r.mine);return}if(arVisible()&&!arRoom)drawLobby()}
+setInterval(()=>{if(arVisible()&&!arRoom&&!document.hidden)loadArena()},6000);
+function drawLobby(){
+  const pk=$("ar-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>b.v-a.v);
+  if(!free.some(c=>c.id===arPickId))arPickId=free[0]?free[0].id:null;
+  if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных воинов.</p>';
+  free.forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.setAttribute("aria-pressed",c.id===arPickId);
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmtC(c.v)}</b>`;b.children[1].textContent=H[0];
+    b.onclick=()=>{arPickId=c.id;drawLobby()};pk.appendChild(b)});
+  const md=$("ar-mode");md.innerHTML="";["На интерес","На карточку"].forEach((t,i)=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.setAttribute("aria-pressed",i===arMode);b.onclick=()=>{arMode=i;drawLobby()};md.appendChild(b)});
+  $("ar-create").textContent=arMode?"Создать бой на карточку":"Создать бой";
+  const L=arList||{open:[],live:[]},row=(r,btnT,fn)=>{const c=r.host.card,d=document.createElement("div");d.className="trow";
+    d.innerHTML=`<span class="rk">${r.mode?"💰":"⚔️"}</span><span class="e"></span><span class="t"><b></b><small></small></span><span></span>`;
+    d.querySelector(".e").innerHTML=portrait(c.h,c,1);d.querySelector(".e").style.setProperty("--hc",HT[HEROES[c.h][2]].c);
+    d.querySelector("b").textContent=r.guest?r.host.name+" vs "+r.guest.name:r.host.name;
+    d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(r.mode?" · на карточку ~"+fmtC(c.v):" · на интерес");
+    const b=document.createElement("button");b.type="button";b.className="mini2";b.textContent=btnT;b.onclick=fn;d.lastChild.appendChild(b);return d};
+  const ob=$("ar-open");ob.innerHTML="";L.open.filter(r=>r.host.uid!==S.uid).forEach(r=>ob.appendChild(row(r,"Принять",()=>arJoinDialog(r))));
+  if(!ob.children.length)ob.innerHTML='<p style="margin:0;color:#5a5f80">Пока никто не ждёт. Создай бой, и он появится здесь у всех игроков.</p>';
+  const lb=$("ar-live");lb.innerHTML="";L.live.forEach(r=>lb.appendChild(row(r,"Смотреть",()=>arOpen(r.id))));
+  if(!lb.children.length)lb.innerHTML='<p style="margin:0;color:#5a5f80">Сейчас никто не сражается.</p>'}
+async function arCreate(priv){const c=S.cards.find(x=>x.id===arPickId);if(!c){toast("Выбери воина");return}
+  const r=await act("room_create",{id:c.id,mode:arMode,priv:priv?1:0});if(!r)return;arRoom=r.id;arData=r;arCode=r.code;sfx.lock();renderAll();
+  if(priv)arShare()}
+function arShare(){if(!arData)return;const c=arData.host.card;sendLink("Вызываю тебя на живой бой в «Воинах Эпох»! Мой "+HEROES[c.h][0]+(arData.mode?". Играем на карточку 💰":"")+". Заходи, я жду ⚔️",linkFor("b_"+arData.id+"_"+(arData.code||"")))}
+$("ar-create").onclick=()=>arCreate(false);$("ar-friend").onclick=()=>arCreate(true);$("ar-refresh").onclick=()=>loadArena();
+function arJoinDialog(r,code){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;let pick=null;const hc=r.host.card;
+  sh.innerHTML='<button type="button" class="x">Закрыть</button><div class="who"><span></span><small></small></div><div class="box"><span class="step">Выбери воина</span><div class="pickrow"></div></div><button type="button" class="craftbtn">В бой!</button>';
+  sh.querySelector(".x").onclick=closeModal;sh.querySelector(".who span").textContent=r.host.name+" вызывает на бой"+(r.mode?" на карточку 💰":"");
+  sh.querySelector(".who small").textContent="Его воин: "+HEROES[hc.h][0]+", "+FIN[hc.f].k.toLowerCase()+". Характеристики соперника откроются только в бою."+(r.mode?" Победитель забирает карточку проигравшего. Нужна карточка ценой от "+fmtC(hc.v*.5)+" до "+fmtC(hc.v*2)+".":"");
+  const pk=sh.querySelector(".pickrow"),go=sh.querySelector(".craftbtn");
+  const list=S.cards.filter(c=>!away(c)&&!FIN[c.f].excl&&(!r.mode||(c.v>=hc.v*.5&&c.v<=hc.v*2))).sort((a,b)=>b.v-a.v);
+  const draw=()=>{pk.innerHTML="";list.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="pc";b.setAttribute("aria-pressed",c.id===pick);
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmtC(c.v)}</b>`;b.children[1].textContent=HEROES[c.h][0];b.onclick=()=>{pick=c.id;draw()};pk.appendChild(b)});
+    if(!list.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">'+(r.mode?"Нет подходящей по цене карточки.":"Нет свободных воинов.")+'</p>';go.disabled=!pick};
+  draw();go.onclick=async()=>{go.disabled=true;const res=await act("room_join",{room:r.id,id:pick,code:code||undefined});if(!res){go.disabled=false;loadArena();return}
+    closeModal();arRoom=res.id;arData=res;arDeadline=NOW()+res.left;hapN("success");setTab("duel");btView="arena";renderBattle()}}
+const arSide=(R,me)=>R.role==="guest"?{L:R.guest,R:R.host,lk:"g",rk:"h"}:{L:R.host,R:R.guest,lk:"h",rk:"g"};
+function drawRoom(){const R=arData;if(!R)return;const sd=arSide(R),mine=!!R.role,rounds=R.rounds.map(x=>({a:x[sd.lk],b:x[sd.rk],s:x.s}));
+  const w=$("ar-who");w.children[0].textContent=(R.guest?sd.L.name+" ⚔️ "+sd.R.name:sd.L.name);
+  w.children[1].textContent=(R.mode?"💰 На карточку: победитель забирает карточку проигравшего":"⚔️ На интерес")+(mine?"":" · ты смотришь бой");
+  const myTurn=(R.phase==="p0"&&R.role==="host")||(R.phase==="p1"&&R.role==="guest");
+  const cur=Math.min(2,rounds.length);
+  const lab=R.role==="guest"?["Выбор соперника","Твой выбор","Случайная"]:R.role==="host"?RN:["Выбор "+R.host.name,R.guest?"Выбор "+R.guest.name:"Соперник","Случайная"];
+  $("ar-rounds").innerHTML=pipsHTML([0,1,2].map(k=>R.picks[k]),rounds,cur,[0,1,2].filter(k=>R.picks[k]!=null),lab);
+  const last=rounds[rounds.length-1],stat=last?last.s:0,Lc=sd.L.card,Rc=sd.R?sd.R.card:null;
+  const lEl=$("ar-l"),rEl=$("ar-r");lEl.className="mc";lEl.style.setProperty("--hc",HT[HEROES[Lc.h][2]].c);
+  const key=R.id+":"+rounds.length+":"+(R.guest?1:0);
+  if(arAnim!==key){arAnim=key;lEl.innerHTML=mcHTML(Lc,stat,last?0:(Lc.stats?eff(Lc,stat):"?"));
+    if(Rc){rEl.className="mc";rEl.style.setProperty("--hc",HT[HEROES[Rc.h][2]].c);rEl.innerHTML=mcHTML(Rc,stat,last?0:"?")}else{rEl.className="mc back";rEl.innerHTML="<span>ЖДЁМ<br>СОПЕРНИКА</span>"}
+    if(last){const a=last.a,b=last.b,t0=performance.now(),ms=reduce?0:900;$("ar-vs").classList.remove("clash");void $("ar-vs").offsetWidth;$("ar-vs").classList.add("clash");sfx.clash();hap("medium");
+      lEl.classList.remove("win","lose");rEl.classList.remove("win","lose");
+      (function f(t){const k=ms?Math.min(1,(t-t0)/ms):1,e=1-Math.pow(1-k,3);const lb=lEl.querySelector(".v b"),rb=rEl.querySelector(".v b");if(lb)lb.textContent=Math.round(a*e);if(rb)rb.textContent=Math.round(b*e);
+        if(k<1){requestAnimationFrame(f);return}if(a>b){lEl.classList.add("win");rEl.classList.add("lose");sfx.lock()}else if(a<b){rEl.classList.add("win");lEl.classList.add("lose")}})(t0)}}
+  const st=$("ar-st"),wins=rounds.filter(x=>x.a>x.b).length,loss=rounds.filter(x=>x.a<x.b).length;
+  st.textContent=R.phase==="open"?(R.role==="host"?"Ждём соперника…":"Бой ждёт соперника"):R.phase==="cancel"?"Бой отменён":R.phase==="done"?"Счёт "+wins+" : "+loss
+    :myTurn?"Раунд "+(cur+1)+": твой ход, выбери характеристику":R.phase==="p0"||R.phase==="p1"?"Раунд "+(cur+1)+": "+(mine?"соперник":(R.phase==="p0"?R.host.name:R.guest.name))+" выбирает…"
+    :last?"Раунд "+rounds.length+" — "+STN[last.s]+": "+(last.a>last.b?(mine?"твой":sd.L.name):last.a<last.b?(mine?"соперника":sd.R.name):"ничья")+" ("+last.a+" : "+last.b+")":"";
+  const sb=$("ar-stats");sb.innerHTML="";
+  if(myTurn){const me=Lc;STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.disabled=R.picks.includes(i);b.innerHTML=`${n}<b class="num">${me.stats?eff(me,i):"?"}</b>`;
+    b.onclick=async()=>{sb.querySelectorAll("button").forEach(x=>x.disabled=true);const r=await act("room_pick",{room:R.id,stat:i});if(r){arData=r;arDeadline=NOW()+r.left;drawRoom()}else arFetch()};sb.appendChild(b)})}
+  const res=$("ar-res"),bt=$("ar-btns");bt.innerHTML="";res.textContent="";res.className="result";
+  const mk=(t,cls,fn)=>{const b=document.createElement("button");b.type="button";b.className=cls;b.textContent=t;b.onclick=fn;bt.appendChild(b)};
+  if(R.phase==="open"&&R.role==="host"){mk("Позвать друга по ссылке","linkbtn",arShare);mk("Отменить бой","ghost",async()=>{if(await act("room_cancel",{room:R.id})){arRoom=null;arData=null;renderAll();loadArena()}})}
+  if(R.phase==="done"||R.phase==="cancel"){
+    if(R.phase==="done"){const win=wins>loss,lose=wins<loss;
+      res.textContent=mine?(win?"🏆 Победа "+wins+" : "+loss+"!"+(R.mode?" Карточка соперника теперь твоя":""):lose?"Поражение "+wins+" : "+loss+(R.mode?". Твоя карточка ушла к сопернику":""):"Ничья "+wins+" : "+loss):(wins>loss?sd.L.name:wins<loss?sd.R.name:"Ничья")+(wins===loss?"":" побеждает "+Math.max(wins,loss)+" : "+Math.min(wins,loss));
+      res.className="result "+(mine?(win?"win":lose?"lose":""):"");
+      if(arDone!==R.id+":done"){arDone=R.id+":done";if(mine){if(win){sfx.fanfare();burst(3);hapN("success")}else if(lose)sfx.lose()}renderAll();updCash()}}
+    mk(mine?"Новый бой":"К арене","craftbtn",()=>{arRoom=null;arData=null;arAnim="";renderArena();loadArena()})}
+  arTimer()}
+function arTimer(){const R=arData,el=$("ar-timer");if(!el)return;if(!R||!["p0","p1"].includes(R.phase)){el.textContent="";return}
+  const s=Math.max(0,Math.ceil((arDeadline-NOW())/1000));el.textContent="⏱ "+s;el.classList.toggle("hot",s<=5)}
+setInterval(()=>{if(arVisible()&&arRoom)arTimer()},250);
+
 /* ---------- походы ---------- */
 let exDest=0,exPick=null;
 function exList(){return S.cards.filter(c=>c.away)}
@@ -1062,6 +1149,7 @@ $("ref-go").onclick=()=>{if(!ONLINE){toast("Приглашения работа�
 async function openParam(p){
   if(p.startsWith("r_"))return;   // приглашение: сервер уже засчитал его при первом входе
   if(p.startsWith("u_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const r=await act("profile",{uid:+p.slice(2)});if(r)openShowcase(Object.assign(r,{p}));return}
+  if(p.startsWith("b_")){if(!ONLINE){toast("Арена работает в игре через Telegram");return}const [,id,code]=p.split("_");setTab("duel");btView="arena";renderBattle();arOpen(+id,code);return}
   if(p.startsWith("c_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const [,id,stat]=p.split("_");const r=await act("card",{id:+id});
     if(r)openDuel({name:r.name,card:r.card,stat:stat!=null&&stat!==""?(+stat)%5:null,cardId:r.card.id,id:"c"+r.card.id});return}
   const v=parseLocalParam(p);if(!v){toast("Ссылка от друга не открылась");return}

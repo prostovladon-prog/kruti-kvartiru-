@@ -368,5 +368,47 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   globalThis.fetch = realFetch;
 }
 
+/* --- арена: живой бой игрок против игрока --- */
+{
+  const A = 6111111111, B = 6222222222, Cw = 6333333333;
+  for (const u of [A, B, Cw]) { await call(u, "sync"); db.prepare("UPDATE users SET gift_spins=gift_spins+5 WHERE id=?").run(u); for (let i = 0; i < 4; i++) await call(u, "open") }
+  db.prepare("UPDATE cards SET v=50 WHERE owner IN (?,?,?)").run(A, B, Cw);
+  const ca = await anyCard(A), cb = await anyCard(B);
+  r = await call(A, "room_create", { id: ca.id, mode: 1 }); ok(r.ok && r.res.phase === "open", "создан бой на карточку");
+  const room = r.res.id;
+  r = await call(A, "sell", { id: ca.id }); ok(!r.ok && /арене/.test(r.err), "карточку в бою нельзя продать: " + r.err);
+  r = await call(A, "room_create", { id: (await anyCard(A)).id }); ok(!r.ok, "второй бой одновременно нельзя");
+  r = await call(B, "arena_list"); ok(r.ok && r.res.open.some(x => x.id === room) && r.res.open.find(x => x.id === room).host.card.stats === null, "бой виден в лобби, характеристики скрыты");
+  r = await call(B, "room_join", { room, id: cb.id }); ok(r.ok && r.res.phase === "p0" && r.res.role === "guest", "соперник принял бой");
+  r = await call(Cw, "room_join", { room, id: (await anyCard(Cw)).id }); ok(!r.ok, "третий войти не может");
+  r = await call(B, "room_pick", { room, stat: 0 }); ok(!r.ok && /ход/.test(r.err), "в первом раунде выбирает создатель");
+  r = await call(A, "room_pick", { room, stat: 2 }); ok(r.ok && r.res.phase === "s0" && r.res.rounds.length === 1, "раунд 1 вскрыт у обоих");
+  r = await call(Cw, "room_get", { room }); ok(r.ok && r.res.role === null && r.res.rounds.length === 1, "зритель видит бой в реальном времени");
+  db.prepare("UPDATE rooms SET until=0 WHERE id=?").run(room);   // время показа вышло
+  r = await call(B, "room_get", { room }); ok(r.res.phase === "p1", "ход соперника");
+  r = await call(B, "room_pick", { room, stat: 2 }); ok(!r.ok, "уже выбранную характеристику нельзя");
+  r = await call(B, "room_pick", { room, stat: 4 }); ok(r.ok && r.res.phase === "s1", "раунд 2 вскрыт");
+  db.prepare("UPDATE rooms SET until=0 WHERE id=?").run(room); r = await call(A, "room_get", { room }); ok(r.res.phase === "s2" && r.res.rounds.length === 3, "раунд 3 случайный");
+  db.prepare("UPDATE rooms SET until=0 WHERE id=?").run(room); r = await call(A, "room_get", { room });
+  const res = r.res.result; ok(r.res.phase === "done" && res, "бой закончен: " + (res && res.w + ":" + res.l));
+  const oa = db.prepare("SELECT owner, room_id FROM cards WHERE id=?").get(ca.id), ob = db.prepare("SELECT owner, room_id FROM cards WHERE id=?").get(cb.id);
+  if (res.w > res.l) ok(oa.owner === A && ob.owner === A, "победитель забрал карточку соперника");
+  else if (res.l > res.w) ok(oa.owner === B && ob.owner === B, "победитель забрал карточку соперника");
+  else ok(oa.owner === A && ob.owner === B, "ничья: карточки остались у хозяев");
+  ok(oa.room_id === null && ob.room_id === null, "карточки разблокированы");
+  r = await call(A, "room_get", { room }); r = await call(B, "room_get", { room });
+  const wins = db.prepare("SELECT COUNT(*) n FROM cards WHERE id IN (?,?)").get(ca.id, cb.id).n; ok(wins === 2, "итог применён один раз, карточки не задвоились и не пропали");
+  // таймаут: создатель не выбирает — выбор сделает сервер
+  const c2 = await anyCard(A), d2 = await anyCard(B);
+  r = await call(A, "room_create", { id: c2.id, mode: 0, priv: 1 }); const room2 = r.res.id, code = r.res.code;
+  r = await call(B, "arena_list"); ok(!r.res.open.some(x => x.id === room2), "закрытый бой не виден в лобби");
+  r = await call(B, "room_join", { room: room2, id: d2.id }); ok(!r.ok, "в закрытый бой без кода не войти");
+  r = await call(B, "room_join", { room: room2, id: d2.id, code }); ok(r.ok, "друг вошёл по ссылке");
+  for (let i = 0; i < 6; i++) { db.prepare("UPDATE rooms SET until=0 WHERE id=?").run(room2); r = await call(B, "room_get", { room: room2 }) }
+  ok(r.res.phase === "done" && r.res.rounds.length === 3, "если никто не нажал, бой всё равно доходит до конца");
+  const c3 = await anyCard(A); r = await call(A, "room_create", { id: c3.id }); const room3 = r.res.id;
+  r = await call(A, "room_cancel", { room: room3 }); ok(r.ok && db.prepare("SELECT room_id FROM cards WHERE id=?").get(c3.id).room_id === null, "отмена боя возвращает карточку");
+}
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
