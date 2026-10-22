@@ -8,8 +8,8 @@ import { openDB, loadWorker } from "../server/node-server.mjs";
 
 const OLD = (process.argv[2] || "").replace(/\/$/, "");
 if (!OLD) { console.error("Укажи адрес старого сервера: node tools/import-from-cloudflare.mjs https://....workers.dev"); process.exit(1) }
-const envFile = existsSync("/etc/voiny.env") ? Object.fromEntries(readFileSync("/etc/voiny.env", "utf8").split("\n").filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()])) : {};
-const TOKEN = process.env.BOT_TOKEN || envFile.BOT_TOKEN, DB_PATH = process.env.DB_PATH || envFile.DB_PATH || "/var/lib/voiny/game.db";
+const envFile = existsSync("/etc/voiny.env") ? Object.fromEntries(readFileSync("/etc/voiny.env", "utf8").split("\n").filter(l => l.includes("=")).map(l => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).replace(/[\r"']/g, "").trim()])) : {};
+const TOKEN = String(process.env.BOT_TOKEN || envFile.BOT_TOKEN || "").replace(/[\s\r\n"']/g, ""), DB_PATH = process.env.DB_PATH || envFile.DB_PATH || "/var/lib/voiny/game.db";
 if (!TOKEN) { console.error("Нет BOT_TOKEN"); process.exit(1) }
 const KEY0 = createHash("sha256").update("export:" + TOKEN).digest("hex").slice(0, 40);
 if (process.argv.includes("--unfreeze")) { const r = await fetch(OLD + "/export?freeze=0", { headers: { "X-Export-Key": KEY0 } }); console.log(await r.text()); process.exit(0) }

@@ -14,6 +14,7 @@ read -rp "Домен для сервера (например api.voinyepoh.ru). 
 if [ -z "${DOMAIN}" ]; then DOMAIN="$(echo "$IP" | tr . -).sslip.io"; echo "Буду использовать бесплатный адрес: $DOMAIN"; fi
 if [ -f /etc/voiny.env ] && grep -q '^BOT_TOKEN=.\+' /etc/voiny.env; then echo "Токен бота уже сохранён"; else
   read -rsp "Вставь токен бота из @BotFather (символы не будут видны) и нажми Enter: " TOKEN; echo
+  TOKEN=$(printf '%s' "$TOKEN" | tr -d '\r\n\t "'"'"'')
   [ -n "$TOKEN" ] || { echo "Токен пустой"; exit 1; }
   umask 077; printf 'BOT_TOKEN=%s\nADMINS=6724818967\nDB_PATH=%s/game.db\nPORT=8787\n' "$TOKEN" "$DATA" > /etc/voiny.env; umask 022
 fi
