@@ -620,6 +620,27 @@ function renderFree(){if(!S)return;
     bb.innerHTML=bn>=BUY_MAX?"Сегодня куплено "+BUY_MAX+" из "+BUY_MAX+". Завтра цены сбросятся":"🎴 Купить прокрутку за <b>"+fmtC(spinPrice(S,NOW()))+"</b><small>куплено сегодня "+bn+" из "+BUY_MAX+", каждая следующая ×2</small>"}
   const n=S.spins??0,cap=spinCap(S);$("free-n").textContent=n<=cap?n+"/"+cap:String(n);$("open-n").textContent=n>0?"осталось "+n:"через "+leftTxt();
   const pw=cap>=5?"бесплатных прокруток":"бесплатные прокрутки";$("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся "+cap+" "+pw+(cap>SPINS_MAX?" 👑":""):"Новые "+cap+" "+(cap>=5?"прокруток":"прокрутки")+" через "+leftTxt();$("open").classList.toggle("empty",n<=0);renderPromo()}
+/* ---------- челлендж приглашений ---------- */
+let chData=null,chAt=0;
+const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
+async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=await act("chal_get");chData=r||null;if(chData)chData._t=NOW();drawChal()}
+function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
+  const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
+  $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
+  $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinivadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":"Зови друзей до "+hm(C.end)+": топ-3 получают подарки Telegram или звёзды ⭐";
+  $("chal-p").innerHTML=C.prizes.map((p,k)=>`<div>${["🥇","🥈","🥉"][k]}<b>${p}</b>подарок</div>`).join("");
+  const M=C.me;$("chal-me").innerHTML="";const mb=document.createElement("div");
+  mb.textContent=C.phase==="soon"?"Подготовь список друзей — счёт начнётся в "+hm(C.start):M.place?"Ты на "+M.place+" месте · "+M.n+" "+plural(M.n,"друг","друга","друзей"):"У тебя пока 0 — пригласи первого друга!";
+  const sm=document.createElement("small");sm.textContent="Твои друзья: "+M.d+" · друзья твоих друзей: "+M.l2;$("chal-me").append(mb);if(C.phase!=="soon")$("chal-me").append(sm);
+  const T=$("chal-top");T.innerHTML="";
+  if(!C.top.length&&C.phase!=="soon"){T.innerHTML='<div class="empty">Пока никого — первое место свободно!</div>'}
+  for(const r of C.top){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";
+    d.children[0].textContent=r.place<=3?["🥇","🥈","🥉"][r.place-1]:r.place;d.children[1].textContent=(r.vip?"👑 ":"")+r.name;d.children[2].textContent=r.n;T.append(d)}
+  $("chal-go").hidden=C.phase!=="on";
+  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Если твой друг пригласит своего друга, он засчитывается и другу, и тебе. При равном счёте выше тот, кто набрал его раньше. Время — минское. Призы выдаёт @voinivadmin: подарок Telegram или звёзды на ту же сумму. Накрутка ботами и пустыми аккаунтами = снятие с челленджа."}
+$("chal-go").onclick=()=>$("ref-go").click();
+setInterval(()=>{if(chData&&!$("chal").hidden){const l=Math.max(0,chData.left-(NOW()-chData._t));if(l<=0&&chData.phase!=="done"&&NOW()-chAt>5000)loadChal();else if(chData.phase!=="done")$("chal-left").textContent=(chData.phase==="soon"?"через ":"")+tleft(l)}},1000);
+setInterval(loadChal,30000);setTimeout(loadChal,1500);
 /* ---------- акция и VIP ---------- */
 const isVip=()=>!!S&&(S.vipUntil||0)>NOW();
 function renderPromo(){if(!S)return;const P=S.promo,box=$("promo");

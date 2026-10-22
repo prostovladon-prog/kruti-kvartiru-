@@ -448,5 +448,24 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   const locked = db.prepare("SELECT COUNT(*) n FROM cards WHERE room_id IS NOT NULL").get().n; ok(locked === 0, "после турнира все карточки разблокированы");
 }
 
+/* --- челлендж приглашений --- */
+{
+  const envC = { ...env, ADMINS: "8" };
+  const cc = async (uid, a, p = {}, start = "") => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), envC)).json();
+  const now = Date.now();
+  let r = await cc(6001, "chal_set", { cfg: { id: "t1", start: now - 36e5, end: now + 36e5, prizes: ["$20", "$10", "$7"], slots: [] } }); ok(!r.ok, "обычный игрок не может настроить челлендж");
+  r = await cc(8, "chal_set", { cfg: { id: "t1", start: now - 36e5, end: now + 36e5, prizes: ["$20", "$10", "$7"], slots: [] } }); ok(r.ok, "админ настроил челлендж");
+  await cc(6001, "sync");
+  await cc(6002, "sync", {}, "r_6001"); for (let i = 0; i < 3; i++) await cc(6002, "open");
+  await cc(6003, "sync", {}, "r_6002"); for (let i = 0; i < 3; i++) await cc(6003, "open");
+  await cc(6004, "sync", {}, "r_6001"); await cc(6004, "open");
+  r = await cc(6001, "chal_get"); ok(r.ok && r.res.phase === "on" && r.res.me.n === 2 && r.res.me.d === 1 && r.res.me.l2 === 1 && r.res.me.place === 1, "друг + друг друга = 2 очка, пустой аккаунт не считается (" + JSON.stringify(r.res && r.res.me) + ")");
+  r = await cc(6002, "chal_get"); ok(r.res.me.n === 1 && r.res.me.place === 2, "друг на 2 месте с 1 очком");
+  await cc(8, "chal_set", { cfg: { id: "t1", start: now - 36e5, end: Date.now() - 1, prizes: ["$20", "$10", "$7"], slots: [] } });
+  await worker.tick(envC); await worker.tick(envC);
+  r = await cc(6001, "chal_get"); ok(r.res.phase === "done" && r.res.top[0].n === 2 && r.res.top[0].me === 1, "итоги зафиксированы");
+  await cc(8, "chal_set", { cfg: null });
+}
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

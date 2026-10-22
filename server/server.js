@@ -639,9 +639,60 @@ async function onUpdate(env,upd){const m=upd.message;if(!m||!m.chat||m.chat.type
     reply_markup:play("⚔️ Играть")});
 }
 
+/* ---------- челлендж «Кто пригласит больше друзей» ----------
+   Считаются новые игроки, пришедшие по ссылке в окно челленджа и открывшие хотя бы CHAL_OPEN карточек
+   (чтобы «пустые» аккаунты не засчитывались). Друг друга (2-й уровень) засчитывается и пригласившему, и его пригласившему.
+   Рассылка ботом в слоты (минское время), итоги — в конце. Настройки можно переопределить в kv "chal". */
+const CHAL_OPEN=3,CHAL_LATE=50*60e3;
+const CHAL_DEFAULT={id:"2026-10-22",start:Date.UTC(2026,9,22,6),end:Date.UTC(2026,9,22,17),prizes:["$20","$10","$7"],slots:[9,12,15,18]};
+async function chalCfg(env){return await cached("chalcfg",30e3,async()=>(await kvGet(env,"chal"))||CHAL_DEFAULT)}
+async function chalBoard(env,C){return await cached("chalb",20e3,async()=>{
+  const q="json_extract(c.state,'$.day.opened')>=? AND c.created>=? AND c.created<?";
+  const d=(await env.DB.prepare("SELECT c.ref AS uid,COUNT(*) AS n FROM users c WHERE c.ref IS NOT NULL AND "+q+" GROUP BY c.ref").bind(CHAL_OPEN,C.start,C.end).all()).results;
+  const l2=(await env.DB.prepare("SELECT p.ref AS uid,COUNT(*) AS n FROM users c JOIN users p ON c.ref=p.id WHERE p.ref IS NOT NULL AND p.ref<>c.id AND "+q+" GROUP BY p.ref").bind(CHAL_OPEN,C.start,C.end).all()).results;
+  const m=new Map();for(const r of d)m.set(r.uid,{uid:r.uid,d:r.n,l2:0});for(const r of l2){const o=m.get(r.uid)||{uid:r.uid,d:0,l2:0};o.l2=r.n;m.set(r.uid,o)}
+  let rows=[...m.values()].filter(r=>!isAdmin(env,r.uid)).map(r=>(r.n=r.d+r.l2,r));
+  // при равенстве выше тот, кто раньше набрал счёт: по времени регистрации последнего засчитанного друга
+  if(rows.length){const ids=rows.map(r=>r.uid);const nm=new Map();
+    for(let i=0;i<ids.length;i+=90){const part=ids.slice(i,i+90);
+      for(const u of (await env.DB.prepare("SELECT u.id,COALESCE(u.nick,u.name) AS name,u.vip_until,(SELECT MAX(c.created) FROM users c LEFT JOIN users p ON c.ref=p.id WHERE (c.ref=u.id OR p.ref=u.id) AND c.created>=? AND c.created<?) AS last FROM users u WHERE u.id IN ("+part.map(()=>"?").join(",")+")").bind(C.start,C.end,...part).all()).results)nm.set(u.id,u)}
+    rows=rows.map(r=>{const u=nm.get(r.uid)||{};return {...r,name:u.name||"Игрок",vip:(u.vip_until||0)>Date.now()?1:0,last:u.last||0}})}
+  rows.sort((a,b)=>b.n-a.n||b.d-a.d||a.last-b.last);return rows})}
+const chalPhase=(C,now)=>now<C.start?"soon":now<C.end?"on":"done";
+async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(!C||now>C.end+20*36e5)return null;
+  const fin=now>=C.end?await kvGet(env,"chal_res:"+C.id):null,rows=fin?fin.rows:(now<C.start?[]:await chalBoard(env,C));
+  const i=rows.findIndex(r=>r.uid===me.id),mine=i>=0?{...rows[i],place:i+1}:{d:0,l2:0,n:0,place:0};
+  return {id:C.id,start:C.start,end:C.end,left:Math.max(0,(now<C.start?C.start:C.end)-now),phase:chalPhase(C,now),prizes:C.prizes,need:CHAL_OPEN,
+    top:rows.slice(0,10).map((r,k)=>({place:k+1,name:r.name,n:r.n,d:r.d,l2:r.l2,vip:r.vip,me:r.uid===me.id?1:0})),me:{n:mine.n,d:mine.d,l2:mine.l2,place:mine.place},total:rows.length}}
+const fmtLeft=ms=>{const m=Math.max(0,Math.round(ms/60e3));return (m>=60?Math.floor(m/60)+" ч ":"")+(m%60)+" мин"};
+function chalText(C,slot,rows,now){const last=slot===C.slots.length-1;
+  const pr="🥇 подарок Telegram на "+C.prizes[0]+"\n🥈 подарок на "+C.prizes[1]+"\n🥉 подарок на "+C.prizes[2]+"\nПриз можно забрать подарком или звёздами ⭐";
+  const top=rows.slice(0,3).map((r,k)=>["🥇","🥈","🥉"][k]+" "+r.name+" — "+r.n).join("\n");
+  if(slot===0)return "🔥 ЧЕЛЛЕНДЖ ДНЯ: КТО ПРИГЛАСИТ БОЛЬШЕ ДРУЗЕЙ\n\nСегодня с 9:00 до 20:00 зови друзей в «Воины Эпох». Топ-3 получают призы:\n"+pr+"\n\n👥 Считаются только друзья, пришедшие сегодня по твоей ссылке. Позовёт твой друг своего друга — он засчитается и тебе!\n✅ Друг засчитывается, когда откроет "+CHAL_OPEN+" карточки.\n\n📊 Таблица лидеров — в игре на вкладке «Крутить». Жми «Пригласить» и отправляй ссылку!";
+  return (last?"⏰ ПОСЛЕДНИЕ 2 ЧАСА ЧЕЛЛЕНДЖА!":"⚡ ЧЕЛЛЕНДЖ ИДЁТ — до конца "+fmtLeft(C.end-now))+"\n\n"+(top?"Сейчас в топе:\n"+top+"\n\n":"Пока никто не набрал очков — место в топе свободно!\n\n")+"Призы:\n"+pr+"\n\nЗовёшь друга — +1. Он зовёт своего — тебе тоже +1. Итоги в 20:00 👇"}
+let chalBusy=null;
+async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{const C=await chalCfg(env),now=Date.now();if(!C||now<C.start-3600e3||now>C.end+36e5)return;
+  const st=(await kvGet(env,"chal_st:"+C.id))||{slot:-1,after:0,fin:0};
+  // итоги: фиксируем таблицу и пишем победителям и админу
+  if(now>=C.end&&!st.fin){delete topCache.chalb;const rows=(await chalBoard(env,C)).slice(0,50);await kvSet(env,"chal_res:"+C.id,{rows,at:now});st.fin=1;st.res=0;await kvSet(env,"chal_st:"+C.id,st)}
+  if(st.fin===1&&!st.res){const rows=((await kvGet(env,"chal_res:"+C.id))||{}).rows||[];
+    for(let k=0;k<3&&k<rows.length;k++)await notify(env,rows[k].uid,["🥇","🥈","🥉"][k]+" Поздравляем! Ты занял "+(k+1)+" место в челлендже: "+rows[k].n+" друзей.\n\nТвой приз: подарок Telegram на "+C.prizes[k]+" или звёзды на ту же сумму. Напиши @voinivadmin, что выбираешь, и пришли свой ID: "+rows[k].uid,"⚔️ Играть");
+    const list=rows.slice(0,10).map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+") — "+r.n+" (сам "+r.d+" + друзья "+r.l2+")").join("\n")||"никого";
+    for(const a of ADMINS)await notify(env,a,"🏁 Итоги челленджа "+C.id+":\n\n"+list+"\n\nПеред выдачей проверь, что друзья живые (не пустые аккаунты).","⚔️ Открыть");
+    st.res=1;await kvSet(env,"chal_st:"+C.id,st);return}
+  // рассылка по слотам
+  const h=new Date(now+TZ),slotAt=s=>Date.UTC(h.getUTCFullYear(),h.getUTCMonth(),h.getUTCDate(),C.slots[s])-TZ;
+  let s=-1;for(let k=0;k<C.slots.length;k++)if(now>=slotAt(k)&&now<slotAt(k)+CHAL_LATE&&slotAt(k)>=C.start&&slotAt(k)<C.end)s=k;
+  if(s<0||st.slot>s||st.slot===s&&st.done)return;
+  if(st.slot!==s){st.slot=s;st.after=0;st.done=0;st.n=0}
+  const rows=s?await chalBoard(env,C):[],text=chalText(C,s,rows,now);
+  const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
+  for(const u of us){if(await notify(env,u.id,text,"👥 Открыть таблицу"))st.n++;st.after=u.id}
+  if(us.length<25)st.done=1;await kvSet(env,"chal_st:"+C.id,st)})().finally(()=>{chalBusy=null});return chalBusy}
+
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env)},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -685,6 +736,8 @@ async function handle(req,env){{
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
       if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize")fail("Неизвестное действие");
+      if(a==="chal_get")return J({ok:true,res:await chalGet(env,me)});
+      if(a==="chal_set"){if(!isAdmin(env,me.id))fail("Нет доступа");await kvSet(env,"chal",p.cfg||null);delete topCache.chalcfg;return J({ok:true,res:{}})}
       if(/^tour_/.test(a)){const res=await tourApi(env,me,a,p);return J({ok:true,res,S:a==="tour_get"?undefined:await stateFor(env,me)})}
       if(/^(arena_list|room_)/.test(a)){const res=await arena(env,me,a,p);const S=/^room_(create|join|cancel)$/.test(a)||(res&&res.phase==="done")?await stateFor(env,me):undefined;return J({ok:true,res,S})}
       if(a==="luck_set"&&!isAdmin(env,me.id))fail("Нет доступа");

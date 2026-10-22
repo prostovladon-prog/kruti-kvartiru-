@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=dac4984d">
+<link rel="stylesheet" href="style.css?v=c2947338">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -49,6 +49,13 @@
     </div>
     <div class="hint">Можно просто тапать по карточке</div>
     <button type="button" class="buyspin" id="buy-go" hidden></button>
+    <div class="chal" id="chal" hidden><div class="chal-h"><span>👥 ЧЕЛЛЕНДЖ ДНЯ</span><b id="chal-left"></b></div>
+      <div class="chal-t" id="chal-t"></div>
+      <div class="chal-p" id="chal-p"></div>
+      <div class="chal-me" id="chal-me"></div>
+      <div class="chal-top" id="chal-top"></div>
+      <button type="button" class="craftbtn" id="chal-go">Пригласить друзей</button>
+      <details class="chal-r"><summary>Правила</summary><div id="chal-rules"></div></details></div>
     <div class="promo" id="promo" hidden><div class="promo-h">⏳ АКЦИЯ <b id="promo-left">3:00:00</b></div><div class="promo-t" id="promo-t"></div><div class="bar"><i id="promo-bar"></i></div><button type="button" class="craftbtn" id="promo-go">Пригласить друзей</button></div>
     <div class="vipbox" id="vipbox" hidden>👑 <b>VIP</b> <span id="vip-t"></span></div>
     <div class="box free" id="free-box"><div><h3>Прокрутки</h3><p id="free-t">Каждые 4 часа даётся 3 бесплатных прокрутки</p></div><b class="num" id="free-n" style="font-family:var(--display);font-size:22px">3/3</b></div>
@@ -243,6 +250,6 @@
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
 <script src="rules.js?v=63a1054d"></script>
-<script src="game.js?v=27820d7c"></script>
+<script src="game.js?v=c8c3691b"></script>
 </body>
 </html>
