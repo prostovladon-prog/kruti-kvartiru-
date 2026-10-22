@@ -1323,7 +1323,11 @@ let stAt=0,stData=null;
 const pct=(a,b)=>b?Math.round(a/b*100)+"%":"—";
 async function loadStats(force){if(!S.admin||!ONLINE)return;if(!force&&stData&&NOW()-stAt<60000){drawStats();return}
   const r=await act("stats");if(!r)return;stData=r;stAt=NOW();drawStats()}
-function drawStats(){const R=stData,b=$("st-body");if(!R)return;
+function drawStats(){drawStats0();const R=stData,b=$("st-body");if(!R||!b)return;
+  const L=R.srcs||[];const box=document.createElement("div");box.className="srcbox";
+  box.innerHTML="<h4>🔗 Переходы по рекламным ссылкам</h4>"+(L.length?"<div class=\"srct\"><b>метка</b><b>зашли</b><b>новые</b><b>играют</b></div>"+L.map(r=>`<div class="srct"><span></span><i>${r.visits||0}</i><i>${r.fresh||0}</i><i>${r.act||0}</i></div>`).join(""):"<small>Пока никто не заходил. Ссылка: t.me/VoinyEpohBot?startapp=s_метка</small>")+"<small>«зашли» — все, кто открыл игру по ссылке; «новые» — впервые; «играют» — собрали 3+ разных воинов</small>";
+  L.forEach((r,i)=>{box.querySelectorAll(".srct span")[i].textContent=r.code});b.append(box)}
+function drawStats0(){const R=stData,b=$("st-body");if(!R)return;
   const tile=(v,l,sub)=>`<div class="stt"><b class="num">${v}</b><span>${l}</span>${sub?`<small>${sub}</small>`:""}</div>`;
   const max=Math.max(1,...R.days.map(d=>Math.max(d.n,d.a))),W=300,H=110,bw=W/R.days.length;
   const bars=R.days.map((d,i)=>{const x=i*bw,ha=d.a/max*(H-20),hn=d.n/max*(H-20);

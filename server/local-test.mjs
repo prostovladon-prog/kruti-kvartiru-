@@ -450,6 +450,15 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   const locked = db.prepare("SELECT COUNT(*) n FROM cards WHERE room_id IS NOT NULL").get().n; ok(locked === 0, "после турнира все карточки разблокированы");
 }
 
+/* --- рекламные ссылки с меткой --- */
+{
+  const envA = { ...env, ADMINS: "8" };
+  const cs = async (uid, a, p = {}, start = "") => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), envA)).json();
+  await cs(6501, "sync", {}, "s_Memes1"); await cs(6501, "open", {}, "s_Memes1"); await cs(6502, "sync", {}, "s_memes1"); await cs(9000, "sync", {}, "s_memes1"); await cs(6503, "sync", {}, "s_cats");
+  const r = await cs(8, "stats"); const m = (r.res.srcs || []).find(x => x.code === "memes1");
+  ok(m && m.visits === 3 && m.fresh === 2, "переходы по ссылке с меткой: зашли 3, новых 2 (" + JSON.stringify(m) + ")");
+  ok((r.res.srcs || []).some(x => x.code === "cats" && x.fresh === 1), "вторая метка считается отдельно");
+}
 /* --- челлендж приглашений --- */
 {
   const envC = { ...env, ADMINS: "8" };
