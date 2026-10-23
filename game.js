@@ -256,6 +256,109 @@ const BEASTS={
   </g>
   <g fill="#fff" opacity=".85"><circle cx="20" cy="170" r="3"/><circle cx="170" cy="182" r="2.5"/><circle cx="48" cy="160" r="2"/><path d="M14 178 Q24 168 34 178" fill="none" stroke="#fff" stroke-width="2"/></g></svg>`};
 Object.assign(DETAILED,BEASTS);
+/* ---------- три богатыря: подробные портреты ---------- */
+const BOG_COMMON=(u,o)=>`<defs>
+ <linearGradient id="bg${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".45" stop-color="#e8b33a"/><stop offset="1" stop-color="#8a5a10"/></linearGradient>
+ <linearGradient id="bs${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#aab6c7"/><stop offset="1" stop-color="#4d5a70"/></linearGradient>
+ <linearGradient id="bc${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${o.cape}"/><stop offset="1" stop-color="${o.cape2}"/></linearGradient>
+ <pattern id="bm${u}" width="8" height="7" patternUnits="userSpaceOnUse"><rect width="8" height="7" fill="#9aa6b8"/><path d="M0 7 Q4 0 8 7" fill="none" stroke="#4d5a70" stroke-width="1.4"/><path d="M-4 3.5 Q0 -3.5 4 3.5 M4 3.5 Q8 -3.5 12 3.5" fill="none" stroke="#dfe6f0" stroke-width=".9"/></pattern>
+ <radialGradient id="bk${u}" cx=".45" cy=".4"><stop offset="0" stop-color="#ffd9bd"/><stop offset="1" stop-color="#d9946a"/></radialGradient></defs>`;
+/* тело: плащ, кольчуга, золотые оплечья и пояс */
+const BOG_BODY=u=>`<path d="M24 206 L40 142 Q100 120 160 142 L176 206 Z" fill="url(#bc${u})"/>
+  <path d="M42 206 C44 162 64 140 100 136 C136 140 156 162 158 206 Z" fill="url(#bm${u})"/>
+  <path d="M84 140 L100 176 L116 140" fill="none" stroke="#e8b33a" stroke-width="4"/>
+  <path d="M18 156 Q30 130 66 136 L70 168 Q40 166 22 180 Z M182 156 Q170 130 134 136 L130 168 Q160 166 178 180 Z" fill="url(#bg${u})"/>
+  <path d="M26 160 Q40 146 66 150 M174 160 Q160 146 134 150" fill="none" stroke-width="2.5"/>
+  <circle cx="44" cy="152" r="4" fill="#c0262c" stroke-width="2"/><circle cx="156" cy="152" r="4" fill="#0a84ff" stroke-width="2"/>
+  <path d="M52 196 H148 V206 H52 Z" fill="url(#bg${u})"/><rect x="92" y="193" width="16" height="15" rx="3" fill="#c0262c"/>`;
+/* шлем-шишак с наносником и бармицей */
+const BOG_HELM=(u,m)=>`<path d="M62 90 L56 132 Q66 140 76 128 L78 96 Z M138 90 L144 132 Q134 140 124 128 L122 96 Z" fill="url(#bm${u})"/>
+  <path d="M64 90 Q64 50 100 18 Q136 50 136 90 Z" fill="url(#${m}${u})"/>
+  <path d="M100 18 L100 4" stroke-width="5"/><circle cx="100" cy="4" r="3.5" fill="url(#bg${u})" stroke-width="2"/>
+  <path d="M100 24 Q88 50 84 86 M100 24 Q112 50 116 86" fill="none" stroke-width="2" opacity=".55"/>
+  <path d="M60 82 Q100 74 140 82 L140 94 Q100 86 60 94 Z" fill="url(#bg${u})"/>
+  <circle cx="80" cy="86" r="3" fill="#c0262c" stroke-width="1.5"/><circle cx="100" cy="83" r="3.5" fill="#34c759" stroke-width="1.5"/><circle cx="120" cy="86" r="3" fill="#0a84ff" stroke-width="1.5"/>
+  <path d="M96 90 L104 90 L103 112 L97 112 Z" fill="url(#bs${u})" stroke-width="2.5"/>
+  <path d="M76 40 Q86 28 96 26" fill="none" stroke="#fff" stroke-width="3" opacity=".8"/>`;
+Object.assign(DETAILED,{
+ "Илья Муромец":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${BOG_COMMON(u,{cape:"#d0262c",cape2:"#6a0e14"})}
+ <g stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M152 206 L172 74" stroke-width="10"/><path d="M152 206 L172 74" stroke="#7a4a20" stroke-width="5"/>
+  <path d="M162 70 l-6 -8 M178 66 l6 -8 M160 52 l-8 -2 M184 54 l8 -2 M170 40 l0 -9 M164 84 l-6 4 M180 82 l6 4" stroke-width="5"/>
+  <circle cx="172" cy="62" r="17" fill="url(#bs${u})"/><path d="M162 56 Q168 50 174 50" fill="none" stroke="#fff" stroke-width="3"/>
+  ${BOG_BODY(u)}
+  <path d="M86 112 L86 136 L114 136 L114 112 Z" fill="url(#bk${u})"/>
+  <path d="M72 94 Q72 66 100 64 Q128 66 128 94 Q128 116 100 120 Q72 116 72 94Z" fill="url(#bk${u})"/>
+  <path d="M68 100 Q70 132 84 150 Q92 172 100 182 Q108 172 116 150 Q130 132 132 100 Q122 112 112 110 Q100 116 88 110 Q78 112 68 100Z" fill="#eceef5"/>
+  <path d="M84 124 Q90 150 98 170 M100 120 V176 M116 124 Q110 150 102 170 M76 112 Q80 132 88 146 M124 112 Q120 132 112 146" fill="none" stroke="#a9b0c4" stroke-width="2"/>
+  <path d="M78 108 Q90 100 100 106 Q110 100 122 108 Q112 116 100 112 Q88 116 78 108Z" fill="#dfe2ec"/>
+  <path d="M77 86 Q86 80 95 86 M105 86 Q114 80 123 86" fill="none" stroke="#eceef5" stroke-width="6"/>
+  <path d="M80 92 Q86 89 92 92 M108 92 Q114 89 120 92" fill="none" stroke-width="3"/><circle cx="86" cy="93" r="2" fill="#0d1030" stroke-width="0"/><circle cx="114" cy="93" r="2" fill="#0d1030" stroke-width="0"/>
+  <path d="M74 80 L84 76 M126 80 L116 76" fill="none" stroke-width="1.5" opacity=".5"/>
+  ${BOG_HELM(u,"bg")}
+ </g></svg>`,
+ "Добрыня Никитич":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${BOG_COMMON(u,{cape:"#2a6ad6",cape2:"#0b2a63"})}
+ <g stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M158 132 L176 4 L186 8 L170 136 Z" fill="url(#bs${u})"/><path d="M168 120 L180 14" stroke="#fff" stroke-width="2" opacity=".8"/>
+  <path d="M146 130 L182 140" stroke-width="9"/><path d="M146 130 L182 140" stroke="#e8b33a" stroke-width="4"/><path d="M164 136 L160 160" stroke="#5a2a10" stroke-width="9"/>
+  ${BOG_BODY(u)}
+  <circle cx="38" cy="168" r="34" fill="#c0262c"/><circle cx="38" cy="168" r="26" fill="none" stroke="url(#bg${u})" stroke-width="5"/>
+  <path d="M38 142 V194 M12 168 H64 M20 150 L56 186 M56 150 L20 186" stroke="#e8b33a" stroke-width="2.5"/><circle cx="38" cy="168" r="8" fill="url(#bg${u})"/>
+  <path d="M86 112 L86 136 L114 136 L114 112 Z" fill="url(#bk${u})"/>
+  <path d="M72 94 Q72 66 100 64 Q128 66 128 94 Q128 116 100 120 Q72 116 72 94Z" fill="url(#bk${u})"/>
+  <path d="M72 102 Q74 128 90 142 L98 154 L100 140 L102 154 L110 142 Q126 128 128 102 Q120 112 110 110 Q100 114 90 110 Q80 112 72 102Z" fill="#6b3a1a"/>
+  <path d="M86 120 Q92 132 96 144 M114 120 Q108 132 104 144" fill="none" stroke="#3a1c06" stroke-width="2"/>
+  <path d="M78 108 Q90 100 100 106 Q110 100 122 108 Q112 115 100 111 Q88 115 78 108Z" fill="#4a2410"/>
+  <path d="M78 86 Q86 81 95 85 M105 85 Q114 81 122 86" fill="none" stroke="#4a2410" stroke-width="5"/>
+  <path d="M81 93 Q87 89 93 93 M107 93 Q113 89 119 93" fill="none" stroke-width="3"/><circle cx="87" cy="94" r="2.2" fill="#0d1030" stroke-width="0"/><circle cx="113" cy="94" r="2.2" fill="#0d1030" stroke-width="0"/>
+  ${BOG_HELM(u,"bs")}
+ </g></svg>`,
+ "Алёша Попович":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${BOG_COMMON(u,{cape:"#34c759",cape2:"#0d5c2a"})}
+ <g stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M16 200 Q-6 110 36 22" fill="none" stroke-width="9"/><path d="M16 200 Q-6 110 36 22" fill="none" stroke="#a8642a" stroke-width="5"/><path d="M36 22 L18 200" stroke="#f4f1ea" stroke-width="1.5"/>
+  <path d="M142 150 L170 20 L188 26 L160 156 Z" fill="#7a4a20"/><path d="M172 22 L166 4 M180 25 L180 6 M176 24 L172 6" stroke-width="3"/>
+  <path d="M164 6 l6 -6 l4 8 Z M176 4 l6 -4 l2 8 Z" fill="#fff" stroke-width="2"/>
+  ${BOG_BODY(u)}
+  <path d="M86 112 L86 136 L114 136 L114 112 Z" fill="url(#bk${u})"/>
+  <path d="M66 96 Q58 112 68 122 Q66 108 74 104Z M134 96 Q142 112 132 122 Q134 108 126 104Z" fill="#ffcc4d"/>
+  <path d="M72 94 Q72 66 100 64 Q128 66 128 94 Q128 122 100 128 Q72 122 72 94Z" fill="url(#bk${u})"/>
+  <path d="M84 106 Q92 101 100 105 Q108 101 116 106 Q108 108 100 108 Q92 108 84 106Z" fill="#e0a830" stroke-width="2"/>
+  <path d="M88 114 Q100 122 114 112" fill="none" stroke-width="3"/>
+  <path d="M78 84 Q86 80 94 84 M106 82 Q114 77 122 82" fill="none" stroke="#c98a1a" stroke-width="4"/>
+  <path d="M81 92 Q87 88 93 92 M107 90 Q113 87 119 91" fill="none" stroke-width="3"/><circle cx="87" cy="93" r="2.2" fill="#0d1030" stroke-width="0"/><circle cx="113" cy="92" r="2.2" fill="#0d1030" stroke-width="0"/>
+  <path d="M78 100 Q82 103 86 101 M114 101 Q118 103 122 100" fill="none" stroke="#e0806a" stroke-width="2.5"/>
+  ${BOG_HELM(u,"bs")}
+  <path d="M62 96 Q58 86 66 82 Q62 92 70 96Z M138 96 Q142 86 134 82 Q138 92 130 96Z" fill="#ffcc4d"/>
+ </g></svg>`});
+Object.assign(DETAILED,{
+ "Тор":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${BOG_COMMON(u,{cape:"#d0262c",cape2:"#5a0a10"})}
+ <defs><linearGradient id="tl${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#7fe7ff"/></linearGradient></defs>
+ <path d="M150 0 L134 40 L150 42 L128 92" fill="none" stroke="#7fe7ff" stroke-width="7" opacity=".55"/><path d="M150 0 L134 40 L150 42 L128 92" fill="none" stroke="#fff" stroke-width="2.5"/>
+ <path d="M40 4 L52 30 L40 32 L56 62" fill="none" stroke="#7fe7ff" stroke-width="5" opacity=".5"/><path d="M40 4 L52 30 L40 32 L56 62" fill="none" stroke="#fff" stroke-width="2"/>
+ <g stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M160 206 L166 104" stroke-width="11"/><path d="M160 206 L166 104" stroke="#7a4a20" stroke-width="6"/><path d="M161 190 l9 -4 M162 176 l9 -4 M163 162 l9 -4" stroke="#e8b33a" stroke-width="3"/>
+  <path d="M138 64 L194 64 L196 108 L136 108 Z" fill="url(#bs${u})"/><path d="M138 76 H194 M138 96 H196" stroke-width="2.5"/>
+  <path d="M152 70 L178 70 L178 102 L152 102 Z" fill="none" stroke="#e8b33a" stroke-width="3"/><path d="M158 86 l7 -10 l7 10 l-7 10 Z" fill="#7fe7ff" stroke-width="2"/>
+  <path d="M144 70 Q150 66 160 68" fill="none" stroke="#fff" stroke-width="3"/>
+  <path d="M24 206 L40 142 Q100 120 160 142 L176 206 Z" fill="url(#bc${u})"/>
+  <path d="M42 206 C44 162 64 140 100 136 C136 140 156 162 158 206 Z" fill="#3a3f5a"/>
+  <circle cx="72" cy="168" r="11" fill="url(#bs${u})"/><circle cx="100" cy="164" r="11" fill="url(#bs${u})"/><circle cx="128" cy="168" r="11" fill="url(#bs${u})"/>
+  <circle cx="72" cy="192" r="11" fill="url(#bs${u})"/><circle cx="100" cy="190" r="11" fill="url(#bs${u})"/><circle cx="128" cy="192" r="11" fill="url(#bs${u})"/>
+  <path d="M18 156 Q30 130 66 136 L70 168 Q40 166 22 180 Z M182 156 Q170 130 134 136 L130 168 Q160 166 178 180 Z" fill="url(#bs${u})"/>
+  <path d="M86 112 L86 136 L114 136 L114 112 Z" fill="url(#bk${u})"/>
+  <path d="M72 94 Q72 66 100 64 Q128 66 128 94 Q128 116 100 120 Q72 116 72 94Z" fill="url(#bk${u})"/>
+  <path d="M60 70 Q56 110 70 126 L74 96 Z M140 70 Q144 110 130 126 L126 96 Z" fill="#d9622a"/>
+  <path d="M70 102 Q72 132 88 148 L100 164 L112 148 Q128 132 130 102 Q120 112 110 110 Q100 114 90 110 Q80 112 70 102Z" fill="#d9622a"/>
+  <path d="M90 128 L94 150 M100 124 V160 M110 128 L106 150" fill="none" stroke="#8a3a12" stroke-width="2"/>
+  <path d="M78 108 Q90 100 100 106 Q110 100 122 108 Q112 116 100 112 Q88 116 78 108Z" fill="#b84a1a"/>
+  <path d="M78 85 Q86 80 95 85 M105 85 Q114 80 122 85" fill="none" stroke="#b84a1a" stroke-width="5"/>
+  <path d="M81 92 Q87 88 93 92 Q87 96 81 92Z M107 92 Q113 88 119 92 Q113 96 107 92Z" fill="url(#tl${u})" stroke-width="2"/>
+  <path d="M66 80 Q66 50 100 46 Q134 50 134 80 Z" fill="url(#bs${u})"/>
+  <path d="M64 76 H136 V86 H64 Z" fill="url(#bg${u})"/><circle cx="100" cy="64" r="6" fill="#7fe7ff"/>
+  <path d="M66 70 Q40 60 26 30 Q46 42 54 40 Q44 30 44 16 Q60 36 72 62 Z" fill="#f4f7fb"/><path d="M134 70 Q160 60 174 30 Q154 42 146 40 Q156 30 156 16 Q140 36 128 62 Z" fill="#f4f7fb"/>
+  <path d="M60 58 Q48 44 46 30 M140 58 Q152 44 154 30" fill="none" stroke-width="2" opacity=".5"/>
+  <path d="M80 56 Q88 50 96 50" fill="none" stroke="#fff" stroke-width="3"/>
+ </g></svg>`});
 /* ---------- warrior portraits drawn in code: cel-shaded comic style, unique tint per card ---------- */
 const INK="#0d1030";
 const SK=["#f1c7a3","#e0ac83","#c98c62","#a86f4a"];
@@ -451,7 +554,7 @@ function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
-  q(".top b").textContent=H[0];q(".top span").textContent=isComp(c.h)?"🧩 СОСТАВНОЙ":"№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
+  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].don?"⭐ ДОНАТ":"№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
@@ -522,7 +625,7 @@ function rollDigits(sn,L,done){
 }
 async function open(){
   if(busy||!S)return;
-  if((S.spins??0)<=0&&!(S.refillAt&&NOW()>=S.refillAt)){toast("Прокрутки закончились. Новые через "+leftTxt());return}
+  if((S.spins??0)<=0&&!(S.refillAt&&NOW()>=S.refillAt)){if(!outOffer())toast("Прокрутки закончились. Новые через "+leftTxt());return}
   busy=true;ac();$("p-lbl").textContent="Цена карточки";
   if(onbStep===0&&ONBS===ONB)onbClear();
   const stg=$("stage");
@@ -1483,7 +1586,7 @@ let shView="buy",slPick=null,mkCache=null,mkAt=0,mkLoading=false;
 function sellChance(c){const r=c.listPrice/c.v;return Math.max(.03,Math.min(.9,(1.7-r)*.45))}
 /* локальная версия рыночных действий (для игры без сервера) */
 const LOCAL={
-  shop(){const comp={};COMP.forEach(h=>{comp[h]={l:0,r:HALF_RUN-localCtx().compLeft(h),full:0,e:[0,0,0]}});return {comp,mythLeft:SHOP.mythic.month,donors:[],mine:0,fx:null}},
+  shop(){const ones={};ONE.forEach(h=>ones[h]=null);const comp={};COMP.forEach(h=>{comp[h]={l:0,r:HALF_RUN-localCtx().compLeft(h),full:0,e:[0,0,0]}});return {comp,ones,mythLeft:SHOP.mythic.month,donors:[],mine:0,fx:null}},
   invoice(p){const I=SHOP[p.item];let stars;if(I){if(I.once&&S.newbie)fail("Подарок новичку уже получен");stars=I.stars}
     else if(p.item==="num"){const sn=checkSn(p.sn);if(!S.cards.find(c=>c.id===p.card))fail("Карточка не найдена");if(S.used&&S.used[sn])fail("Номер "+fmtSn(sn)+" уже занят");stars=numPrice(sn)}
     else if(p.item==="fx"){if(!NFX[p.fx])fail("Нет такого эффекта");stars=p.forever?NFX_PRICE.f:NFX_PRICE.m}else fail("Нет такого товара");
@@ -1671,10 +1774,11 @@ document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.
 
 /* ---------- вкладки ---------- */
 function setTab(t){if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
-$("tab-spin").onclick=()=>setTab("spin");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
+$("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold();$("fchest").onclick=()=>openGold("chest");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
-function renderAll(){if(!S)return;updCash();{const on=!ONLINE||!!S.shopOn;$("gold-go").hidden=!on;$("gold-hdr").hidden=!on}if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-gold").hidden)renderGold();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
+function renderAll(){if(!S)return;updCash();{const on=!ONLINE||!!S.shopOn;$("gold-go").hidden=!on;$("gold-hdr").hidden=!on;$("tab-gold").hidden=!on;$("fchest").hidden=!on;document.querySelector("nav.tabs").classList.toggle("g9",on);
+  $("fchest-t").textContent=S.newbie?"СУНДУКИ":"−50%"}if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-gold").hidden)renderGold();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 
 /* ---------- СОКРОВИЩНИЦА: сундуки, составные воины и понт за ⭐ Telegram Stars ---------- */
 let goldTab="chest",goldData=null,goldBusy=false;
@@ -1687,6 +1791,7 @@ function chestSVG(k,s){const [c1,c2,gl]=CHEST_COL[k],id="ch"+(++chestN);return `
   <rect x="14" y="58" width="92" height="8" fill="#ffd23f" stroke="#07040f" stroke-width="3"/><rect x="52" y="54" width="16" height="22" rx="3" fill="#ffd23f" stroke="#07040f" stroke-width="3"/><circle cx="60" cy="64" r="3" fill="#07040f"/>
   <path d="M26 44 V90 M94 44 V90" stroke="#ffd23f" stroke-width="4"/>
   <g fill="#fff6a0"><circle cx="40" cy="30" r="3"/><circle cx="78" cy="22" r="2.5"/><circle cx="60" cy="14" r="3.5"/><path d="M60 26 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/></g></svg>`}
+$("fchest-svg").innerHTML=chestSVG("royal",72);
 function openGold(tab){if(tab)goldTab=tab;setTab("gold");loadGold()}
 async function loadGold(){const r=await act("shop");if(r){goldData=r;renderGold()}}
 /* имя игрока с переливающимся эффектом и короной «Король Эпох» */
@@ -1695,11 +1800,20 @@ function fxName(el,prefix,name,uid){el.textContent=prefix||"";const s=document.c
 function compHave(h){const L=S.cards.filter(c=>c.h===h&&c.part===1),R=S.cards.filter(c=>c.h===h&&c.part===2),F=S.cards.filter(c=>c.h===h&&!c.part);
   const fr=x=>x.filter(c=>!away(c));const ok=fr(L).some(c=>c.f===0)&&fr(R).some(c=>c.f===0)||fr(L).some(c=>c.f===4)&&fr(R).some(c=>c.f===4);return {L,R,F,ok}}
 const demoComp=(h,o)=>Object.assign({id:"g"+h+"_"+(o&&o.part||0),h,f:0,no:17,sn:"482913",hue:HEROES[h][4].hue,v:0,stats:HEROES[h][4].p.map(k=>440+k*18),xp:0,wins:0,stars:0,part:0},o||{});
+const escH=t=>String(t).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const demoOne=(h,f)=>({id:"o"+h,h,f:f==null?4:f,no:1,sn:HEROES[h][4].sn||"318274",hue:HEROES[h][4].hue,v:0,stats:HEROES[h][4].p.map(k=>440+k*18),xp:0,wins:0,stars:0,part:0});
+/* прокрутки кончились: самый горячий момент предложить сундук (не чаще раза в 20 минут) */
+let outAt=0;function outOffer(){if(!S||(ONLINE&&!S.shopOn)||NOW()-outAt<20*60e3||!$("modal").hidden)return false;outAt=NOW();const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  const k=S.newbie?"small":"newbie",I=SHOP[k];
+  sh.innerHTML='<div class="box nickbox outo"><h3>😢 Прокрутки закончились</h3><p>Новые бесплатные через <b>'+leftTxt()+'</b>. Не хочешь ждать?</p><div class="outc">'+chestSVG(k,110)+'<div><b>'+I.n+'</b><ul>'+I.d.map(x=>"<li>"+x+"</li>").join("")+'</ul></div></div><button type="button" class="buy" id="oo-buy">⭐ '+I.stars+'</button><button type="button" class="linkbtn" id="oo-all">Все сундуки 🏪</button><button type="button" class="ghost" id="oo-x">Подожду</button></div>';
+  $("oo-buy").onclick=()=>{closeModal();buyItem({item:k})};$("oo-all").onclick=()=>{closeModal();openGold("chest")};$("oo-x").onclick=closeModal;return true}
 function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySelectorAll("#gold-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.g===goldTab));
   const D=goldData||{comp:{},mythLeft:SHOP.mythic.month,donors:[],mine:0};let v="";
   const offer=(k,tag)=>{const I=SHOP[k],[c1,c2,gl]=CHEST_COL[k],left=k==="mythic"?D.mythLeft:null;
     return `<div class="of${left===0?" sold":""}" style="--fr:linear-gradient(145deg,${c1},${gl} 30%,${c2} 60%,${c1} 85%,${c2});--gl:${gl}">${tag?'<span class="tag">'+tag+'</span>':""}<div class="in">${chestSVG(k,96)}<div><h4>${I.n}</h4><ul>${I.d.map(x=>"<li>"+x+"</li>").join("")}</ul>${left!=null?'<div class="mleft">осталось в этом месяце: <b>'+left+' из '+I.month+'</b></div>':""}<button type="button" class="buy" data-buy="${k}"${left===0?" disabled":""}>${left===0?"раскуплено":"⭐ "+I.stars}</button></div></div></div>`};
   if(goldTab==="chest"){
+    v+='<div class="ghd">🔥 Легенды 1 из 1</div><p class="gnote">Существуют только как «Ошибка печати» — одна карточка на весь мир. Выпадают только из Мифического и Легендарного сундука.</p><div class="oneg">'+ONE.map(h=>{const o=(D.ones||{})[h];return '<div class="onec'+(o?" taken":"")+'">'+miniSlot(demoOne(h))+'<b>'+HEROES[h][0]+'</b><small>'+(o?"у игрока "+escH(o.name):goldData?"ещё в сундуках!":"…")+'</small></div>'}).join("")+'</div>';
+    v+='<div class="ghd">⚔️ Богатыри — только за донат</div><p class="gnote">Мифические воины Руси. В прокрутках не выпадают: только в Мифическом сундуке (вместе с Сёгуном и Мерлином) и с шансом 4% в Легендарном.</p><div class="bogg">'+DON.map(h=>'<div>'+miniSlot(demoOne(h,0))+'</div>').join("")+'</div>';
     v+='<div class="ghd">🧩 Сундуки с половинками</div>';
     if(!S.newbie)v+=offer("newbie","1 раз · −50%");
     v+=offer("small")+offer("royal","ВЫГОДНО ×2");

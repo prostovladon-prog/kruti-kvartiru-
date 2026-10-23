@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=0040b8a9">
+<link rel="stylesheet" href="style.css?v=2ce2effe">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -41,7 +41,7 @@
         <div class="face rear"><div class="seal"><div><b>ВОИНЫ<br>ЭПОХ</b><small>нажми, чтобы открыть</small></div></div></div>
       </div>
     </div>
-    <div class="price" id="price"><small id="p-lbl">Цена карточки</small><b class="num" id="p-val"></b></div>
+    <div class="price" id="price"><button type="button" id="fchest" hidden aria-label="Сокровищница"><span id="fchest-svg"></span><b id="fchest-t">🎁 −50%</b></button><small id="p-lbl">Цена карточки</small><b class="num" id="p-val"></b></div>
     <button type="button" class="share" id="share">Похвастаться</button>
     <div class="row">
       <button type="button" class="open" id="open">Открыть<small id="open-n">3 из 3</small></button>
@@ -295,6 +295,7 @@
 </div>
 <nav class="tabs" role="tablist"><div>
   <button type="button" role="tab" id="tab-spin" aria-selected="true">Крутить</button>
+  <button type="button" role="tab" id="tab-gold" aria-selected="false" hidden>Донат<i>−50%</i></button>
   <button type="button" role="tab" id="tab-camp" aria-selected="false">Лагерь<i class="tdot" id="camp-dot" hidden></i></button>
   <button type="button" role="tab" id="tab-duel" aria-selected="false">Бой</button>
   <button type="button" role="tab" id="tab-album" aria-selected="false">Альбом</button>
@@ -305,7 +306,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=e1a1c029"></script>
-<script src="game.js?v=a258aa0c"></script>
+<script src="rules.js?v=d7d63d40"></script>
+<script src="game.js?v=7575f2e8"></script>
 </body>
 </html>
