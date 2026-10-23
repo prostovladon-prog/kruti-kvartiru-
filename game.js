@@ -841,7 +841,7 @@ function step(){fc.clearRect(0,0,innerWidth,innerHeight);parts=parts.filter(p=>p
 /* ---------- craft ---------- */
 let crSel=new Set(),crH=19,crF=1,crBusy=false,crRot=0,crLast=null;
 function crSum(){return S.cards.filter(c=>crSel.has(c.id)).reduce((a,c)=>a+c.v,0)}
-function crChance(){const t=targetPrice(crH,crF),sum=crSum();if(!sum)return 0;const amu=$("cr-amu")&&$("cr-amu").checked?.1:0;return Math.min(PMAX+amu,HOUSE*sum/t+amu)}
+function crChance(){const t=targetPrice(crH,crF),sum=crSum();if(!sum)return 0;const amu=$("cr-amu")&&$("cr-amu").checked?.1:0;return Math.min(CRAFT_MAX(crF)+amu,HOUSE*sum/t+amu)}
 function arcPath(p){if(p<=0)return "";if(p>=.9999)return "M100 8 A92 92 0 1 1 99.99 8 Z";
   const a=p*2*Math.PI,x=100+92*Math.sin(a),y=100-92*Math.cos(a);return `M100 100 L100 8 A92 92 0 ${p>.5?1:0} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z`}
 function renderCraft(){
@@ -860,7 +860,7 @@ function renderCraft(){
   $("cr-hint").textContent=crSel.size?"в горне "+crSel.size+" из 5":"от 1 до 5 карточек";
   // target finishes
   const fb=$("cr-fins");fb.innerHTML="";
-  FIN.forEach((F,i)=>{if(F.excl)return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
+  if(!craftable(crF))crF=1;FIN.forEach((F,i)=>{if(F.excl||!craftable(i))return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
     b.onclick=()=>{if(crBusy)return;crF=i;renderCraft()};fb.appendChild(b)});
   const tg=$("cr-tgt");tg.innerHTML="";
   HEROES.forEach((H,i)=>{if(i>=NBASE)return;const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
@@ -888,7 +888,7 @@ function renderCraft(){
   $("cr-amu-t").textContent="Амулет удачи: +10% к шансу за "+fmt(amuCost(crH,crF));
   const go=$("cr-go");go.disabled=crBusy||!crSel.size||left<=0||crChance()<=0;
   go.textContent=left<=0?(mineT&&F.run===1?"Эта карточка уже у тебя":"Все "+F.run+" уже выпали"):!crSel.size?"Положи карточки в горн":"🔥 Ковать · шанс "+$("cr-p").textContent;
-  if(!crBusy&&crSel.size&&HOUSE*crSum()/tv>PMAX)$("cr-res").textContent="Больше 80% шанса не бывает. Выбери цель подороже или отдай меньше.";
+  if(!crBusy&&crSel.size&&HOUSE*crSum()/tv>CRAFT_MAX(crF))$("cr-res").textContent="Больше "+Math.round(CRAFT_MAX(crF)*100)+"% шанса для этой отделки не бывает. Выбери цель подороже или отдай меньше.";
   else if(!crBusy)$("cr-res").textContent="";
   $("cr-res").className="result";
 }
@@ -1233,7 +1233,7 @@ function renderShow(){const box=$("show3");if(!box)return;box.innerHTML="";
 
 /* ---------- слияние 3 → 1 ---------- */
 function renderMerge(){const box=$("merge");if(!box)return;box.innerHTML="";const g={};
-  S.cards.forEach(c=>{if(c.f<4&&!away(c)){const k=c.h+"-"+c.f;(g[k]=g[k]||[]).push(c)}});
+  S.cards.forEach(c=>{if(c.f<3&&!c.part&&!away(c)&&c.h<NBASE){const k=c.h+"-"+c.f;(g[k]=g[k]||[]).push(c)}});
   const groups=Object.values(g).filter(a=>a.length>=3);
   if(!groups.length){box.innerHTML='<p style="margin:0;color:#5a5f80">Пока нечего сливать. Собери три одинаковых карточки.</p>';return}
   groups.forEach(a=>{const c=a[0],nf=c.f+1,left=FIN[nf].run===Infinity||issuedOfUI(c.h,nf)<FIN[nf].run,el=document.createElement("div");el.className="mg";el.style.setProperty("--hc",HT[HEROES[c.h][2]].c);

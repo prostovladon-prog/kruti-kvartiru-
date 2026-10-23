@@ -26,7 +26,7 @@ const DB = {
   prepare: sql => new Stmt(sql),
   async batch(list) { db.exec("BEGIN"); try { const out = list.map(s => s._exec()); db.exec("COMMIT"); return out; } catch (e) { db.exec("ROLLBACK"); throw e; } }
 };
-const env = { DB, DEV: "1", TEST: "1", BOT_TOKEN: "123:TEST" };
+const env = { DB, DEV: "1", TEST: "1", BOT_TOKEN: "123:TEST", NO_RARE: "1" };   // без случайных половинок и богатырей в прокрутках
 // челлендж по умолчанию выключен, чтобы тесты не зависели от текущей даты
 db.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)"); db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES('chal',?)").run(JSON.stringify({ id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] }));
 
@@ -593,7 +593,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await cp(U2, "sell", { id: thor.id }); ok(!r.ok && /1 из 1/.test(r.err), "легенду 1 из 1 нельзя продать системе");
   r = await buy(U2, { item: "any", h: 30, f: 3 }); ok(r.ok && r.res.res.cards[0].h === 30 && r.res.res.cards[0].f === 3, "любая карточка: золотой Сёгун");
   r = await buy(U2, { item: "custom" }); ok(r.ok && r.res.status === "done" && r.res.res.manual === 1, "карточка мечты оплачена, заявка админу");
-  sh = await cp(U2, "shop"); ok(sh.res.ones[41] && sh.res.ones[41].uid === U2 && sh.res.ones[42] === null, "Сокровищница показывает, у кого легенда");
+  sh = await cp(U2, "shop"); ok(sh.res.ones[41] && sh.res.ones[41].uid === U2 && 42 in sh.res.ones, "Сокровищница показывает, у кого легенда");
   // ник и король
   r = await buy(U2, { item: "fx", fx: "fire" }); ok(r.ok && r.S.nfx && r.S.nfx[U2] === "fire", "переливающийся ник включён");
   r = await cp(U2, "sync"); ok(r.S.king === U2, "«Король Эпох» — первый в топе донатеров месяца");
@@ -609,6 +609,16 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     await worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": sec }, body: JSON.stringify({ message: { from: { id: U2 }, chat: { id: U2, type: "private" }, successful_payment: { currency: "XTR", total_amount: 1, invoice_payload: "p" + bad.res.pid, telegram_payment_charge_id: "ch_2" } } }) }), env);
     ok(db.prepare("SELECT status FROM payments WHERE id=?").get(bad.res.pid).status === "refund", "сумма не совпала — возврат"); }
 }
+
+/* --- дыра в крафте закрыта --- */
+{ const U = 7101; await call(U, "sync");
+  const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,?,'[300,300,300,300,300]',0,0,0,0,0)");
+  for (let i = 0; i < 6; i++) ins.run(U, 20, 2000000 + i, "71010" + i, 500);
+  let s = await call(U, "sync"); const ids = s.S.cards.filter(c => c.h === 20).map(c => c.id);
+  let r = await call(U, "craft", { ids: ids.slice(0, 3), h: 1, f: 4 }); ok(!r.ok && /нельзя скрафтить/.test(r.err), "«Ошибку печати» скрафтить нельзя");
+  let got = null; for (let k = 0; k < 6 && !got; k++) { s = await call(U, "sync"); const one = s.S.cards.find(c => c.h === 20); if (!one) break; r = await call(U, "craft", { ids: [one.id], h: 1, f: 2 }); if (r.ok && r.res.win) got = r.res.card; }
+  ok(!got || (got.v >= 30 * .9 - .01 && got.v <= 30 * 1.1 + .01), "скрафченная карточка стоит около цены цели (" + (got && got.v) + ")");
+  r = await call(U, "merge", { h: 1, f: 3 }); ok(!r.ok && /Ошибку печати/.test(r.err), "из золотых «Ошибку печати» не слить"); }
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
