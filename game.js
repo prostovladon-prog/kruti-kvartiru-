@@ -849,7 +849,7 @@ function renderCraft(){
   for(const id of [...crSel])if(!S.cards.some(c=>c.id===id))crSel.delete(id);
   const pk=$("cr-pick");pk.innerHTML="";
   if(!S.cards.length){pk.innerHTML='<p style="margin:0;color:#5a5f80">В коллекции пусто. Открой несколько карточек на вкладке «Крутить».</p>'}
-  [...S.cards].filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>b.v-a.v).forEach(c=>{
+  [...S.cards].filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>b.v-a.v).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",crSel.has(c.id));
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;
@@ -1145,7 +1145,7 @@ function renderDuel(){
   if(!duBusy)$("du-rounds").innerHTML=pipsHTML([duStat,null,null],[],0);
   const go=$("du-go");go.disabled=!me||duBusy;go.textContent=duMode?"В бой на карточку!":"В бой!";
   const pk=$("du-pick");pk.innerHTML="";
-  [...S.cards].filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>eff(b,duStat)-eff(a,duStat)).forEach(c=>{
+  [...S.cards].filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>eff(b,duStat)-eff(a,duStat)).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===duMine);
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${eff(c,duStat)}</span><b>Ур. ${lvl(c)}${c.wins?", побед "+c.wins:""}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel();setTimeout(()=>$("du-go").scrollIntoView({block:"end",behavior:reduce?"auto":"smooth"}),60)};pk.appendChild(b)});
@@ -1265,7 +1265,7 @@ function renderArena(){if(!ONLINE){$("ar-lobby").innerHTML='<div class="box"><p>
 async function loadArena(){arListAt=NOW();loadTour();const r=await act("arena_list");if(!r)return;arList=r;if(r.mine&&!arRoom){arOpen(r.mine);return}if(arVisible()&&!arRoom)drawLobby()}
 setInterval(()=>{if(arVisible()&&!arRoom&&!document.hidden)loadArena()},6000);
 function drawLobby(){
-  const pk=$("ar-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>b.v-a.v);
+  const pk=$("ar-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>b.v-a.v);
   if(!free.some(c=>c.id===arPickId))arPickId=free[0]?free[0].id:null;
   if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных воинов.</p>';
   free.forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.setAttribute("aria-pressed",c.id===arPickId);
@@ -1293,7 +1293,7 @@ function arJoinDialog(r,code){const m=$("modal"),sh=$("msheet");sh.innerHTML="";
   sh.querySelector(".x").onclick=closeModal;sh.querySelector(".who span").textContent=r.host.name+" вызывает на бой"+(r.mode?" на карточку 💰":"");
   sh.querySelector(".who small").textContent="Его воин: "+HEROES[hc.h][0]+", "+FIN[hc.f].k.toLowerCase()+". Характеристики соперника откроются только в бою."+(r.mode?" Победитель забирает карточку проигравшего. Нужна карточка ценой от "+fmtC(hc.v*.5)+" до "+fmtC(hc.v*2)+".":"");
   const pk=sh.querySelector(".pickrow"),go=sh.querySelector(".craftbtn");
-  const list=S.cards.filter(c=>!away(c)&&!FIN[c.f].excl&&(!r.mode||(c.v>=hc.v*.5&&c.v<=hc.v*2))).sort((a,b)=>b.v-a.v);
+  const list=S.cards.filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)&&(!r.mode||(c.v>=hc.v*.5&&c.v<=hc.v*2))).sort((a,b)=>b.v-a.v);
   const draw=()=>{pk.innerHTML="";list.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="pc";b.setAttribute("aria-pressed",c.id===pick);
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmtC(c.v)}</b>`;b.children[1].textContent=HEROES[c.h][0];b.onclick=()=>{pick=c.id;draw()};pk.appendChild(b)});
     if(!list.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">'+(r.mode?"Нет подходящей по цене карточки.":"Нет свободных воинов.")+'</p>';go.disabled=!pick};
@@ -1451,7 +1451,7 @@ function renderBoss(){const B=bossS(),k=Math.max(0,1-B.dmg/BOSS.hp);
   const atk=squad.map(id=>S.cards.find(c=>c.id===id)).filter(Boolean).reduce((a,c)=>a+eff(c,0),0);
   $("bs-sq").textContent="Атака отряда: "+atk;
   const pk=$("bs-pick");pk.innerHTML="";
-  S.cards.filter(c=>!away(c)&&!squad.includes(c.id)&&!FIN[c.f].excl).sort((a,b)=>eff(b,0)-eff(a,0)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
+  S.cards.filter(c=>!away(c)&&!squad.includes(c.id)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>eff(b,0)-eff(a,0)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">Атака ${eff(c,0)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(squad.length>=3){toast("В отряде максимум 3 воина");return}setSquad([...squad,c.id])};pk.appendChild(b)});
   const go=$("bs-go");const maxH=3+(B.extra||0);go.disabled=bsBusy||!squad.length||B.hits>=maxH||k<=0;go.textContent=k<=0?"Босс повержен":B.hits>=maxH?"Удары закончились, приходи завтра":"Ударить ("+(maxH-B.hits)+" из "+maxH+")";
@@ -1505,7 +1505,7 @@ function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hid
   if(!F.cards.length){const e=document.createElement("div");e.className="mc empty";e.textContent="Пока нет карточек";g.appendChild(e)}sh.appendChild(g);
   if(F.cards.length){const info=document.createElement("div");info.className="box";info.innerHTML="<h3>Вызвать на бой</h3><p>Выбери карточку друга, потом своего воина и характеристику.</p>";
     const pick=document.createElement("div");pick.className="stats5";pick.style.gridTemplateColumns="repeat(3,1fr)";
-    F.cards.forEach(c=>{if(FIN[c.f]&&FIN[c.f].excl)return;const b=document.createElement("button");b.type="button";b.innerHTML=`${HEROES[c.h][0].replace(/</g,"")}<b class="num">${FIN[c.f].k}</b>`;
+    F.cards.forEach(c=>{if(FIN[c.f]&&FIN[c.f].excl||c.part)return;const b=document.createElement("button");b.type="button";b.innerHTML=`${HEROES[c.h][0].replace(/</g,"")}<b class="num">${FIN[c.f].k}</b>`;
       b.onclick=()=>openDuel({name:F.name,card:c,stat:null,cardId:ONLINE?c.id:null,id:ONLINE?"c"+c.id:"v"+c.sn});pick.appendChild(b)});
     info.appendChild(pick);sh.appendChild(info)}
   const fr=friendsGet();fr[F.name]={p:F.p,t:NOW()};friendsPut(fr);renderFriends()}
@@ -1526,7 +1526,7 @@ function openDuel(D){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=
     st.innerHTML="";STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===stat);b.disabled=D.stat!=null&&i===D.stat;if(b.disabled)b.title="Эту характеристику уже выбрал соперник";
       b.innerHTML=`${n}<b class="num">${mine?eff(mine,i):"—"}</b>`;b.onclick=()=>{if(busy2)return;stat=i;draw()};st.appendChild(b)});
     if(mine&&!busy2){left.className="mc";left.style.setProperty("--hc",HT[HEROES[mine.h][2]].c);left.innerHTML=mcHTML(mine,stat)}
-    pk.innerHTML="";S.cards.filter(c=>!away(c)&&!FIN[c.f].excl).sort((a,b)=>eff(b,stat)-eff(a,stat)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",mine&&c.id===mine.id);
+    pk.innerHTML="";S.cards.filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>eff(b,stat)-eff(a,stat)).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",mine&&c.id===mine.id);
       b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[stat]}: ${eff(c,stat)}</span><b>Ур. ${lvl(c)}</b>`;b.children[1].textContent=H[0];b.onclick=()=>{if(busy2)return;mine=c;draw();setTimeout(()=>go.scrollIntoView({block:"end",behavior:reduce?"auto":"smooth"}),60)};pk.appendChild(b)});
     if(!S.cards.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">У тебя пока нет карточек. Закрой окно и открой несколько на вкладке «Крутить».</p>';
     go.disabled=!mine||busy2}
@@ -1575,7 +1575,7 @@ function askPm(){if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{as
   $("pm-yes").onclick=()=>{closeModal();enablePm()};$("pm-no").onclick=closeModal}
 
 /* ---------- подсказка про закалку ---------- */
-const canForge=c=>!FIN[c.f].excl&&(c.stars||0)<STAR_MAX&&lvl(c)>=STAR_LVL[c.stars||0];
+const canForge=c=>!(FIN[c.f].excl||c.part)&&(c.stars||0)<STAR_MAX&&lvl(c)>=STAR_LVL[c.stars||0];
 function forgeHint(){if(!S||onbStep>=0||!$("modal").hidden||$("onb"))return;let shown=null;try{shown=localStorage.getItem("we-forge-hint")}catch(e){}if(shown)return;
   if(S.cards.some(c=>c.stars))return;const c=S.cards.find(canForge);if(!c)return;try{localStorage.setItem("we-forge-hint","1")}catch(e){}
   const el=$("tab-col");el.classList.add("onb-hl");const b=document.createElement("div");b.id="onb";b.className="onb";

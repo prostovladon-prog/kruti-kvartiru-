@@ -37,7 +37,7 @@ async function call(uid, a, p = {}, start = "") {
 const { classify } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify };").toString("base64"));
 let fails = 0;
 /* свободная карточка игрока; если всё проиграно в боях, тестовый игрок открывает новую */
-async function anyCard(uid, callf) { callf = callf || call; let s = await callf(uid, "sync"); let c = s.S.cards.find(c => !c.listed && !c.away && c.f !== 5);
+async function anyCard(uid, callf) { callf = callf || call; let s = await callf(uid, "sync"); let c = s.S.cards.find(c => !c.listed && !c.away && c.f !== 5 && !c.part);
   if (!c) { db.prepare("UPDATE users SET gift_spins=gift_spins+3 WHERE id=?").run(uid); const o = await callf(uid, "open"); c = o.res.card } return c }
 const ok = (cond, msg) => { console.log((cond ? "✓ " : "✗ ") + msg); if (!cond) fails++; };
 
@@ -296,7 +296,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   let rare = 0, nice = 0; for (let i = 0; i < 4; i++) { r = await call8("open"); if (r.ok) { if (r.res.card.f >= 1) rare++; if (classify(r.res.card.sn)) nice++ } }
   ok(rare >= 3 && nice >= 3, "с удачей: редких отделок " + rare + "/4, красивых номеров " + nice + "/4");
   r = await call8("sync"); let wins = 0;
-  for (let i = 0; i < 3; i++) { r = await call8("sync"); const cheap = r.S.cards.filter(c => c.f !== 5).sort((a, b) => a.v - b.v)[0]; if (!cheap) break; const cr = await call8("craft", { ids: [cheap.id], h: 30, f: 3 }); if (cr.ok && cr.res.win) wins++; }
+  for (let i = 0; i < 3; i++) { r = await call8("sync"); const cheap = r.S.cards.filter(c => c.f !== 5 && !c.part).sort((a, b) => a.v - b.v)[0]; if (!cheap) break; const cr = await call8("craft", { ids: [cheap.id], h: 30, f: 3 }); if (cr.ok && cr.res.win) wins++; else console.log("CRAFT", JSON.stringify(cr).slice(0,200), JSON.stringify(cheap).slice(0,150)); }
   ok(wins === 3, "с удачей крафт всегда удаётся, даже с маленьким шансом (" + wins + "/3)");
   r = await call8("luck_set", { on: 0 }); ok(r.ok && !r.res.on, "режим удачи выключен");
   r = await call8("stats"); const T = r.res;
