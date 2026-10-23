@@ -512,5 +512,82 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   await cc(8, "chal_set", { cfg: { id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] } });
 }
 
+/* --- Сокровищница: звёзды, сундуки, половинки, свой номер, ник --- */
+{
+  const envP = { ...env, PAY_SIM: "1" };
+  const cp = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envP)).json();
+  const buy = async (uid, p) => { const i = await cp(uid, "invoice", p); if (!i.ok) return i; return cp(uid, "pay_sim", { pid: i.res.pid }); };
+  const U = 7001; await cp(U, "sync");
+  let r = await call(U, "invoice", { item: "small" }); ok(!r.ok && /Telegram/.test(r.err), "без PAY_SIM счёт создаёт Telegram, симуляции нет");
+  r = await call(U, "pay_sim", { pid: 1 }); ok(!r.ok, "симуляция оплаты закрыта на боевом сервере");
+  r = await call(U, "grant", { item: "royal", pid: 999 }); ok(!r.ok, "выдать покупку напрямую нельзя");
+  const sp0 = (await cp(U, "sync")).S.spins;
+  r = await buy(U, { item: "small" });
+  ok(r.ok && r.res.status === "done" && r.res.res.cards.length === 1 && r.res.res.cards[0].part > 0, "малый сундук: 1 половинка (" + JSON.stringify(r.res && r.res.res && r.res.res.cards.map(c => [c.h, c.part, c.no])) + ")");
+  ok(r.S.spins - sp0 === 10, "малый сундук: +10 прокруток");
+  r = await buy(U, { item: "royal" }); const hv = r.res.res.cards;
+  ok(r.ok && hv.length === 6 && hv.every(c => c.part > 0 && c.h >= 32) && hv.some(c => c.part === 2), "королевский: 6 половинок, минимум 1 правая");
+  ok(hv.filter(c => c.part === 2 && c.f === 0).every(c => c.no >= 1 && c.no <= 300), "правые половинки получают место тиража 1..300");
+  r = await buy(U, { item: "newbie" }); ok(r.ok && r.res.status === "done" && r.S.guar >= 1, "подарок новичку: гарантия эпика");
+  r = await cp(U, "invoice", { item: "newbie" }); ok(!r.ok && /уже получен/.test(r.err), "подарок новичку только один раз");
+  r = await buy(U, { item: "warrior" }); ok(r.ok && r.res.res.cards.length === 5 && r.res.res.cards.some(c => c.h < 32 && [19,20,21,22,23,24,25,26,27,28,29,30,31].includes(c.h)), "сундук воина: 5 карточек, есть эпик+");
+  r = await buy(U, { item: "legend" }); ok(r.ok && r.res.res.cards.length === 10 && r.res.res.cards.some(c => c.h >= 26 && c.h <= 29), "легендарный: 10 карточек, есть легендарная");
+  let sh = await cp(U, "shop"); const m0 = sh.res.mythLeft;
+  r = await buy(U, { item: "mythic" }); ok(r.ok && r.res.res.cards.some(c => c.h === 30 || c.h === 31) && r.res.res.cards.every(c => c.h < 32), "мифический: Сёгун или Мерлин, только обычные воины");
+  sh = await cp(U, "shop"); ok(m0 === 30 && sh.res.mythLeft === 29, "мифических сундуков в месяц 30 на всех (осталось " + sh.res.mythLeft + ")");
+  r = await buy(U, { item: "legend" }); ok(r.ok && r.S.cards.length === 42, "купленное кладётся сверх лимита коллекции (" + r.S.cards.length + ")");
+  // повторная выдача того же платежа ничего не даёт
+  { const n0 = r.S.cards.length; const pid = r.res.pid; db.prepare("UPDATE payments SET status='paid' WHERE id=?").run(pid); await worker.tick(envP);
+    db.prepare("UPDATE payments SET paid=0 WHERE id=?").run(pid); await worker.tick(envP); const s2 = await cp(U, "sync"); ok(s2.S.cards.length === n0, "повторная выдача того же платежа ничего не добавляет"); }
+  // половинки не воюют и не крафтятся
+  const half = (await cp(U, "sync")).S.cards.find(c => c.part > 0);
+  r = await cp(U, "duel", { id: half.id, stat: 0 }); ok(!r.ok && /Половинка/.test(r.err), "половинка не дерётся");
+  r = await cp(U, "craft", { ids: [half.id], h: 5, f: 0 }); ok(!r.ok && /Половинк/.test(r.err), "половинку нельзя сжечь в крафте");
+  r = await cp(U, "craft", { ids: [(await anyCard(U, cp)).id], h: 33, f: 0 }); ok(!r.ok && /Составных/.test(r.err), "составного воина нельзя скрафтить");
+  // сборка
+  const U2 = 7002; await cp(U2, "sync");
+  const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,?,?,?,0,0,100,'[500,500,500,500,500]',0,0,0,0,?)");
+  ins.run(U2, 32, 0, 1000123, "410001", 1); ins.run(U2, 32, 0, 7, "410002", 2);
+  r = await cp(U2, "assemble", { h: 32 }); const full = r.ok && r.res.card;
+  ok(full && full.h === 32 && full.part === 0 && full.no === 7 && full.sn === "410002" && full.f === 0, "сборка: целый Дракон забирает номер тиража 7/300 и номер правой половинки");
+  ok(r.S.cards.filter(c => c.h === 32).length === 1, "половинки ушли, остался один целый воин");
+  r = await cp(U2, "assemble", { h: 32 }); ok(!r.ok, "без половинок собрать нельзя");
+  ins.run(U2, 34, 4, 1001, "410003", 1); ins.run(U2, 34, 0, 9, "410004", 2);
+  r = await cp(U2, "assemble", { h: 34 }); ok(!r.ok && /Ошибка печати/.test(r.err), "«ошибка» собирается только с «ошибкой»");
+  ins.run(U2, 34, 4, 2001, "410005", 2);
+  r = await cp(U2, "assemble", { h: 34 }); ok(r.ok && r.res.card.f === 4 && r.res.card.no === 1, "две «ошибки печати» = целая «ошибка печати» 1/1");
+  r = await cp(U2, "duel", { id: full.id, stat: 0 }); ok(r.ok, "собранный воин дерётся");
+  // тираж правых: когда 300 мест заняты, правые этого воина больше не выпадают
+  { const many = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(-2,33,0,?,?,0,0,1,'[1,1,1,1,1]',0,0,0,0,2)");
+    for (let i = 1; i <= 300; i++) try { many.run(i, "9" + String(i).padStart(5, "0")) } catch (e) {}
+    let bad = 0; for (let k = 0; k < 4; k++) { const x = await buy(U2, { item: "royal" }); bad += x.res.res.cards.filter(c => c.h === 33 && c.part === 2).length; }
+    ok(bad === 0, "правые половинки Феникса закончились — больше не выпадают");
+    sh = await cp(U2, "shop"); ok(sh.res.comp[33].r + sh.res.comp[33].full >= 300 && sh.res.comp[32].full === 1, "Сокровищница показывает остаток тиража"); }
+  // свой номер
+  const c1 = await anyCard(U, cp); db.prepare("DELETE FROM cards WHERE sn IN ('777777','100000')").run();
+  r = await cp(U, "invoice", { item: "num", card: c1.id, sn: "777777" }); ok(r.ok && r.res.stars === 1600, "номер 777 777 стоит 1600 ⭐");
+  r = await cp(U, "pay_sim", { pid: r.res.pid }); const c1b = r.S.cards.find(c => c.id === c1.id);
+  ok(r.res.status === "done" && c1b.sn === "777777" && c1b.cust === 1 && Math.abs(c1b.v - c1.v) < .01, "свой номер поставлен, цена карточки не изменилась");
+  r = await cp(U2, "invoice", { item: "num", card: full.id, sn: "777777" }); ok(!r.ok && /занят/.test(r.err), "занятый номер купить нельзя");
+  r = await cp(U2, "invoice", { item: "num", card: full.id, sn: "12345" }); ok(!r.ok, "номер только из 6 цифр");
+  { const a = await cp(U, "invoice", { item: "num", card: c1.id, sn: "100000" }), b = await cp(U2, "invoice", { item: "num", card: full.id, sn: "100000" });
+    await cp(U, "pay_sim", { pid: a.res.pid }); const rb = await cp(U2, "pay_sim", { pid: b.res.pid });
+    ok(rb.res.status === "refund", "если номер успели занять — звёзды возвращаются"); }
+  // ник и король
+  r = await buy(U2, { item: "fx", fx: "fire" }); ok(r.ok && r.S.nfx && r.S.nfx[U2] === "fire", "переливающийся ник включён");
+  r = await cp(U2, "sync"); ok(r.S.king === U, "«Король Эпох» — первый в топе донатеров месяца");
+  sh = await cp(U, "shop"); ok(sh.res.donors[0].uid === U && sh.res.donors.length === 2, "топ донатеров месяца");
+  // оплата через вебхук бота
+  { const i = await cp(U2, "invoice", { item: "small" });
+    const sec = (await import("node:crypto")).createHash("sha256").update("hook:" + env.BOT_TOKEN).digest("hex").slice(0, 48);
+    const upd = { message: { from: { id: U2 }, chat: { id: U2, type: "private" }, successful_payment: { currency: "XTR", total_amount: 50, invoice_payload: "p" + i.res.pid, telegram_payment_charge_id: "ch_1" } } };
+    await worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": sec }, body: JSON.stringify(upd) }), env);
+    await worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": sec }, body: JSON.stringify(upd) }), env);
+    const P = db.prepare("SELECT status,charge FROM payments WHERE id=?").get(i.res.pid); ok(P.status === "done" && P.charge === "ch_1", "оплата из Telegram выдаётся один раз");
+    const bad = await cp(U2, "invoice", { item: "small" });
+    await worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": sec }, body: JSON.stringify({ message: { from: { id: U2 }, chat: { id: U2, type: "private" }, successful_payment: { currency: "XTR", total_amount: 1, invoice_payload: "p" + bad.res.pid, telegram_payment_charge_id: "ch_2" } } }) }), env);
+    ok(db.prepare("SELECT status FROM payments WHERE id=?").get(bad.res.pid).status === "refund", "сумма не совпала — возврат"); }
+}
+
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

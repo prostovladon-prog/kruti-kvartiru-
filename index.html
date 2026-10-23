@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=635f002c">
+<link rel="stylesheet" href="style.css?v=0040b8a9">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -16,7 +16,7 @@
   <div class="dimmer" id="dimmer"></div>
   <header>
     <div class="logo">Воины<br>Эпох<small>Серия 1, 32 карточки</small></div>
-    <div class="hdr-r"><button type="button" class="sound" id="topup" title="Тестовые прокрутки для прототипа">+3</button><button type="button" class="sound ico" id="help-go" aria-label="Помощь" title="Помощь">❓</button><button type="button" class="sound chatbtn ico" id="chat-go" aria-label="Чат" title="Чат">💬<i id="chat-dot" hidden></i></button><button type="button" class="sound ico" id="snd" aria-pressed="true" aria-label="Звук" title="Звук">🔊</button><div class="cash" id="cash-box" title="Деньги и руны"><div class="cur"><i class="ci ci-c">$</i><b class="num" id="cash">0</b></div><div class="cur cur-r" id="cash-rw"><i class="ci ci-r"></i><b class="num" id="cash-r">0</b></div></div></div>
+    <div class="hdr-r"><button type="button" class="sound" id="topup" title="Тестовые прокрутки для прототипа">+3</button><button type="button" class="sound ico goldh" id="gold-hdr" aria-label="Сокровищница" title="Сокровищница">🏪</button><button type="button" class="sound ico" id="help-go" aria-label="Помощь" title="Помощь">❓</button><button type="button" class="sound chatbtn ico" id="chat-go" aria-label="Чат" title="Чат">💬<i id="chat-dot" hidden></i></button><button type="button" class="sound ico" id="snd" aria-pressed="true" aria-label="Звук" title="Звук">🔊</button><div class="cash" id="cash-box" title="Деньги и руны"><div class="cur"><i class="ci ci-c">$</i><b class="num" id="cash">0</b></div><div class="cur cur-r" id="cash-rw"><i class="ci ci-r"></i><b class="num" id="cash-r">0</b></div></div></div>
   </header>
 
   <section id="sec-spin">
@@ -49,6 +49,7 @@
     </div>
     <div class="hint">Можно просто тапать по карточке</div>
     <button type="button" class="buyspin" id="buy-go" hidden></button>
+    <button type="button" class="goldbn" id="gold-go"><span class="gbi">🏪</span><span><b>Сокровищница</b><small>Сундуки, составные воины 🧩 и понт за ⭐</small></span><i>→</i></button>
     <div class="chal" id="chal" hidden><div class="chal-h"><span>👥 ЧЕЛЛЕНДЖ ДНЯ</span><b id="chal-left"></b></div>
       <div class="chal-t" id="chal-t"></div>
       <div class="chal-p" id="chal-p"></div>
@@ -223,6 +224,14 @@
       <div class="box"><span class="step">Выбери воина</span><div class="pickrow" id="lv-pick"></div></div>
     </div>
   </section>
+  <section id="sec-gold" hidden>
+    <div class="gold">
+      <div class="gold-h">🏪 СОКРОВИЩНИЦА<small>сундуки, составные воины и понт · оплата ⭐ Telegram Stars</small></div>
+      <div class="gseg" id="gold-seg"><button type="button" data-g="chest" aria-pressed="true">🎁 Сундуки</button><button type="button" data-g="comp" aria-pressed="false">🧩 Составные</button><button type="button" data-g="flex" aria-pressed="false">👑 Понт</button></div>
+      <div id="gold-body"></div>
+      <button type="button" class="ghost gold-back" id="gold-back">← На главный экран</button>
+    </div>
+  </section>
   <section id="sec-camp" hidden>
     <div class="cp-top"><button type="button" class="mini2" id="cp-back">← Назад</button><b>🎯 Тренировочный лагерь</b></div>
     <div class="cp-bal"><div class="cp-ru">💠 <b class="num" id="cp-ru">0</b><small>руны</small></div><div class="cp-stat" id="cp-stat"></div></div>
@@ -296,7 +305,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=62aca3e9"></script>
-<script src="game.js?v=e9cfa820"></script>
+<script src="rules.js?v=e1a1c029"></script>
+<script src="game.js?v=478a4883"></script>
 </body>
 </html>

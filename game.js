@@ -32,6 +32,8 @@ function localCtx(){S.issued=S.issued||{};S.used=S.used||{};
   const issuedOf=(h,f)=>{const k=h+"-"+f;if(S.issued[k]==null){const run=FIN[f].run;S.issued[k]=run===Infinity?3000+Math.floor(Math.random()*40000):Math.floor(Math.random()*run*.6)}return S.issued[k]};
   return {now:NOW(),test:true,events:[],issuedOf,nextNo:(h,f)=>S.issued[h+"-"+f]=issuedOf(h,f)+1,
     snFree:s=>!S.used[s],takeSn:s=>{S.used[s]=1},newId:()=>S.seq=(S.seq||0)+1,
+    compLeft:h=>{S.cs=S.cs||{};if(S.cs[h]==null)S.cs[h]=40+Math.floor(Math.random()*160);return HALF_RUN-S.cs[h]},
+    compSlot:h=>{const l=localCtx().compLeft(h);return l>0?++S.cs[h]:0},compErr:(h,p)=>!!(S.ce||{})[h+"-"+p],compErrTake:(h,p)=>{S.ce=S.ce||{};S.ce[h+"-"+p]=1},
     release:c=>{delete S.used[c.sn];const k=c.h+"-"+c.f;if(FIN[c.f].run!==Infinity&&S.issued[k]>0)S.issued[k]--}}}
 /* сколько экземпляров уже выпущено (для крафта и слияния) */
 function issuedOfUI(h,f){if(FIN[f].run===Infinity)return 0;return ONLINE?((S.prints||{})[h+"-"+f]||0):localCtx().issuedOf(h,f)}
@@ -157,6 +159,103 @@ const DETAILED={
  </g></svg>`
 };
 
+/* ---------- составные воины: шесть чудовищ, собираются из двух половинок ---------- */
+const BEASTS={
+ "Дракон":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><radialGradient id="dE${u}"><stop offset="0" stop-color="#fff6a0"/><stop offset="1" stop-color="#ff9f0a"/></radialGradient><linearGradient id="dH${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4a3a"/><stop offset="1" stop-color="#a8141a"/></linearGradient><linearGradient id="dF${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff3a0"/><stop offset=".5" stop-color="#ffb347"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></linearGradient></defs>
+  <g stroke="#0d1030" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M34 128 L4 36 L46 66 L50 22 L80 80 Z" fill="#7a0f12"/><path d="M40 112 L22 60 M50 96 L48 44" fill="none" stroke-width="3"/>
+   <path d="M166 128 L196 36 L154 66 L150 22 L120 80 Z" fill="#7a0f12"/><path d="M160 112 L178 60 M150 96 L152 44" fill="none" stroke-width="3"/>
+   <path d="M58 200 Q62 152 80 134 L120 134 Q138 152 142 200Z" fill="#c2222a"/>
+   <path d="M84 200 Q87 166 100 150 Q113 166 116 200Z" fill="#ffb347"/><path d="M89 176 H111 M87 190 H113 M92 162 H108" fill="none" stroke-width="3"/>
+   <path d="M70 62 Q46 34 58 6 Q72 32 86 54Z" fill="#ffd23f"/><path d="M130 62 Q154 34 142 6 Q128 32 114 54Z" fill="#ffd23f"/>
+   <path d="M54 86 L26 70 L40 92 L18 102 L48 108Z" fill="#2fbf5a"/><path d="M146 86 L174 70 L160 92 L182 102 L152 108Z" fill="#2fbf5a"/>
+   <path d="M58 92 Q60 50 100 48 Q140 50 142 92 Q142 114 128 124 L72 124 Q58 114 58 92Z" fill="url(#dH${u})"/>
+   <path d="M86 56 l6 8 l8 -10 l8 10 l6 -8" fill="none" stroke="#ffd23f" stroke-width="3"/>
+   <path d="M72 104 Q74 134 100 142 Q126 134 128 104 Q114 97 100 97 Q86 97 72 104Z" fill="#ff6a48"/>
+   <path d="M80 124 Q100 140 120 124 Q114 134 100 136 Q86 134 80 124Z" fill="#3a0505"/>
+   <path d="M85 125 l3 7 l3 -6 M96 129 l2 6 l2 -6 M104 129 l2 6 l2 -6 M115 125 l-3 7 l-3 -6" fill="#fff" stroke-width="2"/>
+   <ellipse cx="91" cy="112" rx="3.5" ry="2.5" fill="#3a0505" stroke-width="2"/><ellipse cx="109" cy="112" rx="3.5" ry="2.5" fill="#3a0505" stroke-width="2"/>
+   <path d="M64 76 L93 86" stroke-width="7"/><path d="M136 76 L107 86" stroke-width="7"/>
+   <path d="M68 86 Q80 79 92 89 Q80 96 68 89Z" fill="url(#dE${u})" stroke-width="3"/><path d="M132 86 Q120 79 108 89 Q120 96 132 89Z" fill="url(#dE${u})" stroke-width="3"/>
+   <path d="M80 82 L80 93 M120 82 L120 93" stroke-width="3"/>
+  </g>
+  <path d="M120 130 Q152 138 186 116 Q172 150 136 152 Q122 144 120 130Z" fill="url(#dF${u})"/><path d="M122 132 Q146 138 168 126 Q158 144 134 146Z" fill="#fff3a0" opacity=".8"/>
+  <g fill="#cfd3e6" opacity=".55"><circle cx="86" cy="104" r="4"/><circle cx="82" cy="97" r="3"/><circle cx="114" cy="104" r="4"/><circle cx="118" cy="97" r="3"/></g></svg>`,
+ "Феникс":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><linearGradient id="fW${u}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d0141f"/><stop offset=".5" stop-color="#ff7a1a"/><stop offset="1" stop-color="#ffe14d"/></linearGradient><linearGradient id="fB${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient><radialGradient id="fE${u}"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#7fe7ff"/></radialGradient></defs>
+  <g stroke="#0d1030" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M86 120 Q40 120 6 70 Q30 80 40 72 Q20 56 18 30 Q44 56 58 52 Q48 34 54 10 Q72 50 92 82Z" fill="url(#fW${u})"/>
+   <path d="M114 120 Q160 120 194 70 Q170 80 160 72 Q180 56 182 30 Q156 56 142 52 Q152 34 146 10 Q128 50 108 82Z" fill="url(#fW${u})"/>
+   <path d="M40 92 Q60 96 80 108 M30 62 Q56 80 84 96 M58 40 Q70 70 90 90" fill="none" stroke="#7a0f12" stroke-width="3"/>
+   <path d="M160 92 Q140 96 120 108 M170 62 Q144 80 116 96 M142 40 Q130 70 110 90" fill="none" stroke="#7a0f12" stroke-width="3"/>
+   <path d="M70 200 Q66 170 80 150 Q60 176 52 200Z M130 200 Q134 170 120 150 Q140 176 148 200Z" fill="#ff7a1a"/>
+   <path d="M72 200 Q70 150 100 128 Q130 150 128 200Z" fill="url(#fB${u})"/>
+   <path d="M86 170 Q100 160 114 170 M84 186 Q100 176 116 186" fill="none" stroke="#c2410c" stroke-width="3"/>
+   <path d="M100 30 Q90 14 96 0 Q104 14 108 6 Q114 22 106 34 Q122 20 126 28 Q114 40 110 50 L90 50 Q84 38 72 30 Q88 26 100 30Z" fill="#ffe14d"/>
+   <path d="M78 88 Q76 52 100 48 Q124 52 122 88 Q122 112 100 132 Q78 112 78 88Z" fill="url(#fB${u})"/>
+   <path d="M92 96 L100 92 L108 96 L100 124Z" fill="#ffd23f"/><path d="M96 102 L104 102" stroke-width="2.5"/>
+   <path d="M82 78 Q90 72 97 80 Q90 86 82 80Z" fill="url(#fE${u})" stroke-width="3"/><path d="M118 78 Q110 72 103 80 Q110 86 118 80Z" fill="url(#fE${u})" stroke-width="3"/>
+   <path d="M80 70 L96 76 M120 70 L104 76" stroke-width="4"/>
+  </g>
+  <g fill="#fff6a0"><circle cx="30" cy="120" r="3"/><circle cx="172" cy="128" r="2.5"/><circle cx="20" cy="150" r="2"/><circle cx="182" cy="160" r="3"/><circle cx="60" cy="140" r="2"/></g>
+  <path d="M100 30 Q96 20 100 10 Q104 20 100 30Z" fill="#fff" opacity=".8"/></svg>`,
+ "Кракен":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><linearGradient id="kH${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c56bff"/><stop offset="1" stop-color="#5a1f8a"/></linearGradient><radialGradient id="kE${u}"><stop offset="0" stop-color="#fffbe0"/><stop offset=".6" stop-color="#ffe14d"/><stop offset="1" stop-color="#ff9f0a"/></radialGradient></defs>
+  <g stroke="#0d1030" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M30 200 Q10 160 30 130 Q44 112 30 96 Q52 104 46 132 Q38 160 58 200Z" fill="#8a3ad0"/>
+   <path d="M170 200 Q190 160 170 130 Q156 112 170 96 Q148 104 154 132 Q162 160 142 200Z" fill="#8a3ad0"/>
+   <path d="M60 200 Q54 168 72 150 L90 158 Q76 176 82 200Z" fill="#9b4ae0"/><path d="M140 200 Q146 168 128 150 L110 158 Q124 176 118 200Z" fill="#9b4ae0"/>
+   <path d="M96 200 Q96 172 100 156 Q104 172 104 200Z" fill="#9b4ae0"/>
+   <path d="M8 60 Q2 30 26 26 Q44 26 40 44 Q36 56 26 50" fill="none" stroke-width="10"/><path d="M8 60 Q2 30 26 26 Q44 26 40 44 Q36 56 26 50" fill="none" stroke="#b05cf0" stroke-width="5"/>
+   <path d="M192 64 Q200 34 176 28 Q158 26 160 44 Q164 56 174 50" fill="none" stroke-width="10"/><path d="M192 64 Q200 34 176 28 Q158 26 160 44 Q164 56 174 50" fill="none" stroke="#b05cf0" stroke-width="5"/>
+   <path d="M18 70 Q26 110 60 130 M182 74 Q174 110 140 130" fill="none" stroke-width="12"/><path d="M18 70 Q26 110 60 130 M182 74 Q174 110 140 130" fill="none" stroke="#b05cf0" stroke-width="7"/>
+   <path d="M52 112 Q46 30 100 22 Q154 30 148 112 Q140 152 100 156 Q60 152 52 112Z" fill="url(#kH${u})"/>
+   <path d="M72 40 Q80 30 90 34 M120 32 Q132 32 134 44" fill="none" stroke="#e9c4ff" stroke-width="3" opacity=".8"/>
+   <ellipse cx="78" cy="98" rx="15" ry="18" fill="url(#kE${u})"/><ellipse cx="122" cy="98" rx="15" ry="18" fill="url(#kE${u})"/>
+   <rect x="74" y="88" width="8" height="20" rx="3" fill="#0d1030" stroke-width="0"/><rect x="118" y="88" width="8" height="20" rx="3" fill="#0d1030" stroke-width="0"/>
+   <path d="M60 80 L94 88 M140 80 L106 88" stroke-width="6"/>
+   <path d="M84 132 Q100 124 116 132 Q100 146 84 132Z" fill="#3a0a50"/>
+  </g>
+  <g fill="#e9c4ff" stroke="#0d1030" stroke-width="2"><circle cx="34" cy="150" r="4"/><circle cx="30" cy="170" r="3.5"/><circle cx="166" cy="150" r="4"/><circle cx="170" cy="170" r="3.5"/><circle cx="66" cy="172" r="3"/><circle cx="134" cy="172" r="3"/></g>
+  <g fill="#bfe3ff" opacity=".8"><circle cx="100" cy="10" r="3"/><circle cx="160" cy="12" r="2"/><circle cx="44" cy="12" r="2.5"/></g></svg>`,
+ "Цербер":u=>{const head=(x,y,s,r)=>`<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})"><path d="M-30 -14 L-40 -48 L-14 -30Z M30 -14 L40 -48 L14 -30Z" fill="#2a1a2e"/><path d="M-32 0 Q-32 -36 0 -38 Q32 -36 32 0 Q32 18 18 28 L-18 28 Q-32 18 -32 0Z" fill="url(#cH${u})"/><path d="M-16 12 Q0 4 16 12 L14 34 Q0 44 -14 34Z" fill="#3a2440"/><ellipse cx="0" cy="14" rx="7" ry="5" fill="#0d1030"/><path d="M-12 32 Q0 40 12 32 Q6 46 0 46 Q-6 46 -12 32Z" fill="#7a0f12"/><path d="M-10 33 l2 6 l2 -5 M10 33 l-2 6 l-2 -5" fill="#fff" stroke-width="2"/><path d="M-22 -10 L-6 -4 M22 -10 L6 -4" stroke-width="5"/><path d="M-22 -4 Q-14 -10 -7 -2 Q-14 3 -22 -2Z M22 -4 Q14 -10 7 -2 Q14 3 22 -2Z" fill="#ff3b30" stroke-width="2.5"/></g>`;
+  return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><linearGradient id="cH${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a4466"/><stop offset="1" stop-color="#22142a"/></linearGradient><radialGradient id="cG${u}"><stop offset="0" stop-color="#ff3b30" stop-opacity=".7"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="100" cy="110" r="90" fill="url(#cG${u})"/>
+  <g stroke="#0d1030" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M40 200 Q42 150 70 128 L130 128 Q158 150 160 200Z" fill="#3a2440"/>
+   <path d="M56 140 L144 140 L140 156 L60 156Z" fill="#7a5a10"/><g fill="#d9dee8"><path d="M66 140 l6 -12 l6 12Z M88 140 l6 -12 l6 12Z M108 140 l6 -12 l6 12Z M128 140 l6 -12 l6 12Z"/></g>
+   ${head(46,110,.85,-14)}${head(154,110,.85,14)}${head(100,82,1,0)}
+  </g>
+  <g fill="#ffb347"><circle cx="20" cy="40" r="2.5"/><circle cx="180" cy="34" r="2"/><circle cx="170" cy="186" r="3"/><circle cx="26" cy="182" r="2.5"/></g></svg>`},
+ "Химера":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><radialGradient id="hM${u}" cx=".5" cy=".55"><stop offset="0" stop-color="#ffb347"/><stop offset="1" stop-color="#b8580b"/></radialGradient><linearGradient id="hF${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#d9993a"/></linearGradient><linearGradient id="hS${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7ee89a"/><stop offset="1" stop-color="#0d5c2a"/></linearGradient></defs>
+  <g stroke="#0d1030" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M150 200 Q150 160 172 140 Q196 118 178 92 Q170 80 184 66" fill="none" stroke-width="16"/><path d="M150 200 Q150 160 172 140 Q196 118 178 92 Q170 80 184 66" fill="none" stroke="url(#hS${u})" stroke-width="10"/>
+   <path d="M176 70 Q178 48 196 50 Q200 66 186 76Z" fill="#2fbf5a"/><circle cx="188" cy="60" r="2.5" fill="#ffe14d" stroke-width="1.5"/><path d="M196 66 l4 4 M196 66 l6 0" stroke="#ff2e63" stroke-width="2"/>
+   <path d="M30 70 Q14 40 30 20 Q34 44 50 58Z" fill="#e9e2cf"/><path d="M34 62 Q24 44 30 30 M42 60 Q36 46 38 34" fill="none" stroke-width="2.5"/>
+   <path d="M50 200 Q54 160 76 146 L124 146 Q146 160 150 200Z" fill="#d9993a"/>
+   <path d="M100 16 L118 30 L140 22 L144 46 L168 50 L158 72 L178 90 L156 104 L166 128 L140 128 L134 152 L112 140 L100 160 L88 140 L66 152 L60 128 L34 128 L44 104 L22 90 L42 72 L32 50 L56 46 L60 22 L82 30Z" fill="url(#hM${u})"/>
+   <path d="M66 96 Q66 52 100 50 Q134 52 134 96 Q134 128 100 138 Q66 128 66 96Z" fill="url(#hF${u})"/>
+   <path d="M84 110 Q100 100 116 110 L112 126 Q100 134 88 126Z" fill="#fff1d6"/><path d="M92 108 L100 116 L108 108Z" fill="#3a1c06"/><path d="M100 116 V124 M100 124 Q92 130 86 124 M100 124 Q108 130 114 124" fill="none" stroke-width="3"/>
+   <path d="M70 80 L94 88 M130 80 L106 88" stroke-width="6"/>
+   <path d="M74 90 Q84 84 94 92 Q84 98 74 92Z" fill="#ffe14d" stroke-width="3"/><path d="M126 90 Q116 84 106 92 Q116 98 126 92Z" fill="#ffe14d" stroke-width="3"/>
+   <path d="M84 87 V96 M116 87 V96" stroke-width="3"/>
+  </g>
+  <path d="M40 150 Q20 170 6 160 Q14 180 36 176 Q20 196 46 196" fill="#ff7a1a" opacity=".85"/><path d="M38 156 Q24 170 16 166 Q24 178 38 172" fill="#ffe14d" opacity=".9"/></svg>`,
+ "Левиафан":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><linearGradient id="lB${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ac8fa"/><stop offset=".55" stop-color="#0a5ab8"/><stop offset="1" stop-color="#062a63"/></linearGradient><linearGradient id="lW${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fe7ff"/><stop offset="1" stop-color="#0a3c8c"/></linearGradient><radialGradient id="lE${u}"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#34ff9a"/></radialGradient></defs>
+  <g stroke="#0d1030" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M150 170 Q196 150 186 110 Q178 80 150 92" fill="none" stroke-width="22"/><path d="M150 170 Q196 150 186 110 Q178 80 150 92" fill="none" stroke="url(#lB${u})" stroke-width="15"/>
+   <path d="M178 100 L196 88 L190 108 M188 128 L200 124 L194 140" fill="#34c3ff"/>
+   <path d="M40 200 Q30 150 60 120 Q80 100 76 70 L124 70 Q132 112 112 140 Q96 166 110 200Z" fill="url(#lB${u})"/>
+   <path d="M62 150 Q76 160 92 150 M58 172 Q74 182 92 172 M70 128 Q84 136 98 128" fill="none" stroke="#7fe7ff" stroke-width="3"/>
+   <path d="M76 70 L66 50 L84 58 L88 36 L100 54 L112 30 L116 56 L134 44 L124 70Z" fill="#34c3ff"/>
+   <path d="M60 78 Q52 40 100 34 Q148 40 144 78 Q142 100 124 110 L84 110 Q62 100 60 78Z" fill="url(#lB${u})"/>
+   <path d="M70 92 Q100 120 130 92 Q128 116 100 126 Q72 116 70 92Z" fill="#062a63"/>
+   <path d="M76 96 l3 9 l4 -7 M88 102 l2 8 l3 -7 M112 102 l-2 8 l-3 -7 M124 96 l-3 9 l-4 -7" fill="#fff" stroke-width="2"/>
+   <path d="M66 70 L94 76 M134 70 L106 76" stroke-width="6"/>
+   <path d="M70 78 Q82 70 94 80 Q82 88 70 80Z" fill="url(#lE${u})" stroke-width="3"/><path d="M130 78 Q118 70 106 80 Q118 88 130 80Z" fill="url(#lE${u})" stroke-width="3"/>
+   <path d="M82 74 V86 M118 74 V86" stroke-width="3"/>
+   <path d="M0 186 Q20 174 40 186 T80 186 T120 186 T160 186 T200 186 V200 H0Z" fill="url(#lW${u})"/>
+  </g>
+  <g fill="#fff" opacity=".85"><circle cx="20" cy="170" r="3"/><circle cx="170" cy="182" r="2.5"/><circle cx="48" cy="160" r="2"/><path d="M14 178 Q24 168 34 178" fill="none" stroke="#fff" stroke-width="2"/></g></svg>`};
+Object.assign(DETAILED,BEASTS);
 /* ---------- warrior portraits drawn in code: cel-shaded comic style, unique tint per card ---------- */
 const INK="#0d1030";
 const SK=["#f1c7a3","#e0ac83","#c98c62","#a86f4a"];
@@ -324,7 +423,11 @@ const SCENES={
  castle:'<defs><linearGradient id="scCa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14123a"/><stop offset=".6" stop-color="#4b3a8f"/><stop offset="1" stop-color="#e0708a"/></linearGradient></defs><rect width="300" height="270" fill="url(#scCa)"/><circle cx="240" cy="60" r="22" fill="#fff3c4"/><g fill="#1c1640"><path d="M20 220v-80h14v-12h10v12h10v-12h10v12h14v80zM96 220v-100h12v-14h10v14h10v-14h10v14h12v100zM190 220v-70h14v-12h10v12h10v-12h10v12h14v70z"/><path d="M118 106v-24l18 8-18 8" fill="#ff3b30"/></g><path d="M0 222 Q150 205 300 222 V270 H0Z" fill="#100c2a"/>',
  steppe:'<defs><linearGradient id="scSt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a4a"/><stop offset=".6" stop-color="#d0602a"/><stop offset="1" stop-color="#ffd27a"/></linearGradient></defs><rect width="300" height="270" fill="url(#scSt)"/><circle cx="90" cy="150" r="46" fill="#ffb347" opacity=".8"/><path d="M0 200 Q80 160 160 195 T300 180 V270 H0Z" fill="#6b3a12"/><g fill="#3a1c06"><path d="M200 210v-22q20-22 40 0v22zM190 190h60l-30-14z"/></g><path d="M0 228 Q150 214 300 228 V270 H0Z" fill="#3a1c06"/>',
  france:'<defs><linearGradient id="scFr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1440"/><stop offset=".65" stop-color="#2a4fb0"/><stop offset="1" stop-color="#9fb8ff"/></linearGradient></defs><rect width="300" height="270" fill="url(#scFr)"/><circle cx="60" cy="55" r="18" fill="#fff3c4"/><g fill="#0a1236"><path d="M0 220v-60h40v-20l20-16 20 16v20h30v-40h16v-12h10v12h16v40h30v-30l20-14 20 14v30h40v20h38v60z"/></g><g fill="#ffd60a" opacity=".8"><rect x="12" y="180" width="6" height="8"/><rect x="60" y="170" width="6" height="8"/><rect x="128" y="160" width="6" height="8"/><rect x="200" y="185" width="6" height="8"/></g>'};
-const ERA_SC={"Япония":"jp","Скандинавия":"nord","Мифы Скандинавии":"nord","Мифы Греции":"greek","Древняя Греция":"sparta","Спарта":"sparta","Древний Рим":"rome","Древний Египет":"egypt","Древняя Русь":"rus","Средние века":"castle","Крестовые походы":"castle","Легенды Британии":"castle","Франция, XV век":"castle","Франция, XVII век":"france","Степь":"steppe","Древний мир":"steppe"};
+SCENES.volcano='<defs><linearGradient id="scVo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a0505"/><stop offset=".55" stop-color="#7a1208"/><stop offset="1" stop-color="#ff6a1a"/></linearGradient></defs><rect width="300" height="270" fill="url(#scVo)"/><path d="M40 230 L120 80 L150 95 L180 80 L260 230Z" fill="#2a0806"/><path d="M120 80 Q150 40 180 80 Q165 70 150 95 Q135 70 120 80Z" fill="#ff9f0a"/><path d="M148 95 Q140 150 120 230 M152 95 Q166 160 190 230" stroke="#ff6a1a" stroke-width="5" fill="none"/><g fill="#ffb347" opacity=".9"><circle cx="60" cy="60" r="3"/><circle cx="230" cy="50" r="2.5"/><circle cx="200" cy="120" r="2"/><circle cx="90" cy="140" r="2.5"/></g><path d="M0 228 Q150 210 300 228 V270 H0Z" fill="#1a0505"/>';
+SCENES.sky='<defs><radialGradient id="scSk" cx=".5" cy=".45"><stop offset="0" stop-color="#fff3a0"/><stop offset=".3" stop-color="#ff9f0a"/><stop offset=".7" stop-color="#c2224a"/><stop offset="1" stop-color="#3b0a2e"/></radialGradient></defs><rect width="300" height="270" fill="url(#scSk)"/><g fill="none" stroke="#fff3a0" stroke-width="3" opacity=".5"><circle cx="150" cy="120" r="70"/><circle cx="150" cy="120" r="100"/></g><path d="M0 200 Q60 170 120 196 T240 186 T300 196 V270 H0Z" fill="#5a0f2e"/><path d="M0 228 Q150 210 300 228 V270 H0Z" fill="#22051a"/>';
+SCENES.sea='<defs><linearGradient id="scSe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050b2a"/><stop offset=".6" stop-color="#0a3c8c"/><stop offset="1" stop-color="#0a84ff"/></linearGradient></defs><rect width="300" height="270" fill="url(#scSe)"/><circle cx="230" cy="50" r="20" fill="#e9f6ff"/><path d="M30 170 l20 -60 l4 0 l0 60z M18 168 h60 l-10 14 h-40z" fill="#0a1236"/><path d="M54 112 q24 16 0 40z" fill="#0a1236"/><g fill="none" stroke="#5ac8fa" stroke-width="3" opacity=".6"><path d="M0 190 q25 -12 50 0 t50 0 t50 0 t50 0 t50 0 t50 0"/><path d="M0 214 q25 -12 50 0 t50 0 t50 0 t50 0 t50 0 t50 0"/></g><path d="M0 228 Q150 214 300 228 V270 H0Z" fill="#06173f"/>';
+SCENES.under='<defs><linearGradient id="scUn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0510"/><stop offset=".6" stop-color="#3a0a1e"/><stop offset="1" stop-color="#ff3b30"/></linearGradient></defs><rect width="300" height="270" fill="url(#scUn)"/><path d="M0 80 L30 0 H70 L50 60 L80 30 L90 0 H210 L220 30 L250 60 L230 0 H270 L300 80 V0 H0Z" fill="#1a0a14"/><g fill="#2a0e1e"><path d="M20 230 V150 Q60 120 100 150 V230Z M200 230 V150 Q240 120 280 150 V230Z"/></g><g fill="#ff6a1a" opacity=".8"><circle cx="60" cy="170" r="4"/><circle cx="240" cy="170" r="4"/></g><path d="M0 228 Q150 212 300 228 V270 H0Z" fill="#1a0505"/>';
+const ERA_SC={"Япония":"jp","Скандинавия":"nord","Мифы Скандинавии":"nord","Мифы Греции":"greek","Древняя Греция":"sparta","Спарта":"sparta","Древний Рим":"rome","Древний Египет":"egypt","Древняя Русь":"rus","Средние века":"castle","Крестовые походы":"castle","Легенды Британии":"castle","Франция, XV век":"castle","Франция, XVII век":"france","Степь":"steppe","Древний мир":"steppe","Легенды драконов":"volcano","Мифы Востока":"sky","Морские легенды":"sea","Подземное царство":"under"};
 const STAT_IC=["⚔️","🛡","💨","❤️","🔥"],STAT_MAX=1300;
 function faceV2(root,c){const q=s=>root.querySelector(s),H=HEROES[c.h],t=H[2],art=q(".art");
   root.classList.add("t"+t);
@@ -337,25 +440,34 @@ function faceV2(root,c){const q=s=>root.querySelector(s),H=HEROES[c.h],t=H[2],ar
   else if(fx)fx.remove();
   const pw=q(".power");pw.textContent="«"+epithet(c)+"»";
   q(".stats").innerHTML=[0,1,2,3,4].map(i=>{const v=c.stats?eff(c,i):0;return `<div class="s${i===4?" w":""}"><i>${STAT_IC[i]}</i><div class="b"><u style="width:${Math.max(4,Math.min(100,Math.round(v/STAT_MAX*100)))}%"></u></div><b class="num">${c.stats?v:"?"}</b></div>`}).join("")}
+/* составные воины: половинки обрезаны по зубчатому шву, у целой карточки золотой шов */
+const HALF_CLIP=["","polygon(0 0,52% 0,47% 9%,54% 18%,46% 28%,53% 38%,45% 49%,54% 60%,46% 71%,53% 82%,47% 92%,51% 100%,0 100%)","polygon(52% 0,100% 0,100% 100%,51% 100%,47% 92%,53% 82%,46% 71%,54% 60%,45% 49%,53% 38%,46% 28%,54% 18%,47% 9%)"];
+const SEAM_D="M156 0 L141 38 L162 76 L138 118 L159 160 L135 206 L162 252 L138 298 L159 344 L141 386 L153 420";
+const SEAM='<svg class="seam" viewBox="0 0 300 420" preserveAspectRatio="none" aria-hidden="true"><path d="'+SEAM_D+'" fill="none" stroke="#ffd23f" stroke-width="6" stroke-linejoin="round"/><path d="'+SEAM_D+'" fill="none" stroke="#fff6c8" stroke-width="2"/></svg>';
+function compFin(c){if(!isComp(c.h))return "";const err=c.f===4;
+  if(c.part)return (err?"Ошибка · ":"")+PART_K[c.part]+(err?" 1/1":c.part===2?" · "+c.no+"/"+HALF_RUN:"");
+  return err?"Ошибка печати 1/1":"Составной "+c.no+"/"+HALF_RUN}
 function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
-  q(".top b").textContent=H[0];q(".top span").textContent="№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
+  q(".top b").textContent=H[0];q(".top span").textContent=isComp(c.h)?"🧩 СОСТАВНОЙ":"№ "+String(c.h+1).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
   const lb=q(".lvl");lb.hidden=lvl(c)<=1;lb.textContent="Ур. "+lvl(c);
-  q(".finish").textContent=F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run);
+  q(".finish").textContent=compFin(c)||F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run);
   const sn=c.sn||"482913",cl=classify(sn),se=q(".foot .sn");
   se.innerHTML="<small>№</small>"+fmtSn(sn);se.classList.toggle("nice",!!cl);
-  const rb=q(".ribbon");rb.hidden=!cl;if(cl)rb.textContent=cl.k+", ×"+cl.m;
+  const rb=q(".ribbon");rb.hidden=!cl&&!c.cust;if(c.cust)rb.textContent="✍️ Именной номер";else if(cl)rb.textContent=cl.k+", ×"+cl.m;
   q(".foot b").textContent=fmt(c.v);
   const art=q(".art");
   let sb=q(".stars");if(!sb){sb=document.createElement("div");sb.className="stars";art.appendChild(sb)}
   sb.hidden=!st;sb.innerHTML="★".repeat(st)+"<i>"+"★".repeat(STAR_MAX-st)+"</i>";
-  root.style.clipPath=c.f===4?tornPoly(sn):"";
-  root.querySelectorAll(".tear,.brak").forEach(e=>e.remove());if(c.f===4)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
+  root.style.clipPath=c.part?HALF_CLIP[c.part]:c.f===4?tornPoly(sn):"";
+  root.querySelectorAll(".tear,.brak,.seam").forEach(e=>e.remove());if(c.f===4)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
+  root.classList.toggle("half",!!c.part);root.classList.toggle("half-l",c.part===1);root.classList.toggle("half-r",c.part===2);root.classList.toggle("comp",isComp(c.h)&&!c.part);
+  if(isComp(c.h)&&!c.part)q(".in").insertAdjacentHTML("beforeend",SEAM);
   faceV2(root,c);
 }
 /* ---------- маленькая копия карточки для списков ----------
@@ -462,7 +574,7 @@ $("sell").onclick=async()=>{if(!current||busy)return;if(!S.cards.some(x=>x.id===
 /* ---------- album ---------- */
 function renderAlbum(){
   const box=$("album");box.innerHTML="";let have=0;
-  HEROES.forEach((H,i)=>{
+  HEROES.forEach((H,i)=>{if(i>=NBASE)return;
     const mine=S.cards.filter(c=>c.h===i),got=mine.length>0;if(got)have++;
     const d=document.createElement("div");d.className="slot "+(got?"have":"empty");d.style.setProperty("--hc",HT[H[2]].c);
     const fins=[...new Set(mine.map(c=>c.f))].sort();
@@ -501,9 +613,9 @@ function renderCol(){
 }
 /* меню «⋯»: рассмотреть или продать — чтобы не продать карточку случайным нажатием */
 function cardMenu(c){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const busy=away(c),tro=FIN[c.f].excl;
-  sh.innerHTML='<div class="box nickbox cmenu"><div class="sellprev"></div><h3></h3><button type="button" class="craftbtn" id="cm-view">🔍 Рассмотреть и закалить</button>'+(busy||tro?'<p class="cm-note"></p>':'<button type="button" class="linkbtn" id="cm-sell"></button>')+'<button type="button" class="ghost" id="cm-x">Закрыть</button></div>';
+  sh.innerHTML='<div class="box nickbox cmenu"><div class="sellprev"></div><h3></h3><button type="button" class="craftbtn" id="cm-view">'+(c.part?'🧩 Собрать воина':'🔍 Рассмотреть и закалить')+'</button><button type="button" class="ghost cm-num" id="cm-num">✍️ Свой номер на карточке</button>'+(busy||tro?'<p class="cm-note"></p>':'<button type="button" class="linkbtn" id="cm-sell"></button>')+'<button type="button" class="ghost" id="cm-x">Закрыть</button></div>';
   sh.querySelector(".sellprev").innerHTML=miniSlot(c);sh.querySelector("h3").textContent=HEROES[c.h][0]+" · "+FIN[c.f].k+" · "+fmtC(c.v);
-  $("cm-view").onclick=()=>{closeModal();openCardView(c,{mine:true})};$("cm-x").onclick=closeModal;
+  $("cm-view").onclick=()=>{closeModal();if(c.part)openGold("comp");else openCardView(c,{mine:true})};$("cm-x").onclick=closeModal;$("cm-num").onclick=()=>{closeModal();numBuy(c)};
   if(busy||tro)sh.querySelector(".cm-note").textContent=tro?"🏆 Трофей «Основатель» нельзя продать системе — только на рынке.":c.listed?"🏷 Карточка выставлена на рынок.":c.lock?"⚔️ Карточка сейчас в бою на арене.":"🧭 Воин в походе.";
   else{$("cm-sell").textContent="💰 Продать за "+fmtC(c.v*QUICK);$("cm-sell").onclick=async()=>{closeModal();if(!(await confirmSell(c)))return;const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))}}}
 /* витрина красоты: все виды карточек, что уже есть у игрока */
@@ -604,7 +716,7 @@ function renderCraft(){
   FIN.forEach((F,i)=>{if(F.excl)return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
     b.onclick=()=>{if(crBusy)return;crF=i;renderCraft()};fb.appendChild(b)});
   const tg=$("cr-tgt");tg.innerHTML="";
-  HEROES.forEach((H,i)=>{const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
+  HEROES.forEach((H,i)=>{if(i>=NBASE)return;const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",i===crH);b.setAttribute("aria-label",H[0]);b.title=H[0];b.innerHTML=portrait(i,null,1);
     b.onclick=()=>{if(crBusy)return;crH=i;renderCraft()};tg.appendChild(b)});
   const sel=tg.querySelector('[aria-pressed="true"]');if(sel&&!tg.dataset.scrolled){tg.dataset.scrolled="1";requestAnimationFrame(()=>{tg.scrollLeft=sel.offsetLeft-tg.clientWidth/2+sel.clientWidth/2})}
@@ -769,7 +881,7 @@ function drawCampTop(){const T=cpTop,box=$("cp-top");if(!box)return;if(!ONLINE){
   $("cp-topn").textContent=(cpPer==="d"?"Сколько рун заработано сегодня. Новый день через ":"Сколько рун заработано за неделю. Новая неделя через ")+(()=>{const l=Math.max(0,T.left-(NOW()-T._t));return l>=864e5?Math.floor(l/864e5)+" дн "+Math.floor(l%864e5/36e5)+" ч":tleft(l)})();
   box.innerHTML="";if(!T.items.length)box.innerHTML='<div class="cp-empty">Пока пусто — стань первым!</div>';
   T.items.slice(0,10).forEach((it,i)=>{const d=document.createElement("div");d.className="cpt"+(it.uid===S.uid?" me":"");d.innerHTML="<i></i><span></span><b></b>";
-    d.children[0].textContent=i<3?["🥇","🥈","🥉"][i]:i+1;d.children[1].textContent=champMark(it.uid)+(it.vip?"👑 ":"")+(it.pi?"🏅 ":"")+it.name;d.children[2].textContent=fmtN(it.score)+" 💠";box.append(d)});
+    d.children[0].textContent=i<3?["🥇","🥈","🥉"][i]:i+1;fxName(d.children[1],champMark(it.uid)+(it.vip?"👑 ":"")+(it.pi?"🏅 ":""),it.name,it.uid);d.children[2].textContent=fmtN(it.score)+" 💠";box.append(d)});
   $("cp-me").textContent=T.me.rank?"Ты на "+T.me.rank+" месте · "+fmtN(T.me.score)+" рун":"Ты пока не в топе — тапай, и попадёшь в таблицу"}
 $("cp-seg").onclick=e=>{const b=e.target.closest("[data-per]");if(!b||b.dataset.per===cpPer)return;cpPer=b.dataset.per;$("cp-seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));drawCampTop();loadCampTop(true)};
 setInterval(()=>{if(S&&!$("sec-camp").hidden){if(cpTop)drawCampTop();loadCampTop()}},5000);
@@ -800,9 +912,9 @@ let rareDrawn="";
 /* сколько раз воин с отделкой уже выпал в игре (сервер считает и проданные — номер всё равно был выдан) */
 const everIssued=(h,f)=>ONLINE?((S.prints||{})[h+"-"+f]||0):localCtx().issuedOf(h,f);
 function renderRare(){const g=$("rare-g");if(!g||!S)return;const own=new Set(S.cards.map(c=>c.h)),tot=HEROES.reduce((a,H)=>a+HW[H[2]],0);
-  const list=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]>=3).sort((a,b)=>HEROES[b][2]-HEROES[a][2]);
+  const list=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]>=3).sort((a,b)=>HEROES[b][2]-HEROES[a][2]);
   const ever=h=>ONLINE?FIN.reduce((a,F,f)=>a+((S.prints||{})[h+"-"+f]||0),0):S.cards.filter(c=>c.h===h).length;
-  const errFree=HEROES.map((H,i)=>i).filter(i=>everIssued(i,4)<1),goldLeft=list.map(i=>[i,FIN[3].run-everIssued(i,3)]);
+  const errFree=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&everIssued(i,4)<1),goldLeft=list.map(i=>[i,FIN[3].run-everIssued(i,3)]);
   const key=JSON.stringify([list.map(i=>own.has(i)?1:0),list.map(ever),errFree,goldLeft]);if(key===rareDrawn)return;rareDrawn=key;
   g.innerHTML=list.map(i=>{const H=HEROES[i],t=H[2],p=HW[t]/tot,one=Math.round(1/p),n=ever(i);
     return '<div class="rare-c'+(t===4?' myth':'')+'" style="--c:'+HT[t].c+'">'+(own.has(i)?'<span class="own" title="Есть у тебя">✅</span>':'')+'<div class="p">'+portrait(i,null,1)+'</div><b>'+H[0]+'</b><small>'+HT[t].k+'</small><i>1 из '+fmtN(one)+'</i>'+
@@ -1204,7 +1316,7 @@ function encCard(c,out){const sn=+c.sn,v=Math.round(c.v*100);out.push(c.h,c.f,lv
   c.stats.forEach(x=>out.push((x>>8)&255,x&255));out.push((v>>>24)&255,(v>>16)&255,(v>>8)&255,v&255)}
 function decCard(a,i){const c={h:a[i],f:a[i+1],lv:a[i+2],hue:a[i+3]*2,no:(a[i+4]<<8)|a[i+5],sn:String((a[i+6]<<16)|(a[i+7]<<8)|a[i+8]).padStart(6,"0"),stats:[]};
   for(let k=0;k<5;k++)c.stats.push((a[i+9+k*2]<<8)|a[i+10+k*2]);c.v=((a[i+19]<<24)|(a[i+20]<<16)|(a[i+21]<<8)|a[i+22])/100;c.xp=25*Math.pow(c.lv-1,2);c.id="f"+i+"_"+c.sn;
-  if(c.h>=NHEROES||c.f>4)throw 0;return c}
+  if(c.h>=HEROES.length||c.f>4)throw 0;return c}
 const CARD_B=23;
 function encName(){const u=new TextEncoder().encode(myName()).slice(0,40);return [u.length,...u]}
 function decName(a){const n=a[1];return {name:new TextDecoder().decode(new Uint8Array(a.slice(2,2+n))),i:2+n}}
@@ -1371,6 +1483,17 @@ let shView="buy",slPick=null,mkCache=null,mkAt=0,mkLoading=false;
 function sellChance(c){const r=c.listPrice/c.v;return Math.max(.03,Math.min(.9,(1.7-r)*.45))}
 /* локальная версия рыночных действий (для игры без сервера) */
 const LOCAL={
+  shop(){const comp={};COMP.forEach(h=>{comp[h]={l:0,r:HALF_RUN-localCtx().compLeft(h),full:0,e:[0,0,0]}});return {comp,mythLeft:SHOP.mythic.month,donors:[],mine:0,fx:null}},
+  invoice(p){const I=SHOP[p.item];let stars;if(I){if(I.once&&S.newbie)fail("Подарок новичку уже получен");stars=I.stars}
+    else if(p.item==="num"){const sn=checkSn(p.sn);if(!S.cards.find(c=>c.id===p.card))fail("Карточка не найдена");if(S.used&&S.used[sn])fail("Номер "+fmtSn(sn)+" уже занят");stars=numPrice(sn)}
+    else if(p.item==="fx"){if(!NFX[p.fx])fail("Нет такого эффекта");stars=p.forever?NFX_PRICE.f:NFX_PRICE.m}else fail("Нет такого товара");
+    S.lpay=S.lpay||{};const pid=Object.keys(S.lpay).length+1;S.lpay[pid]={p,stars,status:"new"};return {pid,sim:1,stars}},
+  pay_sim(p){const P=(S.lpay||{})[p.pid];if(!P)fail("Нет такого счёта");if(P.status!=="new")return {pid:p.pid,item:P.p.item,status:P.status,res:P.res};const q=P.p;let res;
+    if(SHOP[q.item]){const ctx=localCtx();ctx.grant=true;const r=runAction("grant",S,S.cards,ctx,{item:q.item,pid:"l"+p.pid});S.cards=r.cards;res=r.res}
+    else if(q.item==="num"){const c=S.cards.find(x=>x.id===q.card);delete S.used[c.sn];c.sn=q.sn;c.cust=1;S.used[q.sn]=1;res={card:c.id,sn:q.sn}}
+    else{S.nfx=S.nfx||{};S.nfx[S.uid||0]=q.fx;res={fx:q.fx}}
+    P.status="done";P.res=res;return {pid:p.pid,item:q.item,status:"done",res}},
+  pay_status(p){const P=(S.lpay||{})[p.pid];return P?{pid:p.pid,item:P.p.item,status:P.status,res:P.res}:{status:"new"}},
   market(){if(!S.market||NOW()-S.market.at>MK_REFRESH){const ctx=localCtx(),items=[];
     for(let i=0;i<8;i++){let c;try{c=rollCard(ctx,false)}catch(e){continue}c.id="m"+NOW()+"_"+i;c.xp=Math.random()<.4?Math.floor(Math.random()*900):0;items.push({id:c.id,card:c,price:Math.max(1,Math.round(c.v*(.75+Math.random()*.9))),seller:SELLERS[Math.floor(Math.random()*SELLERS.length)]})}
     items.sort((a,b)=>b.card.v-a.card.v);S.market={at:NOW(),items}}return {items:S.market.items,next:S.market.at+MK_REFRESH}},
@@ -1454,7 +1577,7 @@ Object.assign(LOCAL,{nick(p){const n=checkNick(p.nick);if(n===S.nick)throw new G
   const cost=S.nick?NICK_COST:0;if(S.cash<cost)throw new GameError("Смена ника стоит $"+cost+", не хватает денег");S.cash-=cost;S.nick=n;return {nick:n,cost}},
  top(p){const k=p.kind,R=rng(snHash(todayL()+k)),names=SELLERS.slice().sort(()=>R()-.5);
   const fake=(h,f)=>{const c=phantom(h,f);c.sn=String(Math.floor(R()*1e6)).padStart(6,"0");c.no=1+Math.floor(R()*Math.min(FIN[f].run,999));c.stars=f>=2&&R()<.5?1+Math.floor(R()*4):0;c.id="b"+Math.floor(R()*1e9);return c};
-  const bestH=()=>{const hs=HEROES.map((H,i)=>i).filter(i=>HEROES[i][2]>=2);return hs[Math.floor(R()*hs.length)]};
+  const bestH=()=>{const hs=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]>=2);return hs[Math.floor(R()*hs.length)]};
   if(k==="feed")return {items:names.slice(0,8).map((n,i)=>({name:n,card:fake(bestH(),R()<.25?3:R()<.5?2:1),t:NOW()-(i+R())*25*60e3}))};
   if(k==="cards"){const items=names.map(n=>{const c=fake(bestH(),R()<.15?4:R()<.4?3:2);c.v=Math.round(c.v*(1+R()*3));return {name:n,card:c,score:c.v}});
     S.cards.forEach(c=>items.push({name:myName()+" (ты)",card:c,score:c.v,me:1}));items.sort((a,b)=>b.score-a.score);return {items:items.slice(0,30)}}
@@ -1485,7 +1608,7 @@ async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.a
 function ago(t){const m=Math.max(1,Math.round((NOW()-t)/60000));return m<60?m+" мин назад":m<1440?Math.round(m/60)+" ч назад":Math.round(m/1440)+" дн назад"}
 function topRow(it,i,kind){const c=it.card,d=document.createElement("button");d.type="button";d.className="trow"+(it.me||(ONLINE&&it.uid===S.uid)?" me":"")+(i<3?" p"+(i+1):"");
   d.innerHTML=`<span class="rk">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="e"></span><span class="t"><b></b><small></small></span><span class="sc num"></span>`;
-  d.querySelector("b").textContent=champMark(it.uid)+(it.pi?"🏅 ":"")+it.name;if(it.vip||(it.me&&isVip())){d.classList.add("vipr");d.querySelector("b").insertAdjacentHTML("afterbegin",'<span class="vipb">VIP</span> ')}d.querySelector(".sc").textContent=kind==="worth"||kind==="cards"?fmtC(it.score):TP[kind].u(it.score);
+  fxName(d.querySelector("b"),champMark(it.uid)+(it.pi?"🏅 ":""),it.name,it.uid);if(it.vip||(it.me&&isVip())){d.classList.add("vipr");d.querySelector("b").insertAdjacentHTML("afterbegin",'<span class="vipb">VIP</span> ')}d.querySelector(".sc").textContent=kind==="worth"||kind==="cards"?fmtC(it.score):TP[kind].u(it.score);
   if(c){const e=d.querySelector(".e");e.style.setProperty("--hc",HT[HEROES[c.h][2]].c);e.innerHTML=miniSlot(c);
     d.querySelector("small").textContent=(kind==="cards"?"":"Лучшая: ")+HEROES[c.h][0]+((c.stars||0)?" ★"+c.stars:"")+", "+FIN[c.f].k.toLowerCase()}
   d.onclick=()=>{if(kind!=="cards"&&ONLINE&&it.uid&&it.uid!==S.uid){openParam("u_"+it.uid);return}if(c)openCardView(c,{owner:it.name,mine:ONLINE?it.uid===S.uid:!!it.me})};return d}
@@ -1547,11 +1670,98 @@ async function renderTop(force){renderAdmin();$("my-nick").textContent=S.nick||"
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
 
 /* ---------- вкладки ---------- */
-function setTab(t){if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
+function setTab(t){if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
-function renderAll(){if(!S)return;updCash();if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
+function renderAll(){if(!S)return;updCash();if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-gold").hidden)renderGold();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
+
+/* ---------- СОКРОВИЩНИЦА: сундуки, составные воины и понт за ⭐ Telegram Stars ---------- */
+let goldTab="chest",goldData=null,goldBusy=false;
+const CHEST_COL={newbie:["#7ee89a","#0d5c2a","#34c759"],small:["#7cc8ff","#0b3c8c","#0a84ff"],royal:["#ffd27a","#8a3a08","#ff9f0a"],warrior:["#ff8a8a","#7a0f12","#ff3b30"],legend:["#e0a8ff","#4a1478","#bf5af2"],mythic:["#fff1a8","#b8580b","#ffd60a"]};
+let chestN=0;
+function chestSVG(k,s){const [c1,c2,gl]=CHEST_COL[k],id="ch"+(++chestN);return `<svg viewBox="0 0 120 100" class="chsvg" style="width:${s}px;height:${s*100/120}px;filter:drop-shadow(0 0 14px ${gl})" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+  <ellipse cx="60" cy="94" rx="46" ry="5" fill="#000" opacity=".4"/><path d="M14 40 Q60 0 106 40Z" fill="#fff6c8" opacity=".9" style="filter:blur(6px)"/>
+  <rect x="14" y="44" width="92" height="46" rx="6" fill="url(#${id})" stroke="#07040f" stroke-width="4"/>
+  <path d="M10 44 Q60 4 110 44 L106 50 Q60 14 14 50Z" fill="url(#${id})" stroke="#07040f" stroke-width="4" transform="rotate(-14 14 47) translate(0 -6)"/>
+  <rect x="14" y="58" width="92" height="8" fill="#ffd23f" stroke="#07040f" stroke-width="3"/><rect x="52" y="54" width="16" height="22" rx="3" fill="#ffd23f" stroke="#07040f" stroke-width="3"/><circle cx="60" cy="64" r="3" fill="#07040f"/>
+  <path d="M26 44 V90 M94 44 V90" stroke="#ffd23f" stroke-width="4"/>
+  <g fill="#fff6a0"><circle cx="40" cy="30" r="3"/><circle cx="78" cy="22" r="2.5"/><circle cx="60" cy="14" r="3.5"/><path d="M60 26 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/></g></svg>`}
+function openGold(tab){if(tab)goldTab=tab;setTab("gold");loadGold()}
+async function loadGold(){const r=await act("shop");if(r){goldData=r;renderGold()}}
+/* имя игрока с переливающимся эффектом и короной «Король Эпох» */
+function fxName(el,prefix,name,uid){el.textContent=prefix||"";const s=document.createElement("span");s.textContent=name;const fx=S&&S.nfx&&uid!=null&&S.nfx[uid];if(fx)s.className="nfx nfx-"+fx;el.appendChild(s);
+  if(S&&S.king&&uid!=null&&S.king==uid)el.insertAdjacentHTML("beforeend",' <span class="kingb">👑 Король Эпох</span>');return el}
+function compHave(h){const L=S.cards.filter(c=>c.h===h&&c.part===1),R=S.cards.filter(c=>c.h===h&&c.part===2),F=S.cards.filter(c=>c.h===h&&!c.part);
+  const fr=x=>x.filter(c=>!away(c));const ok=fr(L).some(c=>c.f===0)&&fr(R).some(c=>c.f===0)||fr(L).some(c=>c.f===4)&&fr(R).some(c=>c.f===4);return {L,R,F,ok}}
+const demoComp=(h,o)=>Object.assign({id:"g"+h+"_"+(o&&o.part||0),h,f:0,no:17,sn:"482913",hue:HEROES[h][4].hue,v:0,stats:HEROES[h][4].p.map(k=>440+k*18),xp:0,wins:0,stars:0,part:0},o||{});
+function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySelectorAll("#gold-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.g===goldTab));
+  const D=goldData||{comp:{},mythLeft:SHOP.mythic.month,donors:[],mine:0};let v="";
+  const offer=(k,tag)=>{const I=SHOP[k],[c1,c2,gl]=CHEST_COL[k],left=k==="mythic"?D.mythLeft:null;
+    return `<div class="of${left===0?" sold":""}" style="--fr:linear-gradient(145deg,${c1},${gl} 30%,${c2} 60%,${c1} 85%,${c2});--gl:${gl}">${tag?'<span class="tag">'+tag+'</span>':""}<div class="in">${chestSVG(k,96)}<div><h4>${I.n}</h4><ul>${I.d.map(x=>"<li>"+x+"</li>").join("")}</ul>${left!=null?'<div class="mleft">осталось в этом месяце: <b>'+left+' из '+I.month+'</b></div>':""}<button type="button" class="buy" data-buy="${k}"${left===0?" disabled":""}>${left===0?"раскуплено":"⭐ "+I.stars}</button></div></div></div>`};
+  if(goldTab==="chest"){
+    v+='<div class="ghd">🧩 Сундуки с половинками</div>';
+    if(!S.newbie)v+=offer("newbie","1 раз · −50%");
+    v+=offer("small")+offer("royal","ВЫГОДНО ×2");
+    v+='<div class="ghd">🃏 Сундуки с карточками</div><p class="gnote">Только обычные 32 воина. Половинки составных воинов здесь не выпадают.</p>';
+    v+=offer("warrior")+offer("legend")+offer("mythic","ЛИМИТ");
+    v+='<details class="godds"><summary>Шансы и состав — всё открыто</summary><p><b>Половинка:</b> левая 85%, правая 15%. Правых у каждого составного воина всего '+HALF_RUN+' на весь мир — когда закончатся, выпадают только левые. «Ошибка печати» 0,4% — одна левая и одна правая на каждого воина.</p><p><b>Карточки в сундуках</b> выпадают с теми же шансами, что в прокрутке: отделка '+FIN.slice(0,5).map(F=>F.k.toLowerCase()+" "+String(F.w).replace(".",",")+"%").join(", ")+'. Номера и отделки не подкручены.</p><p><b>В обычной прокрутке</b> половинка выпадает с шансом 0,35%.</p><p>Лимита покупок на человека нет. Купленное кладётся в коллекцию даже сверх лимита в '+CAP+' карточек.</p></details>'}
+  if(goldTab==="comp"){
+    v+='<div class="cmphow"><div class="cmpx">'+miniSlot(demoComp(32,{part:1}))+'</div><b>+</b><div class="cmpx">'+miniSlot(demoComp(32,{part:2}))+'</div><b>=</b><div class="cmpx full">'+miniSlot(demoComp(32))+'</div></div><p class="gnote">Собери левую и правую половинку одного воина — и соедини в целую карточку. Левые выпадают часто, правые в 5 раз реже и их всего '+HALF_RUN+' на воина. Лишние половинки продавай на рынке.</p>';
+    COMP.forEach(h=>{const H=compHave(h),x=(D.comp||{})[h]||{l:0,r:0,full:0,e:[0,0,0]},left=Math.max(0,HALF_RUN-x.r-x.full);
+      v+=`<div class="cmpr"><div class="cmpm">${miniSlot(H.F[0]||demoComp(h))}</div><div class="cmpt"><h4>${HEROES[h][0]}</h4><small>${HEROES[h][3]}</small>
+        <div class="cmph"><span class="${H.L.length?"y":""}">◧ левая ×${H.L.length}</span><span class="${H.R.length?"y":""}">◨ правая ×${H.R.length}</span>${H.F.length?'<span class="y">✦ собрано ×'+H.F.length+'</span>':""}</div>
+        <div class="cmpl">правых осталось в мире: <b>${goldData?left+" / "+HALF_RUN:"…"}</b>${goldData?' · ошибки: '+(x.e[1]?"◧ ✗":"◧ свободна")+" "+(x.e[2]?"◨ ✗":"◨ свободна"):""}</div>
+        <button type="button" class="craftbtn cmpgo" data-asm="${h}"${H.ok?"":" disabled"}>${H.ok?"🧩 Собрать":"Нужна пара половинок"}</button></div></div>`});
+    v+='<button type="button" class="linkbtn" data-goto="chest">🧩 Сундуки с половинками →</button>'}
+  if(goldTab==="flex"){
+    const top=D.donors||[];
+    v+='<div class="ghd">👑 Топ донатеров месяца</div><p class="gnote">Первое место получает корону «Король Эпох» рядом с ником — её видят все в топах, чате и лагере. Новый месяц — новая гонка.</p><div class="dtop" id="dtop"></div>'+(D.mine?'<p class="gnote">Ты в этом месяце: <b>⭐ '+fmtN(D.mine)+'</b></p>':"");
+    v+='<div class="ghd">✨ Переливающийся ник</div><p class="gnote">Ник с эффектом в топах, чате, лагере и на арене. '+(D.fx&&NFX[D.fx]?"Сейчас у тебя: <b>"+NFX[D.fx]+"</b>"+(D.fxUntil<9e15?" до "+new Date(D.fxUntil).toLocaleDateString("ru"):" навсегда")+".":"")+'</p><div class="fxg">'+
+      Object.keys(NFX).map(k=>'<div class="fxc"><div class="fxn"><span class="nfx nfx-'+k+'"></span></div><small>'+NFX[k]+'</small><button type="button" class="buy sm" data-fx="'+k+'">30 дней · ⭐ '+NFX_PRICE.m+'</button><button type="button" class="buy sm alt" data-fx="'+k+'" data-forever="1">навсегда · ⭐ '+NFX_PRICE.f+'</button></div>').join("")+'</div>';
+    v+='<div class="ghd">✍️ Свой номер на карточке</div><p class="gnote">Любой свободный номер из 6 цифр: дата рождения, 000 777, 123 456. Обычный — ⭐ 100, красивый дороже (×15 → ⭐ 1600). На карточке появится лента «Именной номер». Цена карточки не меняется — это чистый понт.</p><button type="button" class="craftbtn" id="num-pick">Выбрать карточку</button>'}
+  B.innerHTML=v;
+  if(goldTab==="flex"){const T=$("dtop");if(!(D.donors||[]).length)T.innerHTML='<div class="cp-empty">'+(ONLINE?"В этом месяце ещё никого. Стань первым королём!":"Топ работает в игре через бота")+'</div>';
+    (D.donors||[]).forEach((r,i)=>{const d=document.createElement("div");d.className="cpt"+(r.uid===S.uid?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent=i<3?["👑","🥈","🥉"][i]:i+1;fxName(d.children[1],"",r.name,r.uid);d.children[2].textContent="⭐ "+fmtN(r.s);T.append(d)});
+    B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c))}}
+$("gold-seg").onclick=e=>{const b=e.target.closest("[data-g]");if(!b)return;goldTab=b.dataset.g;renderGold()};
+$("gold-body").onclick=async e=>{const t=e.target.closest("button");if(!t||t.disabled)return;
+  if(t.dataset.goto){goldTab=t.dataset.goto;renderGold();scrollTo(0,0);return}
+  if(t.dataset.buy)return buyItem({item:t.dataset.buy});
+  if(t.dataset.fx)return buyItem({item:"fx",fx:t.dataset.fx,forever:t.dataset.forever?1:0});
+  if(t.dataset.asm){const r=await act("assemble",{h:+t.dataset.asm});if(!r)return;sfx.coin();hapN("success");renderGold();showGrant({cards:[r.card]},"🧩 Воин собран!");loadGold()}};
+$("gold-back").onclick=()=>setTab("spin");$("gold-go").onclick=()=>openGold();$("gold-hdr").onclick=()=>openGold();
+/* покупка: счёт Telegram → оплата → игра ждёт, пока сервер выдаст покупку */
+async function buyItem(p){if(goldBusy)return;goldBusy=true;
+  try{const inv=await act("invoice",p);if(!inv)return;
+    if(inv.sim){const r=await act("pay_sim",{pid:inv.pid});if(r)payShow(r);return}
+    if(!tg||!tg.openInvoice){toast("Оплата работает в Telegram");return}
+    tg.openInvoice(inv.link,async status=>{if(status==="paid"){toast("Оплата прошла! Открываю…");await payWait(inv.pid)}else if(status==="failed")toast("Оплата не прошла. Звёзды не списаны")})}
+  finally{goldBusy=false}}
+async function payWait(pid){for(let i=0;i<15;i++){const r=await act("pay_status",{pid});if(r&&(r.status==="done"||r.status==="refund")){payShow(r);return}await new Promise(z=>setTimeout(z,1000))}
+  toast("Оплата получена, покупка появится через минуту. Мы пришлём сообщение в бот")}
+function payShow(r){renderAll();loadGold();if(r.status==="refund"){toast("↩️ "+((r.res&&r.res.err)||"Не получилось")+". Звёзды вернулись");return}
+  const R=r.res||{},I=SHOP[r.item];sfx.coin();hapN("success");
+  if(I)return showGrant(R,"🎁 "+I.n+" открыт!");
+  if(r.item==="num"){toast("✍️ Готово! Новый номер "+fmtSn(R.sn));const c=S.cards.find(x=>x.id===R.card);if(c)openCardView(c,{mine:true});return}
+  if(r.item==="fx"){toast("✨ Ник «"+NFX[R.fx]+"» включён!");goldTab="flex";renderGold()}}
+function showGrant(R,title){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const cs=R.cards||[];
+  sh.innerHTML='<div class="box nickbox grant"><h3></h3><div class="grl">'+(R.sp?'<span>🎴 +'+R.sp+' прокруток</span>':"")+(R.guar?'<span>💎 гарантированный эпик</span>':"")+'</div><div class="grg">'+cs.map((c,i)=>'<div class="gri" style="--d:'+(i*.12)+'s">'+miniSlot(c)+'<small>'+HEROES[c.h][0]+(c.part?" · "+PART_K[c.part]:"")+'</small></div>').join("")+'</div><button type="button" class="craftbtn" id="gr-ok">Забрать</button></div>';
+  sh.querySelector("h3").textContent=title;sh.classList.toggle("wide",cs.length>3);$("gr-ok").onclick=()=>{closeModal();renderAll()};
+  if(cs.some(c=>HEROES[c.h][2]>=3||c.f>=3||c.part===2))setTimeout(()=>sfx.fanfare(),300)}
+/* выбрать свою карточку из списка */
+function pickCard(title,cb){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const list=[...S.cards].sort((a,b)=>b.v-a.v).slice(0,60);
+  sh.innerHTML='<div class="box nickbox"><h3></h3><div class="pkg">'+list.map(c=>'<button type="button" class="pki" data-id="'+c.id+'">'+miniSlot(c)+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
+  sh.querySelector("h3").textContent=title;$("pk-x").onclick=closeModal;
+  sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;const c=S.cards.find(x=>String(x.id)===b.dataset.id);closeModal();if(c)cb(c)}}
+/* свой номер: ввод 6 цифр, цена сразу видна */
+function numBuy(c){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="box nickbox"><h3>✍️ Свой номер</h3><div class="sellprev"></div><input id="num-in" inputmode="numeric" maxlength="6" placeholder="например 777777" autocomplete="off"><p class="numi" id="num-i"></p><button type="button" class="craftbtn" id="num-go" disabled>Ввести номер</button><button type="button" class="ghost" id="num-x">Отмена</button></div>';
+  sh.querySelector(".sellprev").innerHTML=miniSlot(c);const inp=$("num-in"),go=$("num-go");
+  const upd=()=>{const v=inp.value.replace(/\D/g,"").slice(0,6);if(inp.value!==v)inp.value=v;const cl=v.length===6?classify(v):null;
+    $("num-i").textContent=v.length<6?"Ровно 6 цифр. Обычный номер — ⭐ 100, красивый дороже.":"№ "+fmtSn(v)+(cl?" — «"+cl.k+"» ×"+cl.m:" — обычный")+" · ⭐ "+numPrice(v);
+    go.disabled=v.length!==6;go.textContent=v.length===6?"Купить за ⭐ "+numPrice(v):"Ввести номер"};
+  inp.oninput=upd;upd();$("num-x").onclick=closeModal;go.onclick=()=>{const sn=inp.value;closeModal();buyItem({item:"num",card:c.id,sn})};setTimeout(()=>inp.focus(),100)}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
@@ -1570,7 +1780,7 @@ function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scroll
   if(!chatItems.length)box.innerHTML='<p class="chempty">Пока тихо. Напиши первым!</p>';
   chatItems.forEach(m=>{const d=document.createElement("div");const mine=ONLINE?m.uid===S.uid:m.uid===0;d.className="chm"+(mine?" me":"");
     d.innerHTML='<div class="chh"><button type="button" class="chn"></button><span class="cht"></span></div><div class="chx"></div>';
-    const n=d.querySelector(".chn");n.textContent=champMark(m.uid)+(m.vip?"👑 ":"")+(m.pi?"🏅 ":"")+m.name+(m.a?" ★":"");if(m.vip)d.classList.add("vipm");n.style.color=m.a?"#d4380d":nickCol(m.name);
+    const n=d.querySelector(".chn");fxName(n,champMark(m.uid)+(m.vip?"👑 ":"")+(m.pi?"🏅 ":""),m.name+(m.a?" ★":""),m.uid);if(m.vip)d.classList.add("vipm");n.style.color=m.a?"#d4380d":nickCol(m.name);
     d.querySelector(".cht").textContent=new Date(m.t).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     d.querySelector(".chx").textContent=m.text;
     n.onclick=()=>{if(ONLINE&&m.uid>0&&m.uid!==S.uid){closeChat();openParam("u_"+m.uid)}};
@@ -1724,6 +1934,7 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   else{S=loadLocal();touch(S,NOW());save()}
   renderAll();handleStart();
   if(new URLSearchParams(location.search).get("camp"))setTimeout(()=>{try{openCamp()}catch(e){}},600);
+  if(new URLSearchParams(location.search).get("shop"))setTimeout(()=>{try{openGold()}catch(e){}},600);
   const fromLink=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param);
   if(!fromLink)setTimeout(()=>{if(!startOnb()&&!(S.cards.length&&startWhatsNew()))askNick()},600);
 })();
