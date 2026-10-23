@@ -610,6 +610,8 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     ok(db.prepare("SELECT status FROM payments WHERE id=?").get(bad.res.pid).status === "refund", "сумма не совпала — возврат"); }
 }
 
+/* --- разовая рассылка 17:00: без поддельного времени не срабатывает и ничего не ломает --- */
+await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'").get() || Date.now() >= Date.UTC(2026,9,23,14,0), "рассылка 17:00 не уходит раньше времени");
 /* --- дыра в крафте закрыта --- */
 { const U = 7101; await call(U, "sync");
   const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,?,'[300,300,300,300,300]',0,0,0,0,0)");
