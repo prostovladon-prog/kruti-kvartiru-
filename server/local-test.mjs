@@ -620,6 +620,12 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   let r = await call(U, "craft", { ids: ids.slice(0, 3), h: 1, f: 4 }); ok(!r.ok && /нельзя скрафтить/.test(r.err), "«Ошибку печати» скрафтить нельзя");
   let got = null; for (let k = 0; k < 6 && !got; k++) { s = await call(U, "sync"); const one = s.S.cards.find(c => c.h === 20); if (!one) break; r = await call(U, "craft", { ids: [one.id], h: 1, f: 2 }); if (r.ok && r.res.win) got = r.res.card; }
   ok(!got || (got.v >= 30 * .9 - .01 && got.v <= 30 * 1.1 + .01), "скрафченная карточка стоит около цены цели (" + (got && got.v) + ")");
+  { for (let i = 0; i < 4; i++) ins.run(U, 20, 2100000 + i, "71011" + i, 100000);
+    s = await call(U, "sync"); const big = s.S.cards.filter(c => c.h === 20 && c.v >= 100000).map(c => c.id);
+    r = await call(U, "craft", { ids: big.slice(0, 1), h: 30, f: 0 }); ok(r.ok && Math.abs(r.res.p - .1) < 1e-9, "мифа скрафтить максимум с шансом 10% (" + (r.res && r.res.p) + ")");
+    r = await call(U, "craft", { ids: big.slice(1, 2), h: 27, f: 0 }); ok(r.ok && Math.abs(r.res.p - .3) < 1e-9, "легендарного — максимум 30%");
+    if (r.res.win) ok(r.res.card && r.res.card.h === 27, "скрафченная легендарная выдана");
+    const feed = await call(U, "top", { kind: "feed" }); ok(feed.ok, "лента открывается"); }
   r = await call(U, "merge", { h: 1, f: 3 }); ok(!r.ok && /Ошибку печати/.test(r.err), "из золотых «Ошибку печати» не слить"); }
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");

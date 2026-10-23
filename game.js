@@ -841,7 +841,7 @@ function step(){fc.clearRect(0,0,innerWidth,innerHeight);parts=parts.filter(p=>p
 /* ---------- craft ---------- */
 let crSel=new Set(),crH=19,crF=1,crBusy=false,crRot=0,crLast=null;
 function crSum(){return S.cards.filter(c=>crSel.has(c.id)).reduce((a,c)=>a+c.v,0)}
-function crChance(){const t=targetPrice(crH,crF),sum=crSum();if(!sum)return 0;const amu=$("cr-amu")&&$("cr-amu").checked?.1:0;return Math.min(CRAFT_MAX(crF)+amu,HOUSE*sum/t+amu)}
+function crChance(){const t=craftPrice(crH,crF),sum=crSum();if(!sum)return 0;const amu=$("cr-amu")&&$("cr-amu").checked?.1:0;return Math.min(CRAFT_MAX(crF,crH)+amu,HOUSE*sum/t+amu)}
 function arcPath(p){if(p<=0)return "";if(p>=.9999)return "M100 8 A92 92 0 1 1 99.99 8 Z";
   const a=p*2*Math.PI,x=100+92*Math.sin(a),y=100-92*Math.cos(a);return `M100 100 L100 8 A92 92 0 ${p>.5?1:0} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z`}
 function renderCraft(){
@@ -879,16 +879,16 @@ function renderCraft(){
     sl.appendChild(d)}
   const mineT=S.cards.some(c=>c.h===crH&&c.f===crF);
   $("cr-trun").textContent=left===Infinity?HT[HEROES[crH][2]].k:(left>0?"осталось "+left+" из "+F.run:mineT?"единственная уже у тебя":"все "+F.run+" уже у игроков");
-  const tv=targetPrice(crH,crF);$("cr-tv").textContent=fmt(tv);
+  const tv=targetPrice(crH,crF);$("cr-tv").textContent=fmt(tv);{const T=HEROES[crH][2];if(T>=3)$("cr-trun").textContent+=" · крафт ×"+CRAFT_TIER_K[T]+", шанс до "+Math.round(CRAFT_MAX(crF,crH)*100)+"%"}
   // wheel
   let p=left>0?crChance():0;const showLast=!crSel.size&&crLast!=null;if(showLast)p=crLast;
-  $("cr-f1").textContent=showLast?"—":fmt(crSum());$("cr-f2").textContent=fmt(tv);
+  $("cr-f1").textContent=showLast?"—":fmt(crSum());$("cr-f2").textContent=fmt(craftPrice(crH,crF));
   $("cr-arc").setAttribute("d",arcPath(p));
   $("cr-p").textContent=(p*100<1&&p>0?"<1":Math.round(p*100))+"%";
   $("cr-amu-t").textContent="Амулет удачи: +10% к шансу за "+fmt(amuCost(crH,crF));
   const go=$("cr-go");go.disabled=crBusy||!crSel.size||left<=0||crChance()<=0;
   go.textContent=left<=0?(mineT&&F.run===1?"Эта карточка уже у тебя":"Все "+F.run+" уже выпали"):!crSel.size?"Положи карточки в горн":"🔥 Ковать · шанс "+$("cr-p").textContent;
-  if(!crBusy&&crSel.size&&HOUSE*crSum()/tv>CRAFT_MAX(crF))$("cr-res").textContent="Больше "+Math.round(CRAFT_MAX(crF)*100)+"% шанса для этой отделки не бывает. Выбери цель подороже или отдай меньше.";
+  if(!crBusy&&crSel.size&&HOUSE*crSum()/craftPrice(crH,crF)>CRAFT_MAX(crF,crH))$("cr-res").textContent="Больше "+Math.round(CRAFT_MAX(crF,crH)*100)+"% шанса для этой цели не бывает. Выбери цель подороже или отдай меньше.";
   else if(!crBusy)$("cr-res").textContent="";
   $("cr-res").className="result";
 }
@@ -1826,7 +1826,7 @@ async function renderTop(force){renderAdmin();$("my-nick").textContent=S.nick||"
   const fd=await loadTop("feed");if(!fd)return;const fb=$("feed");fb.innerHTML="";
   fd.items.slice(0,8).forEach(it=>{const c=it.card,d=document.createElement("button");d.type="button";d.className="fitem";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
     d.innerHTML=`<span class="e"></span><span><b></b><small></small></span>`;const e=d.querySelector(".e");e.innerHTML=miniSlot(c);
-    d.querySelector("b").textContent=it.name+" выбил";d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
+    d.querySelector("b").textContent=it.name+" "+({craft:"скрафтил",merge:"слил",chest:"открыл в сундуке",build:"собрал"}[it.how]||"выбил");d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
     d.onclick=()=>openCardView(c,{owner:it.name,mine:ONLINE&&it.uid===S.uid});fb.appendChild(d)});
   if(!fd.items.length)fb.innerHTML='<p style="margin:0;color:#5a5f80">Пока никто не выбил ничего редкого.</p>'}
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
