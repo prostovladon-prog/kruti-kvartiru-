@@ -359,6 +359,50 @@ Object.assign(DETAILED,{
   <path d="M60 58 Q48 44 46 30 M140 58 Q152 44 154 30" fill="none" stroke-width="2" opacity=".5"/>
   <path d="M80 56 Q88 50 96 50" fill="none" stroke="#fff" stroke-width="3"/>
  </g></svg>`});
+Object.assign(DETAILED,{
+ "Три богатыря":u=>{const inner=(n,x,y,w)=>DETAILED[n](u+n.length).replace('<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">',`<svg x="${x}" y="${y}" width="${w}" height="${w}" viewBox="0 0 200 200">`);
+  return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${inner("Добрыня Никитич",-18,44,150)}${inner("Алёша Попович",68,44,150)}${inner("Илья Муромец",22,18,170)}</svg>`},
+ "Зевс":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${BOG_COMMON(u,{cape:"#7a3ad0",cape2:"#2a0a50"})}
+ <path d="M170 0 L150 50 L166 52 L140 110" fill="none" stroke="#ffe14d" stroke-width="8" opacity=".5"/>
+ <g stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M176 10 L156 58 L170 60 L146 112 L152 70 L140 68 Z" fill="#ffe14d"/><path d="M168 22 L156 52" stroke="#fff" stroke-width="2"/>
+  <path d="M24 206 L40 142 Q100 120 160 142 L176 206 Z" fill="url(#bc${u})"/>
+  <path d="M42 206 C44 162 64 140 100 136 C136 140 156 162 158 206 Z" fill="#f4f1ea"/>
+  <path d="M60 206 Q70 170 96 150 M80 206 Q90 176 112 156 M120 206 Q126 180 140 164" fill="none" stroke="#c9c2b0" stroke-width="2.5"/>
+  <path d="M38 152 Q58 136 96 142 L150 206 L128 206 L90 158 Q66 154 48 168Z" fill="url(#bg${u})"/>
+  <path d="M86 112 L86 136 L114 136 L114 112 Z" fill="url(#bk${u})"/>
+  <path d="M60 92 Q50 70 66 56 Q62 44 78 40 Q84 28 100 30 Q116 28 122 40 Q138 44 134 56 Q150 70 140 92 Z" fill="#eceef5"/>
+  <path d="M72 94 Q72 66 100 64 Q128 66 128 94 Q128 116 100 120 Q72 116 72 94Z" fill="url(#bk${u})"/>
+  <path d="M64 98 Q58 120 70 134 Q66 150 80 158 Q82 174 100 180 Q118 174 120 158 Q134 150 130 134 Q142 120 136 98 Q124 114 112 110 Q100 116 88 110 Q76 114 64 98Z" fill="#eceef5"/>
+  <path d="M76 124 q6 6 0 12 M90 132 q6 6 0 12 M110 132 q-6 6 0 12 M124 124 q-6 6 0 12 M100 140 q5 8 0 16" fill="none" stroke="#a9b0c4" stroke-width="2"/>
+  <path d="M78 108 Q90 100 100 106 Q110 100 122 108 Q112 116 100 112 Q88 116 78 108Z" fill="#dfe2ec"/>
+  <path d="M77 84 Q86 78 95 84 M105 84 Q114 78 123 84" fill="none" stroke="#eceef5" stroke-width="6"/>
+  <path d="M81 92 Q87 88 93 92 Q87 96 81 92Z M107 92 Q113 88 119 92 Q113 96 107 92Z" fill="#ffe14d" stroke-width="2"/>
+  <path d="M66 70 Q100 52 134 70" fill="none" stroke="#3a8a2a" stroke-width="6"/>
+  <g fill="#7ee89a" stroke-width="2"><path d="M70 66 q-8 -8 2 -12 q4 6 -2 12Z M82 60 q-6 -10 4 -12 q2 8 -4 12Z M96 57 q-2 -10 6 -10 q0 8 -6 10Z M112 58 q2 -10 8 -8 q-2 8 -8 8Z M126 63 q6 -8 10 -4 q-4 6 -10 4Z"/></g>
+ </g></svg>`,
+ "Геракл":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${BOG_COMMON(u,{cape:"#c98a2a",cape2:"#6a3a0a"})}
+ <defs><radialGradient id="hl${u}" cx=".5" cy=".4"><stop offset="0" stop-color="#e0a85a"/><stop offset="1" stop-color="#8a5414"/></radialGradient></defs>
+ <g stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M150 206 Q148 140 160 70 Q170 50 186 58 Q190 80 176 140 Q170 180 172 206Z" fill="#8a5414"/>
+  <path d="M164 80 l-6 -4 M178 96 l8 -2 M168 112 l-7 -2 M180 130 l7 0 M170 150 l-7 -1" stroke-width="3"/>
+  <path d="M30 206 Q34 150 70 132 L130 132 Q166 150 170 206 Z" fill="url(#bk${u})"/>
+  <path d="M100 150 V200 M72 160 Q86 172 100 160 Q114 172 128 160 M76 184 Q88 192 100 186 Q112 192 124 184" fill="none" stroke="#b07048" stroke-width="3"/>
+  <path d="M40 150 Q60 128 100 130 Q80 150 70 206 L44 206 Z" fill="url(#hl${u})"/>
+  <path d="M86 112 L86 134 L114 134 L114 112 Z" fill="url(#bk${u})"/>
+  <path d="M72 94 Q72 66 100 64 Q128 66 128 94 Q128 118 100 124 Q72 118 72 94Z" fill="url(#bk${u})"/>
+  <path d="M74 104 Q78 126 100 130 Q122 126 126 104 Q116 114 100 112 Q84 114 74 104Z" fill="#3a1c06"/>
+  <path d="M82 108 Q100 102 118 108 Q110 114 100 112 Q90 114 82 108Z" fill="#2a1404"/>
+  <path d="M79 85 Q87 80 95 86 M105 86 Q113 80 121 85" fill="none" stroke="#2a1404" stroke-width="5"/>
+  <path d="M81 92 Q87 88 93 92 M107 92 Q113 88 119 92" fill="none" stroke-width="3"/><circle cx="87" cy="93" r="2.2" fill="#0d1030" stroke-width="0"/><circle cx="113" cy="93" r="2.2" fill="#0d1030" stroke-width="0"/>
+  <path d="M50 100 Q40 60 62 34 Q80 14 100 16 Q120 14 138 34 Q160 60 150 100 Q140 80 130 74 Q118 62 100 62 Q82 62 70 74 Q60 80 50 100Z" fill="url(#hl${u})"/>
+  <path d="M52 96 Q44 110 48 128 Q58 116 62 100 M148 96 Q156 110 152 128 Q142 116 138 100" fill="#b8740f"/>
+  <path d="M74 50 Q86 40 100 40 Q114 40 126 50 Q118 60 100 58 Q82 60 74 50Z" fill="#c98a2a"/>
+  <path d="M84 48 Q90 44 96 48 Q90 52 84 48Z M104 48 Q110 44 116 48 Q110 52 104 48Z" fill="#ffd60a" stroke-width="2"/>
+  <path d="M94 56 l6 6 l6 -6" fill="#3a1c06" stroke-width="2"/>
+  <path d="M60 40 l-6 -12 l12 6 M140 40 l6 -12 l-12 6" fill="#c98a2a"/>
+  <path d="M70 66 l4 10 l4 -8 l4 10 M130 66 l-4 10 l-4 -8 l-4 10" fill="#fff" stroke-width="2"/>
+ </g></svg>`});
 /* ---------- warrior portraits drawn in code: cel-shaded comic style, unique tint per card ---------- */
 const INK="#0d1030";
 const SK=["#f1c7a3","#e0ac83","#c98c62","#a86f4a"];
@@ -1434,7 +1478,7 @@ $("sh-show").onclick=()=>{const top=[...S.cards].sort((a,b)=>b.v-a.v).slice(0,3)
   sendLink("Глянь мою витрину в «Воинах Эпох»: "+top.map(c=>HEROES[c.h][0]).join(", ")+"!",linkFor(showcaseParam()))};
 $("du-friend").onclick=()=>{const me=S.cards.find(c=>c.id===duMine);if(!me){toast("Сначала выбери воина");return}
   sendLink("Вызываю тебя на бой! Мой "+HEROES[me.h][0]+", "+STN[duStat].toLowerCase()+" "+eff(me,duStat)+". Сможешь побить?",linkFor(challengeParam(me,duStat)))};
-function closeModal(){$("modal").hidden=true;$("msheet").innerHTML="";if(chatOpen){chatOpen=false;clearInterval(chatTimer)}}
+function closeModal(){$("modal").hidden=true;$("msheet").innerHTML="";if(!closeModal.nw){closeModal.nw=1;setTimeout(()=>{try{newsUpd()}catch(e){}},800)}if(chatOpen){chatOpen=false;clearInterval(chatTimer)}}
 function bigMc(c,stat,show){const d=document.createElement("div");d.className="mc";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);d.innerHTML=mcHTML(c,stat,show);return d}
 function friendsGet(){try{return JSON.parse(localStorage.getItem("we-friends")||"{}")}catch(e){return {}}}
 function friendsPut(F){try{localStorage.setItem("we-friends",JSON.stringify(F))}catch(e){}}
@@ -1592,7 +1636,7 @@ const LOCAL={
     else if(p.item==="fx"){if(!NFX[p.fx])fail("Нет такого эффекта");stars=p.forever?NFX_PRICE.f:NFX_PRICE.m}else fail("Нет такого товара");
     S.lpay=S.lpay||{};const pid=Object.keys(S.lpay).length+1;S.lpay[pid]={p,stars,status:"new"};return {pid,sim:1,stars}},
   pay_sim(p){const P=(S.lpay||{})[p.pid];if(!P)fail("Нет такого счёта");if(P.status!=="new")return {pid:p.pid,item:P.p.item,status:P.status,res:P.res};const q=P.p;let res;
-    if(SHOP[q.item]){const ctx=localCtx();ctx.grant=true;const r=runAction("grant",S,S.cards,ctx,{item:q.item,pid:"l"+p.pid});S.cards=r.cards;res=r.res}
+    if(SHOP[q.item]){const ctx=localCtx();ctx.grant=true;const r=runAction("grant",S,S.cards,ctx,Object.assign({},q,{pid:"l"+p.pid}));S.cards=r.cards;res=r.res}
     else if(q.item==="num"){const c=S.cards.find(x=>x.id===q.card);delete S.used[c.sn];c.sn=q.sn;c.cust=1;S.used[q.sn]=1;res={card:c.id,sn:q.sn}}
     else{S.nfx=S.nfx||{};S.nfx[S.uid||0]=q.fx;res={fx:q.fx}}
     P.status="done";P.res=res;return {pid:p.pid,item:q.item,status:"done",res}},
@@ -1833,11 +1877,35 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     v+='<div class="ghd">👑 Топ донатеров месяца</div><p class="gnote">Первое место получает корону «Король Эпох» рядом с ником — её видят все в топах, чате и лагере. Новый месяц — новая гонка.</p><div class="dtop" id="dtop"></div>'+(D.mine?'<p class="gnote">Ты в этом месяце: <b>⭐ '+fmtN(D.mine)+'</b></p>':"");
     v+='<div class="ghd">✨ Переливающийся ник</div><p class="gnote">Ник с эффектом в топах, чате, лагере и на арене. '+(D.fx&&NFX[D.fx]?"Сейчас у тебя: <b>"+NFX[D.fx]+"</b>"+(D.fxUntil<9e15?" до "+new Date(D.fxUntil).toLocaleDateString("ru"):" навсегда")+".":"")+'</p><div class="fxg">'+
       Object.keys(NFX).map(k=>'<div class="fxc"><div class="fxn"><span class="nfx nfx-'+k+'"></span></div><small>'+NFX[k]+'</small><button type="button" class="buy sm" data-fx="'+k+'">30 дней · ⭐ '+NFX_PRICE.m+'</button><button type="button" class="buy sm alt" data-fx="'+k+'" data-forever="1">навсегда · ⭐ '+NFX_PRICE.f+'</button></div>').join("")+'</div>';
+    v+='<div class="ghd">😏 Для очень богатых</div><p class="gnote">Это шутка, никто такое не купит… Но если купишь — сделаем по-настоящему.</p>'+
+      '<div class="joke"><div class="jk-h">🃏 Любая карточка в игре</div><p>Выбери <b>любого воина</b> и <b>любую отделку</b> — хоть золотого Сёгуна, хоть Тора 1 из 1, если он ещё свободен. Карточка сразу твоя.</p><button type="button" class="buy" id="any-go">⭐ 4 000</button></div>'+
+      '<div class="joke j2"><div class="jk-h">👑 Карточка твоей мечты</div><p>Нарисуем <b>любого героя</b>, какого захочешь, с <b>любым номером</b>. Она будет только у тебя — в единственном экземпляре на весь мир. Дорого? Ну так это ж мечта 😅</p><button type="button" class="buy" data-buy="custom">⭐ 5 000</button></div>';
     v+='<div class="ghd">✍️ Свой номер на карточке</div><p class="gnote">Любой свободный номер из 6 цифр: дата рождения, 000 777, 123 456. Обычный — ⭐ 100, красивый дороже (×15 → ⭐ 1600). На карточке появится лента «Именной номер». Цена карточки не меняется — это чистый понт.</p><button type="button" class="craftbtn" id="num-pick">Выбрать карточку</button>'}
   B.innerHTML=v;
   if(goldTab==="flex"){const T=$("dtop");if(!(D.donors||[]).length)T.innerHTML='<div class="cp-empty">'+(ONLINE?"В этом месяце ещё никого. Стань первым королём!":"Топ работает в игре через бота")+'</div>';
     (D.donors||[]).forEach((r,i)=>{const d=document.createElement("div");d.className="cpt"+(r.uid===S.uid?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent=i<3?["👑","🥈","🥉"][i]:i+1;fxName(d.children[1],"",r.name,r.uid);d.children[2].textContent="⭐ "+fmtN(r.s);T.append(d)});
-    B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c))}}
+    B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c));$("any-go").onclick=anyPick}}
+/* «любая карточка»: сначала воин, потом отделка */
+function anyPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  const hs=HEROES.map((H,i)=>i).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
+  sh.innerHTML='<div class="box nickbox"><h3>🃏 Выбери воина</h3><div class="pkg">'+hs.map(h=>'<button type="button" class="pki" data-h="'+h+'">'+miniSlot(demoOne(h,HEROES[h][4].one?4:0))+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
+  $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-h]");if(!b)return;const h=+b.dataset.h,W=HEROES[h][4];
+    if(W.one)return anyConfirm(h,4);if(W.comp)return anyConfirm(h,0);
+    sh.innerHTML='<div class="box nickbox"><h3></h3><div class="sellprev"></div><div class="anyf">'+[0,1,2,3,4].map(f=>'<button type="button" class="ghost" data-f="'+f+'">'+FIN[f].k+(FIN[f].run===Infinity?"":" · тираж "+FIN[f].run)+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
+    sh.querySelector("h3").textContent=HEROES[h][0]+": какая отделка?";sh.querySelector(".sellprev").innerHTML=miniSlot(demoOne(h,3));$("pk-x").onclick=closeModal;
+    sh.querySelector(".anyf").onclick=e2=>{const t=e2.target.closest("[data-f]");if(t)anyConfirm(h,+t.dataset.f)}}}
+function anyConfirm(h,f){closeModal();buyItem({item:"any",h,f})}
+/* что нового: показывается каждому игроку один раз после обновления */
+function newsUpd(){if(!S||(ONLINE&&!S.shopOn)||!$("modal").hidden||onbStep>=0||document.querySelector(".onb-hl"))return;try{if(localStorage.getItem("we-news-gold1"))return;localStorage.setItem("we-news-gold1","1")}catch(e){return}
+  const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="box nickbox newsb"><h3>🔥 Большое обновление!</h3><div class="nws">'+miniSlot(demoOne(ONE[0]))+miniSlot(demoOne(DON[0],0))+miniSlot(Object.assign(demoOne(COMP[0],0),{no:17}))+'</div><ul>'+
+   '<li>🏪 <b>Сокровищница</b> — сундуки с прокрутками, карточками и половинками</li>'+
+   '<li>⚔️ <b>Богатыри</b> Илья Муромец, Добрыня и Алёша — новые мифические воины</li>'+
+   '<li>🔥 <b>Легенды 1 из 1</b>: Тор, Зевс, Геракл и Три богатыря — по одной на весь мир</li>'+
+   '<li>🧩 <b>Составные воины</b>: Дракон, Феникс, Кракен… собери из двух половинок</li>'+
+   '<li>✍️ <b>Свой номер</b> на карточке, ✨ <b>переливающийся ник</b> и 👑 <b>Король Эпох</b> месяца</li>'+
+   '<li>🎁 Новичкам: <b>10 прокруток + эпик</b> за полцены</li></ul><button type="button" class="craftbtn" id="nw-go">Открыть Сокровищницу</button><button type="button" class="ghost" id="nw-x">Позже</button></div>';
+  $("nw-go").onclick=()=>{closeModal();openGold("chest")};$("nw-x").onclick=closeModal}
 $("gold-seg").onclick=e=>{const b=e.target.closest("[data-g]");if(!b)return;goldTab=b.dataset.g;renderGold()};
 $("gold-body").onclick=async e=>{const t=e.target.closest("button");if(!t||t.disabled)return;
   if(t.dataset.goto){goldTab=t.dataset.goto;renderGold();scrollTo(0,0);return}
@@ -1856,7 +1924,9 @@ async function payWait(pid){for(let i=0;i<15;i++){const r=await act("pay_status"
   toast("Оплата получена, покупка появится через минуту. Мы пришлём сообщение в бот")}
 function payShow(r){renderAll();loadGold();if(r.status==="refund"){toast("↩️ "+((r.res&&r.res.err)||"Не получилось")+". Звёзды вернулись");return}
   const R=r.res||{},I=SHOP[r.item];sfx.coin();hapN("success");
-  if(I)return showGrant(R,"🎁 "+I.n+" открыт!");
+  if(I&&I.manual){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;sh.innerHTML='<div class="box nickbox"><h3>👑 Ого! Ты правда купил!</h3><p>Это была шутка… но мы держим слово. Напиши <b>@voinovadmin</b>: какого героя нарисовать и какой номер поставить. Карточка будет только у тебя.</p><button type="button" class="craftbtn" id="cu-ok">Написать @voinovadmin</button></div>';
+    $("cu-ok").onclick=()=>{closeModal();try{tg.openTelegramLink("https://t.me/voinovadmin")}catch(e){open("https://t.me/voinovadmin")}};return}
+  if(I)return showGrant(R,I.any?"🎁 Карточка твоя!":"🎁 "+I.n+" открыт!");
   if(r.item==="num"){toast("✍️ Готово! Новый номер "+fmtSn(R.sn));const c=S.cards.find(x=>x.id===R.card);if(c)openCardView(c,{mine:true});return}
   if(r.item==="fx"){toast("✨ Ник «"+NFX[R.fx]+"» включён!");goldTab="flex";renderGold()}}
 function showGrant(R,title){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const cs=R.cards||[];
@@ -2049,6 +2119,7 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   renderAll();handleStart();
   if(new URLSearchParams(location.search).get("camp"))setTimeout(()=>{try{openCamp()}catch(e){}},600);
   if(new URLSearchParams(location.search).get("shop"))setTimeout(()=>{try{openGold()}catch(e){}},600);
+  setTimeout(()=>{try{newsUpd()}catch(e){}},2500);
   const fromLink=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param);
   if(!fromLink)setTimeout(()=>{if(!startOnb()&&!(S.cards.length&&startWhatsNew()))askNick()},600);
 })();

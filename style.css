@@ -1070,3 +1070,11 @@ nav.tabs #tab-gold i{position:absolute;top:-10px;right:-4px;font-style:normal;fo
 .gold .bogg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.gold .bogg .minic{display:block;width:100%;filter:drop-shadow(0 0 8px rgba(255,159,10,.6))}
 .outo p{margin:0;text-align:center}.outc{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}.outc ul{margin:4px 0 0;padding-left:16px;font-size:13px}
 .outo .buy{display:flex;width:100%;justify-content:center;border:3px solid #07040f;border-radius:13px;padding:11px;font-family:var(--display);font-size:18px;color:#07040f;background:linear-gradient(180deg,#fff1a8,#ffb800 50%,#ff9f0a);box-shadow:0 4px 0 #07040f}
+
+.gold .joke{margin-top:12px;padding:12px;border-radius:16px;border:2.5px dashed #ffd23f;background:linear-gradient(135deg,rgba(255,210,63,.18),rgba(255,46,99,.15))}
+.gold .joke.j2{border-color:#ff2e63}.gold .jk-h{font-family:var(--display);font-size:16px;color:#ffd23f;text-shadow:2px 2px 0 #07040f}
+.gold .joke p{margin:6px 0 10px;font-size:12.5px;line-height:1.4;font-weight:600;color:#f0e8ff}.gold .joke b{color:#ffd23f}
+.anyf{display:flex;flex-direction:column;gap:8px}.anyf .ghost{width:100%;font-size:14px;font-weight:800}
+.newsb h3{text-align:center;font-family:var(--display);font-size:20px}
+.nws{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.nws .minic{display:block;width:100%}
+.newsb ul{margin:0;padding-left:4px;list-style:none;font-size:13.5px;line-height:1.45;display:flex;flex-direction:column;gap:5px}

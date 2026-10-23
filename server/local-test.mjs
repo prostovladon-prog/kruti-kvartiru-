@@ -533,7 +533,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await buy(U, { item: "warrior" }); ok(r.ok && r.res.res.cards.length === 5 && r.res.res.cards.some(c => c.h < 32 && [19,20,21,22,23,24,25,26,27,28,29,30,31].includes(c.h)), "сундук воина: 5 карточек, есть эпик+");
   r = await buy(U, { item: "legend" }); ok(r.ok && r.res.res.cards.length === 10 && r.res.res.cards.some(c => c.h >= 26 && c.h <= 29), "легендарный: 10 карточек, есть легендарная");
   let sh = await cp(U, "shop"); const m0 = sh.res.mythLeft;
-  r = await buy(U, { item: "mythic" }); ok(r.ok && r.res.res.cards.some(c => c.h === 30 || c.h === 31) && r.res.res.cards.every(c => c.h < 32), "мифический: Сёгун или Мерлин, только обычные воины");
+  r = await buy(U, { item: "mythic" }); ok(r.ok && r.res.res.cards.some(c => [30, 31, 38, 39, 40].includes(c.h)) && r.res.res.cards.every(c => !c.part && (c.h < 32 || c.h >= 38)), "мифический: Сёгун, Мерлин или богатырь, без половинок");
   sh = await cp(U, "shop"); ok(m0 === 30 && sh.res.mythLeft === 29, "мифических сундуков в месяц 30 на всех (осталось " + sh.res.mythLeft + ")");
   r = await buy(U, { item: "legend" }); ok(r.ok && r.S.cards.length === 42, "купленное кладётся сверх лимита коллекции (" + r.S.cards.length + ")");
   // повторная выдача того же платежа ничего не даёт
@@ -573,10 +573,20 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   { const a = await cp(U, "invoice", { item: "num", card: c1.id, sn: "100000" }), b = await cp(U2, "invoice", { item: "num", card: full.id, sn: "100000" });
     await cp(U, "pay_sim", { pid: a.res.pid }); const rb = await cp(U2, "pay_sim", { pid: b.res.pid });
     ok(rb.res.status === "refund", "если номер успели занять — звёзды возвращаются"); }
+  // любая карточка и карточка мечты
+  r = await cp(U2, "invoice", { item: "any", h: 41, f: 0 }); ok(!r.ok && /Ошибкой печати/.test(r.err), "Тор только «ошибкой печати»");
+  db.prepare("DELETE FROM cards WHERE sn='444444'").run(); db.prepare("DELETE FROM cards WHERE h=41").run();
+  r = await buy(U2, { item: "any", h: 41, f: 4 }); const thor = r.ok && r.res.res.cards[0];
+  ok(thor && thor.h === 41 && thor.f === 4 && thor.sn === "444444", "любая карточка: Тор 1 из 1 с номером 444 444");
+  r = await cp(U, "invoice", { item: "any", h: 41, f: 4 }); ok(!r.ok && /закончился/.test(r.err), "второго Тора нет");
+  r = await cp(U2, "sell", { id: thor.id }); ok(!r.ok && /1 из 1/.test(r.err), "легенду 1 из 1 нельзя продать системе");
+  r = await buy(U2, { item: "any", h: 30, f: 3 }); ok(r.ok && r.res.res.cards[0].h === 30 && r.res.res.cards[0].f === 3, "любая карточка: золотой Сёгун");
+  r = await buy(U2, { item: "custom" }); ok(r.ok && r.res.status === "done" && r.res.res.manual === 1, "карточка мечты оплачена, заявка админу");
+  sh = await cp(U2, "shop"); ok(sh.res.ones[41] && sh.res.ones[41].uid === U2 && sh.res.ones[42] === null, "Сокровищница показывает, у кого легенда");
   // ник и король
   r = await buy(U2, { item: "fx", fx: "fire" }); ok(r.ok && r.S.nfx && r.S.nfx[U2] === "fire", "переливающийся ник включён");
-  r = await cp(U2, "sync"); ok(r.S.king === U, "«Король Эпох» — первый в топе донатеров месяца");
-  sh = await cp(U, "shop"); ok(sh.res.donors[0].uid === U && sh.res.donors.length === 2, "топ донатеров месяца");
+  r = await cp(U2, "sync"); ok(r.S.king === U2, "«Король Эпох» — первый в топе донатеров месяца");
+  sh = await cp(U, "shop"); ok(sh.res.donors[0].uid === U2 && sh.res.donors.length === 2, "топ донатеров месяца");
   // оплата через вебхук бота
   { const i = await cp(U2, "invoice", { item: "small" });
     const sec = (await import("node:crypto")).createHash("sha256").update("hook:" + env.BOT_TOKEN).digest("hex").slice(0, 48);
