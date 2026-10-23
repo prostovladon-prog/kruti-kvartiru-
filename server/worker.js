@@ -47,7 +47,7 @@ const HEROES=[
  ["Цербер","Подземное царство",4,"Три головы, и все три не спят. Сторожит выход из царства мёртвых.",{comp:1,hue:10,p:[8,6,5,6,5]}],
  ["Химера","Мифы Греции",4,"Голова льва, тело козы, хвост-змея. И всё это дышит огнём.",{comp:1,hue:40,p:[7,5,6,6,6]}],
  ["Левиафан","Морские легенды",4,"Морской змей размером с остров. Моряки принимали его спину за сушу.",{comp:1,hue:200,p:[6,8,4,8,6]}],
- /* донатные воины: только из сундуков Сокровищницы, в прокрутках не выпадают */
+ /* донатные воины: в основном из сундуков Сокровищницы, в прокрутке — очень маленький шанс (SPIN_P) */
  ["Илья Муромец","Древняя Русь",4,"Тридцать лет и три года сидел сиднем, а потом один разогнал целое войско.",{don:1,hue:0,p:[8,7,3,7,7]}],
  ["Добрыня Никитич","Древняя Русь",4,"Победил Змея Горыныча и освободил полон. Дипломат и боец в одном лице.",{don:1,hue:210,p:[7,6,5,6,7]}],
  ["Алёша Попович","Древняя Русь",4,"Младший из богатырей. Берёт не силой, а хитростью — и всегда первым.",{don:1,hue:120,p:[6,4,8,5,8]}],
@@ -258,7 +258,7 @@ function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>i<NB
 /* легенда 1 из 1 (Тор и др.): только «Ошибка печати», свой номер. null — если все уже у игроков */
 function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1);if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
   const c=makeCard(ctx,h,4),want=HEROES[h][4].sn;if(want&&ctx.snFree(want)){ctx.takeSn(want);c.sn=want;c.v=priceOf(h,4,1,want,false)}return c}
-const ONE_P={legend:.005,mythic:.02}, DON_P={legend:.04};
+const ONE_P={legend:.005,mythic:.02}, DON_P={legend:.04}, SPIN_P={don:.0003,one:.00001};   // в прокрутке: богатырь 0,03% (каждый 0,01%), легенда 1 из 1 — 0,001%
 /* ---------- Сокровищница: покупки за Telegram Stars ----------
    Лимита на человека нет: редкость держится общим тиражом (300 правых половинок на воина, 30 мифических сундуков в месяц на всю игру).
    Отделки и номера в сундуках выпадают с обычными шансами, ничего не подкручено. */
@@ -323,7 +323,10 @@ const ACTIONS={
     if(G.cards.length>=CAP)fail("Коллекция заполнена ("+CAP+"). Продай лишнее");
     st.spins--;if(st.spins<spinCap(st)&&!st.refillAt)st.refillAt=ctx.now+REFILL_MS;
     const epic=(st.guar||0)>0||(st.pity||0)>=PITY-1;let c=null;
-    if(!epic&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
+    const rr=Math.random();
+    if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
+    else if(rr<SPIN_P.one+SPIN_P.don)c=rollTier(ctx,-1,DON);   // богатырь
+    if(!c&&!epic&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
     if(!c)c=rollCard(ctx,epic);if(epic&&(st.guar||0)>0)st.guar--;
     st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;
     addCard(G,c);day(st,ctx.now).opened++;return {card:c}},
