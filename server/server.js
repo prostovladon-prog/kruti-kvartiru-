@@ -779,7 +779,7 @@ async function onUpdate(env,upd){
    Рассылка ботом в слоты (минское время), итоги — в конце. Настройки можно переопределить в kv "chal". */
 const CHAL_OPEN=3,CHAL_LATE=50*60e3;
 /* розыгрыш (lot): от C.min друзей — участник, каждый друг = билет, победитель один, выбирается случайно по билетам */
-const CHAL_DEFAULT={id:"2026-10-23",lot:1,min:3,start:Date.UTC(2026,9,23,5,30),end:Date.UTC(2026,9,23,19),prizes:["$20"],slots:[8.5,11.5,14.5,17.5,19,20,21],chan:"@voinyepoh"};
+const CHAL_DEFAULT={id:"2026-10-23",lot:1,min:3,start:Date.UTC(2026,9,23,5,30),end:Date.UTC(2026,9,23,19),prizes:["$20"],slots:[8.5,11.5,14.5,17.5,19,20,21],chanSlots:[8.5,10,14,17.5,21],chan:"@voinyepoh"};
 async function chalCfg(env){return await cached("chalcfg",30e3,async()=>{const k=await kvGet(env,"chal");return k&&k.id!=="2026-10-22"?k:CHAL_DEFAULT})}   // старый конкурс в kv не мешает новому
 const tk=n=>n+" "+(n%10===1&&n%100!==11?"билет":n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?"билета":"билетов");
 const lotIn=(C,rows)=>rows.filter(r=>r.n>=C.min);
@@ -825,6 +825,12 @@ function chalHook(C,rows){const L=rows[0];if(!L)return "🤯 В таблице �
   if(L.n<=5)return "🤯 ШАНС ОГРОМНЫЙ! У лидера всего "+frN(L.n)+". Пригласи "+frA(L.n+1)+" — и ты на 1 месте с подарком на "+C.prizes[0]+"!";
   return "🏆 У лидера "+frN(L.n)+". Обгони его — и подарок на "+C.prizes[0]+" твой!"}
 /* посты в канал: бот должен быть админом канала с правом публикации */
+/* посты в канал по своему расписанию (C.chanSlots), если оно задано */
+function lotChan(C,k,now,rows){const bot="\n\n👉 @VoinyEpohBot",S=C.chanSlots,h=lotHook(C,rows||[]);
+  if(k===0)return chanPost(C,0,now,rows);
+  if(k===S.length-1)return {text:"⏰ ПОСЛЕДНИЙ ЧАС! До розыгрыша "+C.prizes[0]+" — "+fmtLeft(C.end-now)+"\n\n"+h+"\n\nВ "+hmM(C.end)+" бот случайно выберет победителя по билетам. Ещё можно успеть 🔥"+bot};
+  const T=[null,"☕ Доброе утро, воины! Розыгрыш "+C.prizes[0]+" уже идёт","⚡ Розыгрыш "+C.prizes[0]+" в самом разгаре","🔥 До розыгрыша "+C.prizes[0]+" осталось "+fmtLeft(C.end-now)][k]||"🎟 Розыгрыш "+C.prizes[0]+" идёт";
+  return {text:T+"\n\n"+h+"\n\n👥 Пригласи "+frA(C.min)+" — и ты участник\n🎟 Каждый друг = +1 билет, друг твоего друга тоже считается\n🏆 Победитель один — выбираем в "+hmM(C.end)+"\n\n"+CHAL_X2+bot}}
 function chanPost(C,slot,now,rows){rows=rows||[];if(C.lot){const bot="\n\n👉 @VoinyEpohBot";
   if(slot===0)return {photo:1,text:"🎟 РОЗЫГРЫШ "+C.prizes[0]+" — ВЫИГРАТЬ МОЖЕТ ЛЮБОЙ!\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+":\n👥 Пригласи "+frA(C.min)+" в «Воины Эпох» — и ты в розыгрыше\n🎟 Каждый друг = 1 билет: больше друзей — больше шанс\n🏆 Победитель один — подарок Telegram на "+C.prizes[0]+" или звёзды\n\nВы просили — мы сделали: теперь не нужно быть первым, повезти может каждому 🍀\n\n"+LOT_PAID+"\n\n"+CHAL_X2+bot};
   if(slot===C.slots.length-1)return {text:"⏰ До розыгрыша "+C.prizes[0]+" остался "+fmtLeft(C.end-now)+"!\n\n"+lotHook(C,rows)+"\n\nВ "+hmM(C.end)+" бот случайно выберет победителя по билетам. Успей позвать друзей 🔥"+bot};
@@ -841,7 +847,7 @@ async function chanSend(env,C,P){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env
 async function chanCheck(env,C){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
   const k=(await kvGet(env,"chan_chk:"+C.id))||{ok:0,at:0,warned:0};if(k.ok||now-k.at<10*60e3)return;k.at=now;
   let ok=false;try{const r=await tgApi(env,"getChatMember",{chat_id:C.chan,user_id:+String(env.BOT_TOKEN).split(":")[0]});ok=!!(r.ok&&(r.result.status==="creator"||r.result.status==="administrator"&&r.result.can_post_messages))}catch(e){}
-  if(ok){k.ok=1;for(const a of ADMINS)await notify(env,a,"✅ Бот может публиковать в канал "+C.chan+". Посты челленджа выйдут сами: "+C.slots.filter((s,i)=>i===0||i>=C.slots.length-2).map(h=>Math.floor(h)+":"+String(Math.round(h%1*60)).padStart(2,"0")).join(", ")+" и итоги в "+hmM(C.end)+".","⚔️ Открыть")}
+  if(ok){k.ok=1;for(const a of ADMINS)await notify(env,a,"✅ Бот может публиковать в канал "+C.chan+". Посты выйдут сами: "+(C.chanSlots||C.slots.filter((s,i)=>i===0||i>=C.slots.length-2)).map(h=>Math.floor(h)+":"+String(Math.round(h%1*60)).padStart(2,"0")).join(", ")+" и итоги в "+hmM(C.end)+".","⚔️ Открыть")}
   else if(!k.warned){k.warned=1;for(const a of ADMINS)await notify(env,a,"⚠️ Бот не может публиковать в канал "+C.chan+".\n\nДобавь @VoinyEpohBot администратором канала с правом «Публикация сообщений» — я проверю снова через 10 минут.","⚔️ Открыть")}
   await kvSet(env,"chan_chk:"+C.id,k)}
 let chalBusy=null;
@@ -865,9 +871,11 @@ async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{con
     return}
   // рассылка по слотам (часы по Минску, можно дробные: 8.5 = 8:30)
   const h=new Date(now+TZ),day0=Date.UTC(h.getUTCFullYear(),h.getUTCMonth(),h.getUTCDate())-TZ,slotAt=k=>day0+C.slots[k]*36e5;
+  if(C.chanSlots){st.cs=st.cs||{};for(let k=0;k<C.chanSlots.length;k++){const at=day0+C.chanSlots[k]*36e5;
+    if(now>=at&&now<at+CHAL_LATE&&at>=C.start-3600e3&&at<C.end&&!st.cs[k]){st.cs[k]=1;await kvSet(env,"chal_st:"+C.id,st);const P=lotChan(C,k,now,now>=C.start?await chalBoard(env,C):[]);if(P)await chanSend(env,C,P)}}}
   let s=-1;for(let k=0;k<C.slots.length;k++)if(now>=slotAt(k)&&now<slotAt(k)+CHAL_LATE&&slotAt(k)>=C.start-3600e3&&slotAt(k)<C.end)s=k;
   if(s<0)return;
-  if(!st.ch[s]){st.ch[s]=1;await kvSet(env,"chal_st:"+C.id,st);const P=chanPost(C,s,now,now>=C.start?await chalBoard(env,C):[]);if(P)await chanSend(env,C,P)}
+  if(!C.chanSlots&&!st.ch[s]){st.ch[s]=1;await kvSet(env,"chal_st:"+C.id,st);const P=chanPost(C,s,now,now>=C.start?await chalBoard(env,C):[]);if(P)await chanSend(env,C,P)}
   if(st.slot>s||st.slot===s&&st.done)return;
   if(st.slot!==s){st.slot=s;st.after=0;st.done=0;st.n=0}
   const rows=now>=C.start?await chalBoard(env,C):[],text=chalText(C,s,rows,now);
