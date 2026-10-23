@@ -531,7 +531,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await buy(U, { item: "newbie" }); ok(r.ok && r.res.status === "done" && r.S.guar >= 1, "подарок новичку: гарантия эпика");
   r = await cp(U, "invoice", { item: "newbie" }); ok(!r.ok && /уже получен/.test(r.err), "подарок новичку только один раз");
   r = await buy(U, { item: "warrior" }); ok(r.ok && r.res.res.cards.length === 5 && r.res.res.cards.some(c => c.h < 32 && [19,20,21,22,23,24,25,26,27,28,29,30,31].includes(c.h)), "сундук воина: 5 карточек, есть эпик+");
-  r = await buy(U, { item: "legend" }); ok(r.ok && r.res.res.cards.length === 10 && r.res.res.cards.some(c => c.h >= 26 && c.h <= 29), "легендарный: 10 карточек, есть легендарная");
+  r = await buy(U, { item: "legend" }); ok(r.ok && r.res.res.cards.length === 10 && r.res.res.cards.some(c => (c.h >= 26 && c.h <= 29) || (c.h >= 38 && c.h <= 40)), "легендарный: 10 карточек, есть легендарная (или богатырь)");
   let sh = await cp(U, "shop"); const m0 = sh.res.mythLeft;
   r = await buy(U, { item: "mythic" }); ok(r.ok && r.res.res.cards.some(c => [30, 31, 38, 39, 40].includes(c.h)) && r.res.res.cards.every(c => !c.part && (c.h < 32 || c.h >= 38)), "мифический: Сёгун, Мерлин или богатырь, без половинок");
   sh = await cp(U, "shop"); ok(m0 === 30 && sh.res.mythLeft === 29, "мифических сундуков в месяц 30 на всех (осталось " + sh.res.mythLeft + ")");
