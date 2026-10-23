@@ -1038,6 +1038,8 @@ const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&
 async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=await act("chal_get");chData=r&&r.id?r:null;if(chData)chData._t=NOW();drawChal()}
 function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
   const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
+  box.querySelector(".chal-h span").textContent=C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";
+  if(C.lot)return drawLot(C,left,hm);
   $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
   $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinovadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
   $("chal-p").innerHTML=C.prizes.map((p,k)=>`<div>${["🥇","🥈","🥉"][k]}<b>${p}</b>подарок</div>`).join("");
@@ -1052,6 +1054,19 @@ function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if
   $("chal-go").hidden=C.phase!=="on";
   $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Если твой друг пригласит своего друга, он засчитывается и другу, и тебе. При равном счёте выше тот, кто набрал его раньше. Время — минское. Призы выдаёт @voinovadmin: подарок Telegram или звёзды на ту же сумму. Накрутка ботами и пустыми аккаунтами = снятие с челленджа."}
 $("chal-go").onclick=()=>$("ref-go").click();
+/* розыгрыш: от C.min друзей ты участник, каждый друг — билет, победитель один */
+function drawLot(C,left,hm){const M=C.me,inn=M.n>=C.min,T=C.tickets||0;
+  $("chal-left").textContent=C.phase==="soon"?"через "+tleft(left):tleft(left);
+  $("chal-t").textContent=C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+": пригласи "+C.min+" друзей — и ты в розыгрыше "+C.prizes[0]+"!":"Пригласи "+C.min+" друзей — и ты участник. Каждый друг = 1 билет: больше друзей — больше шанс. В "+hm(C.end)+" бот выберет одного победителя. Выиграть может любой! Все призы прошлого конкурса выплачены — отзывы в чате.";
+  $("chal-p").innerHTML='<div>🏆<b>'+C.prizes[0]+'</b>подарок</div><div>🎟<b>'+T+'</b>'+plural(T,"билет","билета","билетов")+'</div><div>👥<b>'+(C.players||0)+'</b>'+plural(C.players||0,"участник","участника","участников")+'</div>';
+  const me=$("chal-me");me.innerHTML="";const mb=document.createElement("div"),sm=document.createElement("small");
+  mb.textContent=C.phase==="soon"?"Подготовь друзей — счёт начнётся в "+hm(C.start):inn?"🎟 Ты в розыгрыше! У тебя "+M.n+" "+plural(M.n,"билет","билета","билетов")+" · шанс "+(T?Math.max(.1,Math.round(M.n/T*1000)/10):100)+"%":"У тебя "+M.n+" из "+C.min+" друзей — ещё "+(C.min-M.n)+" и ты в розыгрыше!";
+  sm.textContent="твои друзья: "+M.d+" · друзья друзей: "+M.l2+(inn?" · каждый новый друг = +1 билет":"");me.append(mb);if(C.phase!=="soon")me.append(sm);
+  const Tb=$("chal-top");Tb.innerHTML="";const P=C.top.filter(r=>r.n>=C.min);
+  if(C.phase!=="soon"){if(!P.length)Tb.innerHTML='<div class="empty">Пока никто не набрал '+C.min+' друзей — стань первым участником!</div>';
+    for(const r of P){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent="🎟";d.children[1].textContent=(r.vip?"👑 ":"")+r.name;d.children[2].textContent=r.n+" · "+(T?Math.round(r.n/T*100):0)+"%";Tb.append(d)}}
+  $("chal-go").hidden=C.phase!=="on";
+  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Друг твоего друга тоже засчитывается тебе. От "+C.min+" друзей ты участник, каждый друг — 1 билет. В "+hm(C.end)+" бот случайно выбирает победителя: чем больше билетов, тем выше шанс. Время — минское. Приз выдаёт @voinovadmin: подарок Telegram на "+C.prizes[0]+" или звёзды."}
 setInterval(()=>{if(chData&&!$("chal").hidden){const l=Math.max(0,chData.left-(NOW()-chData._t));if(l<=0&&chData.phase!=="done"&&NOW()-chAt>5000)loadChal();else if(chData.phase!=="done")$("chal-left").textContent=(chData.phase==="soon"?"через ":"")+tleft(l)}},1000);
 setInterval(loadChal,30000);setTimeout(loadChal,1500);
 /* ---------- самые редкие воины на главной ---------- */

@@ -509,6 +509,17 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   await worker.tick(envC); await worker.tick(envC);
   r = await cc(6001, "chal_get"); ok(r.ok && r.res === null, "после конца конкурса блок с таблицей убирается");
   { const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:t1'").get().v); ok(fin.rows[0].n === 2 && fin.rows[0].uid === 6001, "итоги зафиксированы"); }
+  // розыгрыш: от 3 друзей участник, каждый друг — билет, победитель один
+  const n0 = Date.now();
+  await cc(8, "chal_set", { cfg: { id: "lot1", lot: 1, min: 3, start: n0 - 36e5, end: n0 + 36e5, prizes: ["$20"], slots: [] } });
+  for (let i = 0; i < 3; i++) { await cc(6201 + i, "sync", {}, "r_6200"); for (let k = 0; k < 3; k++) await cc(6201 + i, "open"); }
+  await cc(6211, "sync", {}, "r_6210"); for (let k = 0; k < 3; k++) await cc(6211, "open");
+  await cc(6200, "sync"); await cc(6210, "sync");
+  r = await cc(6200, "chal_get"); ok(r.ok && r.res.lot === 1 && r.res.me.n === 3 && r.res.players === 1 && r.res.tickets === 3, "розыгрыш: 3 друга = участник с 3 билетами");
+  r = await cc(6210, "chal_get"); ok(r.res.me.n === 1 && r.res.players === 1, "1 друг — ещё не участник");
+  await cc(8, "chal_set", { cfg: { id: "lot1", lot: 1, min: 3, start: n0 - 36e5, end: Date.now() - 1, prizes: ["$20"], slots: [] } });
+  await worker.tick(envC); await worker.tick(envC);
+  { const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:lot1'").get().v); ok(fin.winner && fin.winner.uid === 6200 && fin.players === 1 && fin.tickets === 3, "победитель выбран по билетам"); }
   await cc(8, "chal_set", { cfg: { id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] } });
 }
 
