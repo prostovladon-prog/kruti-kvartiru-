@@ -270,7 +270,7 @@ async function market(env,me){
   return {items:rows.map(r=>({id:r.id,card:pub(rowToCard(r)),price:r.list_price,seller:r.seller_name||"Игрок"}))};
 }
 async function list(env,me,p){
-  const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e11))fail("Цена от $1 до $100 000 000 000");
+  const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e11))fail("Цена от 1 до 100 000 000 000 🪙");
   const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
     .bind(price,Date.now(),p.id|0,me.id,me.id,MAX_LOTS).run();
   if(r.meta.changes!==1)fail("Карточку нельзя выставить: она в походе, уже на рынке или у тебя уже "+MAX_LOTS+" лотов");
@@ -295,7 +295,7 @@ async function buy(env,me,p){
   if(price>=DTOP_MIN_PRICE){await dtopAdd(env,"trade",me.id,1);await dtopAdd(env,"trade",seller,1)}
   await env.DB.batch([env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(got,seller),
     env.DB.prepare("INSERT INTO sales(card,h,seller,buyer,buyer_name,price,got,t) VALUES(?,?,?,?,?,?,?,?)").bind(c.id,c.h,seller,me.id,bu.nick||me.name,price,got,Date.now())]);
-  await notify(env,seller,"💰 "+(bu.nick||me.name)+" купил твою карточку «"+HEROES[c.h][0]+"» за $"+fmtD(price)+". Тебе зачислено $"+fmtD(got)+" (минус 5% рынка)","Открыть игру");
+  await notify(env,seller,"💰 "+(bu.nick||me.name)+" купил твою карточку «"+HEROES[c.h][0]+"» за "+fmtD(price)+" 🪙"+". Тебе зачислено "+fmtD(got)+" 🪙"+" (минус 5% рынка)","Открыть игру");
   return {card:pub(rowToCard(Object.assign(c,{owner:me.id,list_price:null})))};
 }
 
@@ -353,7 +353,7 @@ async function setNick(env,me,p){
   const cost=u.nick?NICK_COST:0;
   let r;try{r=await env.DB.prepare("UPDATE users SET nick=?,nick_key=?,cash=cash-? WHERE id=? AND cash>=?").bind(n,nickKey(n),cost,me.id,cost).run()}
   catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Ник «"+n+"» уже занят. Придумай другой");throw e}
-  if(r.meta.changes!==1)fail("Смена ника стоит $"+cost+", не хватает денег");
+  if(r.meta.changes!==1)fail("Смена ника стоит "+cost+" 🪙, не хватает монет");
   topCache={};return {nick:n,cost};
 }
 
@@ -515,7 +515,7 @@ async function arena(env,me,a,p){
     if(r0.priv&&String(p.code||"")!==r0.code)fail("Это закрытый бой: нужна ссылка от друга");
     if(await myRoom(env,me.id))fail("У тебя уже есть бой на арене");
     const c=await arenaCard(env,me,p.id),hc=rj(r0.hc);
-    if(r0.mode){if(c.v<hc.v*.5||c.v>hc.v*2)fail("В бою на карточку цены должны быть похожи: от "+fmtD(hc.v*.5)+" до "+fmtD(hc.v*2)+" $");
+    if(r0.mode){if(c.v<hc.v*.5||c.v>hc.v*2)fail("В бою на карточку цены должны быть похожи: от "+fmtD(hc.v*.5)+" до "+fmtD(hc.v*2)+" 🪙");
       for(const u of [me.id,r0.host]){const n=await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=?").bind(u).first();if(n.n>=CAP)fail(u===me.id?"У тебя полная коллекция":"У соперника полная коллекция")}}
     const lock=await env.DB.prepare("UPDATE cards SET room_id=? WHERE id=? AND owner=? AND room_id IS NULL AND list_price IS NULL AND away=0").bind(r0.id,c.id,me.id).run();
     if(lock.meta.changes!==1)fail("Карточка уже занята");
@@ -651,7 +651,7 @@ async function traderInfo(env,me){const T=await traderStock(env),now=Date.now();
     const mine=!!(await env.DB.prepare("SELECT 1 FROM trader_buy WHERE slot=? AND h=? AND uid=?").bind(T.slot,h,me.id).first());wants.push({h,left:Math.max(0,TRADER_WANT_N-n),mine})}
   return {left:(T.slot+1)*TRADER_MS-TZ-now,items:T.items.map(x=>({i:x.i,star:x.star,price:x.price,card:{id:"t"+x.i,h:x.h,f:x.f,no:0,sn:"??????",hue:x.hue,v:x.v,stats:x.stats,xp:0,wins:0,stars:0},sold:sold[x.i]||null})),wants,k:TRADER_WANT_K}}
 async function traderBuy(env,me,p){const T=await traderStock(env),it=T.items[p.i|0];if(!it)fail("Нет такого товара");
-  const u=await env.DB.prepare("SELECT cash,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(me.id).first();if(!u||u.cash<it.price)fail("Не хватает $"+fmtD(Math.max(0,it.price-((u&&u.cash)||0))));
+  const u=await env.DB.prepare("SELECT cash,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(me.id).first();if(!u||u.cash<it.price)fail("Не хватает "+fmtD(Math.max(0,it.price-((u&&u.cash)||0)))+" 🪙");
   const ins=await env.DB.prepare("INSERT OR IGNORE INTO trader_sold(slot,i,uid,name,t) VALUES(?,?,?,?,?)").bind(T.slot,it.i,me.id,u.n,Date.now()).run();if(ins.meta.changes!==1)fail("Эту карточку уже купили");
   try{return await doAction(env,me,"trader_take",{},{trader:it})}catch(e){await env.DB.prepare("DELETE FROM trader_sold WHERE slot=? AND i=? AND uid=?").bind(T.slot,it.i,me.id).run();throw e}}
 async function traderSell(env,me,p){const T=await traderStock(env),h=p.h|0;if(!T.wants.includes(h))fail("Торговец сейчас не ищет этого воина");
@@ -678,28 +678,28 @@ function aucView(A,me){if(!A)return null;const now=Date.now();
 async function aucBid(env,me,p){const A=await aucCur(env),now=Date.now();if(!A||A.done||now<A.start||now>=A.until)fail("Сейчас торгов нет. Аукцион каждый день с "+AUC_HOUR+":00 до 20:00");
   if(A.top===me.id)fail("Твоя ставка и так первая");
   const next=A.bid?Math.ceil(A.bid*(1+AUC_STEP)):A.min,amt=Math.max(next,Math.ceil(+p.amt||0));
-  const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(amt,me.id,amt).run();if(pay.meta.changes!==1)fail("Не хватает денег: нужно "+fmtD(amt)+" $");
+  const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(amt,me.id,amt).run();if(pay.meta.changes!==1)fail("Не хватает монет: нужно "+fmtD(amt)+" 🪙");
   const nm=await nameOf(env,me.id),until=Math.max(A.until,now+AUC_EXT);
   const up=await env.DB.prepare("UPDATE auc SET top=?,top_name=?,bid=?,n=n+1,until=?,ver=ver+1 WHERE id=? AND ver=? AND bid<? AND done=0").bind(me.id,nm,amt,until,A.id,A.ver,amt).run();
   if(up.meta.changes!==1){await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(amt,me.id).run();fail("Кто-то успел перебить ставку. Попробуй ещё раз")}
   if(A.top){await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(A.bid,A.top).run();
-    await notify(env,A.top,"🔨 Твою ставку на аукционе перебил "+nm+": $"+fmtD(amt)+". Деньги вернулись. Успей перебить!","🔨 К аукциону",PAGE+"?shop=1")}
+    await notify(env,A.top,"🔨 Твою ставку на аукционе перебил "+nm+": "+fmtD(amt)+" 🪙"+". Деньги вернулись. Успей перебить!","🔨 К аукциону",PAGE+"?shop=1")}
   delete topCache.feed;return aucView(await env.DB.prepare("SELECT * FROM auc WHERE id=?").bind(A.id).first(),me)}
 async function aucTick(env){const now=Date.now(),A=await aucCur(env);if(!A)return;
   if(!A.done&&now>=A.until&&now>=A.start){const t=await env.DB.prepare("UPDATE auc SET done=1 WHERE id=? AND done=0").bind(A.id).run();if(t.meta.changes!==1)return;
     if(A.top){try{const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(A.top).first();
       await doAction(env,{id:A.top,name:(u&&u.name)||"Игрок"},"auc_win",{},{auc:{h:A.h,f:A.f,stats:rj(A.stats,[]),hue:A.hue,v:A.v}});
-      await notify(env,A.top,"🏆 Ты выиграл аукцион дня! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — за $"+fmtD(A.bid)+". Карточка уже в коллекции.","🎴 Смотреть")}catch(e){console.error("auc win",e)}}
+      await notify(env,A.top,"🏆 Ты выиграл аукцион дня! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — за "+fmtD(A.bid)+" 🪙"+". Карточка уже в коллекции.","🎴 Смотреть")}catch(e){console.error("auc win",e)}}
     return}
   // за минуту до старта: рассылка «аукцион начинается»
   const k=await kvGet(env,"auc_note");if(!A.done&&now>=A.start-60e3&&now<A.start+AUC_MS&&(!k||k.id!==A.id||!k.done)){const st=k&&k.id===A.id?k:{id:A.id,after:0,done:0};
     const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-    for(const u of us){await notify(env,u.id,"🔨 Аукцион дня начинается! Сегодня на кону: «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — "+(A.f===4?"единственная в мире":"золотая")+". Стартовая ставка $"+fmtD(A.min)+", торги до 20:00.","🔨 Участвовать",PAGE+"?shop=1");st.after=u.id}
+    for(const u of us){await notify(env,u.id,"🔨 Аукцион дня начинается! Сегодня на кону: «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — "+(A.f===4?"единственная в мире":"золотая")+". Стартовая ставка "+fmtD(A.min)+" 🪙"+", торги до 20:00.","🔨 Участвовать",PAGE+"?shop=1");st.after=u.id}
     if(us.length<25)st.done=1;await kvSet(env,"auc_note",st);return}
   // за полчаса до конца: «последние 30 минут»
   const end=A.until-30*60e3,k2=await kvGet(env,"auc_note2");if(!A.done&&now>=end&&now<A.until&&(!k2||k2.id!==A.id||!k2.done)){const st=k2&&k2.id===A.id?k2:{id:A.id,after:0,done:0};
     const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-    for(const u of us){await notify(env,u.id,"⏰ Аукцион закрывается через 30 минут! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+": "+(A.bid?"ставка $"+fmtD(A.bid)+" от "+A.top_name+". Перебьёшь?":"ставок ещё нет — забирай за стартовую $"+fmtD(A.min)+"!"),"🔨 К аукциону",PAGE+"?shop=1");st.after=u.id}
+    for(const u of us){await notify(env,u.id,"⏰ Аукцион закрывается через 30 минут! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+": "+(A.bid?"ставка "+fmtD(A.bid)+" 🪙"+" от "+A.top_name+". Перебьёшь?":"ставок ещё нет — забирай за стартовую "+fmtD(A.min)+" 🪙"+"!"),"🔨 К аукциону",PAGE+"?shop=1");st.after=u.id}
     if(us.length<25)st.done=1;await kvSet(env,"auc_note2",st)}}
 /* ---------- турнир выходных: каждую субботу в 20:00 по Минску ----------
    Регистрация всю неделю (до 64 игроков). В 20:00 сетка на выбывание, каждый матч — живой бой на арене.
@@ -755,9 +755,9 @@ async function tourTick(env){if(tourBusy)return tourBusy;tourBusy=(async()=>{con
     await env.DB.prepare("UPDATE tours SET phase='done',champion=?,champion_name=? WHERE id=?").bind(champ,cn,T.id).run();
     await kvSet(env,"champion",{uid:champ,name:cn,until:now+7*864e5});topCache={};
     await env.DB.prepare("UPDATE users SET vip_until=MAX(vip_until,?) WHERE id=?").bind(now+7*864e5,champ).run();
-    await tourPrize(env,champ,TOUR_PRIZE[0],"🏆 ТЫ ЧЕМПИОН ТУРНИРА! +$10 000, +10 прокруток, гарантированная эпическая карточка, VIP на 7 дней и кубок 🏆 у ника на неделю!");
-    if(fin)await tourPrize(env,fin,TOUR_PRIZE[1],"🥈 Второе место в турнире! +$3 000 и +5 прокруток. В следующую субботу — за кубком!");
-    for(const u of semis)await tourPrize(env,u,TOUR_PRIZE[2],"🥉 Полуфинал турнира! +$1 000 и +3 прокрутки");
+    await tourPrize(env,champ,TOUR_PRIZE[0],"🏆 ТЫ ЧЕМПИОН ТУРНИРА! +10 000 🪙, +10 прокруток, гарантированная эпическая карточка, VIP на 7 дней и кубок 🏆 у ника на неделю!");
+    if(fin)await tourPrize(env,fin,TOUR_PRIZE[1],"🥈 Второе место в турнире! +3 000 🪙 и +5 прокруток. В следующую субботу — за кубком!");
+    for(const u of semis)await tourPrize(env,u,TOUR_PRIZE[2],"🥉 Полуфинал турнира! +1 000 🪙 и +3 прокрутки");
     return}
   const ws=done.map(m=>m.winner);
   for(let k=0;k<ws.length/2;k++)await env.DB.prepare("INSERT INTO tour_matches(tour,round,slot,a,b) VALUES(?,?,?,?,?)").bind(T.id,T.round+1,k,ws[2*k],ws[2*k+1]).run();
@@ -771,7 +771,7 @@ async function tourApi(env,me,a,p){const now=Date.now();
     const mt=T.phase==="run"?(await env.DB.prepare("SELECT m.*,r.phase AS rphase,r.code AS rcode FROM tour_matches m LEFT JOIN rooms r ON r.id=m.room WHERE m.tour=? ORDER BY m.round,m.slot").bind(T.id).all()).results:[];
     return {id:T.id,phase:T.phase,start:T.start,left:Math.max(0,T.start-now),round:T.round,count:players.length,max:TOUR_MAX,me:mine?{card:mine.card}:null,
       matches:mt.map(m=>({round:m.round,a:m.a,b:m.b,an:nm[m.a]||"?",bn:m.b?nm[m.b]||"?":null,winner:m.winner,room:m.room,live:LIVE.includes(m.rphase),code:(m.a===me.id||m.b===me.id)?m.rcode:undefined})),
-      last:last?{name:last.champion_name,uid:last.champion}:null,prize:"🏆 $10 000 + 10 прокруток + эпик + VIP на неделю + кубок у ника"}}
+      last:last?{name:last.champion_name,uid:last.champion}:null,prize:"🏆 10 000 🪙 + 10 прокруток + эпик + VIP на неделю + кубок у ника"}}
   const T=await curTour(env);
   if(a==="tour_join"){if(T.phase!=="reg")fail("Турнир уже идёт, регистрация закрыта");
     const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=? AND f<>5 AND part=0").bind(p.id|0,me.id).first();if(!c)fail("Выбери свою карточку (не «Основателя»)");

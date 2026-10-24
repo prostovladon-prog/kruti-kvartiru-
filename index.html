@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=b986b0c7">
+<link rel="stylesheet" href="style.css?v=52c87bf1">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -16,7 +16,7 @@
   <div class="dimmer" id="dimmer"></div>
   <header>
     <div class="logo">Воины<br>Эпох<small>Серия 1, 32 карточки</small></div>
-    <div class="hdr-r"><button type="button" class="sound" id="topup" title="Тестовые прокрутки для прототипа">+3</button><button type="button" class="sound ico goldh" id="gold-hdr" aria-label="Сокровищница" title="Сокровищница">🏪</button><button type="button" class="sound ico" id="help-go" aria-label="Помощь" title="Помощь">❓</button><button type="button" class="sound chatbtn ico" id="chat-go" aria-label="Чат" title="Чат">💬<i id="chat-dot" hidden></i></button><button type="button" class="sound ico" id="snd" aria-pressed="true" aria-label="Звук" title="Звук">🔊</button><div class="cash" id="cash-box" title="Деньги и руны"><div class="cur"><i class="ci ci-c">$</i><b class="num" id="cash">0</b></div><div class="cur cur-r" id="cash-rw"><i class="ci ci-r"></i><b class="num" id="cash-r">0</b></div></div></div>
+    <div class="hdr-r"><button type="button" class="sound" id="topup" title="Тестовые прокрутки для прототипа">+3</button><button type="button" class="sound ico goldh" id="gold-hdr" aria-label="Сокровищница" title="Сокровищница">🏪</button><button type="button" class="sound ico" id="help-go" aria-label="Помощь" title="Помощь">❓</button><button type="button" class="sound chatbtn ico" id="chat-go" aria-label="Чат" title="Чат">💬<i id="chat-dot" hidden></i></button><button type="button" class="sound ico" id="snd" aria-pressed="true" aria-label="Звук" title="Звук">🔊</button><div class="cash" id="cash-box" title="Деньги и руны"><div class="cur"><i class="ci ci-c">🪙</i><b class="num" id="cash">0</b></div><div class="cur cur-r" id="cash-rw"><i class="ci ci-r"></i><b class="num" id="cash-r">0</b></div></div></div>
   </header>
 
   <section id="sec-spin">
@@ -170,20 +170,20 @@
   </section>
   <section id="sec-craft" hidden>
     <div class="kz"><i class="gm g1"></i><i class="gm g2"></i><i class="gm g3"></i><i class="gm g4"></i><div class="kz-in"><div class="fembers" aria-hidden="true"></div>
-      <div class="fhd">⚒ 1. Что выковать <small>цена цели <b class="num" id="cr-tv">$0</b></small></div>
+      <div class="fhd">⚒ 1. Что выковать <small>цена цели <b class="num" id="cr-tv">0 🪙</b></small></div>
       <div class="fprev"><div class="fcard" id="cr-prev"></div><div><b class="fname" id="cr-tname"></b><p class="fdesc" id="cr-tdesc"></p><div class="frun" id="cr-trun"></div></div></div>
       <div class="fins" id="cr-fins"></div>
       <div class="tgrid" id="cr-tgt"></div>
       <p class="crintro">Отдай карточки в горн и крути. Не повезёт — отданные сгорят.</p>
     </div></div>
     <div class="kz"><i class="gm g1"></i><i class="gm g2"></i><i class="gm g3"></i><i class="gm g4"></i><div class="kz-in">
-      <div class="fhd">🔥 2. В горн <small><span id="cr-hint">от 1 до 5 карточек</span> · <b class="num" id="cr-sum">$0</b></small></div>
+      <div class="fhd">🔥 2. В горн <small><span id="cr-hint">от 1 до 5 карточек</span> · <b class="num" id="cr-sum">0 🪙</b></small></div>
       <div class="fslots" id="cr-slots"></div>
       <div class="fsub">Твоя коллекция — нажми, чтобы положить в горн</div>
       <div class="pickrow" id="cr-pick"></div>
     </div></div>
     <div class="kz"><i class="gm g1"></i><i class="gm g2"></i><i class="gm g3"></i><i class="gm g4"></i><div class="kz-in wheelbox">
-      <div class="formula"><span>Отдаёшь</span><b class="num" id="cr-f1">$0</b><span class="ar">➜</span><span>Получаешь</span><b class="num" id="cr-f2">$0</b></div>
+      <div class="formula"><span>Отдаёшь</span><b class="num" id="cr-f1">0 🪙</b><span class="ar">➜</span><span>Получаешь</span><b class="num" id="cr-f2">0 🪙</b></div>
       <div class="wheel">
         <svg viewBox="0 0 200 200" aria-hidden="true">
           <defs><linearGradient id="crFire" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".45" stop-color="#ff9f0a"/><stop offset="1" stop-color="#ff2e1f"/></linearGradient>
@@ -209,7 +209,7 @@
 <g stroke="#0d1030" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
 <path d="M96 22 V30 M90 30 h12 l-2 18 h-8 Z" fill="#ffd23f"/><path d="M93 34 h6 v10 h-6z" fill="#fff6a0" stroke-width="2"/>
 <path d="M18 120 Q20 86 42 78 L78 78 Q100 86 102 120Z" fill="url(#trCoat)"/><path d="M60 80 V120" stroke-width="2.5"/><path d="M40 98 H80" stroke="#ffd23f" stroke-width="5"/>
-<path d="M70 96 q14 -4 18 8 q4 14 -10 18 q-16 2 -16 -12 q0 -10 8 -14Z" fill="#c98a2a"/><path d="M72 98 q4 -6 10 -2" fill="none" stroke-width="2"/><text x="77" y="114" font-size="11" font-weight="900" fill="#ffd23f" stroke="none" text-anchor="middle">$</text>
+<path d="M70 96 q14 -4 18 8 q4 14 -10 18 q-16 2 -16 -12 q0 -10 8 -14Z" fill="#c98a2a"/><path d="M72 98 q4 -6 10 -2" fill="none" stroke-width="2"/><text x="77" y="114" font-size="11" font-weight="900" fill="#ffd23f" stroke="none" text-anchor="middle">✦</text>
 <path d="M50 70 L50 80 L70 80 L70 70Z" fill="#e0ac83"/>
 <path d="M38 50 Q38 28 60 28 Q82 28 82 50 Q82 72 60 74 Q38 72 38 50Z" fill="#e0ac83"/>
 <path d="M40 56 Q42 86 60 92 Q78 86 80 56 Q72 64 60 62 Q48 64 40 56Z" fill="#eceef5"/><path d="M52 70 Q60 82 68 70" fill="none" stroke="#a9b0c4" stroke-width="2"/>
@@ -238,8 +238,8 @@
     <div id="sh-lavka" style="display:none;flex-direction:column;gap:12px">
       <div class="box"><h3>Лавка</h3><p>Здесь деньги превращаются в силу. Деньги приходят с продаж, боёв, походов и босса.</p>
         <div class="shopi"><b>Тренер</b><button type="button" class="mini2" id="lv-train">Тренировать</button><small id="lv-train-t">Выбери воина ниже: +50 опыта за деньги</small></div>
-        <div class="shopi"><b>Зелье ярости</b><button type="button" class="mini2" id="lv-rage">Купить за $150</button><small id="lv-rage-t">+1 удар по боссу сегодня, до 2 в день</small></div>
-        <div class="shopi"><b>Карта похода</b><button type="button" class="mini2" id="lv-map">Купить за $120</button><small id="lv-map-t">Открывает 4-е место для походов на сегодня</small></div>
+        <div class="shopi"><b>Зелье ярости</b><button type="button" class="mini2" id="lv-rage">Купить за 150 🪙</button><small id="lv-rage-t">+1 удар по боссу сегодня, до 2 в день</small></div>
+        <div class="shopi"><b>Карта похода</b><button type="button" class="mini2" id="lv-map">Купить за 120 🪙</button><small id="lv-map-t">Открывает 4-е место для походов на сегодня</small></div>
       </div>
       <div class="box"><h3>Рамки для карточек</h3><p>Украшение для понтов: рамка видна на карточке везде: в коллекции, на рынке, в топе и у друзей.</p><div class="lvprev" id="lv-prev"></div><div class="frames" id="lv-frames"></div><button type="button" class="craftbtn" id="lv-fgo">Надеть рамку</button></div>
       <div class="box"><span class="step">Выбери воина</span><div class="pickrow" id="lv-pick"></div></div>
@@ -329,8 +329,8 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=d1643c43"></script>
-<script src="game.js?v=ae8d3358"></script>
-<script src="wow.js?v=84adfb81"></script>
+<script src="rules.js?v=dcfdb67d"></script>
+<script src="game.js?v=a704906f"></script>
+<script src="wow.js?v=bf0c6733"></script>
 </body>
 </html>

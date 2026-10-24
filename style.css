@@ -1498,3 +1498,4 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .csa-t{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}.csa-t th,.csa-t td{padding:4px 3px;text-align:right;border-bottom:1px solid #e6e1d4}.csa-t th:first-child,.csa-t td:first-child{text-align:left}
 .csa-p{display:flex;gap:8px;align-items:baseline;font-size:13px;padding:4px 0;border-bottom:1px solid #eee}.csa-p span{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.csa-p small{color:#5a5f80}
 @media (prefers-reduced-motion:reduce){.cs-ft{animation:none}}
+.ci-c{background:none!important;font-size:1.05em;filter:drop-shadow(0 1px 0 rgba(0,0,0,.3))}

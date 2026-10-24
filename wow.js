@@ -313,7 +313,7 @@ function termsNeed(){if(!S)return false;if(ONLINE)return S.termsV!=null&&S.terms
 let termsOn=false;
 async function termsGate(){if(termsOn||!termsNeed())return;termsOn=true;const d=document.createElement("div");d.className="terms";
   d.innerHTML='<div class="tbox"><h3>📜 Перед игрой</h3><p class="tl">Прочитай и прими пользовательское соглашение и политику конфиденциальности. Коротко:</p><ul class="tsum">'+
-   '<li>💠 Карточки, $, руны и подарки — игровые ценности. Их нельзя вывести или обменять на деньги</li><li>⭐ Покупки за Telegram Stars выдаются сразу и не возвращаются (кроме технической ошибки)</li>'+
+   '<li>💠 Карточки, монеты 🪙, руны и подарки — игровые ценности. Их нельзя вывести или обменять на деньги</li><li>⭐ Покупки за Telegram Stars выдаются сразу и не возвращаются (кроме технической ошибки)</li>'+
    '<li>🎰 Казино — только на руны из игры. Это развлечение, а не игра на деньги</li><li>🚫 Боты, мультиаккаунты, накрутки и баги — бан без компенсации</li><li>🎁 В розыгрышах решение администрации окончательное</li><li>🔒 Мы храним только твой Telegram ID, имя и игровые данные и никому их не продаём</li></ul>'+
    '<div class="tdoc" id="tdoc">Загружаю текст…</div><label class="tchk"><input type="checkbox" id="t-ok"> <span>Я прочитал(а) и принимаю соглашение и политику конфиденциальности. Если мне нет 18 лет, мои родители (законные представители) согласны</span></label>'+
    '<button type="button" class="craftbtn" id="t-go" disabled>Принимаю</button><a class="tlink" href="terms.html" target="_blank" rel="noopener">Открыть полный текст отдельно</a></div>';

@@ -7,9 +7,9 @@ const CHANNEL="voinyepoh";                     // канал игры, бот д
 const PAGE_URL="https://prostovladon-prog.github.io/kruti-kvartiru-/";
 
 const $=id=>document.getElementById(id);
-const fmt=n=>{n=+n||0;if(Math.abs(n)<100&&Math.abs(n-Math.round(n))>.004)return "$"+n.toFixed(2).replace(".",",");return "$"+Math.round(n).toLocaleString("ru-RU").replace(/[\u00a0\u202f,]/g," ")};
+const fmt=n=>{n=+n||0;if(Math.abs(n)<100&&Math.abs(n-Math.round(n))>.004)return n.toFixed(2).replace(".",",")+" 🪙";return Math.round(n).toLocaleString("ru-RU").replace(/[\u00a0\u202f,]/g," ")+" 🪙"};
 /* коротко для тесных мест: $12 345, $1,49 млн, $33,2 млн, $1,2 млрд */
-const fmtC=n=>{n=+n||0;const a=Math.abs(n),k=(v,u)=>{let t=v<10?v.toFixed(2):v<100?v.toFixed(1):String(Math.round(v));if(t.includes("."))t=t.replace(/\.?0+$/,"");return "$"+t.replace(".",",")+" "+u};
+const fmtC=n=>{n=+n||0;const a=Math.abs(n),k=(v,u)=>{let t=v<10?v.toFixed(2):v<100?v.toFixed(1):String(Math.round(v));if(t.includes("."))t=t.replace(/\.?0+$/,"");return t.replace(".",",")+" "+u+" 🪙"};
   if(a>=1e9)return k(n/1e9,"млрд");if(a>=1e6)return k(n/1e6,"млн");return fmt(n)};
 const fmtN=n=>Math.round(n).toLocaleString("ru-RU").replace(/[ ,]/g," ");
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1381,13 +1381,13 @@ function renderExp(){
     const b=el.querySelector("button");const canRush=!ONLINE||S.test||S.admin;b.textContent=left>0?(canRush?"Ускорить (тест)":"В пути"):"Забрать добычу";b.disabled=left>0&&!canRush;
     b.onclick=async()=>{if(left>0){if(await act("exp_rush",{id:c.id}))renderExp();return}
       const r=await act("exp_claim",{id:c.id});if(!r)return;
-      let msg=HEROES[c.h][0]+" вернулся: +"+r.money+"$, +"+r.xp+" опыта";if(r.sp)msg+=", +"+r.sp+(r.sp===1?" прокрутка":" прокрутки");
+      let msg=HEROES[c.h][0]+" вернулся: +"+r.money+" 🪙, +"+r.xp+" опыта";if(r.sp)msg+=", +"+r.sp+(r.sp===1?" прокрутка":" прокрутки");
       if(r.card){msg+=". Нашёл карточку: "+HEROES[r.card.h][0]+"!";burst(3)}
       sfx.coin();hapN("success");renderAll();toast(msg)};
     sl.appendChild(el)}
   const dd=$("ex-dest");dd.innerHTML="";
   DEST.forEach((D,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===exDest);
-    b.innerHTML=`<b></b>${D.t}, +${D.xp} опыта<br>$${D.m[0]}–${D.m[1]}${D.card?", шанс карточки "+Math.round(D.card*100)+"%":""}`;b.querySelector("b").textContent=D.k;b.onclick=()=>{exDest=i;renderExp()};dd.appendChild(b)});
+    b.innerHTML=`<b></b>${D.t}, +${D.xp} опыта<br>${D.m[0]}–${D.m[1]} 🪙${D.card?", шанс карточки "+Math.round(D.card*100)+"%":""}`;b.querySelector("b").textContent=D.k;b.onclick=()=>{exDest=i;renderExp()};dd.appendChild(b)});
   const pk=$("ex-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c));
   if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных воинов.</p>';
   free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===exPick);
@@ -1741,8 +1741,8 @@ let lvPick=null,lvFrame="bronze";
 function renderLavka(){const c=S.cards.find(x=>x.id===lvPick);
   $("lv-train").textContent=c?(lvl(c)>=LMAX?"Максимум":"Тренировать за "+fmt(trainCost(c))):"Выбери воина";$("lv-train").disabled=!c||lvl(c)>=LMAX;
   $("lv-train-t").textContent=c?HEROES[c.h][0]+", уровень "+lvl(c)+(lvlNext(c)?", опыт "+(c.xp||0)+" из "+lvlNext(c):""):"Выбери воина ниже: +50 опыта за деньги";
-  const B=bossS();$("lv-rage").disabled=(B.extra||0)>=2;$("lv-rage").textContent=(B.extra||0)>=2?"Лимит на сегодня":"Купить за $150";
-  $("lv-map").disabled=S.mapDay===todayL();$("lv-map").textContent=S.mapDay===todayL()?"Уже куплена":"Купить за $120";
+  const B=bossS();$("lv-rage").disabled=(B.extra||0)>=2;$("lv-rage").textContent=(B.extra||0)>=2?"Лимит на сегодня":"Купить за 150 🪙";
+  $("lv-map").disabled=S.mapDay===todayL();$("lv-map").textContent=S.mapDay===todayL()?"Уже куплена":"Купить за 120 🪙";
   $("lv-prev").innerHTML=c?miniSlot(Object.assign({},c,{frame:lvFrame})):'<span class="lvnone">Выбери воина внизу, и здесь появится превью с рамкой</span>';
   if(FRAMES[lvFrame].only&&!S.pioneer)lvFrame="bronze";
   const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).filter(([k,F])=>!F.only||S.pioneer).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
@@ -1821,7 +1821,7 @@ let tpView="worth";const tpCache={};let tpLoading={};
 const TP={worth:{t:"Самые богатые коллекции",u:v=>fmt(v)},cards:{t:"Самые дорогие карточки в мире",u:v=>fmt(v)},album:{t:"Больше всего разных воинов",u:v=>v+" из "+NHEROES},wins:{t:"Больше всего побед в боях",u:v=>fmtN(v)+" побед"}};
 Object.assign(LOCAL,{nick(p){const n=checkNick(p.nick);if(n===S.nick)throw new GameError("Это уже твой ник");
   if(SELLERS.some(x=>x.toLowerCase()===n.toLowerCase()))throw new GameError("Ник «"+n+"» уже занят. Придумай другой");
-  const cost=S.nick?NICK_COST:0;if(S.cash<cost)throw new GameError("Смена ника стоит $"+cost+", не хватает денег");S.cash-=cost;S.nick=n;return {nick:n,cost}},
+  const cost=S.nick?NICK_COST:0;if(S.cash<cost)throw new GameError("Смена ника стоит "+cost+" 🪙, не хватает монет");S.cash-=cost;S.nick=n;return {nick:n,cost}},
  top(p){const k=p.kind,R=rng(snHash(todayL()+k)),names=SELLERS.slice().sort(()=>R()-.5);
   const fake=(h,f)=>{const c=phantom(h,f);c.sn=String(Math.floor(R()*1e6)).padStart(6,"0");c.no=1+Math.floor(R()*Math.min(FIN[f].run,999));c.stars=f>=2&&R()<.5?1+Math.floor(R()*4):0;c.id="b"+Math.floor(R()*1e9);return c};
   const bestH=()=>{const hs=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]>=2);return hs[Math.floor(R()*hs.length)]};
@@ -1939,7 +1939,7 @@ function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else s
 function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof"].forEach(k=>{$("sec-"+k).hidden=k!==t});
   const grp=GRP[t]||t;["spin","cards","fight","cas","gold","shop","prof"].forEach(n=>{const b=$("tab-"+n);if(b)b.setAttribute("aria-selected",n===grp)});if(GRP[t])lastSub[grp]=t;drawSub(t);renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold("gifts");$("fchest").onclick=()=>openGold("chest");$("tab-cards").onclick=()=>setTab(lastSub.cards||"col");$("tab-fight").onclick=()=>goSub(lastSub.fight||"duel");$("tab-cas").onclick=()=>{if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas")};$("tab-shop").onclick=()=>setTab("shop");$("tab-prof").onclick=()=>goSub(lastSub.prof||"prof");
-let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
+let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/ 🪙$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
 function renderAll(){if(!S)return;updCash();{const on=!ONLINE||!!S.shopOn;$("gold-go").hidden=!on;$("gold-hdr").hidden=!on;$("tab-gold").hidden=!on;$("fchest").hidden=!on;document.querySelector("nav.tabs").classList.toggle("g9",on);
   $("fchest-t").textContent=S.newbie?"СУНДУКИ":"−50%"}if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-gold").hidden)renderGold();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
