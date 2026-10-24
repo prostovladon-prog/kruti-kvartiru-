@@ -1475,3 +1475,11 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 #top-list .minic .scene,#top-list .minic .gm,#top-list .minic .xr,#top-list .minic .xa,#top-list .minic .clx,.feed .minic .scene,.feed .minic .gm,.feed .minic .xr,.feed .minic .xa,.feed .minic .clx{display:none}
 #top-list .minic *,.feed .minic *{filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;mix-blend-mode:normal!important}
 #chal.secret{background:linear-gradient(115deg,#2a0a5a,#7a1fa8,#06305a,#7a1fa8,#2a0a5a);background-size:300% 100%;animation:wholo 6s linear infinite;box-shadow:0 0 22px rgba(0,229,255,.5),4px 4px 0 var(--ink)}
+/* лагерь быстрее: без размытия под стеклом и без цветового сбоя при тряске */
+#sec-camp .cp-gl,#sec-camp .cp-stat,#sec-camp .cp-hero span{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(10,8,30,.62)}
+#sec-camp .cp-ar.shake{animation:arshake .3s}
+#sec-camp .cp-ar,#sec-camp .w3fx{contain:layout paint}
+.cp-lite{display:block;margin:-2px auto 0;padding:7px 12px;border-radius:12px;border:2px solid rgba(255,255,255,.4);background:rgba(10,8,30,.45);color:#fff;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.cp-lite b{color:#ffd23f}
+#sec-camp .cp-ar.lite .w3sc .rays,#sec-camp .cp-ar.lite .cp-torch,#sec-camp .cp-ar.lite .cp-torch::before,#sec-camp .cp-ar.lite .cp-tg,#sec-camp .cp-ar.lite .cp-hero,#sec-camp .cp-ar.lite .cp-hpb i,#sec-camp .cp-ar.lite .cp-bar i,#sec-camp .cp-ar.lite .cp-combo b{animation:none!important}
+#sec-camp .cp-ar.lite .cp-hero{filter:none}#sec-camp .cp-ar.lite .w3sc .fog{display:none}#sec-camp .cp-ar.lite .cpf{text-shadow:2px 2px 0 #0d1030}

@@ -128,7 +128,7 @@ function wFx(cv){const X=cv.getContext("2d"),P=[];let run=false;const fit=()=>{c
     for(let i=P.length-1;i>=0;i--){const p=P[i];p.t++;p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.vx*=.97;const k=1-p.t/p.l;if(k<=0){P.splice(i,1);continue}
       X.globalAlpha=k;X.fillStyle=p.c;X.save();X.translate(p.x,p.y);X.rotate(p.r+p.t*.2);if(p.s>3.5){X.beginPath();X.moveTo(0,-p.s);X.lineTo(p.s*.6,0);X.lineTo(0,p.s);X.lineTo(-p.s*.6,0);X.fill()}else X.fillRect(-p.s/2,-p.s/2,p.s,p.s);X.restore()}
     X.globalAlpha=1;if(P.length)requestAnimationFrame(loop);else run=false};
-  return {fit,burst(x,y,n,cols,sp,g,life,sz){if(reduce)return;for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=sp*(.4+Math.random());P.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-(g>0?sp*.5:0),g:g||0,l:life*(.6+Math.random()*.6),t:0,c:cols[Math.floor(Math.random()*cols.length)],s:sz*(.6+Math.random()*.8),r:Math.random()*6})}if(!run){run=true;requestAnimationFrame(loop)}}}}
+  return {fit,burst(x,y,n,cols,sp,g,life,sz){if(reduce||P.length>140)return;n=Math.min(n,140-P.length);for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=sp*(.4+Math.random());P.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-(g>0?sp*.5:0),g:g||0,l:life*(.6+Math.random()*.6),t:0,c:cols[Math.floor(Math.random()*cols.length)],s:sz*(.6+Math.random()*.8),r:Math.random()*6})}if(!run){run=true;requestAnimationFrame(loop)}}}}
 function wSheet(html,onClick){document.querySelectorAll(".wsheet").forEach(e=>e.remove());const d=document.createElement("div");d.className="wsheet";
   d.innerHTML='<div class="wsh-in">'+html+'<button type="button" class="ghost" data-x="1">Закрыть</button></div>';document.body.append(d);
   d.onclick=e=>{if(e.target===d||e.target.closest("[data-x]")){d.remove();return}const b=e.target.closest("button");if(b&&onClick){const r=onClick(b);if(r!==false)d.remove()}};return d}
@@ -356,3 +356,13 @@ function collabFace(root,c){const q=s=>root.querySelector(s);root.classList.add(
   q(".foot>b").textContent="БЕСЦЕННАЯ";const sn=q(".foot .sn");sn.innerHTML=plateHTML();sn.classList.remove("nice");const rb=q(".ribbon");rb.hidden=false;rb.textContent="🤝 Коллаборация";
   q(".foot>b").textContent="БЕСЦЕННАЯ";q(".power").textContent="«Единственный такой номер в мире»";
   if(!q(".clx"))q(".in").insertAdjacentHTML("beforeend",'<i class="clx c1"></i><i class="clx c2"></i><i class="clx c3"></i>')}
+
+/* ---------- лагерь: лёгкий режим и ограничение эффектов, чтобы не лагало при быстрых тапах ---------- */
+let campLite=false;try{campLite=localStorage.getItem("we-lite")==="1"}catch(e){}
+function liteApply(){const ar=$("cp-ar");if(ar)ar.classList.toggle("lite",campLite);const b=$("cp-lite");if(b)b.innerHTML=campLite?"🐢 Лёгкий режим <b>включён</b> — эффекты выключены":"✨ Лагает? Включи <b>лёгкий режим</b>"}
+let fxLast=0;
+const _campFx2=campFx;campFx=function(x,y,big){if(campLite)return;const t=performance.now();if(t-fxLast<70&&!big)return;fxLast=t;_campFx2(x,y,big)};
+const _campFloat2=campFloat;campFloat=function(t,cls,x,y){const ar=$("cp-ar");if(!cls&&ar&&ar.querySelectorAll(".cpf").length>=(campLite?3:6))return;if(campLite&&cls==="crit"){const f=document.createElement("div");f.className="cpf crit";f.textContent=t;const r=ar.getBoundingClientRect();f.style.left=r.width/2+"px";f.style.top=r.height*.35+"px";ar.append(f);setTimeout(()=>f.remove(),900);return}_campFloat2(t,cls,x,y)};
+const _campShake=campShake;campShake=function(){if(!campLite)_campShake()};
+$("cp-lite").onclick=()=>{campLite=!campLite;try{localStorage.setItem("we-lite",campLite?"1":"0")}catch(e){}liteApply();toast(campLite?"🐢 Лёгкий режим: эффекты выключены":"✨ Эффекты включены")};
+liteApply();
