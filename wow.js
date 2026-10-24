@@ -420,3 +420,16 @@ function pmBonusAsk(){if(!S||!ONLINE||!S.nick||S.pm||S.pmBonus||termsNeed()||typ
   const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox"><h3>🔔 +3 прокрутки за напоминания</h3><p>Разреши боту писать — и сразу получишь <b>3 прокрутки</b>. Бот напомнит, когда готовы новые прокрутки, позовёт за сундуком и скажет, если купят твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pmb-yes">Включить и забрать +3</button><button type="button" class="ghost" id="pmb-no">Не сейчас</button></div>';
   $("pmb-yes").onclick=()=>{closeModal();enablePm()};$("pmb-no").onclick=closeModal}
 setInterval(()=>{try{pmBonusAsk()}catch(e){}},4000);
+
+/* ---------- обмен монет на руны ---------- */
+let exN=1000;
+function exK(){const E=S.ex||{};return E.d===new Date(Date.now()+3*3600e3).toISOString().slice(0,10)?E.r||0:0}
+function drawEx(){const b=$("cs-ex");if(!b||!S)return;const used=exK(),left=Math.max(0,EX.day-used),maxN=Math.min(Math.floor(S.cash),Math.floor(left/EX.rate));
+  const opts=[100,1000,5000].filter(v=>v<=maxN);if(exN>maxN)exN=Math.max(EX.min,opts[opts.length-1]||EX.min);
+  b.innerHTML='<div class="exh"><b>💱 Обмен монет на руны</b><small>1 <i class="gc1"></i> = '+EX.rate+' 💠 · сегодня ещё '+fmtN(left)+' 💠</small></div>'+
+   (left<=0?'<p class="exn">На сегодня лимит обмена исчерпан — завтра снова</p>':maxN<EX.min?'<p class="exn">Нужно минимум '+EX.min+' <i class="gc1"></i></p>':
+   '<div class="exr">'+opts.map(v=>'<button type="button" data-n="'+v+'" aria-pressed="'+(v===exN)+'">'+fmtN(v)+' <i class="gc1"></i></button>').join("")+'<button type="button" data-n="'+maxN+'" aria-pressed="'+(exN===maxN)+'">макс</button></div>'+
+   '<button type="button" class="craftbtn" id="cx-go">Обменять '+fmtN(exN)+' <i class="gc1"></i> → '+fmtN(exN*EX.rate)+' 💠</button>');
+  b.onclick=async e=>{const t=e.target.closest("button");if(!t||t.disabled)return;if(t.dataset.n){exN=+t.dataset.n;drawEx();return}
+    if(t.id==="cx-go"){t.disabled=true;const r=await act("ex_runes",{n:exN});if(r){sfx.coin();hapN("success");toast("💱 −"+fmtN(r.n)+" монет · +"+fmtN(r.r)+" рун");renderAll();try{renderCas()}catch(x){}}drawEx()}}}
+const _renderCas3=renderCas;renderCas=function(){_renderCas3();try{drawEx()}catch(e){}};

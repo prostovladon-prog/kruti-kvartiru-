@@ -728,11 +728,15 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await buy(A, { item: "gift", k: "crown_x" }); ok(r.ok && r.res.res.gift.no === 1, "ошибка печати: Корона № 1 из 10");
   // казино
   const setRunes = (uid, n) => { const u = db.prepare("SELECT state FROM users WHERE id=?").get(uid); const st = JSON.parse(u.state); st.camp = st.camp || { en: 0, at: Date.now(), lv: { pw: 0, en: 0, rg: 0, cr: 0, sq: 0 }, t: 0, hp: 100, kills: 0, total: 0, sqAt: Date.now() }; st.camp.runes = n; db.prepare("UPDATE users SET state=? WHERE id=?").run(JSON.stringify(st), uid); };
-  setRunes(A, 49999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 50 000 рун: без рун не открыть");
+  setRunes(A, 44999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 45 000 рун: без рун не открыть");
   setRunes(A, 2e6); let gifts = 0, runes = 0;
   for (let i = 0; i < 10; i++) { r = await call(A, "cas_case"); if (!r.ok) { ok(false, "кейс: " + r.err); break } if (r.res.g) gifts++; else runes += r.res.r; }
-  ok(r.ok && (gifts + runes / 3e4 >= 10 || runes > 0), "10 кейсов открыто (подарков: " + gifts + ")");
+  ok(r.ok && (gifts + runes / 27e3 >= 10 || runes > 0), "10 кейсов открыто (подарков: " + gifts + ")");
   r = await call(A, "cas_slot", { bet: 1000 }); ok(r.ok, "слот сыгран");
+  db.prepare("UPDATE users SET cash=10000 WHERE id=?").run(A);
+  { let q = await call(A, "ex_runes", { n: 1000 }); ok(q.ok && q.res.r === 10000 && q.S.cash === 9000, "обмен: 1000 монет → 10 000 рун");
+    q = await call(A, "ex_runes", { n: 9000 }); ok(q.ok && q.res.n === 4000 && q.res.left === 0, "дневной лимит 50 000 рун: обменялось только 4000 монет");
+    q = await call(A, "ex_runes", { n: 100 }); ok(!q.ok && /лимит/.test(q.err), "лимит исчерпан"); }
   r = await call(A, "cas_feed"); ok(r.ok && Array.isArray(r.res), "лента казино доступна всем");
   r = await call(A, "cas_stats"); ok(!r.ok, "статистика казино — только админу");
   { const n = db.prepare("SELECT COUNT(*) n FROM cas_log WHERE uid=?").get(A).n; ok(n === 11, "журнал казино: 10 кейсов + 1 слот (" + n + ")"); }
