@@ -1783,7 +1783,7 @@ function drawAuc(){const box=$("auc-box"),bn=$("auc-go");if(!box)return;const A=
   if(!A){box.hidden=true;return}box.hidden=false;
   $("auc-t").textContent=A.phase==="on"?"⏳ "+tleft(aucLeft()):A.phase==="soon"?"старт через "+tleft(aucLeft()):"завершён";
   const B=$("auc-body"),k=A.id+"|"+A.phase+"|"+A.bid+"|"+A.top;if(B.dataset.k===k)return;B.dataset.k=k;
-  B.innerHTML='<div class="aucg"><div class="aucc">'+miniSlot(A.card)+'</div><div class="auci"><b></b><small></small><div class="aucbid"></div><div class="auclead"></div><div class="aucbt"></div></div></div><p class="aucn">Каждый день в 20:00 · 10 минут торгов · ставка в последние 30 секунд продлевает торги · перебили — деньги возвращаются · деньги победителя сгорают</p>';
+  B.innerHTML='<div class="aucg"><div class="aucc">'+miniSlot(A.card)+'</div><div class="auci"><b></b><small></small><div class="aucbid"></div><div class="auclead"></div><div class="aucbt"></div></div></div><p class="aucn">Каждый день с 8:00 до 20:00 · ставка в последние 30 секунд продлевает торги · перебили — деньги возвращаются · деньги победителя сгорают</p>';
   B.querySelector("b").textContent=HEROES[A.card.h][0];B.querySelector("small").textContent=FIN[A.card.f].k+(A.card.f===4?" · единственная в мире":"")+" · оценка "+fmtC(A.card.v);
   B.querySelector(".aucbid").innerHTML=A.bid?'Ставка: <b class="num">'+fmtC(A.bid)+'</b>':'Стартовая ставка: <b class="num">'+fmtC(A.min)+'</b>';
   B.querySelector(".auclead").textContent=A.phase==="done"?(A.top_name?"🏆 Победил "+A.top_name+" за "+fmtC(A.bid):"Никто не сделал ставку"):A.top_name?(A.mine?"👑 Ты лидируешь!":"Лидер: "+A.top_name)+" · ставок "+A.n:"Ставок пока нет";

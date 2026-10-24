@@ -1156,3 +1156,23 @@ nav.tabs #tab-gold i{position:absolute;top:-10px;right:-4px;font-style:normal;fo
 .ttlbtn{width:100%;margin-top:8px;font-weight:800}
 .ttll{display:flex;flex-direction:column;gap:8px}.ttli{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px;border:2px solid var(--ink);border-radius:12px;background:#fff}.ttli.on{background:#fff1a8}
 .ttli .ttlb{font-size:13px}.ttli .craftbtn,.ttli .ghost{padding:8px 12px;font-size:13px;width:auto}
+
+/* торговец: голографическая витрина с алмазами */
+.trader{position:relative;overflow:hidden;border:5px solid transparent;box-shadow:4px 4px 0 var(--ink),0 0 22px rgba(197,107,255,.55);background:
+  linear-gradient(#fffaf2,#fffaf2) padding-box,
+  conic-gradient(from var(--ta,0deg),#ff5f6d,#ffc371,#fff36b,#47e891,#3ab0ff,#c56bff,#ff5f6d) border-box;animation:trspin 4s linear infinite}
+@property --ta{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes trspin{to{--ta:360deg}}
+.trader::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:1;
+  background:radial-gradient(rgba(255,255,255,.9) 1.2px,transparent 1.8px) 0 0/18px 18px,linear-gradient(115deg,#ffb8d9,#a8e4ff 22%,#c8ffb8 42%,#fff0a0 60%,#dcb8ff 80%,#ffb8d9);background-size:300% 300%;animation:trholo 7s ease-in-out infinite}
+@keyframes trholo{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.trsh{position:absolute;top:-40%;left:-60%;width:40%;height:180%;transform:rotate(20deg);pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:trshine 3.6s ease-in-out infinite}
+@keyframes trshine{0%,55%{left:-60%}100%{left:130%}}
+.trader>*{position:relative}.trader>.dia,.trader>.trsh{position:absolute}
+.dia{width:22px;height:22px;transform:rotate(45deg);z-index:3;border:2px solid var(--ink);border-radius:3px;
+  background:linear-gradient(135deg,#ffffff,#bdefff 35%,#5ac8fa 60%,#e0d6ff 80%,#ffffff);box-shadow:0 0 10px #9fe8ff,inset 0 0 4px #fff;animation:diag 2.4s ease-in-out infinite}
+.dia.d1{top:8px;left:8px}.dia.d2{top:8px;right:8px;animation-delay:.6s}.dia.d3{bottom:8px;left:8px;animation-delay:1.2s}.dia.d4{bottom:8px;right:8px;animation-delay:1.8s}
+@keyframes diag{50%{box-shadow:0 0 18px #fff,0 0 30px #9fe8ff;filter:brightness(1.3)}}
+.trader h3{background:linear-gradient(90deg,#c2224a,#bf5af2,#0a84ff,#34c759,#ff9f0a,#c2224a);background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:nfx 3s linear infinite;font-weight:900}
+.trader .tra .trsvg{filter:drop-shadow(0 0 8px #c56bff) drop-shadow(0 0 14px #5ac8fa)}
+.trader .tri{background:rgba(255,255,255,.75)}.trader .tri.star{background:linear-gradient(135deg,#fff6c8,#ffd6f0,#d6f1ff,#fff6c8);background-size:300% 300%;animation:trholo 4s ease-in-out infinite}

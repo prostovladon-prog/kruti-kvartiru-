@@ -606,8 +606,8 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
 
 /* титулы за деньги игры: покупаются один раз навсегда, деньги сгорают. Виден рядом с ником в топах, чате и рейтинге */
 const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8}};
-/* аукцион дня: в 20:00 по Минску одна редкая карточка, 10 минут ставок, ставка в последние 30 секунд продлевает торги */
-const AUC_HOUR=20, AUC_MS=10*60e3, AUC_EXT=30e3, AUC_STEP=.05;
+/* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
+const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
 if(typeof module!=="undefined")module.exports={TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
@@ -1281,7 +1281,7 @@ async function aucCur(env){const now=Date.now(),day=dayOf(now),d=new Date(now+TZ
 function aucView(A,me){if(!A)return null;const now=Date.now();
   return {id:A.id,phase:A.done||now>=A.until?"done":now>=A.start?"on":"soon",left:Math.max(0,(now<A.start?A.start:A.until)-now),start:A.start,
     card:{id:"a"+A.id,h:A.h,f:A.f,no:0,sn:"??????",hue:A.hue,v:A.v,stats:rj(A.stats,[]),xp:0,wins:0,stars:0},min:A.min,bid:A.bid,next:A.bid?Math.ceil(A.bid*(1+AUC_STEP)):A.min,top:A.top,top_name:A.top_name,n:A.n,mine:A.top===me.id}}
-async function aucBid(env,me,p){const A=await aucCur(env),now=Date.now();if(!A||A.done||now<A.start||now>=A.until)fail("Сейчас торгов нет. Аукцион каждый день в "+AUC_HOUR+":00");
+async function aucBid(env,me,p){const A=await aucCur(env),now=Date.now();if(!A||A.done||now<A.start||now>=A.until)fail("Сейчас торгов нет. Аукцион каждый день с "+AUC_HOUR+":00 до 20:00");
   if(A.top===me.id)fail("Твоя ставка и так первая");
   const next=A.bid?Math.ceil(A.bid*(1+AUC_STEP)):A.min,amt=Math.max(next,Math.ceil(+p.amt||0));
   const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(amt,me.id,amt).run();if(pay.meta.changes!==1)fail("Не хватает денег: нужно "+fmtD(amt)+" $");
@@ -1300,8 +1300,13 @@ async function aucTick(env){const now=Date.now(),A=await aucCur(env);if(!A)retur
   // за минуту до старта: рассылка «аукцион начинается»
   const k=await kvGet(env,"auc_note");if(!A.done&&now>=A.start-60e3&&now<A.start+AUC_MS&&(!k||k.id!==A.id||!k.done)){const st=k&&k.id===A.id?k:{id:A.id,after:0,done:0};
     const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-    for(const u of us){await notify(env,u.id,"🔨 Аукцион дня начинается! Сегодня на кону: «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — "+(A.f===4?"единственная в мире":"золотая")+". Стартовая ставка $"+fmtD(A.min)+", торги 10 минут.","🔨 Участвовать",PAGE+"?shop=1");st.after=u.id}
-    if(us.length<25)st.done=1;await kvSet(env,"auc_note",st)}}
+    for(const u of us){await notify(env,u.id,"🔨 Аукцион дня начинается! Сегодня на кону: «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — "+(A.f===4?"единственная в мире":"золотая")+". Стартовая ставка $"+fmtD(A.min)+", торги до 20:00.","🔨 Участвовать",PAGE+"?shop=1");st.after=u.id}
+    if(us.length<25)st.done=1;await kvSet(env,"auc_note",st);return}
+  // за полчаса до конца: «последние 30 минут»
+  const end=A.until-30*60e3,k2=await kvGet(env,"auc_note2");if(!A.done&&now>=end&&now<A.until&&(!k2||k2.id!==A.id||!k2.done)){const st=k2&&k2.id===A.id?k2:{id:A.id,after:0,done:0};
+    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
+    for(const u of us){await notify(env,u.id,"⏰ Аукцион закрывается через 30 минут! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+": "+(A.bid?"ставка $"+fmtD(A.bid)+" от "+A.top_name+". Перебьёшь?":"ставок ещё нет — забирай за стартовую $"+fmtD(A.min)+"!"),"🔨 К аукциону",PAGE+"?shop=1");st.after=u.id}
+    if(us.length<25)st.done=1;await kvSet(env,"auc_note2",st)}}
 /* ---------- турнир выходных: каждую субботу в 20:00 по Минску ----------
    Регистрация всю неделю (до 64 игроков). В 20:00 сетка на выбывание, каждый матч — живой бой на арене.
    Сервер сам создаёт бои, двигает раунды (раз в 5 секунд) и раздаёт призы. */
