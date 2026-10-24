@@ -1036,6 +1036,8 @@ function renderCamp(light){if(!S||$("sec-camp").hidden)return;const V=campView()
   $("cp-ups").innerHTML=Object.entries(CAMP_UP).map(([k,U])=>{const l=C.lv[k]||0,mx=l>=U.max,c=mx?0:U.c(l);
     return `<div class="cpr"><span class="cpi">${UP_IC[k]}</span><div><b>${U.n} <i>ур. ${l}/${U.max}</i></b><small>${U.v(l)}${mx?"":" → "+U.v(l+1)}</small></div><button type="button" class="mini2${mx||V.runes<c?" dim":""}" data-up="${k}">${mx?"Макс.":fmtN(c)+" 💠"}</button></div>`}).join("")}
 $("cp-ar").addEventListener("pointerdown",e=>{e.preventDefault();campHit(e)});
+/* iPhone: при частых тапах палец чуть сдвигается и страница начинает прокручиваться — экран «прыгает». Внутри арены прокрутку и двойной тап гасим */
+["touchstart","touchmove","touchend","dblclick","gesturestart"].forEach(t=>$("cp-ar").addEventListener(t,e=>{if(e.cancelable)e.preventDefault()},{passive:false}));
 $("cp-back").onclick=()=>setTab("spin");
 $("cp-buy").onclick=async()=>{await campFlush();const pr=spinPrice(S,NOW());if(spinsBought(S,NOW())>=BUY_MAX)return;if(campView().runes<pr){toast("Не хватает "+fmtN(pr-campView().runes)+" рун — потренируйся ещё");return}
   const r=await act("buy_spin");if(r){sfx.coin();hapN("success");toast("+1 прокрутка за "+fmtN(r.price)+" рун");renderCamp()}};

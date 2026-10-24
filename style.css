@@ -1342,7 +1342,7 @@ nav.tabs #tab-gold i{position:absolute;top:-10px;right:-4px;font-style:normal;fo
 .wsh-in .winv{margin-bottom:4px}
 .wrev .ghost{border-color:rgba(255,255,255,.5)}
 /* ===== лагерь как в макете: вся арена — 3D-сцена, стеклянный HUD сверху, объёмная мишень ===== */
-#sec-camp .cp-ar{height:560px;border-radius:22px;border:3px solid var(--ink);box-shadow:0 8px 0 var(--ink),0 14px 30px rgba(0,0,0,.45);background:#1a0a3a;touch-action:manipulation}
+#sec-camp .cp-ar{height:520px;border-radius:22px;border:3px solid var(--ink);box-shadow:0 8px 0 var(--ink),0 14px 30px rgba(0,0,0,.45);background:#1a0a3a;touch-action:manipulation}
 #sec-camp .w3sc{background:linear-gradient(180deg,#1a0a3a 0%,#5a1f8a 18%,#ff5a6a 38%,#ffb347 50%,#ffd27a 54%)}
 #sec-camp .w3sc .sun{left:50%;top:150px;width:220px;height:220px;margin-left:-110px}
 #sec-camp .w3sc .rays{left:50%;top:260px}
@@ -1435,3 +1435,7 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 #t-go[disabled]{opacity:.45}
 .tlink{display:block;text-align:center;margin-top:8px;font-size:12px;font-weight:800;color:#7a1fa8}
 .ng-teas{margin:8px 0 10px;padding:9px 11px;border-radius:12px;background:linear-gradient(115deg,#7a1fa8,#c2185b);color:#fff;font-size:13px;font-weight:700;line-height:1.35;border:2px solid #0d1030}
+#sec-camp .cp-ar{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;overscroll-behavior:contain}#sec-camp .cp-ar *{-webkit-touch-callout:none}
+#sec-camp .cp-tg{top:150px}
+#sec-camp .tgs{height:100px}#sec-camp .tgl{top:288px}
+#sec-camp .w3sc .tsh{top:428px}
