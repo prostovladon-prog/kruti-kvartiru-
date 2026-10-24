@@ -1756,6 +1756,7 @@ function openNick(first){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hid
   sh.querySelector("p").textContent=(S.nick?"Сейчас: "+S.nick+". ":"")+"Ник видят все: в топе мира, на рынке, в витрине и в ленте выпадений. Он один такой в игре. От 3 до 16 символов: буквы, цифры, _ . -";
   const inp=$("nk-in"),go=$("nk-go"),err=$("nk-err");inp.value=S.nick||"";
   go.textContent=cost?"Сменить за "+fmt(cost):"Готово";$("nk-later").textContent=first?"Позже":"Отмена";
+  if(first&&ONLINE){$("nk-later").hidden=true;sh.querySelector("h3").textContent="Придумай себе ник, чтобы играть"}   // без ника в игру не пускаем
   $("nk-later").onclick=()=>{if(first)try{localStorage.setItem("we-nick-ask",todayL())}catch(e){}closeModal()};
   inp.oninput=()=>{try{checkNick(inp.value);err.textContent=""}catch(e){err.textContent=inp.value.length>=3?e.message:""}};
   const send=async()=>{try{checkNick(inp.value)}catch(e){err.textContent=e.message;return}go.disabled=true;
@@ -1763,7 +1764,9 @@ function openNick(first){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hid
     Object.keys(tpCache).forEach(k=>delete tpCache[k]);closeModal();sfx.coin();hapN("success");renderAll();toast("Теперь ты «"+r.nick+"»")};
   go.onclick=send;inp.onkeydown=e=>{if(e.key==="Enter")send()};setTimeout(()=>inp.focus(),50)}
 $("nick-go").onclick=()=>openNick(false);
-function askNick(){if(!S||S.nick)return;let last=null;try{last=localStorage.getItem("we-nick-ask")}catch(e){}if(last===todayL())return;openNick(true)}
+function askNick(){if(!S||S.nick)return;if(ONLINE){if($("modal").hidden&&onbStep<0)openNick(true);return}let last=null;try{last=localStorage.getItem("we-nick-ask")}catch(e){}if(last===todayL())return;openNick(true)}
+/* ник обязателен: если игрок без ника и ничего не открыто — снова просим (не чаще раза в 3 секунды) */
+setInterval(()=>{try{if(ONLINE&&S&&!S.nick&&$("modal").hidden&&onbStep<0&&!document.querySelector(".onb-hl"))askNick()}catch(e){}},3000);
 
 async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.at<30000)return c.r;if(tpLoading[kind])return null;tpLoading[kind]=1;
   const r=await act("top",{kind});tpLoading[kind]=0;if(r)tpCache[kind]={at:NOW(),r};return r}
