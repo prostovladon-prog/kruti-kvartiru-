@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=19;
+const SCHEMA_V=20;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -83,6 +83,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE INDEX IF NOT EXISTS users_rk ON users(rk_season, rating)",
     "CREATE TABLE IF NOT EXISTS rq (uid INTEGER PRIMARY KEY, card INTEGER, wc INTEGER, rating INTEGER, t INTEGER)",
     "CREATE TABLE IF NOT EXISTS rm (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER, b INTEGER, an TEXT, bn TEXT, ac TEXT, bc TEXT, wa INTEGER, wb INTEGER, ghost INTEGER NOT NULL DEFAULT 0, st TEXT, pa TEXT, pb TEXT, phase TEXT, until INTEGER, ver INTEGER NOT NULL DEFAULT 0, applied INTEGER NOT NULL DEFAULT 0, res TEXT, created INTEGER)",
+    "ALTER TABLE users ADD COLUMN title TEXT",
+    "CREATE TABLE IF NOT EXISTS auc (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT UNIQUE, h INTEGER, f INTEGER, stats TEXT, hue INTEGER, v REAL, min REAL, start INTEGER, until INTEGER, top INTEGER, top_name TEXT, bid REAL NOT NULL DEFAULT 0, n INTEGER NOT NULL DEFAULT 0, ver INTEGER NOT NULL DEFAULT 0, done INTEGER NOT NULL DEFAULT 0, card INTEGER)",
     "CREATE TABLE IF NOT EXISTS trader_sold (slot INTEGER NOT NULL, i INTEGER NOT NULL, uid INTEGER, name TEXT, t INTEGER, PRIMARY KEY(slot,i))",
     "CREATE TABLE IF NOT EXISTS trader_buy (slot INTEGER NOT NULL, h INTEGER NOT NULL, uid INTEGER NOT NULL, PRIMARY KEY(slot,h,uid))",
     "CREATE INDEX IF NOT EXISTS rm_a ON rm(a, phase)","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
@@ -648,6 +650,44 @@ async function traderSell(env,me,p){const T=await traderStock(env),h=p.h|0;if(!T
   const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trader_buy WHERE slot=? AND h=?").bind(T.slot,h).first())||{}).n||0;if(n>=TRADER_WANT_N)fail("Торговец уже набрал таких воинов. Жди новую смену");
   const ins=await env.DB.prepare("INSERT OR IGNORE INTO trader_buy(slot,h,uid) VALUES(?,?,?)").bind(T.slot,h,me.id).run();if(ins.meta.changes!==1)fail("Ты уже продал ему такого воина в эту смену");
   try{return await doAction(env,me,"trader_give",{id:p.id},{trader:{h,k:TRADER_WANT_K}})}catch(e){await env.DB.prepare("DELETE FROM trader_buy WHERE slot=? AND h=? AND uid=?").bind(T.slot,h,me.id).run();throw e}}
+/* ---------- аукцион дня ----------
+   В 20:00 по Минску одна редкая карточка: «Ошибка печати» обычного/редкого воина (если свободна) или золотой легендарный/мифический.
+   Деньги ставки сразу списываются; перебили — возвращаются. Деньги победителя сгорают: это главный сток лишних денег. */
+async function aucCur(env){const now=Date.now(),day=dayOf(now),d=new Date(now+TZ),start=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),AUC_HOUR)-TZ;
+  let A=await env.DB.prepare("SELECT * FROM auc WHERE day=?").bind(day).first();
+  if(!A&&now>=start-6*3600e3){const ctx=await makeCtx(env,false),R=Math.random;let h,f;
+    const errFree=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]<=2&&ctx.issuedOf(i,4)<1);
+    if(R()<.5&&errFree.length){h=errFree[Math.floor(R()*errFree.length)];f=4}
+    else{const pool=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]>=3&&ctx.issuedOf(i,3)<FIN[3].run);h=pool[Math.floor(R()*pool.length)];f=3}
+    const B=cardBody(h,f),v=priceOf(h,f,2,"123457",B.top);
+    try{await env.DB.prepare("INSERT INTO auc(day,h,f,stats,hue,v,min,start,until) VALUES(?,?,?,?,?,?,?,?,?)").bind(day,h,f,JSON.stringify(B.stats),B.hue,v,Math.round(v*.5),start,start+AUC_MS).run()}catch(e){}
+    A=await env.DB.prepare("SELECT * FROM auc WHERE day=?").bind(day).first()}
+  if(!A){A=await env.DB.prepare("SELECT * FROM auc ORDER BY id DESC LIMIT 1").first()}
+  return A}
+function aucView(A,me){if(!A)return null;const now=Date.now();
+  return {id:A.id,phase:A.done||now>=A.until?"done":now>=A.start?"on":"soon",left:Math.max(0,(now<A.start?A.start:A.until)-now),start:A.start,
+    card:{id:"a"+A.id,h:A.h,f:A.f,no:0,sn:"??????",hue:A.hue,v:A.v,stats:rj(A.stats,[]),xp:0,wins:0,stars:0},min:A.min,bid:A.bid,next:A.bid?Math.ceil(A.bid*(1+AUC_STEP)):A.min,top:A.top,top_name:A.top_name,n:A.n,mine:A.top===me.id}}
+async function aucBid(env,me,p){const A=await aucCur(env),now=Date.now();if(!A||A.done||now<A.start||now>=A.until)fail("Сейчас торгов нет. Аукцион каждый день в "+AUC_HOUR+":00");
+  if(A.top===me.id)fail("Твоя ставка и так первая");
+  const next=A.bid?Math.ceil(A.bid*(1+AUC_STEP)):A.min,amt=Math.max(next,Math.ceil(+p.amt||0));
+  const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(amt,me.id,amt).run();if(pay.meta.changes!==1)fail("Не хватает денег: нужно "+fmtD(amt)+" $");
+  const nm=await nameOf(env,me.id),until=Math.max(A.until,now+AUC_EXT);
+  const up=await env.DB.prepare("UPDATE auc SET top=?,top_name=?,bid=?,n=n+1,until=?,ver=ver+1 WHERE id=? AND ver=? AND bid<? AND done=0").bind(me.id,nm,amt,until,A.id,A.ver,amt).run();
+  if(up.meta.changes!==1){await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(amt,me.id).run();fail("Кто-то успел перебить ставку. Попробуй ещё раз")}
+  if(A.top){await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(A.bid,A.top).run();
+    await notify(env,A.top,"🔨 Твою ставку на аукционе перебил "+nm+": $"+fmtD(amt)+". Деньги вернулись. Успей перебить!","🔨 К аукциону",PAGE+"?shop=1")}
+  delete topCache.feed;return aucView(await env.DB.prepare("SELECT * FROM auc WHERE id=?").bind(A.id).first(),me)}
+async function aucTick(env){const now=Date.now(),A=await aucCur(env);if(!A)return;
+  if(!A.done&&now>=A.until&&now>=A.start){const t=await env.DB.prepare("UPDATE auc SET done=1 WHERE id=? AND done=0").bind(A.id).run();if(t.meta.changes!==1)return;
+    if(A.top){try{const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(A.top).first();
+      await doAction(env,{id:A.top,name:(u&&u.name)||"Игрок"},"auc_win",{},{auc:{h:A.h,f:A.f,stats:rj(A.stats,[]),hue:A.hue,v:A.v}});
+      await notify(env,A.top,"🏆 Ты выиграл аукцион дня! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — за $"+fmtD(A.bid)+". Карточка уже в коллекции.","🎴 Смотреть")}catch(e){console.error("auc win",e)}}
+    return}
+  // за минуту до старта: рассылка «аукцион начинается»
+  const k=await kvGet(env,"auc_note");if(!A.done&&now>=A.start-60e3&&now<A.start+AUC_MS&&(!k||k.id!==A.id||!k.done)){const st=k&&k.id===A.id?k:{id:A.id,after:0,done:0};
+    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
+    for(const u of us){await notify(env,u.id,"🔨 Аукцион дня начинается! Сегодня на кону: «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — "+(A.f===4?"единственная в мире":"золотая")+". Стартовая ставка $"+fmtD(A.min)+", торги 10 минут.","🔨 Участвовать",PAGE+"?shop=1");st.after=u.id}
+    if(us.length<25)st.done=1;await kvSet(env,"auc_note",st)}}
 /* ---------- турнир выходных: каждую субботу в 20:00 по Минску ----------
    Регистрация всю неделю (до 64 игроков). В 20:00 сетка на выбывание, каждый матч — живой бой на арене.
    Сервер сам создаёт бои, двигает раунды (раз в 5 секунд) и раздаёт призы. */
@@ -856,7 +896,8 @@ async function payStatus(env,me,p){const P=await env.DB.prepare("SELECT id,item,
 async function donors(env){return cached("donors",30e3,async()=>(await env.DB.prepare("SELECT p.uid,SUM(p.stars) AS s,COALESCE(u.nick,u.name) AS name FROM payments p JOIN users u ON u.id=p.uid WHERE p.month=? AND p.status='done' GROUP BY p.uid ORDER BY s DESC LIMIT 13").bind(monthOf(Date.now())).all()).results.filter(r=>!isAdmin(env,r.uid)).slice(0,10))}
 async function nickFx(env){return cached("nfx",30e3,async()=>{const fx={};
   for(const r of (await env.DB.prepare("SELECT id,fx FROM users WHERE fx_until>? AND fx IS NOT NULL").bind(Date.now()).all()).results)fx[r.id]=r.fx;
-  const d=await donors(env);return {nfx:fx,king:d.length?d[0].uid:0}})}
+  const ttl={};for(const r of (await env.DB.prepare("SELECT id,title FROM users WHERE title IS NOT NULL AND title<>'' LIMIT 1000").all()).results)ttl[r.id]=r.title;
+  const d=await donors(env);return {nfx:fx,king:d.length?d[0].uid:0,ttl}})}
 async function shopInfo(env,me){
   const comp=await cached("shopcomp",10e3,async()=>{const o={};for(const h of COMP)o[h]={l:0,r:0,full:0,e:[0,0,0]};
     for(const r of (await env.DB.prepare("SELECT h,f,part,COUNT(*) AS n FROM cards WHERE h>=? GROUP BY h,f,part").bind(NBASE).all()).results){const x=o[r.h];if(!x)continue;
@@ -1090,7 +1131,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -1134,7 +1175,7 @@ async function handle(req,env){{
       if(a==="nick"){const res=await setNick(env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
-      if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize"||a==="trader_take"||a==="trader_give")fail("Неизвестное действие");
+      if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize"||a==="trader_take"||a==="trader_give"||a==="auc_win")fail("Неизвестное действие");
       if(a==="shop")return J({ok:true,res:await shopInfo(env,me)});
       if(a==="invoice")return J({ok:true,res:await invoice(env,me,p)});
       if(a==="pay_status")return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)});
@@ -1142,6 +1183,8 @@ async function handle(req,env){{
         await paidUpdate(env,me.id,{currency:"XTR",total_amount:P.stars,invoice_payload:"p"+P.id,telegram_payment_charge_id:"sim"+P.id});return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)})}
       if(a==="dtop")return J({ok:true,res:await dtopGet(env,me)});
       if(a==="trader")return J({ok:true,res:await traderInfo(env,me)});
+      if(a==="auc")return J({ok:true,res:aucView(await aucCur(env),me)});
+      if(a==="auc_bid"){const res=await aucBid(env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="trader_buy"||a==="trader_sell"){const r=await (a==="trader_buy"?traderBuy:traderSell)(env,me,p);return J({ok:true,...r})}
       if(/^rk_/.test(a)){const res=await rkApi(env,me,a,p);return J({ok:true,res,S:(a==="rk_get"&&res.phase==="done")||a==="rk_find"?await stateFor(env,me):undefined})}
       if(a==="camp_top")return J({ok:true,res:await campTop(env,me,p.per==="w"?"w":"d")});
@@ -1163,6 +1206,7 @@ async function handle(req,env){{
       if(a==="stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await adminStats(env),S:await stateFor(env,me)})}
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
       if(!ACTIONS[a])fail("Неизвестное действие");
+      if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
       const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);return J({ok:true,...r});
     }catch(e){
       if(e instanceof GameError)return J({ok:false,err:e.message});

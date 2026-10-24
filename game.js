@@ -9,7 +9,7 @@ const PAGE_URL="https://prostovladon-prog.github.io/kruti-kvartiru-/";
 const $=id=>document.getElementById(id);
 const fmt=n=>{n=+n||0;if(Math.abs(n)<100&&Math.abs(n-Math.round(n))>.004)return "$"+n.toFixed(2).replace(".",",");return "$"+Math.round(n).toLocaleString("ru-RU").replace(/[\u00a0\u202f,]/g," ")};
 /* коротко для тесных мест: $12 345, $1,49 млн, $33,2 млн, $1,2 млрд */
-const fmtC=n=>{n=+n||0;const a=Math.abs(n),k=(v,u)=>"$"+(v<10?v.toFixed(2):v<100?v.toFixed(1):Math.round(v)).replace(".",",").replace(/,?0+$/,m=>m.includes(",")&&/,\d*[1-9]/.test(m)?m:"")+" "+u;
+const fmtC=n=>{n=+n||0;const a=Math.abs(n),k=(v,u)=>{let t=v<10?v.toFixed(2):v<100?v.toFixed(1):String(Math.round(v));if(t.includes("."))t=t.replace(/\.?0+$/,"");return "$"+t.replace(".",",")+" "+u};
   if(a>=1e9)return k(n/1e9,"млрд");if(a>=1e6)return k(n/1e6,"млн");return fmt(n)};
 const fmtN=n=>Math.round(n).toLocaleString("ru-RU").replace(/[ ,]/g," ");
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1774,9 +1774,38 @@ function pickCardFrom(list,title,cb){const m=$("modal"),sh=$("msheet");sh.innerH
   sh.querySelector("h3").textContent=title;$("pk-x").onclick=()=>{closeModal();cb(null)};sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;closeModal();cb(list.find(x=>String(x.id)===b.dataset.id)||null)}}
 setInterval(()=>{if(trd&&!$("sec-shop").hidden&&shView==="buy"){if(trd.left-(NOW()-trdAt)<=0)loadTrader(true);else $("trd-t")&&drawTraderT()}},1000);
 function drawTraderT(){const left=Math.max(0,trd.left-(NOW()-trdAt));$("trd-t").textContent="Новый товар через "+tleft(left)+" · цены выше рыночных, зато каждая карточка — только одна"}
+/* ---------- аукцион дня ---------- */
+let auc=null,aucAt=0;
+async function loadAuc(force){if(!ONLINE)return null;if(force||!auc||NOW()-aucAt>8000){const r=await act("auc");if(r!==null){auc=r;aucAt=NOW()}}drawAuc();return auc}
+function aucLeft(){return auc?Math.max(0,auc.left-(NOW()-aucAt)):0}
+function drawAuc(){const box=$("auc-box"),bn=$("auc-go");if(!box)return;const A=auc;
+  if(bn){const show=A&&(A.phase==="on"||A.phase==="soon"&&aucLeft()<3600e3);bn.hidden=!show;if(show){$("auc-go-t").textContent=A.phase==="on"?"🔨 Аукцион идёт! "+tleft(aucLeft()):"🔨 Аукцион через "+tleft(aucLeft());$("auc-go-s").textContent=HEROES[A.card.h][0]+", "+FIN[A.card.f].k.toLowerCase()+(A.bid?" · ставка "+fmtC(A.bid):" · старт "+fmtC(A.min))}}
+  if(!A){box.hidden=true;return}box.hidden=false;
+  $("auc-t").textContent=A.phase==="on"?"⏳ "+tleft(aucLeft()):A.phase==="soon"?"старт через "+tleft(aucLeft()):"завершён";
+  const B=$("auc-body"),k=A.id+"|"+A.phase+"|"+A.bid+"|"+A.top;if(B.dataset.k===k)return;B.dataset.k=k;
+  B.innerHTML='<div class="aucg"><div class="aucc">'+miniSlot(A.card)+'</div><div class="auci"><b></b><small></small><div class="aucbid"></div><div class="auclead"></div><div class="aucbt"></div></div></div><p class="aucn">Каждый день в 20:00 · 10 минут торгов · ставка в последние 30 секунд продлевает торги · перебили — деньги возвращаются · деньги победителя сгорают</p>';
+  B.querySelector("b").textContent=HEROES[A.card.h][0];B.querySelector("small").textContent=FIN[A.card.f].k+(A.card.f===4?" · единственная в мире":"")+" · оценка "+fmtC(A.card.v);
+  B.querySelector(".aucbid").innerHTML=A.bid?'Ставка: <b class="num">'+fmtC(A.bid)+'</b>':'Стартовая ставка: <b class="num">'+fmtC(A.min)+'</b>';
+  B.querySelector(".auclead").textContent=A.phase==="done"?(A.top_name?"🏆 Победил "+A.top_name+" за "+fmtC(A.bid):"Никто не сделал ставку"):A.top_name?(A.mine?"👑 Ты лидируешь!":"Лидер: "+A.top_name)+" · ставок "+A.n:"Ставок пока нет";
+  const bt=B.querySelector(".aucbt");
+  if(A.phase==="on"&&!A.mine){[[1,""],[1.2,"+20%"]].forEach(([m,l])=>{const amt=Math.ceil(A.next*m),b=document.createElement("button");b.type="button";b.className=m===1?"craftbtn":"ghost";b.textContent=(l?l+" · ":"Ставка ")+fmtC(amt);
+      b.onclick=async()=>{if(S.cash<amt){toast("Не хватает "+fmt(amt-S.cash));return}b.disabled=true;const r=await act("auc_bid",{amt});b.disabled=false;if(r){auc=r;aucAt=NOW();sfx.coin();hapN("success");renderAll()}else loadAuc(true);drawAuc()};bt.appendChild(b)})}}
+setInterval(()=>{if(!ONLINE||!S)return;if(auc&&auc.phase!=="done"&&aucLeft()<=0)loadAuc(true);else if(auc){const B=$("auc-body");if(B)B.dataset.k="";drawAuc()}
+  if(auc&&auc.phase==="on"&&NOW()-aucAt>4000&&(!$("sec-shop").hidden||!$("sec-spin").hidden))loadAuc(true)},1000);
+setTimeout(()=>{try{loadAuc(true)}catch(e){}},3000);
+$("auc-go").onclick=()=>{setTab("shop");shView="buy";renderShop();setTimeout(()=>$("auc-box").scrollIntoView({behavior:"smooth",block:"center"}),300)};
+/* ---------- титулы ---------- */
+function openTitles(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const own=S.titles||[];
+  sh.innerHTML='<div class="box nickbox"><h3>🎖 Титулы</h3><p>Покупаются за деньги игры один раз и навсегда. Титул виден рядом с ником в топах, чате и рейтинге.</p><div class="ttll"></div><button type="button" class="ghost" id="ttl-x">Закрыть</button></div>';
+  const L=sh.querySelector(".ttll");for(const k in TITLES){const T=TITLES[k],has=own.includes(k),d=document.createElement("div");d.className="ttli"+(S.title===k?" on":"");
+    d.innerHTML='<span class="ttlb">'+T.ic+" "+T.n+'</span><b class="num">'+fmtC(T.price)+'</b>';const b=document.createElement("button");b.type="button";b.className=has?"ghost":"craftbtn";
+    b.textContent=has?(S.title===k?"Снять":"Надеть"):"Купить";b.onclick=async()=>{if(!has&&S.cash<T.price){toast("Не хватает "+fmt(T.price-S.cash));return}b.disabled=true;
+      const r=await act(has?"title_set":"title_buy",{k:has&&S.title===k?"":k});b.disabled=false;if(!r)return;sfx.coin();Object.keys(tpCache).forEach(x=>delete tpCache[x]);renderAll();openTitles();if(!has)toast("Теперь ты «"+T.n+"»!")};d.appendChild(b);L.appendChild(d)}
+  $("ttl-x").onclick=closeModal}
+$("ttl-go").onclick=openTitles;
 function renderShop(){document.querySelectorAll("#sh-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===shView));
   ["buy","sell","lavka"].forEach(v=>$("sh-"+v).style.display=v===shView?"flex":"none");
-  if(shView==="buy"){loadMarket();loadTrader()}if(shView==="sell")renderSell();if(shView==="lavka")renderLavka()}
+  if(shView==="buy"){loadMarket();loadTrader();loadAuc()}if(shView==="sell")renderSell();if(shView==="lavka")renderLavka()}
 
 /* ---------- мировой топ ----------
    С сервером это настоящие игроки. Без сервера показываем пример с ботами. */
@@ -1887,7 +1916,7 @@ async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textC
   const fd=await loadTop("feed");if(!fd)return;const fb=$("feed");fb.innerHTML="";
   fd.items.slice(0,8).forEach(it=>{const c=it.card,d=document.createElement("button");d.type="button";d.className="fitem";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
     d.innerHTML=`<span class="e"></span><span><b></b><small></small></span>`;const e=d.querySelector(".e");e.innerHTML=miniSlot(c);
-    d.querySelector("b").textContent=it.name+" "+({craft:"скрафтил",merge:"слил",chest:"открыл в сундуке",build:"собрал",trader:"купил у торговца"}[it.how]||"выбил");d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
+    d.querySelector("b").textContent=it.name+" "+({craft:"скрафтил",merge:"слил",chest:"открыл в сундуке",build:"собрал",trader:"купил у торговца",auction:"выиграл на аукционе"}[it.how]||"выбил");d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
     d.onclick=()=>openCardView(c,{owner:it.name,mine:ONLINE&&it.uid===S.uid});fb.appendChild(d)});
   if(!fd.items.length)fb.innerHTML='<p style="margin:0;color:#5a5f80">Пока никто не выбил ничего редкого.</p>'}
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
@@ -1915,7 +1944,7 @@ $("fchest-svg").innerHTML=chestSVG("royal",72);
 function openGold(tab){if(tab)goldTab=tab;setTab("gold");loadGold()}
 async function loadGold(){const r=await act("shop");if(r){goldData=r;renderGold()}}
 /* имя игрока с переливающимся эффектом и короной «Король Эпох» */
-function fxName(el,prefix,name,uid){el.textContent=prefix||"";const s=document.createElement("span");s.textContent=name;const fx=S&&S.nfx&&uid!=null&&S.nfx[uid];if(fx)s.className="nfx nfx-"+fx;el.appendChild(s);
+function fxName(el,prefix,name,uid){el.textContent=prefix||"";const tk=S&&S.ttl&&uid!=null&&S.ttl[uid];if(tk&&TITLES[tk])el.insertAdjacentHTML("beforeend",'<span class="ttlb">'+TITLES[tk].ic+" "+TITLES[tk].n+'</span> ');const s=document.createElement("span");s.textContent=name;const fx=S&&S.nfx&&uid!=null&&S.nfx[uid];if(fx)s.className="nfx nfx-"+fx;el.appendChild(s);
   if(S&&S.king&&uid!=null&&S.king==uid)el.insertAdjacentHTML("beforeend",' <span class="kingb">👑 Король Эпох</span>');return el}
 function compHave(h){const L=S.cards.filter(c=>c.h===h&&c.part===1),R=S.cards.filter(c=>c.h===h&&c.part===2),F=S.cards.filter(c=>c.h===h&&!c.part);
   const fr=x=>x.filter(c=>!away(c));const ok=fr(L).some(c=>c.f===0)&&fr(R).some(c=>c.f===0)||fr(L).some(c=>c.f===4)&&fr(R).some(c=>c.f===4);return {L,R,F,ok}}

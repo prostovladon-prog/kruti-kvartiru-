@@ -662,6 +662,20 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const cw = (await call(V, "sync")).S.cards.find(c => c.h === w.h && c.v === 100);
   r = await call(V, "trader_sell", { h: w.h, id: cw.id }); ok(r.ok && Math.abs(r.res.got - 130) < .01, "торговец купил нужного воина на 30% дороже");
   r = await call(V, "trader_sell", { h: w.h, id: cw.id }); ok(!r.ok, "второй раз в эту смену не продать"); }
+/* --- аукцион дня и титулы --- */
+{ const P = 7901, Q = 7902; await call(P, "sync"); await call(Q, "sync"); db.prepare("UPDATE users SET cash=2e6 WHERE id IN (?,?)").run(P, Q);
+  const day = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10); db.prepare("DELETE FROM auc WHERE day=?").run(day);
+  db.prepare("INSERT INTO auc(day,h,f,stats,hue,v,min,start,until) VALUES(?,?,?,?,?,?,?,?,?)").run(day, 26, 3, "[500,500,500,500,500]", 0, 30000, 15000, Date.now() - 1000, Date.now() + 600000);
+  let r = await call(P, "auc"); ok(r.ok && r.res.phase === "on" && r.res.next === 15000, "аукцион идёт, старт $15 000");
+  r = await call(P, "auc_bid", {}); ok(r.ok && r.res.mine && r.S.cash === 2e6 - 15000, "ставка списала деньги");
+  r = await call(Q, "auc_bid", { amt: 15000 }); ok(r.ok && r.res.bid === 15750, "перебить можно минимум на 5%");
+  r = await call(P, "sync"); ok(r.S.cash === 2e6, "перебитому деньги вернулись");
+  db.prepare("UPDATE auc SET until=? WHERE day=?").run(Date.now() - 1, day); await worker.tick(env);
+  r = await call(Q, "sync"); ok(r.S.cards.some(c => c.h === 26 && c.f === 3) && r.S.cash === 2e6 - 15750, "победитель получил карточку, деньги сгорели");
+  r = await call(P, "auc_bid", {}); ok(!r.ok, "после конца ставки не принимаются");
+  r = await call(P, "title_buy", { k: "magnate" }); ok(r.ok && r.S.titles.includes("magnate") && r.S.cash === 1e6 && r.S.ttl && r.S.ttl[P] === "magnate", "титул «Магнат» куплен за $1 000 000");
+  r = await call(P, "title_buy", { k: "oligarch" }); ok(!r.ok, "на «Олигарха» денег не хватает");
+  r = await call(P, "title_set", { k: "" }); ok(r.ok && !(r.S.ttl || {})[P], "титул можно скрыть"); }
 /* --- дыра в крафте закрыта --- */
 { const U = 7101; await call(U, "sync");
   const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,?,'[300,300,300,300,300]',0,0,0,0,0)");

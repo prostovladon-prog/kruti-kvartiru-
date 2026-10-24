@@ -1140,3 +1140,19 @@ nav.tabs #tab-gold i{position:absolute;top:-10px;right:-4px;font-style:normal;fo
 .trw{border-top:2px dashed rgba(122,74,20,.4);padding-top:8px;display:flex;flex-direction:column;gap:6px}.trwh{font-weight:900;font-size:13px}
 .trwi{display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center;background:rgba(255,255,255,.6);border:2px solid var(--ink);border-radius:12px;padding:4px 8px}
 .trwi .e svg{width:40px;height:40px;display:block}.trwi b{display:block;font-size:14px}.trwi small{font-size:11.5px;color:#5a5f80;font-weight:800}
+
+.tra .trsvg{width:86px;height:86px;display:block;filter:drop-shadow(0 0 10px rgba(255,159,10,.5))}
+/* аукцион */
+.aucb{background:linear-gradient(160deg,#ffe9ef,#ffd0dc)}
+.aucg{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start}.aucc .minic{display:block;width:120px}
+.auci b{display:block;font-family:var(--display);font-size:17px}.auci small{display:block;font-size:12px;color:#5a5f80;font-weight:800}
+.aucbid{margin-top:8px;font-weight:800}.aucbid b{font-family:var(--display);font-size:20px;color:#c2224a}.auclead{font-size:13px;font-weight:900;margin-top:4px}
+.aucbt{display:flex;flex-direction:column;gap:6px;margin-top:8px}.aucbt .craftbtn{padding:11px;font-size:14px}.aucbt .ghost{width:100%}
+.aucn{margin:0;font-size:11.5px;color:#7a3a4a;font-weight:700}
+.aucbn{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;padding:10px 12px;border-radius:14px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);text-align:left;color:#fff;background:linear-gradient(115deg,#c2224a,#ff2e63 60%,#ff9f0a);animation:dpulse 1.6s ease-in-out infinite}
+.aucbn>span:first-child{font-size:26px}.aucbn>span:nth-child(2){flex:1;min-width:0}.aucbn b{display:block;font-family:var(--display);font-size:15px;text-shadow:2px 2px 0 var(--ink)}.aucbn small{display:block;font-size:12px;font-weight:800}.aucbn i{font-style:normal;font-family:var(--display);font-size:18px}
+/* титулы */
+.ttlb{display:inline-block;font-size:10.5px;font-weight:900;padding:1px 6px;border-radius:8px;background:linear-gradient(90deg,#1d1d3a,#3a2a6a);color:#ffd23f;-webkit-text-fill-color:#ffd23f;border:1.5px solid #ffd23f;vertical-align:1px;white-space:nowrap}
+.ttlbtn{width:100%;margin-top:8px;font-weight:800}
+.ttll{display:flex;flex-direction:column;gap:8px}.ttli{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px;border:2px solid var(--ink);border-radius:12px;background:#fff}.ttli.on{background:#fff1a8}
+.ttli .ttlb{font-size:13px}.ttli .craftbtn,.ttli .ghost{padding:8px 12px;font-size:13px;width:auto}

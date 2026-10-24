@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=43f03276">
+<link rel="stylesheet" href="style.css?v=45ca94b4">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -49,6 +49,7 @@
     </div>
     <div class="hint">Можно просто тапать по карточке</div>
     <button type="button" class="buyspin" id="buy-go" hidden></button>
+    <button type="button" class="aucbn" id="auc-go" hidden><span>🔨</span><span><b id="auc-go-t">Аукцион дня</b><small id="auc-go-s"></small></span><i>→</i></button>
     <button type="button" class="goldbn" id="gold-go"><span class="gbi">🏪</span><span><b>Сокровищница</b><small>Сундуки, составные воины 🧩 и понт за ⭐</small></span><i>→</i></button>
     <div class="chal" id="chal" hidden><div class="chal-h"><span>👥 ЧЕЛЛЕНДЖ ДНЯ</span><b id="chal-left"></b></div>
       <div class="chal-t" id="chal-t"></div>
@@ -203,8 +204,23 @@
   <section id="sec-shop" hidden>
     <div class="seg" id="sh-seg"><button type="button" data-v="buy" aria-pressed="true">Купить</button><button type="button" data-v="sell" aria-pressed="false">Продать</button><button type="button" data-v="lavka" aria-pressed="false">Лавка</button></div>
     <div id="sh-buy" style="display:flex;flex-direction:column;gap:10px">
-      <div class="box trader" id="tr-shop" hidden><div class="trh"><span class="tra">🧙‍♂️</span><div><h3>Странствующий торговец</h3><small id="trd-t"></small></div></div>
+      <div class="box trader" id="tr-shop" hidden><div class="trh"><span class="tra"><svg viewBox="0 0 120 120" class="trsvg" aria-hidden="true"><defs><linearGradient id="trTur" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bf5af2"/><stop offset="1" stop-color="#5a1f8a"/></linearGradient><linearGradient id="trCoat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9f0a"/><stop offset="1" stop-color="#b8580b"/></linearGradient><radialGradient id="trLamp"><stop offset="0" stop-color="#fff6a0"/><stop offset="1" stop-color="#ff9f0a" stop-opacity="0"/></radialGradient></defs>
+<circle cx="98" cy="40" r="20" fill="url(#trLamp)"/>
+<g stroke="#0d1030" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+<path d="M96 22 V30 M90 30 h12 l-2 18 h-8 Z" fill="#ffd23f"/><path d="M93 34 h6 v10 h-6z" fill="#fff6a0" stroke-width="2"/>
+<path d="M18 120 Q20 86 42 78 L78 78 Q100 86 102 120Z" fill="url(#trCoat)"/><path d="M60 80 V120" stroke-width="2.5"/><path d="M40 98 H80" stroke="#ffd23f" stroke-width="5"/>
+<path d="M70 96 q14 -4 18 8 q4 14 -10 18 q-16 2 -16 -12 q0 -10 8 -14Z" fill="#c98a2a"/><path d="M72 98 q4 -6 10 -2" fill="none" stroke-width="2"/><text x="77" y="114" font-size="11" font-weight="900" fill="#ffd23f" stroke="none" text-anchor="middle">$</text>
+<path d="M50 70 L50 80 L70 80 L70 70Z" fill="#e0ac83"/>
+<path d="M38 50 Q38 28 60 28 Q82 28 82 50 Q82 72 60 74 Q38 72 38 50Z" fill="#e0ac83"/>
+<path d="M40 56 Q42 86 60 92 Q78 86 80 56 Q72 64 60 62 Q48 64 40 56Z" fill="#eceef5"/><path d="M52 70 Q60 82 68 70" fill="none" stroke="#a9b0c4" stroke-width="2"/>
+<path d="M48 60 Q54 56 60 60 Q66 56 72 60 Q66 64 60 62 Q54 64 48 60Z" fill="#dfe2ec"/>
+<path d="M46 46 Q51 43 56 46 M64 46 Q69 43 74 46" fill="none" stroke-width="3"/><circle cx="51" cy="50" r="2.2" fill="#0d1030" stroke-width="0"/><circle cx="69" cy="50" r="2.2" fill="#0d1030" stroke-width="0"/>
+<path d="M57 52 Q60 58 63 52" fill="#d9946a" stroke-width="2"/>
+<path d="M34 40 Q34 12 60 12 Q86 12 86 40 Q78 34 60 34 Q42 34 34 40Z" fill="url(#trTur)"/><path d="M36 38 Q60 26 84 38" fill="none" stroke="#e0a8ff" stroke-width="3"/>
+<circle cx="60" cy="22" r="6" fill="#34c759"/><path d="M60 16 Q66 4 72 8" fill="none" stroke="#ffd23f" stroke-width="3"/>
+</g></svg></span><div><h3>Странствующий торговец</h3><small id="trd-t"></small></div></div>
         <div class="trg" id="trd-items"></div><div class="trw" id="trd-wants"></div></div>
+      <div class="box aucb" id="auc-box" hidden><div class="rowb"><h3>🔨 Аукцион дня</h3><b class="num" id="auc-t"></b></div><div id="auc-body"></div></div>
       <div class="box"><div class="rowb"><h3>Рынок</h3><span id="mk-t" style="font-size:12px;color:#5a5f80"></span></div><p>Карточки, которые выставили другие игроки. Зелёная цена — ниже оценки, выгодно. Красная — переплата.</p></div>
       <div id="mk-list" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
@@ -273,7 +289,8 @@
   </section>
   <section id="sec-top" hidden>
     <div class="box"><div class="rowb"><h3 id="top-h">Топ мира</h3><b class="num topr" id="top-rank"></b></div><p id="top-t"></p>
-      <div class="nickrow"><span>Твой ник: <b id="my-nick"></b></span><button type="button" class="mini2" id="nick-go">Выбрать</button></div></div>
+      <div class="nickrow"><span>Твой ник: <b id="my-nick"></b></span><button type="button" class="mini2" id="nick-go">Выбрать</button></div>
+      <button type="button" class="ghost ttlbtn" id="ttl-go">🎖 Титулы за деньги игры</button></div>
     <div class="box dtopb" id="dtop-box"><div class="rowb"><h3>🏅 Герои дня</h3><b class="num" id="dtop-left"></b></div><p class="dtp">Каждый день в полночь топ-3 в каждом рейтинге получают подарок: 🥇 +10, 🥈 +5, 🥉 +3 прокрутки</p><div id="dtop-body"><p>Загружаю…</p></div></div>
     <div class="seg seg4" id="top-seg"><button type="button" data-v="worth" aria-pressed="true">Богачи</button><button type="button" data-v="cards" aria-pressed="false">Карточки</button><button type="button" data-v="album" aria-pressed="false">Альбом</button><button type="button" data-v="wins" aria-pressed="false">Бойцы</button></div>
     <div class="list" id="top-list"></div>
@@ -312,7 +329,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=e4e48ece"></script>
-<script src="game.js?v=2708d686"></script>
+<script src="rules.js?v=8fdaeb3c"></script>
+<script src="game.js?v=43f59a1d"></script>
 </body>
 </html>
