@@ -1422,3 +1422,5 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 #sec-prof .wsh{border-radius:22px;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);overflow:hidden}
 .prof-off{text-align:center;color:#fff;font-weight:800;padding:30px 10px}
 .wsbtns.pro button{background:rgba(255,255,255,.1);color:#fff;border:2px solid rgba(255,255,255,.4);font-size:13px}
+.tabs.nav7 #tab-gold b{font-size:16px}
+.tabs.nav7 .t2{font-size:8.6px;line-height:1.02;text-align:center;letter-spacing:-.03em}
