@@ -1,9 +1,9 @@
 /* wow.js — подарки и витрины, казино рун, голем и 3D-эффекты лагеря. Подключается после game.js */
 /* объёмные глянцевые подарки: базовая форма + объём (радиальные градиенты), блики, ободок света */
 function giftSVG(k,s){const GE=GIFTS[k];if(GE&&GE.base){const v=Math.random().toString(36).slice(2,7);
-   return `<svg viewBox="0 0 120 120" width="${s}" height="${s}" class="gerr" style="overflow:visible" aria-hidden="true"><defs><filter id="gx${v}" x="-20%" y="-20%" width="140%" height="140%"><feColorMatrix in="SourceGraphic" type="hueRotate" values="${GE.err}" result="m"/>`+
+   return `<svg viewBox="0 0 120 120" width="${s}" height="${s}" class="gerr" style="overflow:visible;filter:drop-shadow(0 6px 6px rgba(0,0,0,.45)) drop-shadow(0 0 14px ${GE.g})" aria-hidden="true"><defs><filter id="gx${v}" x="-60%" y="-60%" width="220%" height="220%"><feColorMatrix in="SourceGraphic" type="hueRotate" values="${GE.err}" result="m"/>`+
     `<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 .2 0 0 0 .75 0" result="r"/><feOffset in="r" dx="-5" dy="1" result="ro"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .75 0" result="c"/><feOffset in="c" dx="5" dy="-1" result="co"/>`+
-    `<feMerge><feMergeNode in="ro"/><feMergeNode in="co"/><feMergeNode in="m"/></feMerge></filter></defs><g filter="url(#gx${v})">${giftSVG(GE.base,120)}</g>`+
+    `<feMerge><feMergeNode in="ro"/><feMergeNode in="co"/><feMergeNode in="m"/></feMerge></filter></defs><g filter="url(#gx${v})">${giftSVG(GE.base,120).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"")}</g>`+
     `<g opacity=".55"><rect x="0" y="38" width="120" height="3" fill="#fff"/><rect x="10" y="74" width="110" height="2" fill="#00e5ff"/></g><g transform="rotate(-12 96 14)"><rect x="74" y="4" width="44" height="18" rx="4" fill="#ff2e63" stroke="#fff" stroke-width="2"/><text x="96" y="17.5" text-anchor="middle" font-size="11" font-weight="900" fill="#fff" font-family="sans-serif">ERROR</text></g></svg>`}
  const u=k+Math.random().toString(36).slice(2,7);
  const rg=(id,c1,c2,c3,cx,cy)=>`<radialGradient id="${id}${u}" cx="${cx||.35}" cy="${cy||.3}" r=".85"><stop offset="0" stop-color="${c1}"/><stop offset=".55" stop-color="${c2}"/><stop offset="1" stop-color="${c3}"/></radialGradient>`;
@@ -296,13 +296,31 @@ const _campFloat=campFloat;campFloat=function(t,cls,x,y){_campFloat(t,cls,x,y);i
   const c=document.createElement("div");c.className="w3crit";c.textContent=t.replace("💥 ","")+"!";ar.append(c);setTimeout(()=>c.remove(),820);if(w3){const r=ar.getBoundingClientRect();w3.burst(r.width*.62,r.height*.5,50,["#fff6c8","#ffd23f","#ff9f0a","#ff2e63"],9,.25,60,6)}}};
 
 /* ---------- что нового и ссылки ---------- */
-function newsGifts(){if(!S||!ONLINE||!S.shopOn||!$("modal").hidden||document.querySelector(".wrev,.onb-hl"))return false;try{if(localStorage.getItem("we-news-gift2"))return true;localStorage.setItem("we-news-gift2","1")}catch(e){return true}
+function newsGifts(){if(!S||!ONLINE||!S.shopOn||!$("modal").hidden||document.querySelector(".wrev,.onb-hl"))return false;try{if(localStorage.getItem("we-news-upd3"))return true;if(termsNeed())return false;localStorage.setItem("we-news-upd3","1")}catch(e){return true}
   const m=$("modal"),sh=$("msheet");m.hidden=false;
-  sh.innerHTML='<div class="box nickbox newsb"><h3>🎁 Подарки, витрины и казино!</h3><div style="display:flex;justify-content:center;gap:4px">'+giftSVG("crown_x",84)+giftSVG("egg",84)+giftSVG("cup",84)+'</div><ul>'+
-   '<li>🎁 <b>Подарки</b> — 19 подарков, у каждого свой тираж и номер навсегда</li><li>🖨 <b>Ошибка печати</b> — бракованные подарки, всего 10–50 штук на весь мир</li>'+
-   '<li>👤 <b>Профиль</b> — твоя витрина на 9 подарков, топ витрин, дари друзьям</li><li>🎰 <b>Казино</b> — кейс как в CS:GO, слоты и «больше-меньше»</li><li>🗿 <b>Каменный голем</b> — энергии ×2 в лагере (вкладка «Бой»)</li></ul>'+
+  sh.innerHTML='<div class="box nickbox newsb"><h3>🔥 Крупное обновление!</h3><div style="display:flex;justify-content:center;gap:4px">'+giftSVG("crown_x",84)+giftSVG("egg",84)+giftSVG("cup",84)+'</div><ul>'+
+   '<li>🎁 <b>Подарки</b> — 25 подарков, у каждого свой тираж и номер навсегда</li><li>🖨 <b>Ошибка печати</b> — бракованные подарки, всего 10–50 штук на весь мир</li>'+
+   '<li>👤 <b>Профиль</b> — твоя витрина на 9 подарков, топ витрин, дари друзьям</li><li>🎰 <b>Казино</b> — кейс как в CS:GO, слоты и «больше-меньше»</li><li>🗿 <b>Каменный голем</b> — энергии ×2 в лагере (вкладка «Бой»)</li></ul><div class="ng-teas">⚡ <b>Завтра — крупный розыгрыш!</b> Главный приз связан с игрой «Номерок» — и он в прямом смысле очень крутой 😏</div>'+
    '<button type="button" class="craftbtn" id="ng-go">Смотреть подарки</button><button type="button" class="ghost" id="ng-x">Позже</button></div>';
   $("ng-go").onclick=()=>{closeModal();openGold("gifts")};$("ng-x").onclick=closeModal;return true}
 {let n=0;const t=setInterval(()=>{if(++n>30||newsGifts())clearInterval(t)},4000)}
 if(new URLSearchParams(location.search).get("shelf"))setTimeout(()=>{try{openShelf()}catch(e){}},1200);
 $("shelf-go").onclick=()=>openShelf();
+
+/* ---------- соглашение: без согласия играть нельзя. Принятие сохраняется на сервере с датой и номером редакции ---------- */
+const TERMS_V=1;
+function termsNeed(){if(!S)return false;if(ONLINE)return (S.termsV||0)<TERMS_V;try{return +(localStorage.getItem("we-terms")||0)<TERMS_V}catch(e){return false}}
+let termsOn=false;
+async function termsGate(){if(termsOn||!termsNeed())return;termsOn=true;const d=document.createElement("div");d.className="terms";
+  d.innerHTML='<div class="tbox"><h3>📜 Перед игрой</h3><p class="tl">Прочитай и прими пользовательское соглашение и политику конфиденциальности. Коротко:</p><ul class="tsum">'+
+   '<li>💠 Карточки, $, руны и подарки — игровые ценности. Их нельзя вывести или обменять на деньги</li><li>⭐ Покупки за Telegram Stars выдаются сразу и не возвращаются (кроме технической ошибки)</li>'+
+   '<li>🎰 Казино — только на руны из игры. Это развлечение, а не игра на деньги</li><li>🚫 Боты, мультиаккаунты, накрутки и баги — бан без компенсации</li><li>🎁 В розыгрышах решение администрации окончательное</li><li>🔒 Мы храним только твой Telegram ID, имя и игровые данные и никому их не продаём</li></ul>'+
+   '<div class="tdoc" id="tdoc">Загружаю текст…</div><label class="tchk"><input type="checkbox" id="t-ok"> <span>Я прочитал(а) и принимаю соглашение и политику конфиденциальности. Если мне нет 18 лет, мои родители (законные представители) согласны</span></label>'+
+   '<button type="button" class="craftbtn" id="t-go" disabled>Принимаю</button><a class="tlink" href="terms.html" target="_blank" rel="noopener">Открыть полный текст отдельно</a></div>';
+  document.body.append(d);
+  try{const r=await fetch("terms.html?v="+TERMS_V,{cache:"no-cache"}),h=await r.text(),x=new DOMParser().parseFromString(h,"text/html").querySelector("#terms");$("tdoc").innerHTML="";$("tdoc").append(...x.childNodes)}catch(e){$("tdoc").textContent="Не получилось загрузить текст. Нажми «Открыть полный текст отдельно»."}
+  d.querySelector(".tlink").onclick=e=>{if(tg&&tg.openLink){e.preventDefault();tg.openLink(new URL("terms.html",location.href).href)}};
+  $("t-ok").onchange=()=>{$("t-go").disabled=!$("t-ok").checked};
+  $("t-go").onclick=async()=>{$("t-go").disabled=true;if(ONLINE){const r=await act("terms_ok",{v:TERMS_V});if(!r){$("t-go").disabled=false;return}}else{try{localStorage.setItem("we-terms",String(TERMS_V))}catch(e){}}
+    d.remove();termsOn=false;hap("medium")}}
+{const t=setInterval(()=>{if(!S)return;clearInterval(t);termsGate()},300);setInterval(()=>{try{if(S&&!termsOn&&termsNeed())termsGate()}catch(e){}},5000)}

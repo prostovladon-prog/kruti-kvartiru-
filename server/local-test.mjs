@@ -708,6 +708,8 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await call(B, "gift_send", { id: gid, to: A }); ok(!r.ok, "чужой подарок не подарить");
   r = await call(A, "gift_send", { id: gid, to: B }); ok(r.ok && !r.S.gifts.length, "подарил другу");
   r = await call(B, "sync"); ok(r.S.gifts.length === 2 && r.S.gifts.some(g => g.id === gid && g.shelf === 0 && g.from_uid === A), "друг получил подарок");
+  r = await call(A, "sync"); ok(r.S.termsV === 0, "соглашение ещё не принято");
+  r = await call(A, "terms_ok", { v: 1 }); ok(r.ok && r.S.termsV === 1 && db.prepare("SELECT terms_at FROM users WHERE id=?").get(A).terms_at > 0, "соглашение принято и записано с датой");
   r = await call(A, "gift_top"); ok(r.ok && r.res.top[0].uid === B && r.res.left.crown === 98, "топ витрин и остаток тиража");
   r = await buy(A, { item: "gift", k: "cup" }); ok(r.ok && r.res.res.gift.k === "cup", "подарок из кейса теперь можно купить и за звёзды");
   r = await buy(A, { item: "gift", k: "crown_x" }); ok(r.ok && r.res.res.gift.no === 1, "ошибка печати: Корона № 1 из 10");

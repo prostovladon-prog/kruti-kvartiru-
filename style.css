@@ -1424,3 +1424,14 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .wsbtns.pro button{background:rgba(255,255,255,.1);color:#fff;border:2px solid rgba(255,255,255,.4);font-size:13px}
 .tabs.nav7 #tab-gold b{font-size:16px}
 .tabs.nav7 .t2{font-size:8.6px;line-height:1.02;text-align:center;letter-spacing:-.03em}
+/* ===== соглашение ===== */
+.terms{position:fixed;inset:0;z-index:100000;background:rgba(4,5,18,.92);display:flex;align-items:center;justify-content:center;padding:12px}
+.terms .tbox{width:100%;max-width:460px;max-height:100%;display:flex;flex-direction:column;background:#fffaf0;color:#14162e;border:3px solid #0d1030;border-radius:20px;box-shadow:0 6px 0 #0d1030;padding:14px}
+.terms h3{margin:0 0 4px;font-family:var(--display);font-size:20px}.terms .tl{margin:0 0 6px;font-size:13px;font-weight:700}
+.tsum{margin:0 0 8px;padding:0;list-style:none;font-size:12.5px;line-height:1.35}.tsum li{margin:3px 0}
+.tdoc{flex:1;min-height:120px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:2px solid #d9d3c3;border-radius:12px;padding:8px 10px;font-size:12px;line-height:1.45;background:#fff}
+.tdoc h1{font-size:15px;margin:0 0 4px}.tdoc h2{font-size:13px;margin:12px 0 4px;color:#7a1fa8}.tdoc ol{padding-left:18px;margin:4px 0}.tdoc li,.tdoc p{margin:3px 0}.tdoc .ed{color:#5a5f80}
+.tchk{display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:12.5px;font-weight:700;line-height:1.3;cursor:pointer}.tchk input{width:20px;height:20px;flex:none;margin:0;accent-color:#7a1fa8}
+#t-go[disabled]{opacity:.45}
+.tlink{display:block;text-align:center;margin-top:8px;font-size:12px;font-weight:800;color:#7a1fa8}
+.ng-teas{margin:8px 0 10px;padding:9px 11px;border-radius:12px;background:linear-gradient(115deg,#7a1fa8,#c2185b);color:#fff;font-size:13px;font-weight:700;line-height:1.35;border:2px solid #0d1030}
