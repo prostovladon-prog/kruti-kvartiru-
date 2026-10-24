@@ -649,6 +649,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const g = await call(A, "rk_get", { id: r.res.match }); ok(g.res.ghost === 1 && g.res.op.picked, "тень сама выбирает ход");
   db.prepare("UPDATE users SET rk_dayn=20 WHERE id=?").run(A); db.prepare("UPDATE rm SET phase='done',applied=1 WHERE a=?").run(A); db.prepare("UPDATE cards SET room_id=NULL WHERE owner=?").run(A);
   r = await call(A, "rk_find", { id: ca.id }); ok(!r.ok && /закончились/.test(r.err), "не больше 20 рейтинговых боёв в день"); }
+/* --- странствующий торговец --- */
+{ const U = 7701, V = 7702; await call(U, "sync"); await call(V, "sync"); db.prepare("UPDATE users SET cash=1e6 WHERE id IN (?,?)").run(U, V);
+  let r = await call(U, "trader"); ok(r.ok && r.res.items.length === 6 && r.res.wants.length === 2 && r.res.items.every(x => x.card.f < 3 && x.card.h < 32), "торговец: 6 карточек и 2 заказа, без ошибок печати и донатных");
+  ok(r.res.items.every(x => x.price >= x.card.v * 1.49 && x.price <= x.card.v * 1.61), "цена на 50–60% выше оценки");
+  const it = r.res.items[5]; const c0 = (await call(U, "sync")).S.cash;
+  r = await call(U, "trader_buy", { i: it.i }); ok(r.ok && r.res.card.h === it.card.h && Math.abs(c0 - r.S.cash - it.price) < .01, "купил звезду витрины у торговца");
+  r = await call(V, "trader_buy", { i: it.i }); ok(!r.ok && /уже купили/.test(r.err), "второй раз ту же карточку не купить");
+  r = await call(V, "trader"); ok(r.res.items[5].sold && r.res.items[5].sold.uid === U, "видно, кто купил");
+  const w = r.res.wants[0];
+  db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,100,'[200,200,200,200,200]',0,0,0,0,0)").run(V, w.h, 3100001, "770201");
+  const cw = (await call(V, "sync")).S.cards.find(c => c.h === w.h && c.v === 100);
+  r = await call(V, "trader_sell", { h: w.h, id: cw.id }); ok(r.ok && Math.abs(r.res.got - 130) < .01, "торговец купил нужного воина на 30% дороже");
+  r = await call(V, "trader_sell", { h: w.h, id: cw.id }); ok(!r.ok, "второй раз в эту смену не продать"); }
 /* --- дыра в крафте закрыта --- */
 { const U = 7101; await call(U, "sync");
   const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,?,'[300,300,300,300,300]',0,0,0,0,0)");

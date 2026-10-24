@@ -1747,9 +1747,36 @@ $("lv-rage").onclick=async()=>{if(await act("rage")){sfx.coin();updCash();render
 $("lv-map").onclick=async()=>{if(await act("map")){sfx.coin();updCash();renderLavka();toast("Открыто 4-е место для походов")}};
 $("lv-fgo").onclick=async()=>{const c=S.cards.find(x=>x.id===lvPick);if(!c)return;if(await act("frame",{id:c.id,frame:lvFrame})){sfx.coin();burst(2);updCash();renderLavka();toast("Рамка «"+FRAMES[lvFrame].k+"» надета на "+HEROES[c.h][0])}};
 document.querySelectorAll("#sh-seg button").forEach(b=>b.onclick=()=>{shView=b.dataset.v;renderShop()});
+/* ---------- странствующий торговец ---------- */
+let trd=null,trdAt=0;
+async function loadTrader(force){const box=$("tr-shop");if(!box)return;if(!ONLINE){box.hidden=true;return}box.hidden=false;
+  if(force||!trd||NOW()-trdAt>15000){const r=await act("trader");if(r){trd=r;trdAt=NOW()}}if(!trd)return;drawTrader()}
+function drawTrader(){const T=trd,left=Math.max(0,T.left-(NOW()-trdAt));$("trd-t").textContent="Новый товар через "+tleft(left)+" · цены выше рыночных, зато каждая карточка — только одна";
+  const I=$("trd-items");I.innerHTML="";
+  for(const it of T.items){const d=document.createElement("div");d.className="tri"+(it.star?" star":"")+(it.sold?" sold":"");
+    d.innerHTML=(it.star?'<span class="trs">⭐ ЗВЕЗДА ВИТРИНЫ</span>':"")+'<div class="trc">'+miniSlot(it.card)+'</div><b class="num">'+fmtC(it.price)+'</b><small>оценка '+fmtC(it.card.v)+'</small>';
+    const b=document.createElement("button");b.type="button";
+    if(it.sold){b.className="ghost";b.disabled=true;b.textContent=it.sold.uid===S.uid?"✅ Твоя":"Купил "+it.sold.name}
+    else{b.className="craftbtn";b.textContent="Купить";b.onclick=async()=>{if(S.cash<it.price){toast("Не хватает "+fmt(it.price-S.cash));return}
+      b.disabled=true;const r=await act("trader_buy",{i:it.i});b.disabled=false;loadTrader(true);if(!r)return;sfx.coin();hapN("success");renderAll();toast("Куплено у торговца: "+HEROES[r.card.h][0]+" за "+fmt(r.price));openCardView(r.card,{mine:true})}}
+    d.appendChild(b);I.appendChild(d)}
+  const W=$("trd-wants");W.innerHTML='<div class="trwh">🔎 Торговец ищет — платит на '+Math.round((T.k-1)*100)+'% больше оценки:</div>';
+  for(const w of T.wants){const mine=S.cards.filter(c=>c.h===w.h&&!away(c)&&!(FIN[c.f].excl||c.part)),d=document.createElement("div");d.className="trwi";
+    d.innerHTML='<span class="e">'+portrait(w.h,null,1)+'</span><span><b></b><small></small></span>';d.querySelector("b").textContent=HEROES[w.h][0];
+    d.querySelector("small").textContent=w.mine?"ты уже продал ему такого":w.left?"возьмёт ещё "+w.left+" шт.":"уже набрал";
+    const b=document.createElement("button");b.type="button";b.className="mini2";
+    if(w.mine||!w.left||!mine.length){b.disabled=true;b.textContent=mine.length?"—":"нет у тебя"}
+    else{const c=[...mine].sort((a,b)=>a.v-b.v)[0];b.textContent="Продать за "+fmtC(c.v*T.k);b.onclick=async()=>{const pick=mine.length>1?await new Promise(res=>pickCardFrom(mine,"Какого "+HEROES[w.h][0]+" продать торговцу?",res)):c;if(!pick)return;
+      if((HEROES[pick.h][2]>=3||pick.f>=2)&&!(await confirmSell(pick)))return;b.disabled=true;const r=await act("trader_sell",{h:w.h,id:pick.id});loadTrader(true);if(!r)return;sfx.coin();renderAll();toast("Торговец заплатил "+fmt(r.got))}}
+    d.appendChild(b);W.appendChild(d)}}
+function pickCardFrom(list,title,cb){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="box nickbox"><h3></h3><div class="pkg">'+list.map(c=>'<button type="button" class="pki" data-id="'+c.id+'">'+miniSlot(c)+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
+  sh.querySelector("h3").textContent=title;$("pk-x").onclick=()=>{closeModal();cb(null)};sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;closeModal();cb(list.find(x=>String(x.id)===b.dataset.id)||null)}}
+setInterval(()=>{if(trd&&!$("sec-shop").hidden&&shView==="buy"){if(trd.left-(NOW()-trdAt)<=0)loadTrader(true);else $("trd-t")&&drawTraderT()}},1000);
+function drawTraderT(){const left=Math.max(0,trd.left-(NOW()-trdAt));$("trd-t").textContent="Новый товар через "+tleft(left)+" · цены выше рыночных, зато каждая карточка — только одна"}
 function renderShop(){document.querySelectorAll("#sh-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===shView));
   ["buy","sell","lavka"].forEach(v=>$("sh-"+v).style.display=v===shView?"flex":"none");
-  if(shView==="buy")loadMarket();if(shView==="sell")renderSell();if(shView==="lavka")renderLavka()}
+  if(shView==="buy"){loadMarket();loadTrader()}if(shView==="sell")renderSell();if(shView==="lavka")renderLavka()}
 
 /* ---------- мировой топ ----------
    С сервером это настоящие игроки. Без сервера показываем пример с ботами. */
@@ -1860,7 +1887,7 @@ async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textC
   const fd=await loadTop("feed");if(!fd)return;const fb=$("feed");fb.innerHTML="";
   fd.items.slice(0,8).forEach(it=>{const c=it.card,d=document.createElement("button");d.type="button";d.className="fitem";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);
     d.innerHTML=`<span class="e"></span><span><b></b><small></small></span>`;const e=d.querySelector(".e");e.innerHTML=miniSlot(c);
-    d.querySelector("b").textContent=it.name+" "+({craft:"скрафтил",merge:"слил",chest:"открыл в сундуке",build:"собрал"}[it.how]||"выбил");d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
+    d.querySelector("b").textContent=it.name+" "+({craft:"скрафтил",merge:"слил",chest:"открыл в сундуке",build:"собрал",trader:"купил у торговца"}[it.how]||"выбил");d.querySelector("small").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+(classify(c.sn)?", № "+fmtSn(c.sn):"")+(it.t?" · "+ago(it.t):"");
     d.onclick=()=>openCardView(c,{owner:it.name,mine:ONLINE&&it.uid===S.uid});fb.appendChild(d)});
   if(!fd.items.length)fb.innerHTML='<p style="margin:0;color:#5a5f80">Пока никто не выбил ничего редкого.</p>'}
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});

@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=d9823663">
+<link rel="stylesheet" href="style.css?v=43f03276">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -203,6 +203,8 @@
   <section id="sec-shop" hidden>
     <div class="seg" id="sh-seg"><button type="button" data-v="buy" aria-pressed="true">Купить</button><button type="button" data-v="sell" aria-pressed="false">Продать</button><button type="button" data-v="lavka" aria-pressed="false">Лавка</button></div>
     <div id="sh-buy" style="display:flex;flex-direction:column;gap:10px">
+      <div class="box trader" id="tr-shop" hidden><div class="trh"><span class="tra">🧙‍♂️</span><div><h3>Странствующий торговец</h3><small id="trd-t"></small></div></div>
+        <div class="trg" id="trd-items"></div><div class="trw" id="trd-wants"></div></div>
       <div class="box"><div class="rowb"><h3>Рынок</h3><span id="mk-t" style="font-size:12px;color:#5a5f80"></span></div><p>Карточки, которые выставили другие игроки. Зелёная цена — ниже оценки, выгодно. Красная — переплата.</p></div>
       <div id="mk-list" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
@@ -310,7 +312,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=02a67e07"></script>
-<script src="game.js?v=e5a089aa"></script>
+<script src="rules.js?v=e4e48ece"></script>
+<script src="game.js?v=2708d686"></script>
 </body>
 </html>
