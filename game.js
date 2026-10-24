@@ -615,7 +615,7 @@ function fillFace(root,c){
   root.querySelectorAll(".tear,.brak,.seam").forEach(e=>e.remove());if(c.f===4)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
   root.classList.toggle("half",!!c.part);root.classList.toggle("half-l",c.part===1);root.classList.toggle("half-r",c.part===2);root.classList.toggle("comp",isComp(c.h)&&!c.part);
   if(isComp(c.h)&&!c.part)q(".in").insertAdjacentHTML("beforeend",SEAM);
-  faceV2(root,c);
+  faceV2(root,c);if(HEROES[c.h][4].collab&&typeof collabFace==="function")collabFace(root,c);
 }
 /* ---------- маленькая копия карточки для списков ----------
    miniSlot(c) возвращает пустой span, а настоящая карточка дорисовывается, как только span попадёт на страницу. */
@@ -627,7 +627,7 @@ function hydrate(root){if(!root||!root.querySelectorAll)return;const list=root.m
     const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
     if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)})}
 new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)hydrate(n)}).observe(document.body,{childList:true,subtree:true});
-function showCard(c){fillFace(front,c);$("p-val").textContent=fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
+function showCard(c){fillFace(front,c);$("p-val").textContent=isCollab(c)?"БЕСЦЕННАЯ":fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
 let current=null,busy=false;
 
 /* ---------- sound (synthesised, starts on first tap) ---------- */
@@ -784,7 +784,7 @@ function cardMenu(c){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=
   sh.innerHTML='<div class="box nickbox cmenu"><div class="sellprev"></div><h3></h3><button type="button" class="craftbtn" id="cm-view">'+(c.part?'🧩 Собрать воина':'🔍 Рассмотреть и закалить')+'</button><button type="button" class="ghost cm-num" id="cm-num">✍️ Свой номер на карточке</button>'+(busy||tro?'<p class="cm-note"></p>':'<button type="button" class="linkbtn" id="cm-sell"></button>')+'<button type="button" class="ghost" id="cm-x">Закрыть</button></div>';
   sh.querySelector(".sellprev").innerHTML=miniSlot(c);sh.querySelector("h3").textContent=HEROES[c.h][0]+" · "+FIN[c.f].k+" · "+fmtC(c.v);
   $("cm-view").onclick=()=>{closeModal();if(c.part)openGold("comp");else openCardView(c,{mine:true})};$("cm-x").onclick=closeModal;$("cm-num").onclick=()=>{closeModal();numBuy(c)};
-  if(busy||tro)sh.querySelector(".cm-note").textContent=tro?"🏆 Трофей «Основатель» нельзя продать системе — только на рынке.":c.listed?"🏷 Карточка выставлена на рынок.":c.lock?"⚔️ Карточка сейчас в бою на арене.":"🧭 Воин в походе.";
+  if(busy||tro)sh.querySelector(".cm-note").textContent=tro?(FIN[c.f].collab?"💎 Бесценную карточку можно продать только на рынке — цену ставишь ты.":"🏆 Трофей «Основатель» нельзя продать системе — только на рынке."):c.listed?"🏷 Карточка выставлена на рынок.":c.lock?"⚔️ Карточка сейчас в бою на арене.":"🧭 Воин в походе.";
   else{$("cm-sell").textContent="💰 Продать за "+fmtC(c.v*QUICK);$("cm-sell").onclick=async()=>{closeModal();if(!(await confirmSell(c)))return;const r=await act("sell",{id:c.id});if(!r)return;if(current&&current.id===c.id){current=null;$("sell").disabled=true}renderAll();toast("Продано за "+fmt(r.got))}}}
 /* витрина красоты: все виды карточек, что уже есть у игрока */
 function renderBeauty(){const B=$("beauty"),ownF=new Set(S.cards.map(c=>c.f)),ownT=new Set(S.cards.map(c=>HEROES[c.h][2])),ownS=new Set(S.cards.map(c=>c.stars||0));
@@ -793,7 +793,7 @@ function renderBeauty(){const B=$("beauty"),ownF=new Set(S.cards.map(c=>c.f)),ow
   const slot=c=>'<div class="ms">'+miniSlot(c)+'</div>',got=FIN.filter((F,i)=>ownF.has(i)).length;
   let v='<div class="colhead"><div class="t">✨ ВИТРИНА КРАСОТЫ</div><div class="s" style="margin-top:6px">Все виды карточек в игре: какие бывают, как часто выпадают и сколько их всего. Собери все!</div><div class="bar"><i style="width:'+(got/FIN.length*100)+'%"></i></div><div class="s">собрано отделок: '+got+' из '+FIN.length+'</div></div><div class="bvh">Отделки</div>';
   const H5=[11,20,23,26,30,31];
-  FIN.forEach((F,i)=>{const o=ownF.has(i);v+='<div class="bfr'+(o?'':' lock')+'">'+slot(demo(H5[i],i,{sn:i===4?"000001":undefined}))+'<div><h4><span>'+F.k+'</span><em>'+(F.excl?'15 друзей':String(F.w).replace(".",",")+'%')+'</em></h4><p>'+(F.excl?'Не выпадает. Только 3 штуки на всю игру — за 15 приглашённых друзей.':(F.run===Infinity?'Без ограничений':'Тираж: всего '+F.run+(F.run===1?' на каждого воина — одна на весь мир':' на каждого воина'))+' · цена ×'+F.m)+'</p><div class="own '+(o?'ok':'no')+'">'+(o?'✅ У тебя есть':'🔒 Ещё нет')+'</div></div></div>'});
+  FIN.forEach((F,i)=>{if(F.collab)return;const o=ownF.has(i);v+='<div class="bfr'+(o?'':' lock')+'">'+slot(demo(H5[i],i,{sn:i===4?"000001":undefined}))+'<div><h4><span>'+F.k+'</span><em>'+(F.excl?'15 друзей':String(F.w).replace(".",",")+'%')+'</em></h4><p>'+(F.excl?'Не выпадает. Только 3 штуки на всю игру — за 15 приглашённых друзей.':(F.run===Infinity?'Без ограничений':'Тираж: всего '+F.run+(F.run===1?' на каждого воина — одна на весь мир':' на каждого воина'))+' · цена ×'+F.m)+'</p><div class="own '+(o?'ok':'no')+'">'+(o?'✅ У тебя есть':'🔒 Ещё нет')+'</div></div></div>'});
   v+='<div class="bvh">Редкость воинов</div><div class="bbx"><div class="bsr">'+[3,11,20,26,30].map((h,i)=>'<div class="'+(ownT.has(i)?'':'lock')+'">'+slot(demo(h,0))+'<span style="color:'+HT[i].c+'">'+HT[i].k+'</span></div>').join("")+'</div></div>';
   v+='<div class="bvh">Красивые номера</div><div class="bbx">'+NICE.map(n=>'<div class="bnm"><span>'+n.k+'</span><span>'+n.ex+'</span><span>×'+n.m+'</span></div>').join("")+'</div>';
   v+='<div class="bvh">Закалка ★1–★5</div><div class="bbx"><div class="bsr">'+[1,2,3,4,5].map(s=>'<div class="'+(ownS.has(s)?'':'lock')+'">'+slot(demo(20,0,{stars:s,xp:2500}))+'<span style="color:var(--ink)">★'+s+'</span></div>').join("")+'</div></div>';
@@ -823,9 +823,10 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
     const cl=classify(cur.sn);
     info.innerHTML="";const t=document.createElement("div");t.className="who";t.innerHTML="<span></span><small></small>";
     t.children[0].textContent=HEROES[cur.h][0]+((cur.stars||0)>=3?" «"+epithet(cur)+"»":"");
-    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+FIN[cur.f].k+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+FIN[cur.f].run:"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.";
-    {const fl=document.createElement("p");fl.className="cv-flavor";fl.textContent=HEROES[cur.h][3];t.appendChild(fl);const A=abil(cur.h),ab=document.createElement("p");ab.className="cv-abil";ab.textContent="⚡ Способность в рейтинговом бою: "+A[0]+" "+A[1]+" — "+A[2]+" · "+WC_IC[wclass(cur.h)]+" "+WCLASS[wclass(cur.h)];t.appendChild(ab)}
+    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+(isCollab(cur)?"Бесценная, 1 из 1, номер А777МР 77. Коллаборация «Воинов Эпох» и «Номерка» — такой больше нет ни у кого.":FIN[cur.f].k+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+FIN[cur.f].run:"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.");
+    {const fl=document.createElement("p");fl.className="cv-flavor";fl.textContent=HEROES[cur.h][3];t.appendChild(fl);const A=abil(cur.h),ab=document.createElement("p");if(isCollab(cur))ab.hidden=true;ab.className="cv-abil";ab.textContent="⚡ Способность в рейтинговом бою: "+A[0]+" "+A[1]+" — "+A[2]+" · "+WC_IC[wclass(cur.h)]+" "+WCLASS[wclass(cur.h)];t.appendChild(ab)}
     info.appendChild(t);
+    if(FIN[cur.f].collab){fb.hidden=false;fb.innerHTML='<h3>💎 Бесценная</h3><p>Главный приз розыгрыша — подарок лично от «Номерка». У неё нет оценки: продать её можно только на рынке, и цену назначает сам владелец. В боях не участвует, сжечь или продать системе её нельзя.</p>';return}
     if(FIN[cur.f].excl){fb.hidden=false;fb.innerHTML='<h3>🏆 Трофей</h3><p>Карточка «Основатель» существует в единственном экземпляре. Она для коллекции и понтов: в боях не участвует, продать системе её нельзя, а выставить на рынок можно.</p>';return}
     if(!o.mine){fb.hidden=true;return}
     fb.hidden=false;const s=cur.stars||0;
@@ -1065,7 +1066,7 @@ const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&
 async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=await act("chal_get");chData=r&&r.id?r:null;if(chData)chData._t=NOW();drawChal()}
 function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
   const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
-  box.querySelector(".chal-h span").textContent=C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";
+  box.querySelector(".chal-h span").textContent=C.secret?"🤫 СЕКРЕТНЫЙ ПРИЗ ~$100":C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";box.classList.toggle("secret",!!C.secret);
   if(C.lot)return drawLot(C,left,hm);
   $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
   $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinovadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
@@ -1085,7 +1086,8 @@ $("chal-go").onclick=()=>$("ref-go").click();
 function drawLot(C,left,hm){const M=C.me,inn=M.n>=C.min,T=C.tickets||0;
   $("chal-left").textContent=C.phase==="soon"?"через "+tleft(left):tleft(left);
   $("chal-t").textContent=C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+": пригласи "+C.min+" друзей — и ты в розыгрыше "+C.prizes[0]+"!":"Пригласи "+C.min+" друзей — и ты участник. Каждый друг = 1 билет: больше друзей — больше шанс. В "+hm(C.end)+" бот выберет одного победителя. Выиграть может любой! Все призы прошлого конкурса выплачены — отзывы в чате.";
-  $("chal-p").innerHTML='<div>🏆<b>'+C.prizes[0]+'</b>подарок</div><div>🎟<b>'+T+'</b>'+plural(T,"билет","билета","билетов")+'</div><div>👥<b>'+(C.players||0)+'</b>'+plural(C.players||0,"участник","участника","участников")+'</div>';
+  if(C.secret)$("chal-t").textContent="🎁 Главный приз — секрет! Суммарно он стоит больше, чем все наши прошлые конкурсы — в районе $100. Это подарок лично от игры «Номерок» 🤝 "+(C.phase==="soon"?"Старт в "+hm(C.start)+", пригласи "+C.min+" друзей — и ты в розыгрыше!":"Пригласи "+C.min+" друзей — и ты участник. Каждый друг = 1 билет. В "+hm(C.end)+" бот выберет одного победителя.");
+  $("chal-p").innerHTML='<div>'+(C.secret?'🤫<b>~$100</b>секрет':'🏆<b>'+C.prizes[0]+'</b>подарок')+'</div><div>🎟<b>'+T+'</b>'+plural(T,"билет","билета","билетов")+'</div><div>👥<b>'+(C.players||0)+'</b>'+plural(C.players||0,"участник","участника","участников")+'</div>';
   const me=$("chal-me");me.innerHTML="";const mb=document.createElement("div"),sm=document.createElement("small");
   mb.textContent=C.phase==="soon"?"Подготовь друзей — счёт начнётся в "+hm(C.start):inn?"🎟 Ты в розыгрыше! У тебя "+M.n+" "+plural(M.n,"билет","билета","билетов")+" · шанс "+(T?Math.max(.1,Math.round(M.n/T*1000)/10):100)+"%":"У тебя "+M.n+" из "+C.min+" друзей — ещё "+(C.min-M.n)+" и ты в розыгрыше!";
   sm.textContent="твои друзья: "+M.d+" · друзья друзей: "+M.l2+(inn?" · каждый новый друг = +1 билет":"");me.append(mb);if(C.phase!=="soon")me.append(sm);
@@ -1505,7 +1507,7 @@ function encCard(c,out){const sn=+c.sn,v=Math.round(c.v*100);out.push(c.h,c.f,lv
   c.stats.forEach(x=>out.push((x>>8)&255,x&255));out.push((v>>>24)&255,(v>>16)&255,(v>>8)&255,v&255)}
 function decCard(a,i){const c={h:a[i],f:a[i+1],lv:a[i+2],hue:a[i+3]*2,no:(a[i+4]<<8)|a[i+5],sn:String((a[i+6]<<16)|(a[i+7]<<8)|a[i+8]).padStart(6,"0"),stats:[]};
   for(let k=0;k<5;k++)c.stats.push((a[i+9+k*2]<<8)|a[i+10+k*2]);c.v=((a[i+19]<<24)|(a[i+20]<<16)|(a[i+21]<<8)|a[i+22])/100;c.xp=25*Math.pow(c.lv-1,2);c.id="f"+i+"_"+c.sn;
-  if(c.h>=HEROES.length||c.f>4)throw 0;return c}
+  if(c.h>=HEROES.length||c.f>4||HEROES[c.h][4].collab)throw 0;return c}
 const CARD_B=23;
 function encName(){const u=new TextEncoder().encode(myName()).slice(0,40);return [u.length,...u]}
 function decName(a){const n=a[1];return {name:new TextDecoder().decode(new Uint8Array(a.slice(2,2+n))),i:2+n}}
@@ -1713,7 +1715,7 @@ function drawMarket(){const box=$("mk-list"),M=mkCache||{items:[]};box.innerHTML
   M.items.forEach(it=>{const c=it.card,r=it.price/c.v,b=document.createElement("button");b.type="button";b.className="mini2";b.textContent="Купить";
     b.onclick=async()=>{b.disabled=true;const res=await act("buy",{id:it.id,price:it.price});if(!res){b.disabled=false;loadMarket(true);return}
       sfx.coin();hapN("success");if(HEROES[c.h][2]>=3||c.f>=3)burst(3);mkCache.items=mkCache.items.filter(x=>x.id!==it.id);renderAll();toast("Куплено у "+it.seller+": "+HEROES[c.h][0])};
-    box.appendChild(lotRow(c,`<b class="num">${fmtC(it.price)}</b><small class="${r<1?"cheap":r>1.2?"dear":""}">${r<1?"−"+Math.round((1-r)*100)+"% от оценки":r>1?"+"+Math.round((r-1)*100)+"% к оценке":"по оценке"}</small><small style="color:#5a5f80;font-weight:500"></small>`,b));
+    box.appendChild(lotRow(c,`<b class="num">${fmtC(it.price)}</b><small class="${isCollab(c)?"dear":r<1?"cheap":r>1.2?"dear":""}">${isCollab(c)?"💎 бесценная · 1 из 1":r<1?"−"+Math.round((1-r)*100)+"% от оценки":r>1?"+"+Math.round((r-1)*100)+"% к оценке":"по оценке"}</small><small style="color:#5a5f80;font-weight:500"></small>`,b));
     box.lastChild.querySelector(".r small:last-of-type").textContent=it.seller})}
 function renderSell(){const lots=$("lots");lots.innerHTML="";const mine=S.cards.filter(c=>c.listed);
   if(!mine.length)lots.innerHTML='<p style="margin:0;color:#5a5f80">Ты ничего не выставил.</p>';
@@ -1723,12 +1725,12 @@ function renderSell(){const lots=$("lots");lots.innerHTML="";const mine=S.cards.
   const pk=$("sl-pick");pk.innerHTML="";const free=S.cards.filter(c=>!away(c));
   if(!free.length)pk.innerHTML='<p style="margin:0;color:#5a5f80">Нет свободных карточек.</p>';
   free.sort((a,b)=>b.v-a.v).forEach(c=>{const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===slPick);
-    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;b.children[1].textContent=H[0];
-    b.onclick=()=>{slPick=c.id;$("sl-range").value=120;$("sl-price").value=Math.max(1,Math.round(c.v*1.2));renderSell()};pk.appendChild(b)});
+    b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${isCollab(c)?"бесценная":fmt(c.v)}</b>`;b.children[1].textContent=H[0];
+    b.onclick=()=>{slPick=c.id;$("sl-range").value=120;$("sl-price").value=isCollab(c)?1e6:Math.max(1,Math.round(c.v*1.2));renderSell()};pk.appendChild(b)});
   const c=S.cards.find(x=>x.id===slPick&&!away(x)),f=$("sl-form");f.style.display=c?"flex":"none";if(!c)return;
-  $("sl-name").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase();$("sl-val").textContent="оценка "+fmt(c.v);sellHint(c)}
+  $("sl-name").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase();$("sl-val").textContent=isCollab(c)?"бесценная — цену ставишь ты":"оценка "+fmt(c.v);$("sl-range").hidden=isCollab(c);sellHint(c)}
 function sellHint(c){const pr=+$("sl-price").value||1,tmp={listPrice:pr,v:c.v};
-  $("sl-hint").textContent="Получишь "+fmt(pr*(1-FEE))+" после комиссии 5%."+(ONLINE?" Купит тот, кому понравится цена.":" Шанс продажи примерно "+Math.round(sellChance(tmp)*100)+"% в минуту.")+" Быстрая продажа без рынка: "+fmt(c.v*QUICK)+"."}
+  $("sl-hint").textContent="Получишь "+fmt(pr*(1-FEE))+" после комиссии 5%."+(ONLINE?" Купит тот, кому понравится цена.":" Шанс продажи примерно "+Math.round(sellChance(tmp)*100)+"% в минуту.")+(isCollab(c)?" Бесценную карточку можно продать только на рынке.":" Быстрая продажа без рынка: "+fmt(c.v*QUICK)+".")}
 $("sl-range").oninput=()=>{const c=S.cards.find(x=>x.id===slPick);if(!c)return;$("sl-price").value=Math.max(1,Math.round(c.v*$("sl-range").value/100));sellHint(c)};
 $("sl-price").oninput=()=>{const c=S.cards.find(x=>x.id===slPick);if(!c)return;$("sl-range").value=Math.round((+$("sl-price").value||0)/c.v*100);sellHint(c)};
 $("sl-go").onclick=async()=>{const c=S.cards.find(x=>x.id===slPick&&!away(x));if(!c)return;const pr=Math.max(1,Math.round(+$("sl-price").value||0));
@@ -2005,7 +2007,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c));$("any-go").onclick=anyPick}}
 /* «любая карточка»: сначала воин, потом отделка */
 function anyPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  const hs=HEROES.map((H,i)=>i).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
+  const hs=HEROES.map((H,i)=>i).filter(i=>!HEROES[i][4].collab).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
   sh.innerHTML='<div class="box nickbox"><h3>🃏 Выбери воина</h3><div class="pkg">'+hs.map(h=>'<button type="button" class="pki" data-h="'+h+'">'+miniSlot(demoOne(h,HEROES[h][4].one?4:0))+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
   $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-h]");if(!b)return;const h=+b.dataset.h,W=HEROES[h][4];
     if(W.one)return anyConfirm(h,4);if(W.comp)return anyConfirm(h,0);

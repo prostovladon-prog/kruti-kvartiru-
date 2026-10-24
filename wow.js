@@ -324,3 +324,35 @@ async function termsGate(){if(termsOn||!termsNeed())return;termsOn=true;const d=
   $("t-go").onclick=async()=>{$("t-go").disabled=true;if(ONLINE){const r=await act("terms_ok",{v:TERMS_V});if(!r){$("t-go").disabled=false;return}}else{try{localStorage.setItem("we-terms",String(TERMS_V))}catch(e){}}
     d.remove();termsOn=false;hap("medium")}}
 {const t=setInterval(()=>{if(!S)return;clearInterval(t);termsGate()},300);setInterval(()=>{try{if(S&&!termsOn&&termsNeed())termsGate()}catch(e){}},5000)}
+
+/* ---------- карточка-коллаборация «Воины Эпох × Номерок»: А777МР 77, бесценная, 1 из 1 ---------- */
+const plateHTML=()=>'<span class="plate"><b>А<em>777</em>МР</b><i><u>77</u><small><s></s>RUS</small></i></span>';
+DETAILED["А777МР 77"]=u=>{const L=portrait(30,null).replace(/^<svg[^>]*>/,'<svg x="-42" y="6" width="190" height="190" viewBox="0 0 200 200">');
+ const zz="M104 0 L94 30 L108 60 L92 92 L106 124 L90 156 L104 200";
+ return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+ <clipPath id="cl${u}"><path d="M0 0 H104 L94 30 L108 60 L92 92 L106 124 L90 156 L104 200 H0Z"/></clipPath>
+ <clipPath id="cr${u}"><path d="M104 0 H200 V200 H104 L90 156 L106 124 L92 92 L108 60 L94 30Z"/></clipPath>
+ <linearGradient id="ng${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05081f"/><stop offset=".55" stop-color="#1a0a3a"/><stop offset="1" stop-color="#3a0a3a"/></linearGradient>
+ <linearGradient id="cb${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fa0c8"/><stop offset=".35" stop-color="#2a3352"/><stop offset="1" stop-color="#05070f"/></linearGradient>
+ <linearGradient id="gl${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fe7ff"/><stop offset=".5" stop-color="#1a2a5a"/><stop offset="1" stop-color="#0a1030"/></linearGradient>
+ <radialGradient id="hl${u}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#bff6ff"/><stop offset="1" stop-color="#00e5ff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="sm${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff9f0a"/></linearGradient></defs>
+ <g clip-path="url(#cl${u})"><rect width="200" height="200" fill="#2a0a5a"/>${L}</g>
+ <g clip-path="url(#cr${u})"><rect width="200" height="200" fill="url(#ng${u})"/>
+  ${[[108,40,12,52,"#ff2e63"],[124,26,14,66,"#7a5aff"],[142,48,10,44,"#00e5ff"],[156,18,16,74,"#ff2e63"],[176,36,12,56,"#00e5ff"],[190,52,10,40,"#7a5aff"]].map(([x,y,w,h,c])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#0a0c24" stroke="${c}" stroke-width="1.2" opacity=".9"/>`+[0,1,2,3].map(k=>`<rect x="${x+3}" y="${y+6+k*10}" width="${w-6}" height="3" fill="${c}" opacity="${.35+((x+k)%3)*.2}"/>`).join("")).join("")}
+  <path d="M104 200 L140 92 L160 92 L200 200Z" fill="#14162e"/><path d="M150 100 V112 M150 124 V142 M150 156 V184" stroke="#ffd23f" stroke-width="3" stroke-dasharray="1 0"/>
+  <path d="M108 150 Q110 120 126 110 L174 110 Q192 120 194 150 L194 170 Q150 178 108 170Z" fill="url(#cb${u})" stroke="#0d1030" stroke-width="2.5"/>
+  <path d="M124 112 L134 90 Q150 84 166 90 L176 112Z" fill="url(#gl${u})" stroke="#0d1030" stroke-width="2.5"/><path d="M134 108 L140 94 Q146 92 150 92" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/>
+  <ellipse cx="122" cy="136" rx="20" ry="13" fill="url(#hl${u})"/><ellipse cx="178" cy="136" rx="20" ry="13" fill="url(#hl${u})"/>
+  <path d="M114 134 L128 132 L130 140 L116 142Z M186 134 L172 132 L170 140 L184 142Z" fill="#fff" stroke="#0d1030" stroke-width="1.5"/>
+  <rect x="134" y="140" width="32" height="12" rx="3" fill="#05070f" stroke="#7fe7ff" stroke-width="1.2"/><path d="M138 146 H162" stroke="#7fe7ff" stroke-width="1" opacity=".7"/>
+  <path d="M110 150 Q150 158 192 150" stroke="#ff2e63" stroke-width="2" fill="none" opacity=".8"/></g>
+ <path d="${zz}" fill="none" stroke="#00e5ff" stroke-width="7" opacity=".45"/><path d="${zz}" fill="none" stroke="url(#sm${u})" stroke-width="3.5" stroke-linejoin="round"/>
+ <circle cx="99" cy="20" r="13" fill="#0d1030" stroke="url(#sm${u})" stroke-width="3"/><text x="99" y="26" text-anchor="middle" font-size="18" font-weight="900" fill="#fff" font-family="Arial,sans-serif">×</text>
+
+ </svg>`};
+function collabFace(root,c){const q=s=>root.querySelector(s);root.classList.add("collab");root.style.clipPath="";
+  q(".top span").textContent="🤝 1 ИЗ 1";q(".era").textContent="Воины Эпох × Номерок";q(".finish").textContent="💎 Бесценная · 1/1";
+  q(".foot>b").textContent="БЕСЦЕННАЯ";const sn=q(".foot .sn");sn.innerHTML=plateHTML();sn.classList.remove("nice");const rb=q(".ribbon");rb.hidden=false;rb.textContent="🤝 Коллаборация";
+  q(".foot>b").textContent="БЕСЦЕННАЯ";q(".power").textContent="«Единственный такой номер в мире»";
+  if(!q(".clx"))q(".in").insertAdjacentHTML("beforeend",'<i class="clx c1"></i><i class="clx c2"></i><i class="clx c3"></i>')}

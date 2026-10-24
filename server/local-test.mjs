@@ -520,6 +520,13 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   await cc(8, "chal_set", { cfg: { id: "lot1", lot: 1, min: 3, start: n0 - 36e5, end: Date.now() - 1, prizes: ["$20"], slots: [] } });
   await worker.tick(envC); await worker.tick(envC);
   { const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:lot1'").get().v); ok(fin.winner && fin.winner.uid === 6200 && fin.players === 1 && fin.tickets === 3, "победитель выбран по билетам"); }
+  // секретный приз: победитель получает бесценную карточку-коллаборацию
+  await cc(8, "chal_set", { cfg: { id: "sec1", lot: 1, secret: 1, min: 3, start: n0 - 36e5, end: Date.now() - 1, prizes: ["секретного приза"], slots: [] } });
+  await worker.tick(envC); await worker.tick(envC);
+  { const c = db.prepare("SELECT owner,f,h FROM cards WHERE f=6").get(); ok(c && c.owner === 6200, "секретный приз: бесценная карточка у победителя"); }
+  r = await cc(6200, "sync"); { const c = r.S.cards.find(x => x.f === 6); ok(c && c.v === 0, "карточка в коллекции победителя");
+    let q = await cc(6200, "sell", { id: c.id }); ok(!q.ok, "бесценную нельзя продать системе");
+    q = await cc(6200, "list", { id: c.id, price: 5000000 }); ok(q.ok, "бесценную можно выставить на рынок за свою цену"); }
   await cc(8, "chal_set", { cfg: { id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] } });
 }
 

@@ -1439,3 +1439,39 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 #sec-camp .cp-tg{top:150px}
 #sec-camp .tgs{height:100px}#sec-camp .tgl{top:288px}
 #sec-camp .w3sc .tsh{top:428px}
+/* ===== карточка-коллаборация «Воины Эпох × Номерок» ===== */
+.front.collab{--edge:conic-gradient(from var(--ang,0deg),#00e5ff,#ffffff,#ff2e63,#ffd23f,#ffffff,#7a5aff,#00e5ff);animation:spinang 2.4s linear infinite;box-shadow:6px 6px 0 var(--ink),0 0 22px rgba(0,229,255,.75),0 0 44px rgba(255,46,99,.45)}
+.front.collab .in{background:linear-gradient(90deg,#2a0a5a 0 50%,#05081f 50%);color:#fff;border-color:#05070f}
+.front.collab .top{background:linear-gradient(90deg,#3a0a6a,#05070f 50%,#06305a)}
+.front.collab .top b{color:#fff;text-shadow:-2px 0 #ff2e63,2px 0 #00e5ff,0 0 12px #00e5ff}
+.front.collab .top span{color:#ffd23f}
+.front.collab .art{background:#05070f}
+.front.collab .scene,.front.collab .xr,.front.collab .xa,.front.collab .art svg.burst{display:none}
+.front.collab .hero{filter:drop-shadow(0 0 10px rgba(0,229,255,.6))}
+.front.collab .era{background:linear-gradient(90deg,#7a1fa8,#06305a);color:#fff}
+.front.collab .finish{background:linear-gradient(90deg,#00e5ff,#ffffff,#ff2e63,#ffd23f);background-size:300% 100%;animation:wholo 3s linear infinite;color:#05070f;font-weight:900}
+.front.collab .ribbon{background:linear-gradient(90deg,#ff2e63,#7a5aff);color:#fff}
+.front.collab .power{background:#05070f;color:#bff6ff;border-top-color:#000}
+.front.collab .stats{background:#0a0c24;color:#fff}
+.front.collab .foot{background:#05070f;color:#fff}
+.front.collab .foot b{background:linear-gradient(90deg,#fff6c8,#ffd23f,#ffffff,#00e5ff,#ffd23f);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:wholo 2.4s linear infinite;letter-spacing:.04em}
+.plate{display:inline-flex;align-items:stretch;background:#fff;color:#0d1030;border:2px solid #0d1030;border-radius:4px;font-family:Arial,sans-serif;font-weight:900;line-height:1;overflow:hidden}
+.plate b{padding:2px 5px;font-size:13px;letter-spacing:.5px;color:#0d1030}.plate b em{font-style:normal;font-size:15px}
+.plate i{display:flex;flex-direction:column;align-items:center;padding:1px 4px;border-left:2px solid #0d1030;font-style:normal}.plate i u{text-decoration:none;font-size:10px}
+.plate small{display:flex;align-items:center;gap:2px;font-size:6px}.plate small s{width:7px;height:5px;background:linear-gradient(#fff 0 33%,#2a5ad0 33% 66%,#d0262c 66%);border:.5px solid #0d1030}
+.clx{position:absolute;inset:0;pointer-events:none;border-radius:inherit}
+.clx.c1{mix-blend-mode:color-dodge;opacity:.35;background:repeating-linear-gradient(115deg,#ff5f6d 0 5%,#ffc371 8%,#47e891 12%,#3ab0ff 16%,#c56bff 20%,#ff5f6d 24%);background-size:300% 300%;animation:wholo 5s linear infinite}
+.clx.c2{background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.65) 48%,transparent 60%);background-size:250% 100%;animation:clsweep 2.8s ease-in-out infinite;mix-blend-mode:overlay}
+@keyframes clsweep{0%{background-position:150% 0}100%{background-position:-60% 0}}
+.clx.c3{background-image:radial-gradient(circle,#fff 0 1.2px,transparent 1.6px),radial-gradient(circle,#bff6ff 0 1px,transparent 1.4px);background-size:37px 41px,53px 47px;background-position:0 0,19px 23px;animation:cltw 1.6s steps(2) infinite;opacity:.8}
+@keyframes cltw{50%{opacity:.25;background-position:3px 2px,16px 26px}}
+@media (prefers-reduced-motion:reduce){.front.collab,.clx{animation:none}}
+.front.collab .foot{align-items:center}
+.front.collab .foot .sn{background:none!important;padding:0!important;border:0!important;box-shadow:none!important}
+.front.collab .foot>b{background-color:transparent!important;border:0!important;box-shadow:none!important;font-size:1.1em}
+.front.collab .plate b{font-size:16px}.front.collab .plate b em{font-size:19px}.front.collab .plate i u{font-size:12px}.front.collab .plate small{font-size:7px}
+/* iPhone: длинные списки (топ, «прямо сейчас выбили») — не рисуем то, что за экраном, и упрощаем мини-карточки, иначе WebView падает в пустой экран */
+#top-list>*,#feed>*,.feed>*{content-visibility:auto;contain-intrinsic-size:auto 70px}
+#top-list .minic .scene,#top-list .minic .gm,#top-list .minic .xr,#top-list .minic .xa,#top-list .minic .clx,.feed .minic .scene,.feed .minic .gm,.feed .minic .xr,.feed .minic .xa,.feed .minic .clx{display:none}
+#top-list .minic *,.feed .minic *{filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;mix-blend-mode:normal!important}
+#chal.secret{background:linear-gradient(115deg,#2a0a5a,#7a1fa8,#06305a,#7a1fa8,#2a0a5a);background-size:300% 100%;animation:wholo 6s linear infinite;box-shadow:0 0 22px rgba(0,229,255,.5),4px 4px 0 var(--ink)}

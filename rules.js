@@ -53,7 +53,10 @@ const HEROES=[
  ["Тор","Мифы Скандинавии",4,"Бог грома. Мьёльнир всегда возвращается в руку.",{don:1,one:1,sn:"444444",hue:210,p:[8,7,5,7,8]}],
  ["Три богатыря","Древняя Русь",4,"Илья, Добрыня и Алёша на одной заставе. Вместе их ещё никто не одолел.",{don:1,one:1,sn:"333333",hue:30,p:[8,8,6,8,8]}],
  ["Зевс","Мифы Греции",4,"Царь богов Олимпа. Одна молния — и спор окончен.",{don:1,one:1,sn:"999999",hue:270,p:[8,6,6,7,9]}],
- ["Геракл","Древняя Греция",4,"Совершил двенадцать подвигов. Задушил немейского льва голыми руками.",{don:1,one:1,sn:"121212",hue:30,p:[9,7,5,8,7]}]];
+ ["Геракл","Древняя Греция",4,"Совершил двенадцать подвигов. Задушил немейского льва голыми руками.",{don:1,one:1,sn:"121212",hue:30,p:[9,7,5,8,7]}],
+ /* коллаборация: одна карточка на весь мир, только приз розыгрыша. Продаётся только на рынке, цену ставит владелец */
+ ["А777МР 77","Воины Эпох × Номерок",4,"Половина — из «Воинов Эпох», половина — из «Номерка». Единственный такой номер в мире.",{collab:1,plate:["А","777","МР","77"],sn:"777777",hue:190,p:[9,9,9,9,9]}]];
+const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32, NHEROES=NBASE;          // в альбоме и прокрутках только 32 обычных воина
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
 const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
@@ -67,7 +70,8 @@ const FIN=[
  {k:"Голограмма",cls:"holo",w:5,m:15,run:100,col:"#c56bff"},
  {k:"Золотая",cls:"gold",w:.9,m:80,run:10,col:"#ffcc33"},
  {k:"Ошибка печати",cls:"error",w:.1,m:600,run:1,col:"#ff2e63"},
- {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1}];   // не выпадает: 3 карточки за 15 приглашённых друзей
+ {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1},
+ {k:"Бесценная",cls:"collab",w:0,m:0,run:1,col:"#00e5ff",excl:1,collab:1}];   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
 const HW=[10,4.5,1.6,.35,.06];          // вес выпадения воина по его редкости
@@ -377,7 +381,7 @@ const SHOP={
  mythic:{n:"Мифический сундук",stars:1000,cards:10,myth:1,leg:1,month:30,d:["🃏 <b>10</b> карточек","гарантированно <b>мифический</b>: Сёгун, Мерлин или богатырь","+ легендарная","шанс <b>2%</b> на легенду 1 из 1","всего <b>30</b> в месяц на всю игру"]}};
 const CHESTS=["newbie","small","royal","warrior","legend","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
-function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl)fail("Такой карточки нет");const W=HEROES[h][4];
+function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
   if(W.one){if(f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");return rollOne(ctx,h)}
   if(W.comp){if(f!==0)fail("Составного воина можно взять только обычной отделки");const no=ctx.compSlot(h);if(!no)fail("Тираж воина «"+HEROES[h][0]+"» закончился");
     const sn=genNumber(ctx,0),B=cardBody(h,0);return {id:ctx.newId(),h,f:0,no,sn,part:0,hue:B.hue,stats:B.stats,v:priceOf(h,0,no,sn,B.top,0),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0}}
@@ -407,8 +411,8 @@ function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточк
 function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail("Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 /* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
-function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
-function burnable(c){if(FIN[c.f].excl)fail("«Основателя» нельзя продать системе или сжечь. Его можно выставить на рынок");if(HEROES[c.h][4].one)fail("Легенду 1 из 1 нельзя продать системе или сжечь — только на рынке");return c}
+function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(FIN[c.f].collab?"Бесценная карточка коллекционная: в боях не участвует":TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
+function burnable(c){if(FIN[c.f].collab)fail("Бесценную карточку нельзя продать системе или сжечь. Её можно только выставить на рынок — цену ставишь ты");if(FIN[c.f].excl)fail("«Основателя» нельзя продать системе или сжечь. Его можно выставить на рынок");if(HEROES[c.h][4].one)fail("Легенду 1 из 1 нельзя продать системе или сжечь — только на рынке");return c}
 function addCard(G,c){if(G.cards.length>=CAP)fail("Коллекция заполнена ("+CAP+"). Продай лишнее");G.cards.push(c);noteCard(G.st,c)}
 /* карточка уходит из игры: её номер и место в тираже освобождаются и снова могут выпасть в прокрутках */
 function burn(G,ids){G.cards.forEach(x=>{if(ids.includes(x.id)&&G.ctx.release)G.ctx.release(x)});G.cards=G.cards.filter(x=>!ids.includes(x.id))}
@@ -675,4 +679,4 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
