@@ -1066,7 +1066,7 @@ const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&
 async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=await act("chal_get");chData=r&&r.id?r:null;if(chData)chData._t=NOW();drawChal()}
 function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
   const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
-  box.querySelector(".chal-h span").textContent=C.secret?"🤫 СЕКРЕТНЫЙ ПРИЗ ~$100":C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";box.classList.toggle("secret",!!C.secret);
+  box.querySelector(".chal-h span").textContent=C.secret?"🤫 СЕКРЕТНЫЙ ПРИЗ":C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";box.classList.toggle("secret",!!C.secret);
   if(C.lot)return drawLot(C,left,hm);
   $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
   $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinovadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
