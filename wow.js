@@ -340,7 +340,7 @@ DETAILED["А777МР 77"]=u=>{const L=portrait(30,null).replace(/^<svg[^>]*>/,'<s
  ${[[8,40],[24,70],[14,110],[36,26],[70,18]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.6" fill="#ffd23f" opacity=".8"/>`).join("")}
  <ellipse cx="100" cy="120" rx="95" ry="70" fill="url(#gw${u})"/>
  ${L}
- <g transform="rotate(-3 100 136)"><rect x="36" y="112" width="128" height="40" rx="6" fill="url(#pl${u})" stroke="#0d1030" stroke-width="3.5"/>
+ <g transform="rotate(-3 100 136)"><rect x="33" y="109" width="134" height="56" rx="8" fill="#0d1030" stroke="url(#sm${u})" stroke-width="2"/><text x="100" y="161.5" text-anchor="middle" font-size="8.5" font-weight="900" letter-spacing="2.5" fill="#00e5ff" font-family="'Arial Black',Arial,sans-serif">НОМЕРОК</text><rect x="36" y="112" width="128" height="40" rx="6" fill="url(#pl${u})" stroke="#0d1030" stroke-width="3.5"/>
   <rect x="40" y="115.5" width="121" height="33" rx="3.5" fill="none" stroke="#0d1030" stroke-width="1.6"/>
   ${T(82,142,20,'А<tspan font-size="26">777</tspan>МР')}
   <path d="M131 115 V149" stroke="#0d1030" stroke-width="2.5"/>${T(147,133,16,"77")}
@@ -350,9 +350,9 @@ DETAILED["А777МР 77"]=u=>{const L=portrait(30,null).replace(/^<svg[^>]*>/,'<s
  <path d="M100 0 V12" stroke="url(#sm${u})" stroke-width="3"/><circle cx="100" cy="16" r="11" fill="#0d1030" stroke="url(#sm${u})" stroke-width="2.5"/><text x="100" y="21.5" text-anchor="middle" font-size="16" font-weight="900" fill="#fff" font-family="Arial,sans-serif">×</text>
  </svg>`};
 function collabFace(root,c){const q=s=>root.querySelector(s);root.classList.add("collab");root.style.clipPath="";
-  q(".top span").textContent="🤝 1 ИЗ 1";q(".era").textContent="Воины Эпох × Номерок";q(".finish").textContent="💎 Бесценная · 1/1";
+  q(".top span").textContent="🚘 НОМЕРОК";q(".era").textContent="Воины Эпох × Номерок";q(".finish").textContent="💎 Бесценная · 1/1";
   q(".foot>b").textContent="БЕСЦЕННАЯ";const sn=q(".foot .sn");sn.innerHTML=plateHTML();sn.classList.remove("nice");q(".ribbon").hidden=true;
-  q(".foot>b").textContent="БЕСЦЕННАЯ";q(".power").textContent="«Единственный такой номер в мире»";
+  q(".foot>b").textContent="БЕСЦЕННАЯ";q(".power").textContent="«Подарок лично от Номерка»";
   if(!q(".clx"))q(".in").insertAdjacentHTML("beforeend",'<i class="clx c1"></i><i class="clx c2"></i><i class="clx c3"></i>')}
 
 /* ---------- лагерь: лёгкий режим и ограничение эффектов, чтобы не лагало при быстрых тапах ---------- */
