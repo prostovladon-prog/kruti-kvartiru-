@@ -733,10 +733,11 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   for (let i = 0; i < 10; i++) { r = await call(A, "cas_case"); if (!r.ok) { ok(false, "кейс: " + r.err); break } if (r.res.g) gifts++; else runes += r.res.r; }
   ok(r.ok && (gifts + runes / 27e3 >= 10 || runes > 0), "10 кейсов открыто (подарков: " + gifts + ")");
   r = await call(A, "cas_slot", { bet: 1000 }); ok(r.ok, "слот сыгран");
-  db.prepare("UPDATE users SET cash=10000 WHERE id=?").run(A);
-  { let q = await call(A, "ex_runes", { n: 1000 }); ok(q.ok && q.res.r === 10000 && q.S.cash === 9000, "обмен: 1000 монет → 10 000 рун");
-    q = await call(A, "ex_runes", { n: 9000 }); ok(q.ok && q.res.n === 4000 && q.res.left === 0, "дневной лимит 50 000 рун: обменялось только 4000 монет");
-    q = await call(A, "ex_runes", { n: 100 }); ok(!q.ok && /лимит/.test(q.err), "лимит исчерпан"); }
+  db.prepare("UPDATE users SET cash=1000000 WHERE id=?").run(A);
+  { let q = await call(A, "ex_runes", {}); ok(q.ok && q.res.n === 10000 && q.res.r === 10000 && q.res.next === 19800, "обмен: 1-й пакет 10 000 рун за 1% (10 000 из 1 млн)");
+    for (let i = 0; i < 4; i++) q = await call(A, "ex_runes", {}); ok(q.ok && q.res.k === 5, "5 пакетов за день");
+    q = await call(A, "ex_runes", {}); ok(!q.ok && /пакетов/.test(q.err), "лимит 5 пакетов в день");
+    db.prepare("UPDATE users SET cash=500 WHERE id=?").run(B); q = await call(B, "ex_runes", {}); ok(!q.ok && /Не хватает/.test(q.err), "бедному — минимум 1 000 монет"); }
   r = await call(A, "cas_feed"); ok(r.ok && Array.isArray(r.res), "лента казино доступна всем");
   r = await call(A, "cas_stats"); ok(!r.ok, "статистика казино — только админу");
   { const n = db.prepare("SELECT COUNT(*) n FROM cas_log WHERE uid=?").get(A).n; ok(n === 11, "журнал казино: 10 кейсов + 1 слот (" + n + ")"); }

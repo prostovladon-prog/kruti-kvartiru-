@@ -464,9 +464,11 @@ const CASE={price:45e3,day:10,sold:27e3,
  p:[[.44995,{r:27e3}],[.25,{r:54e3}],[.15,{r:9e4}],[.09,{g:"shoe"}],[.04,{g:"dice"}],[.015,{g:"clover"}],[.0045,{g:"mask"}],[.0005,{g:"cup"}],[.00005,{g:"crown"}]]};
 const SLOT={min:1e3,max:5e4,t:[[.002,"💎",50],[.005,"👑",20],[.02,"⚔️",8],[.06,"🍀",4]],pair:[.2,1.5],sym:["💎","👑","⚔️","🍀","🔔","🍒"]};
 const HL={min:1e3,max:5e4,k:.92,cap:100};
-/* обмен монет на руны: 1 🪙 = 10 💠, не больше 50 000 рун в день. Монеты сгорают — так в игре меньше лишних денег, а рун не становится слишком много */
-const EX={rate:10,min:100,day:5e4};
-function exDay(st,now){const E=st.ex||(st.ex={});const d=mskDay(now);if(E.d!==d){E.d=d;E.r=0}return E}
+/* обмен монет на руны пакетами по 10 000 💠. Цена — процент от монет игрока: 1-й пакет за день 1%, 2-й 2% … 5-й 5% (не меньше 1 000 🪙).
+   Богатый платит больше, бедный — минимум. Монеты сгорают, рун больше 50 000 в день не получить */
+const EX={pack:1e4,base:.01,step:.01,min:1000,day:5};
+function exDay(st,now){const E=st.ex||(st.ex={});const d=mskDay(now);if(E.d!==d){E.d=d;E.k=0}E.k=E.k||0;return E}
+const exPrice=(cash,k)=>Math.max(EX.min,Math.ceil((cash||0)*(EX.base+EX.step*k)));
 function casDay(st,now){const K=st.cas||(st.cas={});const d=mskDay(now);if(K.d!==d){K.d=d;K.n=0;K.cs=0}return K}
 const hlP=(c,dir)=>dir==="up"?(13-c)/13:(c-1)/13, card13=()=>1+Math.floor(Math.random()*13);
 function casBet(st,ctx,b,R){const C=camp(st,ctx.now),K=casDay(st,ctx.now);b=Math.floor(+b||0);
@@ -603,9 +605,8 @@ const ACTIONS={
     if(P.g&&(L[P.g]||0)>0){ctx.giftWin=P.g;return {gift:P.g,i:CASE.p.findIndex(x=>x[1]===P)}}
     const r=P.g?CASE.sold:P.r;C.runes+=r;return {r,sold:P.g||null,i:CASE.p.findIndex(x=>x[1]===P)}},
   cas_comp(G){if(!G.ctx.grant)fail("Неизвестное действие");const C=camp(G.st,G.ctx.now);C.runes+=CASE.sold;return {r:CASE.sold}},
-  ex_runes(G){const {st,ctx}=G;const C=camp(st,ctx.now),E=exDay(st,ctx.now);let n=Math.floor(+G.p.n||0);
-    if(n<EX.min)fail("Минимум "+EX.min+" монет");const left=EX.day-E.r;if(left<=0)fail("Сегодня уже обменяно "+EX.day.toLocaleString("ru")+" рун. Завтра лимит обновится");
-    n=Math.min(n,Math.floor(left/EX.rate));pay(st,n);const r=n*EX.rate;C.runes+=r;E.r+=r;return {n,r,left:EX.day-E.r}},
+  ex_runes(G){const {st,ctx}=G;const C=camp(st,ctx.now),E=exDay(st,ctx.now);if(E.k>=EX.day)fail("Сегодня уже обменяно "+EX.day+" пакетов. Завтра лимит обновится");
+    const n=exPrice(st.cash,E.k);if(G.p.max!=null&&n>+G.p.max)fail("Цена изменилась — посмотри ещё раз");pay(st,n);C.runes+=EX.pack;E.k++;return {n,r:EX.pack,k:E.k,next:E.k<EX.day?exPrice(st.cash,E.k):0}},
   cas_slot(G){const {st,ctx}=G;const C=casBet(st,ctx,G.p.bet,SLOT),b=Math.floor(+G.p.bet);let x=Math.random(),reels,m=0;
     const any=()=>SLOT.sym[Math.floor(Math.random()*SLOT.sym.length)];
     for(const [p,s2,k] of SLOT.t){if(x<p){reels=[s2,s2,s2];m=k;break}x-=p}
@@ -685,4 +686,4 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={EX,exDay,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
