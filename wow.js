@@ -384,3 +384,13 @@ async function loadCasStats(){const B=$("cs-adm-b");B.innerHTML="<p>Загруж
   const sp=B.querySelectorAll(".csa-p span"),names=[...r.top,...r.lose,...r.gifts];sp.forEach((s,i)=>s.textContent=names[i].name||"Игрок")}
 $("cs-adm-go").onclick=loadCasStats;
 const _renderCas2=renderCas;renderCas=function(){_renderCas2();const a=$("cs-adm");if(a)a.hidden=!(S&&S.admin);loadCasFeed()};
+
+/* ---------- красивая золотая монета вместо эмодзи 🪙: во всём интерфейсе значок заменяется нарисованной монетой ---------- */
+(function(){const SKIP=new Set(["SCRIPT","STYLE","TEXTAREA","INPUT","OPTION","TITLE"]);let q=new Set(),raf=0;
+  const swap=n=>{const p=n.parentNode;if(!p||SKIP.has(p.nodeName)||p.closest&&p.closest("svg")||n.ownerSVGElement)return;const parts=n.nodeValue.split("🪙");if(parts.length<2)return;
+    const f=document.createDocumentFragment();parts.forEach((t,i)=>{if(t)f.append(t);if(i<parts.length-1){const c=document.createElement("i");c.className="gc1";c.setAttribute("aria-label","монет");f.append(c)}});p.replaceChild(f,n)};
+  const scan=root=>{if(root.nodeType===3){if(root.nodeValue.includes("🪙"))swap(root);return}if(root.nodeType!==1||SKIP.has(root.nodeName))return;
+    const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:t=>t.nodeValue.includes("🪙")?1:3}),L=[];while(w.nextNode())L.push(w.currentNode);L.forEach(swap)};
+  const run=()=>{raf=0;const L=[...q];q.clear();L.forEach(n=>{if(n.isConnected)scan(n)})};
+  new MutationObserver(ms=>{for(const m of ms){if(m.type==="characterData")q.add(m.target);else m.addedNodes.forEach(n=>q.add(n))}if(!raf)raf=requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true,characterData:true});
+  scan(document.body)})();
