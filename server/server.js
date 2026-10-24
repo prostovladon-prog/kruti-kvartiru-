@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=22;
+const SCHEMA_V=23;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -90,7 +90,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE INDEX IF NOT EXISTS rm_a ON rm(a, phase)",
     "CREATE TABLE IF NOT EXISTS gifts (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER NOT NULL, k TEXT NOT NULL, no INTEGER NOT NULL, how TEXT, shelf INTEGER NOT NULL DEFAULT 0, from_uid INTEGER, created INTEGER)",
     "CREATE UNIQUE INDEX IF NOT EXISTS gifts_kn ON gifts(k,no)","CREATE INDEX IF NOT EXISTS gifts_o ON gifts(owner,shelf)",
-    "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+    "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1085,6 +1085,16 @@ async function chanCheck(env,C){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.
   if(ok){k.ok=1;for(const a of ADMINS)await notify(env,a,"✅ Бот может публиковать в канал "+C.chan+". Посты выйдут сами: "+(C.chanSlots||C.slots.filter((s,i)=>i===0||i>=C.slots.length-2)).map(h=>Math.floor(h)+":"+String(Math.round(h%1*60)).padStart(2,"0")).join(", ")+" и итоги в "+hmM(C.end)+".","⚔️ Открыть")}
   else if(!k.warned){k.warned=1;for(const a of ADMINS)await notify(env,a,"⚠️ Бот не может публиковать в канал "+C.chan+".\n\nДобавь @VoinyEpohBot администратором канала с правом «Публикация сообщений» — я проверю снова через 10 минут.","⚔️ Открыть")}
   await kvSet(env,"chan_chk:"+C.id,k)}
+/* ---------- казино: журнал игр, лента крупных выигрышей для всех и статистика для админа ---------- */
+async function casLog(env,uid,g,bet,win,gift,m){try{await env.DB.prepare("INSERT INTO cas_log(uid,g,bet,win,gift,gno,m,at) VALUES(?,?,?,?,?,?,?,?)").bind(uid,g,bet|0,win|0,gift?gift.k:null,gift?gift.no:null,m||null,Date.now()).run()}catch(e){console.error("caslog",e)}}
+async function casFeed(env){return cached("casfeed",5e3,async()=>(await env.DB.prepare("SELECT l.g,l.bet,l.win,l.gift,l.gno,l.m,l.at,COALESCE(u.nick,u.name) AS name FROM cas_log l LEFT JOIN users u ON u.id=l.uid WHERE l.gift IS NOT NULL OR l.win>=50000 OR (l.g='slot' AND l.m>=8) ORDER BY l.id DESC LIMIT 20").all()).results)}
+async function casStats(env){const now=Date.now(),d0=dayNum(now)*864e5-TZ;
+  const agg=async from=>(await env.DB.prepare("SELECT g,COUNT(*) AS n,SUM(bet) AS bet,SUM(win) AS win,COUNT(DISTINCT uid) AS players,SUM(gift IS NOT NULL) AS gifts FROM cas_log WHERE at>=? GROUP BY g").bind(from).all()).results;
+  const tot=async from=>await env.DB.prepare("SELECT COUNT(*) AS n,COALESCE(SUM(bet),0) AS bet,COALESCE(SUM(win),0) AS win,COUNT(DISTINCT uid) AS players FROM cas_log WHERE at>=?").bind(from).first();
+  const top=(await env.DB.prepare("SELECT l.uid,COALESCE(u.nick,u.name) AS name,SUM(l.win)-SUM(l.bet) AS net,COUNT(*) AS n FROM cas_log l LEFT JOIN users u ON u.id=l.uid WHERE l.at>=? GROUP BY l.uid ORDER BY net DESC LIMIT 5").bind(d0).all()).results;
+  const lose=(await env.DB.prepare("SELECT l.uid,COALESCE(u.nick,u.name) AS name,SUM(l.win)-SUM(l.bet) AS net,COUNT(*) AS n FROM cas_log l LEFT JOIN users u ON u.id=l.uid WHERE l.at>=? GROUP BY l.uid ORDER BY net ASC LIMIT 5").bind(d0).all()).results;
+  const gifts=(await env.DB.prepare("SELECT l.gift,l.gno,l.at,COALESCE(u.nick,u.name) AS name FROM cas_log l LEFT JOIN users u ON u.id=l.uid WHERE l.gift IS NOT NULL ORDER BY l.id DESC LIMIT 15").all()).results;
+  return {today:{...(await tot(d0)),by:await agg(d0)},week:{...(await tot(now-7*864e5)),by:await agg(now-7*864e5)},top,lose,gifts}}
 /* выдача бесценной карточки-коллаборации. Она одна на весь мир: если уже выдана — не создаём вторую */
 async function collabGrant(env,uid){if(await env.DB.prepare("SELECT 1 FROM cards WHERE f=6").first())return null;
   const r=await env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,how) VALUES(?,?,6,1,'А777МР77',0,190,0,?,0,0,0,?,'prize') RETURNING id").bind(uid,COLLAB,JSON.stringify([700,700,700,700,700]),Date.now()).first();
@@ -1270,7 +1280,9 @@ async function handle(req,env){{
         if(r.res.gift){const g=await giftMint(env,me.id,r.res.gift,"case");
           if(g)r.res.g=g;else{await doAction(env,me,"cas_comp",{},{grant:true});r.res={r:CASE.sold,sold:r.res.gift,i:r.res.i}}
           r.S=await stateFor(env,me)}
-        return J({ok:true,...r})}
+        await casLog(env,me.id,"case",CASE.price,r.res.r||0,r.res.g||null);return J({ok:true,...r})}
+      if(a==="cas_feed")return J({ok:true,res:await casFeed(env)});
+      if(a==="cas_stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await casStats(env)})}
       if(a==="camp_top")return J({ok:true,res:await campTop(env,me,p.per==="w"?"w":"d")});
       if(a==="chal_get")return J({ok:true,res:await chalGet(env,me)});
       if(a==="chal_set"){if(!isAdmin(env,me.id))fail("Нет доступа");await kvSet(env,"chal",p.cfg||null);delete topCache.chalcfg;delete topCache.chalb;return J({ok:true,res:{}})}
@@ -1291,7 +1303,11 @@ async function handle(req,env){{
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
-      const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);return J({ok:true,...r});
+      const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);
+      if(a==="cas_slot")await casLog(env,me.id,"slot",Math.floor(+p.bet||0),r.res.win||0,null,r.res.m);
+      else if(a==="cas_hl_go")await casLog(env,me.id,"hl",Math.floor(+p.bet||0),0);
+      else if(a==="cas_hl_take")await casLog(env,me.id,"hl",0,r.res.win||0);
+      return J({ok:true,...r});
     }catch(e){
       if(e instanceof GameError)return J({ok:false,err:e.message});
       console.error(e);return J({ok:false,err:"Ошибка сервера"},500);

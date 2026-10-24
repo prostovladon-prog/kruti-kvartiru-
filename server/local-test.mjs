@@ -726,6 +726,10 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   setRunes(A, 2e6); let gifts = 0, runes = 0;
   for (let i = 0; i < 10; i++) { r = await call(A, "cas_case"); if (!r.ok) { ok(false, "кейс: " + r.err); break } if (r.res.g) gifts++; else runes += r.res.r; }
   ok(r.ok && (gifts + runes / 3e4 >= 10 || runes > 0), "10 кейсов открыто (подарков: " + gifts + ")");
+  r = await call(A, "cas_slot", { bet: 1000 }); ok(r.ok, "слот сыгран");
+  r = await call(A, "cas_feed"); ok(r.ok && Array.isArray(r.res), "лента казино доступна всем");
+  r = await call(A, "cas_stats"); ok(!r.ok, "статистика казино — только админу");
+  { const n = db.prepare("SELECT COUNT(*) n FROM cas_log WHERE uid=?").get(A).n; ok(n === 11, "журнал казино: 10 кейсов + 1 слот (" + n + ")"); }
   r = await call(A, "cas_case"); ok(!r.ok && /10 кейсов/.test(r.err), "не больше 10 кейсов в день");
   r = await call(A, "cas_comp"); ok(!r.ok, "компенсацию напрямую не вызвать");
   r = await call(A, "cas_slot", { bet: 500 }); ok(!r.ok && /Ставка от/.test(r.err), "слоты: ставка от 1 000");

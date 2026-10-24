@@ -364,3 +364,23 @@ const _campFloat2=campFloat;campFloat=function(t,cls,x,y){const ar=$("cp-ar");if
 const _campShake=campShake;campShake=function(){if(!campLite)_campShake()};
 $("cp-lite").onclick=()=>{campLite=!campLite;try{localStorage.setItem("we-lite",campLite?"1":"0")}catch(e){}liteApply();toast(campLite?"🐢 Лёгкий режим: эффекты выключены":"✨ Эффекты включены")};
 liteApply();
+
+/* ---------- казино: бегущая лента «выпадает прямо сейчас» и статистика для админа ---------- */
+let csFeedAt=0,csFeedK="";
+function csFeedTxt(r){const n=r.name||"Игрок";if(r.gift&&GIFTS[r.gift])return {ic:giftSVG(r.gift,26),t:"<b></b> выбил «"+GIFTS[r.gift].n+"» № "+r.gno+"/"+GIFTS[r.gift].run,n};
+  if(r.g==="slot")return {ic:"🎰",t:"<b></b> поймал ×"+String(r.m).replace(".",",")+" → +"+fmtN(r.win)+" 💠",n};if(r.g==="hl")return {ic:"🃏",t:"<b></b> забрал +"+fmtN(r.win)+" 💠",n};return {ic:"📦",t:"<b></b> открыл кейс: +"+fmtN(r.win)+" 💠",n}}
+async function loadCasFeed(){if(!ONLINE||$("sec-cas").hidden||NOW()-csFeedAt<12000)return;csFeedAt=NOW();const r=await act("cas_feed");if(!r)return;const box=$("cs-feed"),ft=$("cs-ft");
+  if(!r.length){box.hidden=true;return}box.hidden=false;const k=r.map(x=>x.at).join(",");if(k===csFeedK)return;csFeedK=k;
+  const one=r.map(x=>{const T=csFeedTxt(x);return '<span class="cfi"><i>'+T.ic+'</i><em>'+T.t+'</em></span>'}).join("");ft.innerHTML=one+one;
+  ft.querySelectorAll(".cfi b").forEach((b,i)=>b.textContent=r[i%r.length].name||"Игрок");ft.style.animationDuration=Math.max(20,r.length*5)+"s"}
+setInterval(()=>{try{loadCasFeed()}catch(e){}},3000);
+async function loadCasStats(){const B=$("cs-adm-b");B.innerHTML="<p>Загружаю…</p>";const r=await act("cas_stats");if(!r){B.innerHTML="<p>Не получилось</p>";return}
+  const G={case:"📦 Кейс",slot:"🎰 Слоты",hl:"🃏 Больше-меньше"},rtp=(b,w)=>b?Math.round(w/b*1000)/10+"%":"—";
+  const part=(t,X)=>'<h4>'+t+'</h4><div class="csa-row"><div><b>'+fmtN(X.players||0)+'</b>игроков</div><div><b>'+fmtN(X.n||0)+'</b>игр</div><div><b>'+fmtN(X.bet||0)+'</b>поставлено 💠</div><div><b>'+fmtN(X.win||0)+'</b>выиграно 💠</div><div><b>'+rtp(X.bet,X.win)+'</b>отдача</div></div>'+
+    '<table class="csa-t"><tr><th></th><th>игр</th><th>ставки</th><th>выигрыш</th><th>отдача</th><th>🎁</th></tr>'+(X.by||[]).map(g=>'<tr><td>'+(G[g.g]||g.g)+'</td><td>'+fmtN(g.n)+'</td><td>'+fmtN(g.bet||0)+'</td><td>'+fmtN(g.win||0)+'</td><td>'+rtp(g.bet,g.win)+'</td><td>'+(g.gifts||0)+'</td></tr>').join("")+'</table>';
+  const ppl=(t,L)=>'<h4>'+t+'</h4>'+(L.length?L.map(x=>'<div class="csa-p"><span></span><b>'+(x.net>0?"+":"")+fmtN(x.net)+' 💠</b><small>'+x.n+' игр</small></div>').join(""):'<p>—</p>');
+  B.innerHTML=part("Сегодня",r.today)+part("За 7 дней",r.week)+ppl("🏆 Больше всех выиграли сегодня",r.top)+ppl("💸 Больше всех проиграли сегодня",r.lose)+
+   '<h4>🎁 Последние подарки из кейса</h4>'+(r.gifts.length?r.gifts.map(g=>'<div class="csa-p"><span></span><b>'+(GIFTS[g.gift]?GIFTS[g.gift].n:g.gift)+' № '+g.gno+'</b><small>'+new Date(g.at+3*3600e3).toISOString().slice(5,16).replace("T"," ")+'</small></div>').join(""):'<p>—</p>');
+  const sp=B.querySelectorAll(".csa-p span"),names=[...r.top,...r.lose,...r.gifts];sp.forEach((s,i)=>s.textContent=names[i].name||"Игрок")}
+$("cs-adm-go").onclick=loadCasStats;
+const _renderCas2=renderCas;renderCas=function(){_renderCas2();const a=$("cs-adm");if(a)a.hidden=!(S&&S.admin);loadCasFeed()};

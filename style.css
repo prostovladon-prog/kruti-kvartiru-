@@ -1471,7 +1471,7 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .front.collab .foot>b{background-color:transparent!important;border:0!important;box-shadow:none!important;font-size:1.1em}
 .front.collab .plate b{font-size:16px}.front.collab .plate b em{font-size:19px}.front.collab .plate i u{font-size:12px}.front.collab .plate small{font-size:7px}
 /* iPhone: длинные списки (топ, «прямо сейчас выбили») — не рисуем то, что за экраном, и упрощаем мини-карточки, иначе WebView падает в пустой экран */
-#top-list>*,#feed>*,.feed>*{content-visibility:auto;contain-intrinsic-size:auto 70px}
+/* content-visibility убран: на iPhone строки появлялись с миганием */
 #top-list .minic .scene,#top-list .minic .gm,#top-list .minic .xr,#top-list .minic .xa,#top-list .minic .clx,.feed .minic .scene,.feed .minic .gm,.feed .minic .xr,.feed .minic .xa,.feed .minic .clx{display:none}
 #top-list .minic *,.feed .minic *{filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;mix-blend-mode:normal!important}
 #chal.secret{background:linear-gradient(115deg,#2a0a5a,#7a1fa8,#06305a,#7a1fa8,#2a0a5a);background-size:300% 100%;animation:wholo 6s linear infinite;box-shadow:0 0 22px rgba(0,229,255,.5),4px 4px 0 var(--ink)}
@@ -1487,3 +1487,14 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .front.collab .top b{font-weight:900;-webkit-text-stroke:.8px #fff}
 .front.collab .foot>b{font-weight:900;font-size:1.2em}
 .front.collab .plate b{color:#0d1030!important;-webkit-text-fill-color:#0d1030;background:none!important;animation:none!important;letter-spacing:.5px}
+/* лента выигрышей в казино */
+.cs-feed{margin:0 0 10px;border-radius:16px;border:2px solid var(--ink);background:linear-gradient(115deg,#2a0a5a,#7a1fa8,#c2185b);box-shadow:0 4px 0 var(--ink);overflow:hidden;color:#fff;padding:6px 0 7px}
+.cs-feed>b{display:block;padding:0 12px 4px;font-family:var(--display);font-size:12px;letter-spacing:.04em;color:#ffd23f;text-shadow:1px 1px 0 #0d1030}
+.cs-fw{overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.cs-ft{display:inline-flex;gap:18px;white-space:nowrap;animation:csmq 40s linear infinite;padding-left:12px}
+@keyframes csmq{to{transform:translateX(-50%)}}
+.cfi{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700}.cfi i{font-style:normal;font-size:18px;display:inline-flex}.cfi i svg{filter:none!important}.cfi em{font-style:normal}.cfi b{color:#ffd23f}
+.cs-adm h4{margin:12px 0 6px;font-size:14px}.csa-row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.csa-row div{text-align:center;font-size:10.5px;color:#5a5f80;background:#f1eee6;border-radius:10px;padding:6px 2px}.csa-row b{display:block;font-size:13px;color:#14162e}
+.csa-t{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}.csa-t th,.csa-t td{padding:4px 3px;text-align:right;border-bottom:1px solid #e6e1d4}.csa-t th:first-child,.csa-t td:first-child{text-align:left}
+.csa-p{display:flex;gap:8px;align-items:baseline;font-size:13px;padding:4px 0;border-bottom:1px solid #eee}.csa-p span{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.csa-p small{color:#5a5f80}
+@media (prefers-reduced-motion:reduce){.cs-ft{animation:none}}
