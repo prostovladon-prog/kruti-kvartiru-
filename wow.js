@@ -309,7 +309,7 @@ $("shelf-go").onclick=()=>openShelf();
 
 /* ---------- соглашение: без согласия играть нельзя. Принятие сохраняется на сервере с датой и номером редакции ---------- */
 const TERMS_V=1;
-function termsNeed(){if(!S)return false;if(ONLINE)return (S.termsV||0)<TERMS_V;try{return +(localStorage.getItem("we-terms")||0)<TERMS_V}catch(e){return false}}
+function termsNeed(){if(!S)return false;if(ONLINE)return S.termsV!=null&&S.termsV<TERMS_V;try{return +(localStorage.getItem("we-terms")||0)<TERMS_V}catch(e){return false}}
 let termsOn=false;
 async function termsGate(){if(termsOn||!termsNeed())return;termsOn=true;const d=document.createElement("div");d.className="terms";
   d.innerHTML='<div class="tbox"><h3>📜 Перед игрой</h3><p class="tl">Прочитай и прими пользовательское соглашение и политику конфиденциальности. Коротко:</p><ul class="tsum">'+
