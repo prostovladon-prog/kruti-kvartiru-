@@ -1796,6 +1796,7 @@ function drawAuc(){const box=$("auc-box"),bn=$("auc-go");if(!box)return;const A=
   B.querySelector(".aucbid").innerHTML=A.bid?'Ставка: <b class="num">'+fmtC(A.bid)+'</b>':'Стартовая ставка: <b class="num">'+fmtC(A.min)+'</b>';
   B.querySelector(".auclead").textContent=A.phase==="done"?(A.top_name?"🏆 Победил "+A.top_name+" за "+fmtC(A.bid):"Никто не сделал ставку"):A.top_name?(A.mine?"👑 Ты лидируешь!":"Лидер: "+A.top_name)+" · ставок "+A.n:"Ставок пока нет";
   const bt=B.querySelector(".aucbt");
+  if(A.phase==="soon"){const b=document.createElement("button");b.type="button";b.className="ghost";b.disabled=true;b.textContent="🔒 Ставки откроются в 8:00";bt.appendChild(b)}
   if(A.phase==="on"&&!A.mine){[[1,""],[1.2,"+20%"]].forEach(([m,l])=>{const amt=Math.ceil(A.next*m),b=document.createElement("button");b.type="button";b.className=m===1?"craftbtn":"ghost";b.textContent=(l?l+" · ":"Ставка ")+fmtC(amt);
       b.onclick=async()=>{if(S.cash<amt){toast("Не хватает "+fmt(amt-S.cash));return}b.disabled=true;const r=await act("auc_bid",{amt});b.disabled=false;if(r){auc=r;aucAt=NOW();sfx.coin();hapN("success");renderAll()}else loadAuc(true);drawAuc()};bt.appendChild(b)})}}
 setInterval(()=>{if(!ONLINE||!S)return;if(auc&&auc.phase!=="done"&&aucLeft()<=0)loadAuc(true);else if(auc)drawAuc()
