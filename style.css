@@ -1509,3 +1509,4 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 /* шапка розыгрыша не вылезает за край */
 .chal-h span{white-space:normal;min-width:0;flex:1;line-height:1.15}.chal-h b{flex:none}
 #cash{background:linear-gradient(180deg,#f7b500,#b86e00 70%,#8a4f00);-webkit-background-clip:text;background-clip:text;filter:none}
+.srct.f{grid-template-columns:1fr 38px 38px 46px 46px 46px 46px;font-size:12px}.srct.f b{font-size:10px;line-height:1.1}.srct.f u{display:block;text-decoration:none;font-size:10px;font-weight:700;opacity:.6}

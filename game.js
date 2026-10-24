@@ -1849,9 +1849,10 @@ function openNick(first){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hid
     Object.keys(tpCache).forEach(k=>delete tpCache[k]);closeModal();sfx.coin();hapN("success");renderAll();toast("Теперь ты «"+r.nick+"»")};
   go.onclick=send;inp.onkeydown=e=>{if(e.key==="Enter")send()};setTimeout(()=>inp.focus(),50)}
 $("nick-go").onclick=()=>openNick(false);
-function askNick(){if(!S||S.nick)return;if(ONLINE){if($("modal").hidden&&onbStep<0)openNick(true);return}let last=null;try{last=localStorage.getItem("we-nick-ask")}catch(e){}if(last===todayL())return;openNick(true)}
+const nickReady=()=>S&&((S.cards||[]).length>=3||(S.day&&S.day.opened>=3)||(S.best||0)>0&&(S.cards||[]).length>=1&&(S.day&&S.day.opened>=3));
+function askNick(){if(!S||S.nick||!nickReady())return;if(ONLINE){if($("modal").hidden&&onbStep<0)openNick(true);return}let last=null;try{last=localStorage.getItem("we-nick-ask")}catch(e){}if(last===todayL())return;openNick(true)}
 /* ник обязателен: если игрок без ника и ничего не открыто — снова просим (не чаще раза в 3 секунды) */
-setInterval(()=>{try{if(ONLINE&&S&&!S.nick&&$("modal").hidden&&onbStep<0&&!document.querySelector(".onb-hl"))askNick()}catch(e){}},3000);
+setInterval(()=>{try{if(ONLINE&&S&&!S.nick&&nickReady()&&$("modal").hidden&&onbStep<0&&!document.querySelector(".onb-hl,.terms,.wrev"))askNick()}catch(e){}},3000);
 
 async function loadTop(kind,force){const c=tpCache[kind];if(!force&&c&&NOW()-c.at<30000)return c.r;if(tpLoading[kind])return null;tpLoading[kind]=1;
   const r=await act("top",{kind});tpLoading[kind]=0;if(r)tpCache[kind]={at:NOW(),r};return r}
@@ -1869,7 +1870,8 @@ async function loadStats(force){if(!S.admin||!ONLINE)return;if(!force&&stData&&N
   const r=await act("stats");if(!r)return;stData=r;stAt=NOW();drawStats()}
 function drawStats(){drawStats0();const R=stData,b=$("st-body");if(!R||!b)return;
   const L=R.srcs||[];const box=document.createElement("div");box.className="srcbox";
-  box.innerHTML="<h4>🔗 Переходы по рекламным ссылкам</h4>"+(L.length?"<div class=\"srct\"><b>метка</b><b>зашли</b><b>новые</b><b>играют</b></div>"+L.map(r=>`<div class="srct"><span></span><i>${r.visits||0}</i><i>${r.fresh||0}</i><i>${r.act||0}</i></div>`).join(""):"<small>Пока никто не заходил. Ссылка: t.me/VoinyEpohBot?startapp=s_метка</small>")+"<small>«зашли» — все, кто открыл игру по ссылке; «новые» — впервые; «играют» — собрали 3+ разных воинов</small>";
+  const pc=(a,b)=>b?'<u>'+Math.round(a/b*100)+'%</u>':'';
+  box.innerHTML="<h4>🔗 Переходы по рекламным ссылкам — воронка</h4>"+(L.length?"<div class=\"srct f\"><b>метка</b><b>зашли</b><b>новые</b><b>1-я карта</b><b>ник</b><b>3+ воина</b><b>2-й день</b></div>"+L.map(r=>{const f=r.fresh||0;return `<div class="srct f"><span></span><i>${r.visits||0}</i><i>${f}</i><i>${r.c1||0}${pc(r.c1||0,f)}</i><i>${r.nk||0}${pc(r.nk||0,f)}</i><i>${r.act||0}${pc(r.act||0,f)}</i><i>${r.back||0}${pc(r.back||0,f)}</i></div>`}).join(""):"<small>Пока никто не заходил. Ссылка: t.me/VoinyEpohBot?startapp=s_метка</small>")+"<small>«зашли» — открыли игру по ссылке; «новые» — впервые в игре; дальше — сколько новых дошли до шага (% от новых): открыли 1-ю карточку → ввели ник → собрали 3+ разных воинов → вернулись на 2-й день</small>";
   L.forEach((r,i)=>{box.querySelectorAll(".srct span")[i].textContent=r.code});b.append(box)}
 function drawStats0(){const R=stData,b=$("st-body");if(!R)return;
   const tile=(v,l,sub)=>`<div class="stt"><b class="num">${v}</b><span>${l}</span>${sub?`<small>${sub}</small>`:""}</div>`;

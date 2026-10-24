@@ -309,9 +309,9 @@ $("shelf-go").onclick=()=>openShelf();
 
 /* ---------- соглашение: без согласия играть нельзя. Принятие сохраняется на сервере с датой и номером редакции ---------- */
 const TERMS_V=1;
-function termsNeed(){if(!S)return false;if(ONLINE)return S.termsV!=null&&S.termsV<TERMS_V;try{return +(localStorage.getItem("we-terms")||0)<TERMS_V}catch(e){return false}}
+function termsNeed(){if(!S||!S.nick)return false;if(ONLINE)return S.termsV!=null&&S.termsV<TERMS_V;try{return +(localStorage.getItem("we-terms")||0)<TERMS_V}catch(e){return false}}
 let termsOn=false;
-async function termsGate(){if(termsOn||!termsNeed())return;termsOn=true;const d=document.createElement("div");d.className="terms";
+async function termsGate(){if(termsOn||!(termsNeed()||termsGateForce&&S&&ONLINE&&S.termsV!=null&&S.termsV<TERMS_V))return;termsGateForce=false;termsOn=true;const d=document.createElement("div");d.className="terms";
   d.innerHTML='<div class="tbox"><h3>📜 Перед игрой</h3><p class="tl">Прочитай и прими пользовательское соглашение и политику конфиденциальности. Коротко:</p><ul class="tsum">'+
    '<li>💠 Карточки, монеты 🪙, руны и подарки — игровые ценности. Их нельзя вывести или обменять на деньги</li><li>⭐ Покупки за Telegram Stars выдаются сразу и не возвращаются (кроме технической ошибки)</li>'+
    '<li>🎰 Казино — только на руны из игры. Это развлечение, а не игра на деньги</li><li>🚫 Боты, мультиаккаунты, накрутки и баги — бан без компенсации</li><li>🎁 В розыгрышах решение администрации окончательное</li><li>🔒 Мы храним только твой Telegram ID, имя и игровые данные и никому их не продаём</li></ul>'+
@@ -323,6 +323,8 @@ async function termsGate(){if(termsOn||!termsNeed())return;termsOn=true;const d=
   $("t-ok").onchange=()=>{$("t-go").disabled=!$("t-ok").checked};
   $("t-go").onclick=async()=>{$("t-go").disabled=true;if(ONLINE){const r=await act("terms_ok",{v:TERMS_V});if(!r){$("t-go").disabled=false;return}}else{try{localStorage.setItem("we-terms",String(TERMS_V))}catch(e){}}
     d.remove();termsOn=false;hap("medium")}}
+if(typeof buyItem==="function"){const _bi=buyItem;buyItem=function(o){if(S&&ONLINE&&S.termsV!=null&&S.termsV<TERMS_V){termsOn=false;termsGateForce=true;termsGate();return}return _bi(o)}}
+let termsGateForce=false;
 {const t=setInterval(()=>{if(!S)return;clearInterval(t);termsGate()},300);setInterval(()=>{try{if(S&&!termsOn&&termsNeed())termsGate()}catch(e){}},5000)}
 
 /* ---------- карточка-коллаборация «Воины Эпох × Номерок»: А777МР 77, бесценная, 1 из 1 ---------- */
