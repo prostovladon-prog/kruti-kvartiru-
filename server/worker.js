@@ -206,6 +206,105 @@ function campSq(C,now){return C.lv.sq?Math.floor(Math.min(SQ_HOURS*3600e3,Math.m
 function spinsBought(st,now){const C=st.camp;return C&&C.buyDay===today(now)?(C.buyN||0):0}
 function spinPrice(st,now){return BUY_BASE*Math.pow(2,spinsBought(st,now))}
 
+/* ---------- РЕЙТИНГОВЫЙ БОЙ ----------
+   Бой до конца здоровья. Каждый ход оба игрока вслепую выбирают действие: удар бьёт финт, блок бьёт удар, финт бьёт блок.
+   Угадал — наносишь полный урон. Одинаковый выбор: два удара — оба бьют вполсилы, два финта — оба по 30%, два блока — ничего.
+   Характеристики: Атака — урон, Броня — защита от урона, Выносливость — здоровье, Скорость — шанс увернуться, Боевой дух — шанс крита.
+   У каждого воина своя способность (ABIL). Соперник подбирается по весовой категории карты. */
+const RK_ACTS={hit:"Удар",block:"Блок",feint:"Финт"},RK_IC={hit:"⚔️",block:"🛡",feint:"🌀"},RK_BEATS={hit:"feint",block:"hit",feint:"block"};
+const WCLASS=["Лёгкий вес","Средний вес","Тяжёлый вес"],WC_IC=["🪶","⚔️","🔥"];
+const wclass=h=>{const t=HEROES[h][2];return t<=1?0:t===2?1:2};
+const LEAGUES=[{n:"Бронза",ic:"🥉",at:0},{n:"Серебро",ic:"🥈",at:1000},{n:"Золото",ic:"🥇",at:2500},{n:"Платина",ic:"💠",at:4000},{n:"Алмаз",ic:"💎",at:6000},{n:"Легенда",ic:"🔥",at:8000},{n:"Император",ic:"👑",at:10000}];
+function league(r){let i=0;for(let k=0;k<LEAGUES.length;k++)if((r||0)>=LEAGUES[k].at)i=k;return i}
+const RK_WIN=[25,30,40],RK_LOSS=20,RK_STREAK=5,RK_STREAK_MAX=15,RK_DAY=20,RK_UNDER=10,RK_TURNS=15;
+/* награды сезона по лиге (sp — прокрутки, guar — гарантированный эпик, tier — карточка этой редкости) */
+const SEASON_PRIZE=[null,{sp:2},{sp:3,guar:1},{sp:5,guar:1},{sp:7,tier:3},{sp:10,tier:3},{sp:10,tier:4}];
+const FAT_N=5,FAT_MS=3600e3,FAT_K=.8;   // усталость: после 5 рейтинговых боёв подряд −20% к силе, отдых час
+/* способности: [иконка, название, описание, эффект] */
+const ABIL=[
+["😤","Злость","+10% к Боевому духу",{st:{4:.1}}],
+["🏹","Первая стрела","первый удачный удар +20%",{first:.2}],
+["🎯","Белке в глаз","+8% к шансу крита",{crit:[.08,0]}],
+["🛡","Строй","+10% к Броне",{st:{1:.1}}],
+["🪨","Камень Давида","+15% урона против более редкого воина",{vsRare:.15}],
+["🗡","Длинный меч","+10% к Атаке",{st:{0:.1}}],
+["🌙","Ночная смена","+10% к Выносливости",{st:{3:.1}}],
+["📚","Учебка","+5% ко всем характеристикам",{all:.05}],
+["⏳","Перезарядка","каждый 3-й ход урон +30%",{every3:.3}],
+["👣","Опора самураев","+10% к Скорости",{st:{2:.1}}],
+["🐢","Черепаха","удачный Блок бьёт на 30% сильнее",{blockX:.3}],
+["⛵","Набег","первый удачный удар +40%",{first:.4}],
+["🪖","Латы","+15% к Броне",{st:{1:.15}}],
+["💥","Залп","+12% к шансу крита",{crit:[.12,0]}],
+["🔥","Встал с печи","после пропущенного удара следующий +10%",{afterHurt:.1}],
+["🧱","Фаланга","+12% к Броне и Выносливости",{st:{1:.12,3:.12}}],
+["🐎","Стрела назад","+12% к шансу увернуться",{dodge:.12}],
+["⚔️","Воительница","+12% к Атаке",{st:{0:.12}}],
+["🕵️","Шпионка","соперник −12% к Боевому духу",{opp:{4:-.12}}],
+["🛡","Со щитом","первый пропущенный удар не наносит урона",{shield:1}],
+["🗡","Первый удар","первый удачный удар ×1,5",{first:.5}],
+["🌑","Тень","+25% к шансу увернуться",{dodge:.25}],
+["📣","Рёв толпы","каждый удачный удар +10% к следующим",{stack:.1}],
+["🪽","Выбор павших","при здоровье ниже половины урон ×1,4",{low:[.5,.4]}],
+["🚩","Знамя","+20% к Боевому духу и Выносливости",{st:{4:.2,3:.2}}],
+["🐍","Каменный взгляд","соперник −25% ко всему в первые 3 хода",{early:[3,-.25]}],
+["🐺","Безумие","+35% к Атаке, −15% к Броне",{st:{0:.35,1:-.15}}],
+["✝️","Обет","при здоровье ниже половины урон ×1,5",{low:[.5,.5]}],
+["🐂","Лабиринт","соперник −12% ко всему",{oppAll:-.12}],
+["⚖️","Весы","+10% к Броне и один раз переживает смертельный удар",{save:1,st:{1:.1}}],
+["👹","Маска демона","первый удачный удар ×1,5 и соперник −15% ко всему",{first:.5,oppAll:-.15}],
+["🔮","Чары","−35% к Атаке соперника",{opp:{0:-.35}}],
+["🔥","Огненное дыхание","+30% к Атаке",{st:{0:.3}}],
+["🪶","Из пепла","один раз воскресает с 40% здоровья",{revive:.4}],
+["🐙","Щупальца","соперник −25% к Скорости и Броне",{opp:{1:-.25,2:-.25}}],
+["🐕","Три головы","каждый удачный удар +10% к следующим",{stack:.1}],
+["🦁","Тройная натура","+25% к Атаке, Духу и Скорости",{st:{0:.25,4:.25,2:.25}}],
+["🌊","Пучина","+25% к Броне и Выносливости",{st:{1:.25,3:.25}}],
+["🏔","Сила земли","+20% к Атаке и Выносливости",{st:{0:.2,3:.2}}],
+["🐉","Змееборец","+45% урона против мифических",{vsMyth:.45}],
+["🦊","Хитрость","+30% к шансу увернуться и видит первый ход соперника",{dodge:.3,peek:1}],
+["🔨","Мьёльнир","30% шанс крита ×2",{crit:[.3,2]}],
+["🛡","Застава","+15% ко всем характеристикам",{all:.15}],
+["⚡","Молния","35% шанс ударить молнией, даже если соперник угадал",{zap:.35}],
+["🦁","12 подвигов","+10% ко всему, +25% после пропущенного удара",{all:.1,afterHurt:.25}]];
+const abil=h=>ABIL[h]||ABIL[0];
+/* боец: характеристики с учётом уровня, звёзд, усталости и способностей (своих и соперника) */
+/* внутри весовой категории разница редкости сглажена: более редкий воин сильнее примерно на 10%, а не в разы */
+const RK_TIER_K=[1.75,1,1,1.22,1];
+function rkFighter(c,o){o=o||{};const A=abil(c.h)[3],k=(o.tired?FAT_K:1)*(o.under?1.1:1)*RK_TIER_K[HEROES[c.h][2]];
+  return {h:c.h,id:c.id,base:[0,1,2,3,4].map(i=>Math.round(eff(c,i)*k*(1+(A.all||0)+((A.st||{})[i]||0)))),shield:A.shield?1:0,save:A.save?1:0,revive:A.revive||0,stack:0,hurt:0,hits:0,tired:o.tired?1:0,under:o.under?1:0}}
+function rkStats(F,E,turn){const EA=abil(E.h)[3];return F.base.map((v,i)=>Math.max(1,Math.round(v*(1+(EA.oppAll||0)+((EA.opp||{})[i]||0)+(EA.early&&turn<=EA.early[0]?EA.early[1]:0)))))}
+function rkInit(ca,cb,o){o=o||{};const a=rkFighter(ca,o.a),b=rkFighter(cb,o.b);
+  for(const F of [a,b]){const E=F===a?b:a,s=rkStats(F,E,99);F.mx=F.hp=Math.round(200+s[3]*1.6)}
+  return {turn:0,a,b,log:[],done:0,win:null}}
+/* один ход: x,y — действия сторон a и b. rnd — генератор случайности (на сервере Math.random) */
+function rkTurn(S,x,y,rnd){rnd=rnd||Math.random;if(S.done)return null;S.turn++;const t=S.turn,ev={t,a:x,b:y,da:0,db:0,fa:[],fb:[]};
+  const sa=rkStats(S.a,S.b,t),sb=rkStats(S.b,S.a,t);
+  let ma=0,mb=0;   // множитель урона стороны a по b и наоборот
+  if(x===y){if(x==="hit"){ma=mb=.5}else if(x==="feint"){ma=mb=.3}}else if(RK_BEATS[x]===y)ma=1;else mb=1;
+  const strike=(X,Y,sx,sy,m,act,fx,zap)=>{const A=abil(X.h)[3],TY=HEROES[Y.h][2],TX=HEROES[X.h][2];
+    let d=sx[0]*sx[0]/(sx[0]+sy[1])*.8*m;
+    if(A.first&&!X.hits)d*=1+A.first;if(A.every3&&t%3===0)d*=1+A.every3;if(X.stack)d*=1+X.stack;if(A.afterHurt&&X.hurt)d*=1+A.afterHurt;
+    if(A.low&&X.hp<X.mx*A.low[0])d*=1+A.low[1];if(A.vsRare&&TY>TX)d*=1+A.vsRare;if(A.vsMyth&&TY>=4)d*=1+A.vsMyth;if(A.blockX&&act==="block"&&!zap)d*=1+A.blockX;
+    const cp=.05+sx[4]/(sx[4]+900)*.25+((A.crit||[0])[0]);if(rnd()<cp){d*=(A.crit&&A.crit[1])||1.5;fx.push("crit")}
+    const YA=abil(Y.h)[3],dp=.03+sy[2]/(sy[2]+1500)*.2+(YA.dodge||0);if(rnd()<dp){fx.push("dodge");return 0}
+    if(Y.shield){Y.shield=0;fx.push("shield");return 0}
+    return Math.max(1,Math.round(d))};
+  if(ma)ev.da=strike(S.a,S.b,sa,sb,ma,x,ev.fa);if(mb)ev.db=strike(S.b,S.a,sb,sa,mb,y,ev.fb);
+  // молния Зевса: бьёт, даже если соперник угадал
+  for(const [X,Y,sx,sy,k,fx] of [[S.a,S.b,sa,sb,"da",ev.fa],[S.b,S.a,sb,sa,"db",ev.fb]]){const A=abil(X.h)[3];if(A.zap&&!ev[k]&&rnd()<A.zap){fx.push("zap");ev[k]=strike(X,Y,sx,sy,.7,"zap",fx,1)}}
+  S.b.hp-=ev.da;S.a.hp-=ev.db;
+  for(const [X,Y,k] of [[S.a,S.b,"da"],[S.b,S.a,"db"]]){const A=abil(X.h)[3];if(ev[k]>0){X.hits++;if(A.stack)X.stack+=A.stack;X.hurt=0;Y.hurt=1}}
+  for(const [F,fx] of [[S.a,ev.fb],[S.b,ev.fa]])if(F.hp<=0){if(F.save){F.save=0;F.hp=1;fx.push("save")}else if(F.revive){F.hp=Math.round(F.mx*F.revive);F.revive=0;fx.push("revive")}}
+  S.a.hp=Math.max(0,S.a.hp);S.b.hp=Math.max(0,S.b.hp);
+  if(S.a.hp<=0||S.b.hp<=0||t>=RK_TURNS){S.done=1;const pa=S.a.hp/S.a.mx,pb=S.b.hp/S.b.mx;S.win=pa>pb?"a":pb>pa?"b":"d"}
+  S.log.push(ev);if(S.log.length>8)S.log.shift();return ev}
+/* ход бота: случайный, но чуть хитрее — после своего удачного удара чаще повторяет его */
+function rkAI(S,side){const r=Math.random(),L=S.log[S.log.length-1];if(L&&Math.random()<.25){const my=L[side],won=side==="a"?L.da>0:L.db>0;if(won)return my}return r<.36?"hit":r<.68?"block":"feint"}
+/* сколько рейтинга за бой */
+function rkGain(win,wc,streak,under,rating){if(win)return RK_WIN[wc]+Math.min(RK_STREAK_MAX,RK_STREAK*(streak||0))+(under?RK_UNDER:0);
+  const floor=LEAGUES[league(rating)].at;return -Math.min(RK_LOSS,Math.max(0,(rating||0)-floor))}
+
 /* ---------- ошибки ---------- */
 class GameError extends Error{}
 function fail(m){throw new GameError(m)}
@@ -456,6 +555,8 @@ const ACTIONS={
 
   /* итог живого боя на арене: только сервер (ctx.pvp) */
   pvp_result(G){if(!G.ctx.pvp)fail("Неизвестное действие");const {st,ctx,p}=G;const c=G.cards.find(x=>x.id===p.id);
+    if(p.rk&&c){st.fat=st.fat||{};const f=st.fat[c.id]&&ctx.now-st.fat[c.id].t<FAT_MS?st.fat[c.id]:{n:0,t:0};f.n++;f.t=ctx.now;st.fat[c.id]=f;
+      for(const k in st.fat)if(ctx.now-st.fat[k].t>FAT_MS)delete st.fat[k]}   // усталость после рейтинговых боёв
     if(p.res==="w"){st.totalWins=(st.totalWins||0)+1;day(st,ctx.now).wins++;if(c){c.wins=(c.wins||0)+1;addXp(ctx,c,30)}}
     else if(c)addXp(ctx,c,p.res==="d"?15:10);return {}},
 
@@ -484,12 +585,16 @@ const ACTIONS={
     st.pays.push(p.pid);if(st.pays.length>40)st.pays=st.pays.slice(-40);
     return {item:p.item,sp:I.sp||0,guar:I.guar||0,cards:got}},
 
+  /* награда за сезон рейтинга: только сервер */
+  season_prize(G){if(!G.ctx.season)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.sp)st.spins+=p.sp;if(p.guar)st.guar=(st.guar||0)+p.guar;let card=null;
+    if(p.tier){card=rollTier(ctx,p.tier);card.how="chest";G.cards.push(card);noteCard(st,card)}return {card}},
+
   topup(G){if(!G.ctx.test&&!G.ctx.admin)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
 
-if(typeof module!=="undefined")module.exports={craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -523,7 +628,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=17;
+const SCHEMA_V=18;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -571,7 +676,13 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE INDEX IF NOT EXISTS users_fx ON users(fx_until) WHERE fx_until>0",
     "ALTER TABLE cards ADD COLUMN how TEXT",
     "CREATE TABLE IF NOT EXISTS dtop (day TEXT NOT NULL, k TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day,k,uid))",
-    "CREATE INDEX IF NOT EXISTS dtop_n ON dtop(day,k,n)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+    "CREATE INDEX IF NOT EXISTS dtop_n ON dtop(day,k,n)",
+    "ALTER TABLE users ADD COLUMN rating INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN rk_streak INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN rk_best INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN rk_day TEXT","ALTER TABLE users ADD COLUMN rk_dayn INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN rk_season TEXT",
+    "CREATE INDEX IF NOT EXISTS users_rk ON users(rk_season, rating)",
+    "CREATE TABLE IF NOT EXISTS rq (uid INTEGER PRIMARY KEY, card INTEGER, wc INTEGER, rating INTEGER, t INTEGER)",
+    "CREATE TABLE IF NOT EXISTS rm (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER, b INTEGER, an TEXT, bn TEXT, ac TEXT, bc TEXT, wa INTEGER, wb INTEGER, ghost INTEGER NOT NULL DEFAULT 0, st TEXT, pa TEXT, pb TEXT, phase TEXT, until INTEGER, ver INTEGER NOT NULL DEFAULT 0, applied INTEGER NOT NULL DEFAULT 0, res TEXT, created INTEGER)",
+    "CREATE INDEX IF NOT EXISTS rm_a ON rm(a, phase)","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1008,6 +1119,104 @@ async function arena(env,me,a,p){
     r=await env.DB.prepare("SELECT * FROM rooms WHERE id=?").bind(r.id).first();return roomView(r,me.id)}
   fail("Неизвестное действие")}
 
+/* ---------- рейтинговый бой: поиск соперника по весовой категории, бой до конца здоровья, рейтинг и сезоны ----------
+   Очередь rq: игрок с картой ждёт соперника своей категории. Через 20 секунд ищем и в соседней (у слабой карты +10%),
+   через 30 секунд — «тень»: карточка настоящего игрока, которой управляет бот. Ход — 12 секунд, не выбрал — выбор случайный. */
+const RK_PICK=12e3,RK_SHOW=2600,RK_WIDE=20e3,RK_GHOST=30e3,RK_LIVE_Q=60e3;
+const seasonOf=t=>new Date(t+TZ).toISOString().slice(0,7);
+async function rkUser(env,uid){const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,rating,rk_streak,rk_best,rk_day,rk_dayn,rk_season,state FROM users WHERE id=?").bind(uid).first();
+  if(!u)fail("Игрок не найден");const day=dayOf(Date.now());u.dayn=u.rk_day===day?u.rk_dayn:0;u.rating=u.rating||0;return u}
+const rkTired=(st,id,now)=>{const f=((st||{}).fat||{})[id];return !!(f&&f.n>=FAT_N&&now-f.t<FAT_MS)};
+async function rkActive(env,uid){return env.DB.prepare("SELECT * FROM rm WHERE (a=? OR (b=? AND ghost=0)) AND phase<>'done' ORDER BY id DESC LIMIT 1").bind(uid,uid).first()}
+async function rkCardOf(env,uid,id){const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(id|0,uid).first();
+  if(!c)fail("Эту карточку нельзя взять в бой: она на рынке, в походе или уже в бою");if(FIN[c.f]&&FIN[c.f].excl)fail("«Основатель» — трофей, в боях не участвует");if(c.part)fail("Половинка не воюет. Собери целого воина");return rowToCard(c)}
+/* создать бой; карточки блокируются (room_id = −id боя) */
+async function rkCreate(env,A,B,ghost){const now=Date.now(),wa=wclass(A.card.h),wb=wclass(B.card.h),under={a:wa<wb?1:0,b:wb<wa?1:0};
+  const S=rkInit(A.card,B.card,{a:{tired:A.tired,under:under.a},b:{tired:B.tired,under:under.b}});
+  const row=await env.DB.prepare("INSERT INTO rm(a,b,an,bn,ac,bc,wa,wb,ghost,st,pa,pb,phase,until,ver,applied,created) VALUES(?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pick',?,0,0,?) RETURNING id")
+    .bind(A.uid,B.uid,A.name,B.name,JSON.stringify(A.card),JSON.stringify(B.card),wa,wb,ghost?1:0,JSON.stringify(S),now+RK_PICK+2500,now).first();
+  const id=row.id;await env.DB.prepare("UPDATE cards SET room_id=? WHERE id=? AND owner=?").bind(-id,A.card.id,A.uid).run();
+  if(!ghost)await env.DB.prepare("UPDATE cards SET room_id=? WHERE id=? AND owner=?").bind(-id,B.card.id,B.uid).run();
+  const day=dayOf(now);for(const u of ghost?[A.uid]:[A.uid,B.uid])await env.DB.prepare("UPDATE users SET rk_dayn=CASE WHEN rk_day=? THEN rk_dayn+1 ELSE 1 END,rk_day=? WHERE id=?").bind(day,day,u).run();
+  await env.DB.prepare("DELETE FROM rq WHERE uid IN (?,?)").bind(A.uid,B.uid).run();
+  if(ghost)await rkGhostPick(env,id);return id}
+async function rkGhostPick(env,id){const m=await env.DB.prepare("SELECT * FROM rm WHERE id=?").bind(id).first();if(!m||!m.ghost||m.phase!=="pick"||m.pb)return;
+  await env.DB.prepare("UPDATE rm SET pb=?,ver=ver+1 WHERE id=? AND pb IS NULL").bind(rkAI(rj(m.st,{}),"b"),id).run()}
+async function rkSave(env,m,patch){const keys=Object.keys(patch);
+  return (await env.DB.prepare(`UPDATE rm SET ${keys.map(k=>k+"=?").join(",")},ver=ver+1 WHERE id=? AND ver=?`).bind(...keys.map(k=>patch[k]),m.id,m.ver).run()).meta.changes===1}
+/* двигаем бой по времени: оба выбрали или время вышло → ход; показ → следующий выбор; конец → итог */
+async function rkAdvance(env,m){
+  for(let i=0;i<6&&m;i++){const now=Date.now();let patch=null;
+    if(m.phase==="pick"&&((m.pa&&m.pb)||now>m.until)){const S=rj(m.st,{});const x=m.pa||rkAI(S,"a"),y=m.pb||rkAI(S,"b");rkTurn(S,x,y);
+      patch={st:JSON.stringify(S),pa:null,pb:null,phase:S.done?"end":"show",until:now+RK_SHOW+(S.done?600:0)}}
+    else if(m.phase==="show"&&now>m.until)patch={phase:"pick",until:now+RK_PICK};
+    else if(m.phase==="end"&&now>m.until)patch={phase:"done"};
+    if(!patch)break;if(await rkSave(env,m,patch)&&patch.phase==="pick"&&m.ghost)await rkGhostPick(env,m.id);m=await env.DB.prepare("SELECT * FROM rm WHERE id=?").bind(m.id).first()}
+  if(m&&(m.phase==="end"||m.phase==="done")&&!m.applied)await rkFinish(env,m);
+  return m}
+async function rkFinish(env,m){const t=await env.DB.prepare("UPDATE rm SET applied=1 WHERE id=? AND applied=0").bind(m.id).run();if(t.meta.changes!==1)return;
+  await env.DB.prepare("UPDATE cards SET room_id=NULL WHERE room_id=?").bind(-m.id).run();
+  const S=rj(m.st,{}),ac=rj(m.ac,{}),bc=rj(m.bc,{}),res={};
+  for(const side of m.ghost?["a"]:["a","b"]){const uid=m[side],u=await rkUser(env,uid),won=S.win===side,draw=S.win==="d",wc=side==="a"?m.wa:m.wb,under=S[side].under;
+    const d=draw?0:rkGain(won,wc,u.rk_streak||0,under,u.rating),nr=Math.max(0,u.rating+d),streak=won?(u.rk_streak||0)+1:draw?(u.rk_streak||0):0;
+    await env.DB.prepare("UPDATE users SET rating=?,rk_streak=?,rk_best=MAX(rk_best,?),rk_season=? WHERE id=?").bind(nr,streak,nr,seasonOf(Date.now()),uid).run();
+    res[side]={d,r:nr,from:u.rating,streak,lg:league(nr),up:league(nr)>league(u.rating)};
+    try{await doAction(env,{id:uid,name:u.name},"pvp_result",{id:(side==="a"?ac:bc).id,res:won?"w":draw?"d":"l",rk:1},{pvp:true});dtopLast.delete(uid);await dtopAdd(env,"fight",uid,1)}catch(e){console.error("rk pvp_result",e)}}
+  await env.DB.prepare("UPDATE rm SET res=? WHERE id=?").bind(JSON.stringify(res),m.id).run();delete topCache.rktop}
+function rkView(m,uid){const side=m.a===uid?"a":(!m.ghost&&m.b===uid)?"b":null,op=side==="b"?"a":"b",me=side||"a",S=rj(m.st,{}),res=rj(m.res,null);
+  const card=s=>pub(rj(m[s+"c"],{})),F=s=>({name:m[s+"n"],card:card(s),hp:S[s].hp,mx:S[s].mx,wc:m["w"+s],tired:S[s].tired,under:S[s].under,picked:!!m["p"+s],uid:s==="b"&&m.ghost?null:m[s]});
+  const A=abil(S[me].h)[3],peek=side&&A.peek&&S.turn===0&&m["p"+op]?m["p"+op]:null;
+  return {id:m.id,phase:m.phase==="end"?"show":m.phase,left:Math.max(0,m.until-Date.now()),turn:S.turn,side,ghost:m.ghost,me:F(me),op:F(op),myPick:side?m["p"+me]:null,peek,
+    last:S.log.length?S.log[S.log.length-1]:null,win:m.phase==="done"||m.phase==="end"?S.win:null,res:res&&side?res[side]:null}}
+async function rkMatchSearch(env,me,q,wide){const now=Date.now();
+  const rows=(await env.DB.prepare("SELECT * FROM rq WHERE uid<>? AND t>? AND wc BETWEEN ? AND ? ORDER BY ABS(wc-?),ABS(rating-?),t LIMIT 5").bind(me.id,now-RK_LIVE_Q,wide?q.wc-1:q.wc,wide?q.wc+1:q.wc,q.wc,q.rating).all()).results;
+  for(const o of rows){const day=dayOf(now);   // с одним соперником не больше 3 боёв в день
+    const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rm WHERE ghost=0 AND created>? AND ((a=? AND b=?) OR (a=? AND b=?))").bind(now-864e5,me.id,o.uid,o.uid,me.id).first())||{}).n||0;if(n>=3)continue;
+    const del=await env.DB.prepare("DELETE FROM rq WHERE uid=? AND t=?").bind(o.uid,o.t).run();if(del.meta.changes!==1)continue;
+    let oc;try{oc=await rkCardOf(env,o.uid,o.card)}catch(e){continue}
+    const ou=await rkUser(env,o.uid),mu=await rkUser(env,me.id),mc=await rkCardOf(env,me.id,q.card);
+    return rkCreate(env,{uid:o.uid,name:ou.name,card:oc,tired:rkTired(rj(ou.state,{}),oc.id,now)},{uid:me.id,name:mu.name,card:mc,tired:rkTired(rj(mu.state,{}),mc.id,now)},false)}
+  return null}
+async function rkGhost(env,me,q){const now=Date.now(),hs=HEROES.map((H,i)=>i).filter(i=>wclass(i)===q.wc);
+  const r=await env.DB.prepare(`SELECT c.*,COALESCE(u.nick,u.name) AS owner_name,u.rating AS orating FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND c.owner<>? AND c.part=0 AND c.f<>5 AND c.h IN (${hs.join(",")}) ORDER BY ABS(COALESCE(u.rating,0)-?)+ABS(RANDOM()%400) LIMIT 1`).bind(me.id,q.rating).first();
+  const mu=await rkUser(env,me.id),mc=await rkCardOf(env,me.id,q.card);
+  const oc=r?rowToCard(r):phantom(hs[Math.floor(Math.random()*hs.length)],0);
+  return rkCreate(env,{uid:me.id,name:mu.name,card:mc,tired:rkTired(rj(mu.state,{}),mc.id,now)},{uid:r?r.owner:0,name:r?(r.owner_name||"Игрок"):"Тень воина",card:oc,tired:false},true)}
+async function rkTop(env){return cached("rktop",15e3,async()=>(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,rating FROM users WHERE rating>0 AND rk_season=? ORDER BY rating DESC LIMIT 20").bind(seasonOf(Date.now())).all()).results.filter(r=>!isAdmin(env,r.id)))}
+async function rkApi(env,me,a,p){const now=Date.now();
+  if(a==="rk_info"){const u=await rkUser(env,me.id),top=await rkTop(env),st=rj(u.state,{});const rating=u.rating;
+    const rank=rating>0?(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE rating>? AND rk_season=?").bind(rating,seasonOf(now)).first())||{}).n||0)+1:0;
+    const act=await rkActive(env,me.id),q=await env.DB.prepare("SELECT * FROM rq WHERE uid=?").bind(me.id).first();
+    const d=new Date(now+TZ),next=Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,1)-TZ;
+    return {rating,lg:league(rating),streak:u.rk_streak||0,dayn:u.dayn,dayMax:RK_DAY,rank,seasonLeft:next-now,season:seasonOf(now),top:top.map(r=>({uid:r.id,name:r.name,rating:r.rating,lg:league(r.rating)})),
+      active:act?act.id:null,queued:q?{card:q.card,wc:q.wc,since:q.t}:null,fat:st.fat||{}}}
+  if(a==="rk_find"){if(await rkActive(env,me.id))fail("У тебя уже идёт рейтинговый бой");const u=await rkUser(env,me.id);if(u.dayn>=RK_DAY)fail("На сегодня рейтинговые бои закончились ("+RK_DAY+" в день). Завтра новые!");
+    const c=await rkCardOf(env,me.id,p.id),q={uid:me.id,card:c.id,wc:wclass(c.h),rating:u.rating,t:now};
+    await env.DB.prepare("INSERT INTO rq(uid,card,wc,rating,t) VALUES(?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET card=excluded.card,wc=excluded.wc,rating=excluded.rating,t=excluded.t").bind(q.uid,q.card,q.wc,q.rating,q.t).run();
+    const id=await rkMatchSearch(env,me,q,false);return {match:id||null,queued:id?null:{card:c.id,wc:q.wc,since:now}}}
+  if(a==="rk_poll"){const act=await rkActive(env,me.id);if(act)return {match:act.id};const q=await env.DB.prepare("SELECT * FROM rq WHERE uid=?").bind(me.id).first();if(!q)return {match:null,queued:null};
+    const el=now-q.t;let id=await rkMatchSearch(env,me,q,el>RK_WIDE);if(!id&&el>RK_GHOST)id=await rkGhost(env,me,q);
+    return {match:id||null,queued:id?null:{card:q.card,wc:q.wc,since:q.t}}}
+  if(a==="rk_cancel"){await env.DB.prepare("DELETE FROM rq WHERE uid=?").bind(me.id).run();return {}}
+  const m0=await env.DB.prepare("SELECT * FROM rm WHERE id=?").bind(p.id|0).first();if(!m0)fail("Бой не найден");
+  if(a==="rk_get"){const m=await rkAdvance(env,m0);return rkView(m,me.id)}
+  if(a==="rk_act"){const act=String(p.act||"");if(!RK_ACTS[act])fail("Неверное действие");let m=await rkAdvance(env,m0);const side=m.a===me.id?"a":(!m.ghost&&m.b===me.id)?"b":null;
+    if(!side)fail("Это не твой бой");if(m.phase!=="pick")fail("Подожди следующего хода");if(m["p"+side])fail("Ты уже выбрал");
+    await env.DB.prepare(`UPDATE rm SET p${side}=?,ver=ver+1 WHERE id=? AND p${side} IS NULL AND phase='pick'`).bind(act,m.id).run();
+    m=await rkAdvance(env,await env.DB.prepare("SELECT * FROM rm WHERE id=?").bind(m.id).first());return rkView(m,me.id)}
+  fail("Неизвестное действие")}
+/* конец сезона (1-го числа): награда по лиге, рейтинг сжимается до 40%. Порциями по 25 игроков */
+async function rkSeasonTick(env){const cur=seasonOf(Date.now()),k=(await kvGet(env,"rk_season_done"))||{};if(k.s===cur&&k.fin)return;
+  if(k.s!==cur){k.s=cur;k.after=0;k.fin=0}
+  const rows=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,rating,rk_season FROM users WHERE rk_season IS NOT NULL AND rk_season<? AND id>? ORDER BY id LIMIT 25").bind(cur,k.after).all()).results;
+  for(const u of rows){k.after=u.id;const lg=league(u.rating),P=SEASON_PRIZE[lg];
+    if(P&&!isAdmin(env,u.id)){try{await doAction(env,{id:u.id,name:u.name},"season_prize",P,{season:true})}catch(e){console.error("season",e)}
+      await notify(env,u.id,"🏆 Сезон рейтинга завершён! Твоя лига: "+LEAGUES[lg].ic+" "+LEAGUES[lg].n+" ("+u.rating+").\n\nНаграда: "+[P.sp?"+"+P.sp+" прокруток":"",P.guar?"гарантированный эпик":"",P.tier===3?"легендарная карточка":P.tier===4?"мифическая карточка":""].filter(Boolean).join(", ")+" 🎁\n\nНовый сезон уже начался — рейтинг сжат до 40%. Вперёд!","⚔️ В бой")}
+    await env.DB.prepare("UPDATE users SET rating=?,rk_streak=0,rk_season=? WHERE id=?").bind(Math.floor((u.rating||0)*.4),cur,u.id).run()}
+  if(rows.length<25)k.fin=1;await kvSet(env,"rk_season_done",k)}
+/* брошенные бои доигрываются сами (раз в 5 секунд), чтобы карточки не зависали */
+async function rkTick(env){for(const m of (await env.DB.prepare("SELECT * FROM rm WHERE phase<>'done' AND until<? LIMIT 5").bind(Date.now()-1000).all()).results)await rkAdvance(env,m);
+  await env.DB.prepare("DELETE FROM rq WHERE t<?").bind(Date.now()-10*60e3).run()}
 /* ---------- турнир выходных: каждую субботу в 20:00 по Минску ----------
    Регистрация всю неделю (до 64 игроков). В 20:00 сетка на выбывание, каждый матч — живой бой на арене.
    Сервер сам создаёт бои, двигает раунды (раз в 5 секунд) и раздаёт призы. */
@@ -1450,7 +1659,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -1494,13 +1703,14 @@ async function handle(req,env){{
       if(a==="nick"){const res=await setNick(env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
-      if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant")fail("Неизвестное действие");
+      if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize")fail("Неизвестное действие");
       if(a==="shop")return J({ok:true,res:await shopInfo(env,me)});
       if(a==="invoice")return J({ok:true,res:await invoice(env,me,p)});
       if(a==="pay_status")return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)});
       if(a==="pay_sim"){if(env.PAY_SIM!=="1")fail("Неизвестное действие");const P=await env.DB.prepare("SELECT * FROM payments WHERE id=? AND uid=?").bind(p.pid|0,me.id).first();if(!P)fail("Нет такого счёта");
         await paidUpdate(env,me.id,{currency:"XTR",total_amount:P.stars,invoice_payload:"p"+P.id,telegram_payment_charge_id:"sim"+P.id});return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)})}
       if(a==="dtop")return J({ok:true,res:await dtopGet(env,me)});
+      if(/^rk_/.test(a)){const res=await rkApi(env,me,a,p);return J({ok:true,res,S:(a==="rk_get"&&res.phase==="done")||a==="rk_find"?await stateFor(env,me):undefined})}
       if(a==="camp_top")return J({ok:true,res:await campTop(env,me,p.per==="w"?"w":"d")});
       if(a==="chal_get")return J({ok:true,res:await chalGet(env,me)});
       if(a==="chal_set"){if(!isAdmin(env,me.id))fail("Нет доступа");await kvSet(env,"chal",p.cfg||null);delete topCache.chalcfg;delete topCache.chalb;return J({ok:true,res:{}})}

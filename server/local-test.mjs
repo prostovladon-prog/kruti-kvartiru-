@@ -623,6 +623,32 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   db.prepare("DELETE FROM kv WHERE k='dtop_paid'").run(); const g0 = db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(U).g;
   await worker.tick(env); await worker.tick(env); const g1 = db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(U).g;
   ok(g1 - g0 === 10, "герой дня за вчера получил +10 прокруток (" + (g1 - g0) + ")"); }
+/* --- рейтинговый бой --- */
+{ const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,50,'[300,300,300,300,300]',0,0,0,0,0)");
+  const A = 7401, B = 7402; await call(A, "sync"); await call(B, "sync");
+  ins.run(A, 20, 3000001, "740101"); ins.run(B, 21, 3000002, "740201"); ins.run(B, 2, 3000003, "740202");
+  const ca = (await call(A, "sync")).S.cards.find(c => c.h === 20), cb = (await call(B, "sync")).S.cards.find(c => c.h === 21), cl = (await call(B, "sync")).S.cards.find(c => c.h === 2);
+  let r = await call(A, "rk_find", { id: ca.id }); ok(r.ok && !r.res.match && r.res.queued, "рейтинг: встал в очередь");
+  r = await call(B, "rk_find", { id: cl.id }); ok(r.ok && !r.res.match, "лёгкий вес не попадает к среднему сразу");
+  await call(B, "rk_cancel");
+  r = await call(B, "rk_find", { id: cb.id }); const mid = r.res.match; ok(r.ok && mid, "средний вес нашёл соперника своей категории");
+  r = await call(A, "rk_poll"); ok(r.res.match === mid, "второй игрок видит бой");
+  r = await call(A, "rk_get", { id: mid }); ok(r.ok && r.res.phase === "pick" && r.res.me.hp > 0 && r.res.op.card.h === 21, "бой: оба воина с полоской здоровья");
+  r = await call(B, "duel", { id: cb.id, stat: 0 }); ok(!r.ok, "карточка в рейтинговом бою занята");
+  let guard = 0; while (guard++ < 40) { const ga = await call(A, "rk_get", { id: mid }); if (ga.res.phase === "done") break;
+    if (ga.res.phase === "pick") { if (!ga.res.myPick) await call(A, "rk_act", { id: mid, act: ["hit", "block", "feint"][guard % 3] }); const gb = await call(B, "rk_get", { id: mid }); if (gb.res.phase === "pick" && !gb.res.myPick) await call(B, "rk_act", { id: mid, act: ["feint", "hit", "block"][guard % 3] }); }
+    else db.prepare("UPDATE rm SET until=0 WHERE id=?").run(mid); }
+  r = await call(A, "rk_get", { id: mid }); ok(r.res.phase === "done" && r.res.win && r.res.res, "бой доходит до конца (" + r.res.turn + " ходов)");
+  const ra = (await call(A, "rk_info")).res, rb = (await call(B, "rk_info")).res;
+  ok(r.res.win === "d" || (r.res.win === "a" ? ra.rating === 30 && rb.rating === 0 : rb.rating === 30 && ra.rating === 0), "рейтинг: победитель +30 в среднем весе (" + ra.rating + " / " + rb.rating + ")");
+  ok(ra.dayn === 1, "бой засчитан в дневной лимит");
+  r = await call(B, "duel", { id: cb.id, stat: 0 }); ok(r.ok, "после боя карточка свободна");
+  // тень: если долго нет соперника
+  r = await call(A, "rk_find", { id: ca.id }); db.prepare("UPDATE rq SET t=t-31000 WHERE uid=?").run(A);
+  r = await call(A, "rk_poll"); ok(r.ok && r.res.match, "через 30 секунд бой с тенью");
+  const g = await call(A, "rk_get", { id: r.res.match }); ok(g.res.ghost === 1 && g.res.op.picked, "тень сама выбирает ход");
+  db.prepare("UPDATE users SET rk_dayn=20 WHERE id=?").run(A); db.prepare("UPDATE rm SET phase='done',applied=1 WHERE a=?").run(A); db.prepare("UPDATE cards SET room_id=NULL WHERE owner=?").run(A);
+  r = await call(A, "rk_find", { id: ca.id }); ok(!r.ok && /закончились/.test(r.err), "не больше 20 рейтинговых боёв в день"); }
 /* --- дыра в крафте закрыта --- */
 { const U = 7101; await call(U, "sync");
   const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,?,'[300,300,300,300,300]',0,0,0,0,0)");

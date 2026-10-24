@@ -204,6 +204,105 @@ function campSq(C,now){return C.lv.sq?Math.floor(Math.min(SQ_HOURS*3600e3,Math.m
 function spinsBought(st,now){const C=st.camp;return C&&C.buyDay===today(now)?(C.buyN||0):0}
 function spinPrice(st,now){return BUY_BASE*Math.pow(2,spinsBought(st,now))}
 
+/* ---------- РЕЙТИНГОВЫЙ БОЙ ----------
+   Бой до конца здоровья. Каждый ход оба игрока вслепую выбирают действие: удар бьёт финт, блок бьёт удар, финт бьёт блок.
+   Угадал — наносишь полный урон. Одинаковый выбор: два удара — оба бьют вполсилы, два финта — оба по 30%, два блока — ничего.
+   Характеристики: Атака — урон, Броня — защита от урона, Выносливость — здоровье, Скорость — шанс увернуться, Боевой дух — шанс крита.
+   У каждого воина своя способность (ABIL). Соперник подбирается по весовой категории карты. */
+const RK_ACTS={hit:"Удар",block:"Блок",feint:"Финт"},RK_IC={hit:"⚔️",block:"🛡",feint:"🌀"},RK_BEATS={hit:"feint",block:"hit",feint:"block"};
+const WCLASS=["Лёгкий вес","Средний вес","Тяжёлый вес"],WC_IC=["🪶","⚔️","🔥"];
+const wclass=h=>{const t=HEROES[h][2];return t<=1?0:t===2?1:2};
+const LEAGUES=[{n:"Бронза",ic:"🥉",at:0},{n:"Серебро",ic:"🥈",at:1000},{n:"Золото",ic:"🥇",at:2500},{n:"Платина",ic:"💠",at:4000},{n:"Алмаз",ic:"💎",at:6000},{n:"Легенда",ic:"🔥",at:8000},{n:"Император",ic:"👑",at:10000}];
+function league(r){let i=0;for(let k=0;k<LEAGUES.length;k++)if((r||0)>=LEAGUES[k].at)i=k;return i}
+const RK_WIN=[25,30,40],RK_LOSS=20,RK_STREAK=5,RK_STREAK_MAX=15,RK_DAY=20,RK_UNDER=10,RK_TURNS=15;
+/* награды сезона по лиге (sp — прокрутки, guar — гарантированный эпик, tier — карточка этой редкости) */
+const SEASON_PRIZE=[null,{sp:2},{sp:3,guar:1},{sp:5,guar:1},{sp:7,tier:3},{sp:10,tier:3},{sp:10,tier:4}];
+const FAT_N=5,FAT_MS=3600e3,FAT_K=.8;   // усталость: после 5 рейтинговых боёв подряд −20% к силе, отдых час
+/* способности: [иконка, название, описание, эффект] */
+const ABIL=[
+["😤","Злость","+10% к Боевому духу",{st:{4:.1}}],
+["🏹","Первая стрела","первый удачный удар +20%",{first:.2}],
+["🎯","Белке в глаз","+8% к шансу крита",{crit:[.08,0]}],
+["🛡","Строй","+10% к Броне",{st:{1:.1}}],
+["🪨","Камень Давида","+15% урона против более редкого воина",{vsRare:.15}],
+["🗡","Длинный меч","+10% к Атаке",{st:{0:.1}}],
+["🌙","Ночная смена","+10% к Выносливости",{st:{3:.1}}],
+["📚","Учебка","+5% ко всем характеристикам",{all:.05}],
+["⏳","Перезарядка","каждый 3-й ход урон +30%",{every3:.3}],
+["👣","Опора самураев","+10% к Скорости",{st:{2:.1}}],
+["🐢","Черепаха","удачный Блок бьёт на 30% сильнее",{blockX:.3}],
+["⛵","Набег","первый удачный удар +40%",{first:.4}],
+["🪖","Латы","+15% к Броне",{st:{1:.15}}],
+["💥","Залп","+12% к шансу крита",{crit:[.12,0]}],
+["🔥","Встал с печи","после пропущенного удара следующий +10%",{afterHurt:.1}],
+["🧱","Фаланга","+12% к Броне и Выносливости",{st:{1:.12,3:.12}}],
+["🐎","Стрела назад","+12% к шансу увернуться",{dodge:.12}],
+["⚔️","Воительница","+12% к Атаке",{st:{0:.12}}],
+["🕵️","Шпионка","соперник −12% к Боевому духу",{opp:{4:-.12}}],
+["🛡","Со щитом","первый пропущенный удар не наносит урона",{shield:1}],
+["🗡","Первый удар","первый удачный удар ×1,5",{first:.5}],
+["🌑","Тень","+25% к шансу увернуться",{dodge:.25}],
+["📣","Рёв толпы","каждый удачный удар +10% к следующим",{stack:.1}],
+["🪽","Выбор павших","при здоровье ниже половины урон ×1,4",{low:[.5,.4]}],
+["🚩","Знамя","+20% к Боевому духу и Выносливости",{st:{4:.2,3:.2}}],
+["🐍","Каменный взгляд","соперник −25% ко всему в первые 3 хода",{early:[3,-.25]}],
+["🐺","Безумие","+35% к Атаке, −15% к Броне",{st:{0:.35,1:-.15}}],
+["✝️","Обет","при здоровье ниже половины урон ×1,5",{low:[.5,.5]}],
+["🐂","Лабиринт","соперник −12% ко всему",{oppAll:-.12}],
+["⚖️","Весы","+10% к Броне и один раз переживает смертельный удар",{save:1,st:{1:.1}}],
+["👹","Маска демона","первый удачный удар ×1,5 и соперник −15% ко всему",{first:.5,oppAll:-.15}],
+["🔮","Чары","−35% к Атаке соперника",{opp:{0:-.35}}],
+["🔥","Огненное дыхание","+30% к Атаке",{st:{0:.3}}],
+["🪶","Из пепла","один раз воскресает с 40% здоровья",{revive:.4}],
+["🐙","Щупальца","соперник −25% к Скорости и Броне",{opp:{1:-.25,2:-.25}}],
+["🐕","Три головы","каждый удачный удар +10% к следующим",{stack:.1}],
+["🦁","Тройная натура","+25% к Атаке, Духу и Скорости",{st:{0:.25,4:.25,2:.25}}],
+["🌊","Пучина","+25% к Броне и Выносливости",{st:{1:.25,3:.25}}],
+["🏔","Сила земли","+20% к Атаке и Выносливости",{st:{0:.2,3:.2}}],
+["🐉","Змееборец","+45% урона против мифических",{vsMyth:.45}],
+["🦊","Хитрость","+30% к шансу увернуться и видит первый ход соперника",{dodge:.3,peek:1}],
+["🔨","Мьёльнир","30% шанс крита ×2",{crit:[.3,2]}],
+["🛡","Застава","+15% ко всем характеристикам",{all:.15}],
+["⚡","Молния","35% шанс ударить молнией, даже если соперник угадал",{zap:.35}],
+["🦁","12 подвигов","+10% ко всему, +25% после пропущенного удара",{all:.1,afterHurt:.25}]];
+const abil=h=>ABIL[h]||ABIL[0];
+/* боец: характеристики с учётом уровня, звёзд, усталости и способностей (своих и соперника) */
+/* внутри весовой категории разница редкости сглажена: более редкий воин сильнее примерно на 10%, а не в разы */
+const RK_TIER_K=[1.75,1,1,1.22,1];
+function rkFighter(c,o){o=o||{};const A=abil(c.h)[3],k=(o.tired?FAT_K:1)*(o.under?1.1:1)*RK_TIER_K[HEROES[c.h][2]];
+  return {h:c.h,id:c.id,base:[0,1,2,3,4].map(i=>Math.round(eff(c,i)*k*(1+(A.all||0)+((A.st||{})[i]||0)))),shield:A.shield?1:0,save:A.save?1:0,revive:A.revive||0,stack:0,hurt:0,hits:0,tired:o.tired?1:0,under:o.under?1:0}}
+function rkStats(F,E,turn){const EA=abil(E.h)[3];return F.base.map((v,i)=>Math.max(1,Math.round(v*(1+(EA.oppAll||0)+((EA.opp||{})[i]||0)+(EA.early&&turn<=EA.early[0]?EA.early[1]:0)))))}
+function rkInit(ca,cb,o){o=o||{};const a=rkFighter(ca,o.a),b=rkFighter(cb,o.b);
+  for(const F of [a,b]){const E=F===a?b:a,s=rkStats(F,E,99);F.mx=F.hp=Math.round(200+s[3]*1.6)}
+  return {turn:0,a,b,log:[],done:0,win:null}}
+/* один ход: x,y — действия сторон a и b. rnd — генератор случайности (на сервере Math.random) */
+function rkTurn(S,x,y,rnd){rnd=rnd||Math.random;if(S.done)return null;S.turn++;const t=S.turn,ev={t,a:x,b:y,da:0,db:0,fa:[],fb:[]};
+  const sa=rkStats(S.a,S.b,t),sb=rkStats(S.b,S.a,t);
+  let ma=0,mb=0;   // множитель урона стороны a по b и наоборот
+  if(x===y){if(x==="hit"){ma=mb=.5}else if(x==="feint"){ma=mb=.3}}else if(RK_BEATS[x]===y)ma=1;else mb=1;
+  const strike=(X,Y,sx,sy,m,act,fx,zap)=>{const A=abil(X.h)[3],TY=HEROES[Y.h][2],TX=HEROES[X.h][2];
+    let d=sx[0]*sx[0]/(sx[0]+sy[1])*.8*m;
+    if(A.first&&!X.hits)d*=1+A.first;if(A.every3&&t%3===0)d*=1+A.every3;if(X.stack)d*=1+X.stack;if(A.afterHurt&&X.hurt)d*=1+A.afterHurt;
+    if(A.low&&X.hp<X.mx*A.low[0])d*=1+A.low[1];if(A.vsRare&&TY>TX)d*=1+A.vsRare;if(A.vsMyth&&TY>=4)d*=1+A.vsMyth;if(A.blockX&&act==="block"&&!zap)d*=1+A.blockX;
+    const cp=.05+sx[4]/(sx[4]+900)*.25+((A.crit||[0])[0]);if(rnd()<cp){d*=(A.crit&&A.crit[1])||1.5;fx.push("crit")}
+    const YA=abil(Y.h)[3],dp=.03+sy[2]/(sy[2]+1500)*.2+(YA.dodge||0);if(rnd()<dp){fx.push("dodge");return 0}
+    if(Y.shield){Y.shield=0;fx.push("shield");return 0}
+    return Math.max(1,Math.round(d))};
+  if(ma)ev.da=strike(S.a,S.b,sa,sb,ma,x,ev.fa);if(mb)ev.db=strike(S.b,S.a,sb,sa,mb,y,ev.fb);
+  // молния Зевса: бьёт, даже если соперник угадал
+  for(const [X,Y,sx,sy,k,fx] of [[S.a,S.b,sa,sb,"da",ev.fa],[S.b,S.a,sb,sa,"db",ev.fb]]){const A=abil(X.h)[3];if(A.zap&&!ev[k]&&rnd()<A.zap){fx.push("zap");ev[k]=strike(X,Y,sx,sy,.7,"zap",fx,1)}}
+  S.b.hp-=ev.da;S.a.hp-=ev.db;
+  for(const [X,Y,k] of [[S.a,S.b,"da"],[S.b,S.a,"db"]]){const A=abil(X.h)[3];if(ev[k]>0){X.hits++;if(A.stack)X.stack+=A.stack;X.hurt=0;Y.hurt=1}}
+  for(const [F,fx] of [[S.a,ev.fb],[S.b,ev.fa]])if(F.hp<=0){if(F.save){F.save=0;F.hp=1;fx.push("save")}else if(F.revive){F.hp=Math.round(F.mx*F.revive);F.revive=0;fx.push("revive")}}
+  S.a.hp=Math.max(0,S.a.hp);S.b.hp=Math.max(0,S.b.hp);
+  if(S.a.hp<=0||S.b.hp<=0||t>=RK_TURNS){S.done=1;const pa=S.a.hp/S.a.mx,pb=S.b.hp/S.b.mx;S.win=pa>pb?"a":pb>pa?"b":"d"}
+  S.log.push(ev);if(S.log.length>8)S.log.shift();return ev}
+/* ход бота: случайный, но чуть хитрее — после своего удачного удара чаще повторяет его */
+function rkAI(S,side){const r=Math.random(),L=S.log[S.log.length-1];if(L&&Math.random()<.25){const my=L[side],won=side==="a"?L.da>0:L.db>0;if(won)return my}return r<.36?"hit":r<.68?"block":"feint"}
+/* сколько рейтинга за бой */
+function rkGain(win,wc,streak,under,rating){if(win)return RK_WIN[wc]+Math.min(RK_STREAK_MAX,RK_STREAK*(streak||0))+(under?RK_UNDER:0);
+  const floor=LEAGUES[league(rating)].at;return -Math.min(RK_LOSS,Math.max(0,(rating||0)-floor))}
+
 /* ---------- ошибки ---------- */
 class GameError extends Error{}
 function fail(m){throw new GameError(m)}
@@ -454,6 +553,8 @@ const ACTIONS={
 
   /* итог живого боя на арене: только сервер (ctx.pvp) */
   pvp_result(G){if(!G.ctx.pvp)fail("Неизвестное действие");const {st,ctx,p}=G;const c=G.cards.find(x=>x.id===p.id);
+    if(p.rk&&c){st.fat=st.fat||{};const f=st.fat[c.id]&&ctx.now-st.fat[c.id].t<FAT_MS?st.fat[c.id]:{n:0,t:0};f.n++;f.t=ctx.now;st.fat[c.id]=f;
+      for(const k in st.fat)if(ctx.now-st.fat[k].t>FAT_MS)delete st.fat[k]}   // усталость после рейтинговых боёв
     if(p.res==="w"){st.totalWins=(st.totalWins||0)+1;day(st,ctx.now).wins++;if(c){c.wins=(c.wins||0)+1;addXp(ctx,c,30)}}
     else if(c)addXp(ctx,c,p.res==="d"?15:10);return {}},
 
@@ -482,9 +583,13 @@ const ACTIONS={
     st.pays.push(p.pid);if(st.pays.length>40)st.pays=st.pays.slice(-40);
     return {item:p.item,sp:I.sp||0,guar:I.guar||0,cards:got}},
 
+  /* награда за сезон рейтинга: только сервер */
+  season_prize(G){if(!G.ctx.season)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.sp)st.spins+=p.sp;if(p.guar)st.guar=(st.guar||0)+p.guar;let card=null;
+    if(p.tier){card=rollTier(ctx,p.tier);card.how="chest";G.cards.push(card);noteCard(st,card)}return {card}},
+
   topup(G){if(!G.ctx.test&&!G.ctx.admin)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
 
-if(typeof module!=="undefined")module.exports={craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

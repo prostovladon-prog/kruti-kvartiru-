@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=1cee81c5">
+<link rel="stylesheet" href="style.css?v=d9823663">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -100,6 +100,9 @@
   </section>
 
   <section id="sec-duel" hidden>
+    <div class="box rkbox" id="rk-box" hidden><div class="rowb"><h3>🏆 Рейтинговый бой</h3><b class="num" id="rk-season"></b></div>
+      <div id="rk-me"></div><button type="button" class="craftbtn" id="rk-go">⚔️ Найти соперника</button>
+      <details class="rkd"><summary>Как играть, лиги и награды</summary><div id="rk-rules"></div></details><div class="rktop" id="rk-top"></div></div>
     <div class="seg seg4" id="bt-seg"><button type="button" data-v="arena" aria-pressed="false">⚡ Арена</button><button type="button" data-v="duel" aria-pressed="true">Дуэль</button><button type="button" data-v="boss" aria-pressed="false">Босс</button><button type="button" data-v="exp" aria-pressed="false">Походы</button></div>
     <div id="bt-arena" style="display:none;flex-direction:column;gap:14px">
       <div id="ar-room" hidden style="display:flex;flex-direction:column;gap:12px">
@@ -307,7 +310,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=d2051b5b"></script>
-<script src="game.js?v=e5d06032"></script>
+<script src="rules.js?v=02a67e07"></script>
+<script src="game.js?v=e5a089aa"></script>
 </body>
 </html>

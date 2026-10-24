@@ -824,7 +824,7 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
     info.innerHTML="";const t=document.createElement("div");t.className="who";t.innerHTML="<span></span><small></small>";
     t.children[0].textContent=HEROES[cur.h][0]+((cur.stars||0)>=3?" «"+epithet(cur)+"»":"");
     t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+FIN[cur.f].k+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+FIN[cur.f].run:"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.";
-    {const fl=document.createElement("p");fl.className="cv-flavor";fl.textContent=HEROES[cur.h][3];t.appendChild(fl)}
+    {const fl=document.createElement("p");fl.className="cv-flavor";fl.textContent=HEROES[cur.h][3];t.appendChild(fl);const A=abil(cur.h),ab=document.createElement("p");ab.className="cv-abil";ab.textContent="⚡ Способность в рейтинговом бою: "+A[0]+" "+A[1]+" — "+A[2]+" · "+WC_IC[wclass(cur.h)]+" "+WCLASS[wclass(cur.h)];t.appendChild(ab)}
     info.appendChild(t);
     if(FIN[cur.f].excl){fb.hidden=false;fb.innerHTML='<h3>🏆 Трофей</h3><p>Карточка «Основатель» существует в единственном экземпляре. Она для коллекции и понтов: в боях не участвует, продать системе её нельзя, а выставить на рынок можно.</p>';return}
     if(!o.mine){fb.hidden=true;return}
@@ -1268,7 +1268,7 @@ function renderMerge(){const box=$("merge");if(!box)return;box.innerHTML="";cons
 /* ---------- battle hub tabs ---------- */
 let btView="duel";
 document.querySelectorAll("#bt-seg button").forEach(b=>b.onclick=()=>{btView=b.dataset.v;renderBattle()});
-function renderBattle(){document.querySelectorAll("#bt-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===btView));
+function renderBattle(){renderRk();document.querySelectorAll("#bt-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===btView));
   ["arena","duel","boss","exp"].forEach(v=>$("bt-"+v).style.display=v===btView?"flex":"none");
   if(btView==="arena")renderArena();if(btView==="duel")renderDuel();if(btView==="boss")renderBoss();if(btView==="exp")renderExp()}
 /* ---------- арена: живые бои ----------
@@ -1995,6 +1995,69 @@ function numBuy(c){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=fa
     $("num-i").textContent=v.length<6?"Ровно 6 цифр. Обычный номер — ⭐ 100, красивый дороже.":"№ "+fmtSn(v)+(cl?" — «"+cl.k+"» ×"+cl.m:" — обычный")+" · ⭐ "+numPrice(v);
     go.disabled=v.length!==6;go.textContent=v.length===6?"Купить за ⭐ "+numPrice(v):"Ввести номер"};
   inp.oninput=upd;upd();$("num-x").onclick=closeModal;go.onclick=()=>{const sn=inp.value;closeModal();buyItem({item:"num",card:c.id,sn})};setTimeout(()=>inp.focus(),100)}
+
+/* ---------- РЕЙТИНГОВЫЙ БОЙ ---------- */
+let rkInfo=null,rkInfoAt=0,rkMatch=null,rkTimer=0,rkShown=0,rkSearchT=0,rkLastCard=null,rkBusy=false;
+const lgTxt=i=>LEAGUES[i].ic+" "+LEAGUES[i].n;
+const rkTiredC=c=>{const f=((rkInfo||{}).fat||{})[c.id];return !!(f&&f.n>=FAT_N&&NOW()-f.t<FAT_MS)};
+const rkPower=c=>[0,1,2,3,4].reduce((a,i)=>a+(c.stats?eff(c,i):0),0);
+async function loadRk(force){if(!ONLINE)return null;if(!force&&rkInfo&&NOW()-rkInfoAt<10000)return rkInfo;const r=await act("rk_info");if(r){rkInfo=r;rkInfoAt=NOW()}return rkInfo}
+async function renderRk(force){const box=$("rk-box");if(!box)return;if(!ONLINE){box.hidden=true;return}box.hidden=false;
+  const I=await loadRk(force);if(!I)return;const lg=I.lg,nx=LEAGUES[lg+1],cur=LEAGUES[lg].at;
+  $("rk-season").textContent="⏳ "+(I.seasonLeft>=864e5?Math.floor(I.seasonLeft/864e5)+" дн":tleft(I.seasonLeft));
+  $("rk-me").innerHTML='<div class="rkr"><b class="num">'+fmtN(I.rating)+'</b><span class="rklg lg'+lg+'">'+lgTxt(lg)+'</span></div><div class="rkbar"><u style="width:'+(nx?Math.min(100,(I.rating-cur)/(nx.at-cur)*100):100)+'%"></u></div><small>'+(nx?"до "+lgTxt(lg+1)+" ещё "+fmtN(nx.at-I.rating):"высшая лига!")+(I.rank?" · #"+I.rank+" в сезоне":"")+(I.streak>1?" · 🔥 серия "+I.streak:"")+" · боёв сегодня "+I.dayn+"/"+I.dayMax+'</small>';
+  const T=$("rk-top");T.innerHTML='<div class="rkth">Топ сезона</div>';if(!I.top.length)T.innerHTML+='<div class="cp-empty">Пока никого — стань первым!</div>';
+  I.top.slice(0,10).forEach((r,i)=>{const d=document.createElement("div");d.className="cpt"+(r.uid===S.uid?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent=i<3?["🥇","🥈","🥉"][i]:i+1;fxName(d.children[1],LEAGUES[r.lg].ic+" ",r.name,r.uid);d.children[2].textContent=fmtN(r.rating);T.append(d)});
+  $("rk-rules").innerHTML='<p><b>Как идёт бой.</b> Каждый ход вы с соперником одновременно и вслепую выбираете: ⚔️ Удар, 🛡 Блок или 🌀 Финт. <b>Удар бьёт Финт, Блок бьёт Удар, Финт бьёт Блок.</b> Угадал — наносишь урон. Бой идёт, пока у кого-то не кончится здоровье.</p><p><b>Характеристики:</b> Атака — урон, Броня — защита, Выносливость — здоровье, Скорость — шанс увернуться, Боевой дух — шанс крита. У каждого воина своя способность.</p><p><b>Весовые категории:</b> 🪶 лёгкий (обычные и редкие), ⚔️ средний (эпические), 🔥 тяжёлый (легендарные и мифические). Соперник подбирается из твоей категории. За победу: лёгкий +25, средний +30, тяжёлый +40, серия побед до +15. Поражение −20, но из лиги не вылетишь.</p><p><b>Усталость:</b> после '+FAT_N+' боёв подряд воин −20% к силе, отдых час.</p><p><b>Лиги и награды сезона</b> (в конце месяца):</p>'+LEAGUES.map((L,i)=>{const P=SEASON_PRIZE[i];return '<div class="rkl"><span>'+L.ic+" "+L.n+'</span><em>от '+fmtN(L.at)+'</em><span>'+(P?[P.tier===4?"мифическая":P.tier===3?"легендарная":"",P.guar?"эпик":"",P.sp?P.sp+" прокр.":""].filter(Boolean).join(" + "):"—")+'</span></div>'}).join("");
+  if(I.active&&!rkMatch)rkOpen(I.active);else if(I.queued&&!rkMatch&&!$("rkm"))rkSearch(I.queued)}
+$("rk-go").onclick=()=>rkPick();
+function rkPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  const list=S.cards.filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>wclass(b.h)-wclass(a.h)||rkPower(b)-rkPower(a));
+  sh.innerHTML='<div class="box nickbox"><h3>Выбери воина для рейтингового боя</h3><p class="rkpn">Соперник будет из той же весовой категории</p><div class="pkg rkpk">'+list.map(c=>'<button type="button" class="pki" data-id="'+c.id+'">'+miniSlot(c)+'<span class="rkwc">'+WC_IC[wclass(c.h)]+'</span>'+(rkTiredC(c)?'<span class="rktd">😮‍💨</span>':"")+'<small>'+abil(c.h)[0]+" "+abil(c.h)[1]+'</small></button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
+  $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=async e=>{const b=e.target.closest("[data-id]");if(!b)return;const c=S.cards.find(x=>String(x.id)===b.dataset.id);if(!c)return;closeModal();rkStart(c)}}
+async function rkStart(c){if(rkBusy)return;rkBusy=true;try{rkLastCard=c.id;const r=await act("rk_find",{id:c.id});if(!r)return;rkInfo=null;if(r.match)rkOpen(r.match);else rkSearch(r.queued)}finally{rkBusy=false}}
+function rkOverlay(){let o=$("rkm");if(!o){o=document.createElement("div");o.id="rkm";o.className="rkm";document.body.appendChild(o)}return o}
+function rkClose(){clearInterval(rkTimer);rkTimer=0;rkMatch=null;const o=$("rkm");if(o)o.remove();renderRk(true);renderAll()}
+function rkSearch(q){const o=rkOverlay();clearInterval(rkTimer);const since=q&&q.since?q.since:NOW(),wc=q?q.wc:0;
+  o.innerHTML='<div class="rks"><div class="rksp">🔎</div><h3>Ищем соперника</h3><div class="rkswc">'+WC_IC[wc]+" "+WCLASS[wc]+'</div><b class="num" id="rks-t">0:00</b><p>Через 20 секунд поищем и в соседней категории, через 30 — бой с тенью настоящего игрока</p><button type="button" class="ghost" id="rks-x">Отмена</button></div>';
+  $("rks-x").onclick=async()=>{await act("rk_cancel");rkClose()};
+  const tick=async()=>{const el=Math.max(0,NOW()-since);const t=$("rks-t");if(!t){clearInterval(rkTimer);return}t.textContent=Math.floor(el/60000)+":"+String(Math.floor(el/1000)%60).padStart(2,"0");
+    if(++rkSearchT%2)return;const r=await act("rk_poll");if(r&&r.match)rkOpen(r.match);else if(r&&!r.queued)rkClose()};
+  rkTimer=setInterval(tick,700);tick()}
+function rkOpen(id){clearInterval(rkTimer);rkMatch={id,v:null};rkShown=0;const o=rkOverlay();
+  o.innerHTML='<div class="rkb"><div class="rkhd"><b id="rkb-turn">Бой</b><div class="rktm"><u id="rkb-tm"></u></div></div>'+
+   '<div class="rkf op" id="rkb-op"></div><div class="rkmid" id="rkb-mid"></div><div class="rkf me" id="rkb-me"></div><div class="rkact" id="rkb-act"></div></div>';
+  rkPoll();rkTimer=setInterval(rkPoll,900)}
+async function rkPoll(){if(!rkMatch)return;const id=rkMatch.id;const r=await act("rk_get",{id});if(!r||!rkMatch||rkMatch.id!==id)return;rkDraw(r)}
+function rkFighterHTML(F,mine){const A=abil(F.card.h);return '<div class="rkc">'+miniSlot(F.card)+'</div><div class="rki"><div class="rkn"></div><div class="rkhp"><u style="width:'+Math.max(0,F.hp/F.mx*100)+'%"></u><span class="num">'+fmtN(F.hp)+" / "+fmtN(F.mx)+'</span></div><div class="rkab">'+A[0]+" "+A[1]+'<small>'+A[2]+'</small></div><div class="rkst"></div></div>'}
+function rkDraw(v){const first=!rkMatch.v;rkMatch.v=v;
+  for(const [k,F] of [["me",v.me],["op",v.op]]){const el=$("rkb-"+k);if(!el)return;if(first||el.dataset.c!==String(F.card.id)){el.innerHTML=rkFighterHTML(F,k==="me");el.dataset.c=F.card.id}
+    el.querySelector(".rkn").textContent="";fxName(el.querySelector(".rkn"),"",(k==="me"?"Ты":F.name)+" ",k==="me"?S.uid:F.uid);el.querySelector(".rkn").insertAdjacentHTML("beforeend",'<em>'+WC_IC[F.wc]+(F.under?" +10%":"")+(F.tired?" 😮‍💨":"")+'</em>');
+    el.querySelector(".rkhp u").style.width=Math.max(0,F.hp/F.mx*100)+"%";el.querySelector(".rkhp span").textContent=fmtN(F.hp)+" / "+fmtN(F.mx);
+    el.querySelector(".rkst").textContent=v.phase==="pick"?(k==="me"?(v.myPick?"✅ выбрал: "+RK_IC[v.myPick]+" "+RK_ACTS[v.myPick]:"⏳ твой ход"):(F.picked?"✅ выбрал (скрыто)":"🤔 выбирает…")):""}
+  $("rkb-turn").textContent=v.phase==="done"?"Бой окончен":"Ход "+(v.turn+(v.phase==="pick"?1:0));
+  $("rkb-tm").style.width=v.phase==="pick"?Math.min(100,v.left/12000*100)+"%":"0%";
+  const L=v.last,mine=v.side||"a",op=mine==="a"?"b":"a";
+  if(L&&L.t!==rkShown){rkShown=L.t;const mid=$("rkb-mid"),ma=L[mine],oa=L[op],dm=L["d"+mine],do_=L["d"+op],fm=L["f"+mine]||[],fo=L["f"+op]||[];
+    const verdict=ma===oa?(ma==="block"?"Оба в блоке — тишина":"Одинаково — оба бьют вполсилы"):(RK_BEATS[ma]===oa?"Ты угадал!":"Соперник угадал");
+    const fxT=f=>f.map(x=>({crit:"💥 крит",dodge:"💨 уворот",shield:"🛡 щит",revive:"🪶 воскрес!",save:"⚖️ выжил",zap:"⚡ молния"}[x])).join(" ");
+    mid.innerHTML='<div class="rkrev"><span>'+RK_IC[ma]+" "+RK_ACTS[ma]+'</span><i>vs</i><span>'+RK_IC[oa]+" "+RK_ACTS[oa]+'</span></div><div class="rkver">'+verdict+'</div>'+(fm.length||fo.length?'<div class="rkfx">'+[fxT(fm),fxT(fo)].filter(Boolean).join(" · ")+'</div>':"");
+    const hit=(k,d,fx)=>{const el=$("rkb-"+k);if(!el)return;if(d>0){el.classList.remove("hurt");void el.offsetWidth;el.classList.add("hurt");sfx.clash&&sfx.clash()}
+      const n=document.createElement("b");n.className="rkdmg"+(fx.includes("crit")?" crit":"");n.textContent=d>0?"−"+fmtN(d):fx.includes("dodge")?"мимо":fx.includes("shield")?"щит":"0";el.appendChild(n);setTimeout(()=>n.remove(),1600)};
+    if(dm>0||fm.length)hit("op",dm,fm);if(do_>0||fo.length)hit("me",do_,fo);
+    if(fm.includes("crit")||fo.includes("crit")){try{hapN("warning")}catch(e){}}}
+  const A=$("rkb-act");
+  if(v.phase==="done"){clearInterval(rkTimer);rkTimer=0;const R=v.res||{},win=v.win===mine,draw=v.win==="d";
+    if(A.dataset.done!=="1"){A.dataset.done="1";if(win){sfx.fanfare();hapN("success")}else hapN("error");
+      A.innerHTML='<div class="rkres '+(win?"w":draw?"d":"l")+'"><h2>'+(win?"ПОБЕДА":draw?"НИЧЬЯ":"ПОРАЖЕНИЕ")+'</h2>'+(v.side?'<div class="rkrd">'+(R.d>0?"+":"")+(R.d||0)+' рейтинга</div><div class="rkrr">'+fmtN(R.r||0)+" · "+lgTxt(R.lg||0)+(R.up?" 🎉 новая лига!":"")+(R.streak>1&&win?" · 🔥 серия "+R.streak:"")+'</div>':"")+
+       '<button type="button" class="craftbtn" id="rk-again">⚔️ Ещё бой</button><button type="button" class="ghost" id="rk-x">Закрыть</button></div>';
+      $("rk-x").onclick=rkClose;$("rk-again").onclick=()=>{const c=S.cards.find(x=>x.id===rkLastCard&&!away(x));rkClose();if(c)rkStart(c);else rkPick()}}
+    return}
+  A.dataset.done="";
+  if(v.phase==="pick"&&v.side&&!v.myPick){if(A.dataset.m!=="pick"){A.dataset.m="pick";
+      A.innerHTML=(v.peek?'<div class="rkpeek">🦊 Хитрость: соперник выбрал '+RK_IC[v.peek]+" "+RK_ACTS[v.peek]+'</div>':"")+'<div class="rkbtns">'+["hit","block","feint"].map(k=>'<button type="button" data-a="'+k+'"><i>'+RK_IC[k]+'</i>'+RK_ACTS[k]+'<small>'+{hit:"бьёт Финт",block:"бьёт Удар",feint:"бьёт Блок"}[k]+'</small></button>').join("")+'</div>';
+      A.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{if(A.dataset.m!=="pick")return;A.dataset.m="sent";A.querySelectorAll("button").forEach(x=>x.disabled=true);b.classList.add("on");sfx.tick&&sfx.tick();const r=await act("rk_act",{id:v.id,act:b.dataset.a});if(r)rkDraw(r)})}}
+  else{A.dataset.m="";A.innerHTML='<div class="rkwait">'+(v.phase==="pick"?"Ждём соперника… ход откроется одновременно":"Следующий ход через секунду")+'</div>'}}
 const TQ=[];let tBusy=false;
 function toast(t){TQ.push(t);if(!tBusy)nextToast()}
 function nextToast(){const t=TQ.shift();const e=$("toast");if(t==null){tBusy=false;return}tBusy=true;e.textContent=t;e.classList.add("show");setTimeout(()=>{e.classList.remove("show");setTimeout(nextToast,250)},TQ.length?1400:2200)}
