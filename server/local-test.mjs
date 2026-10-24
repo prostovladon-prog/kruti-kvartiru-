@@ -692,5 +692,41 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     const feed = await call(U, "top", { kind: "feed" }); ok(feed.ok, "лента открывается"); }
   r = await call(U, "merge", { h: 1, f: 3 }); ok(!r.ok && /Ошибку печати/.test(r.err), "из золотых «Ошибку печати» не слить"); }
 
+/* --- подарки, витрина, казино, голем --- */
+{ const envP = { ...env, PAY_SIM: "1" };
+  const cp = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envP)).json();
+  const buy = async (uid, p) => { const i = await cp(uid, "invoice", p); if (!i.ok) return i; return cp(uid, "pay_sim", { pid: i.res.pid }); };
+  const A = 8101, B = 8102; await call(A, "sync"); await call(B, "sync");
+  let r = await buy(A, { item: "gift", k: "crown" }); ok(r.ok && r.res.status === "done" && r.res.res.gift.no === 1 && r.S.gifts.length === 1, "купил Корону Эпох за звёзды: № 1");
+  r = await buy(B, { item: "gift", k: "crown" }); ok(r.res.res.gift.no === 2, "следующая корона — № 2");
+  r = await cp(A, "invoice", { item: "gift", k: "cup" }); ok(!r.ok && /только из кейса/.test(r.err), "подарки серии «Удача» за звёзды не продаются");
+  db.prepare("INSERT INTO gifts(owner,k,no,created) SELECT -5,'helm',value,0 FROM (WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM n WHERE value<5000) SELECT value FROM n)").run();
+  r = await cp(A, "invoice", { item: "gift", k: "helm" }); ok(!r.ok && /закончился/.test(r.err), "тираж закончился — купить нельзя");
+  const gid = (await call(A, "sync")).S.gifts[0].id;
+  r = await call(A, "gift_shelf", { id: gid, slot: 3 }); ok(r.ok && r.S.gifts[0].shelf === 3, "подарок встал на 3-ю полку");
+  r = await call(B, "profile", { uid: A }); ok(r.ok && r.res.shelf.length === 1 && r.res.gval === 250 && r.res.gv === 1 && r.res.grank >= 1, "чужая витрина: подарок, стоимость, просмотры, место в топе");
+  r = await call(A, "gift_send", { id: gid, to: A }); ok(!r.ok, "себе подарить нельзя");
+  r = await call(B, "gift_send", { id: gid, to: A }); ok(!r.ok, "чужой подарок не подарить");
+  r = await call(A, "gift_send", { id: gid, to: B }); ok(r.ok && !r.S.gifts.length, "подарил другу");
+  r = await call(B, "sync"); ok(r.S.gifts.length === 2 && r.S.gifts.some(g => g.id === gid && g.shelf === 0 && g.from_uid === A), "друг получил подарок");
+  r = await call(A, "gift_top"); ok(r.ok && r.res.top[0].uid === B && r.res.left.crown === 98, "топ витрин и остаток тиража");
+  // казино
+  const setRunes = (uid, n) => { const u = db.prepare("SELECT state FROM users WHERE id=?").get(uid); const st = JSON.parse(u.state); st.camp = st.camp || { en: 0, at: Date.now(), lv: { pw: 0, en: 0, rg: 0, cr: 0, sq: 0 }, t: 0, hp: 100, kills: 0, total: 0, sqAt: Date.now() }; st.camp.runes = n; db.prepare("UPDATE users SET state=? WHERE id=?").run(JSON.stringify(st), uid); };
+  setRunes(A, 49999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 50 000 рун: без рун не открыть");
+  setRunes(A, 2e6); let gifts = 0, runes = 0;
+  for (let i = 0; i < 10; i++) { r = await call(A, "cas_case"); if (!r.ok) { ok(false, "кейс: " + r.err); break } if (r.res.g) gifts++; else runes += r.res.r; }
+  ok(r.ok && (gifts + runes / 3e4 >= 10 || runes > 0), "10 кейсов открыто (подарков: " + gifts + ")");
+  r = await call(A, "cas_case"); ok(!r.ok && /10 кейсов/.test(r.err), "не больше 10 кейсов в день");
+  r = await call(A, "cas_comp"); ok(!r.ok, "компенсацию напрямую не вызвать");
+  r = await call(A, "cas_slot", { bet: 500 }); ok(!r.ok && /Ставка от/.test(r.err), "слоты: ставка от 1 000");
+  const s0 = (await call(A, "sync")).S.camp.runes; r = await call(A, "cas_slot", { bet: 1000 });
+  ok(r.ok && r.res.reels.length === 3 && Math.abs(r.S.camp.runes - (s0 - 1000 + r.res.win)) < 1, "слоты: ставка списана, выигрыш начислен (×" + r.res.m + ")");
+  r = await call(A, "cas_hl_go", { bet: 1000 }); ok(r.ok && r.res.hl.c >= 1 && r.res.hl.c <= 13, "больше/меньше: первая карта");
+  r = await call(A, "cas_hl_take"); ok(!r.ok, "забрать можно только после угаданной карты");
+  const c = r.ok ? 0 : (await call(A, "sync")).S.cas.hl.c; r = await call(A, "cas_hl", { dir: c >= 7 ? "down" : "up" }); ok(r.ok && (r.res.win ? r.res.hl.m > 1 : !r.res.hl), "больше/меньше: ход");
+  // голем
+  r = await buy(A, { item: "golem" }); ok(r.ok && r.res.status === "done" && r.S.golemUntil > Date.now() + 6 * 864e5, "голем на неделю куплен");
+  r = await call(A, "camp_tap", { n: 1 }); ok(r.ok && r.S.camp.gm === 1, "с големом энергии в 2 раза больше");
+}
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

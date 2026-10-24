@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=077d6712">
+<link rel="stylesheet" href="style.css?v=3120c9c4">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -248,38 +248,29 @@
   <section id="sec-gold" hidden>
     <div class="gold">
       <div class="gold-h">🏪 СОКРОВИЩНИЦА<small>сундуки, составные воины и понт · оплата ⭐ Telegram Stars</small></div>
-      <div class="gseg" id="gold-seg"><button type="button" data-g="chest" aria-pressed="true">🎁 Сундуки</button><button type="button" data-g="comp" aria-pressed="false">🧩 Составные</button><button type="button" data-g="flex" aria-pressed="false">👑 Понт</button></div>
+      <div class="gseg" id="gold-seg"><button type="button" data-g="chest" aria-pressed="true">🎁 Сундуки</button><button type="button" data-g="comp" aria-pressed="false">🧩 Составные</button><button type="button" data-g="gifts" aria-pressed="false">🎁 Подарки</button><button type="button" data-g="flex" aria-pressed="false">👑 Понт</button></div>
       <div id="gold-body"></div>
       <button type="button" class="ghost gold-back" id="gold-back">← На главный экран</button>
     </div>
   </section>
   <section id="sec-camp" hidden>
     <div class="cp-top"><button type="button" class="mini2" id="cp-back">← Назад</button><b>🎯 Тренировочный лагерь</b></div>
-    <div class="cp-bal"><div class="cp-ru">💠 <b class="num" id="cp-ru">0</b><small>руны</small></div><div class="cp-stat" id="cp-stat"></div></div>
     <div class="cp-ar" id="cp-ar" role="button" aria-label="Тапай, чтобы бить мишень">
-      <svg class="cp-bg" viewBox="0 0 360 330" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <defs><linearGradient id="cpSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1c8f"/><stop offset=".55" stop-color="#c2417a"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient>
-        <radialGradient id="cpSun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ffd23f" stop-opacity="0"/></radialGradient>
-        <linearGradient id="cpGr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8692e"/><stop offset="1" stop-color="#6b3d17"/></linearGradient></defs>
-        <rect width="360" height="330" fill="url(#cpSky)"/><circle cx="270" cy="150" r="70" fill="url(#cpSun)"/>
-        <path d="M0 190 L50 140 L95 175 L150 118 L210 172 L260 132 L310 168 L360 140 V230 H0Z" fill="#5b2a86" opacity=".75"/>
-        <path d="M0 210 L40 185 L90 205 L140 178 L200 206 L250 186 L300 204 L360 182 V240 H0Z" fill="#3d1d63" opacity=".9"/>
-        <path d="M24 205v-38h8v-8h6v8h8v-8h6v8h8v38zM38 175v-16h-4l7-12 7 12h-4v16z" fill="#2a1446"/>
-        <path d="M0 236 Q180 214 360 236 V330 H0Z" fill="url(#cpGr)"/>
-        <g stroke="#3b2210" stroke-width="5" stroke-linecap="round"><path d="M10 248v-34M60 244v-34M300 244v-34M350 248v-34"/><path d="M6 222h58M296 222h58" stroke-width="4"/><path d="M6 236h58M296 236h58" stroke-width="4"/></g>
-        <g fill="#e8b84a"><path d="M30 300l6-14 4 14zM70 312l5-12 4 12zM300 305l6-14 4 14zM250 318l5-11 4 11zM120 318l4-10 4 10z"/></g>
-        <ellipse cx="200" cy="300" rx="90" ry="14" fill="#000" opacity=".22"/>
-      </svg>
-      <i class="cp-torch" style="left:14px"></i><i class="cp-torch" style="right:14px"></i>
-      <div class="cp-tname" id="cp-tname"></div>
-      <div class="cp-hp"><i id="cp-hpb"></i><span id="cp-hpt"></span></div>
-      <div class="cp-combo" id="cp-combo"></div>
+      <div class="w3sc" aria-hidden="true"><i class="rays"></i><i class="sun"></i><svg viewBox="0 0 390 110" preserveAspectRatio="none"><path d="M0 110 L0 70 L50 22 L90 60 L140 6 L200 70 L250 30 L300 80 L340 40 L390 74 L390 110Z" fill="#7a2a5a" opacity=".7"/><path d="M0 110 L0 88 L70 50 L130 92 L190 56 L260 96 L320 64 L390 92 L390 110Z" fill="#5a1f4a"/></svg><i class="floor"></i><i class="fog"></i><i class="tsh"></i></div>
+      <i class="cp-torch" style="left:18px"></i><i class="cp-torch" style="right:18px"></i>
+      <canvas class="w3fx" id="w3fx"></canvas>
+      <div class="cp-hud"><div class="cp-gl cp-ru"><i class="cp-rune"></i><b class="num" id="cp-ru">0</b></div><div class="cp-gl cp-tn" id="cp-tname"></div><div class="cp-gl cp-ep">⚡ <b class="num" id="cp-en">0</b></div></div>
+      <div class="cp-hp"><div class="cp-hpn" id="cp-hpt"></div><div class="cp-hpb"><i id="cp-hpb"></i></div></div>
+      <div class="cp-stat" id="cp-stat"></div>
+      <div class="cp-combo" id="cp-combo"><b id="cp-cbn">×1</b><small>КОМБО</small></div>
       <div class="cp-tg" id="cp-tg"></div>
       <div class="cp-hero" id="cp-hero"><div class="cp-hpic" id="cp-hpic"></div><span id="cp-hn"></span></div>
       <div class="cp-tip" id="cp-tip">👆 тапай по арене</div>
+      <div class="cp-en"><div class="cp-enr"><span>⚡ Энергия</span><span id="cp-et"></span></div><div class="cp-bar"><i id="cp-eb"></i></div></div>
     </div>
-    <div class="cp-en"><span>⚡</span><div class="cp-bar"><i id="cp-eb"></i></div><b class="num" id="cp-et"></b></div>
     <div class="cp-eh" id="cp-eh"></div>
+    <div class="golem3" id="cp-golem"></div>
+    <button type="button" class="cs-entry" id="cs-entry"><span class="e">🎰</span><span><b>КАЗИНО РУН</b><small>Кейс с подарками, слоты и «больше-меньше»</small></span></button>
     <div class="box cp-sq" id="cp-sq"></div>
     <div class="box cp-buyb"><button type="button" class="craftbtn" id="cp-buy"></button><small id="cp-buyt"></small></div>
     <div class="box cp-topb"><div class="rowb"><h3>🏆 Топ лагеря</h3><div class="cp-seg" id="cp-seg"><button type="button" data-per="d" aria-pressed="true">День</button><button type="button" data-per="w" aria-pressed="false">Неделя</button></div></div>
@@ -287,10 +278,17 @@
     <div class="box"><h3>🎯 Мишени</h3><p class="cp-note">Чем сильнее мишень, тем больше рун за удар. Разбей её — получишь сундук.</p><div id="cp-tgs"></div></div>
     <div class="box"><h3>⚒ Прокачка</h3><div id="cp-ups"></div></div>
   </section>
+  <section id="sec-cas" hidden>
+    <div class="cs-top"><button type="button" class="mini2" id="cs-back">← Лагерь</button><b>🎰 Казино рун</b></div>
+    <div class="cs-bal"><span>💠 <b class="num" id="cs-ru">0</b></span><small id="cs-day"></small></div>
+    <div class="cs-seg" id="cs-seg"><button type="button" data-c="case" aria-pressed="true">📦 Кейс</button><button type="button" data-c="slot" aria-pressed="false">🎰 Слоты</button><button type="button" data-c="hl" aria-pressed="false">🃏 Больше-меньше</button></div>
+    <div id="cs-body"></div>
+    <p class="cs-lim">Играй ради веселья. Руны — игровая валюта, их нельзя купить за деньги или вывести.</p>
+  </section>
   <section id="sec-top" hidden>
     <div class="box"><div class="rowb"><h3 id="top-h">Топ мира</h3><b class="num topr" id="top-rank"></b></div><p id="top-t"></p>
       <div class="nickrow"><span>Твой ник: <b id="my-nick"></b></span><button type="button" class="mini2" id="nick-go">Выбрать</button></div>
-      <button type="button" class="ghost ttlbtn" id="ttl-go">🎖 Титулы за деньги игры</button></div>
+      <button type="button" class="ghost ttlbtn" id="ttl-go">🎖 Титулы за деньги игры</button><button type="button" class="ghost ttlbtn" id="shelf-go">🏛 Моя витрина подарков</button></div>
     <div class="box dtopb" id="dtop-box"><div class="rowb"><h3>🏅 Герои дня</h3><b class="num" id="dtop-left"></b></div><p class="dtp">Каждый день в полночь топ-3 в каждом рейтинге получают подарок: 🥇 +10, 🥈 +5, 🥉 +3 прокрутки</p><div id="dtop-body"><p>Загружаю…</p></div></div>
     <div class="seg seg4" id="top-seg"><button type="button" data-v="worth" aria-pressed="true">Богачи</button><button type="button" data-v="cards" aria-pressed="false">Карточки</button><button type="button" data-v="album" aria-pressed="false">Альбом</button><button type="button" data-v="wins" aria-pressed="false">Бойцы</button></div>
     <div class="list" id="top-list"></div>
@@ -329,7 +327,8 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=560919b3"></script>
-<script src="game.js?v=e36f7986"></script>
+<script src="rules.js?v=f017d3a4"></script>
+<script src="game.js?v=f920b4e3"></script>
+<script src="wow.js?v=5227e602"></script>
 </body>
 </html>

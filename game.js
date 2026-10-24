@@ -984,8 +984,12 @@ const TG_SVG=[
  `<rect x="40" y="178" width="44" height="72" rx="10" fill="#8a8f9c" stroke="#0d1030" stroke-width="5"/><rect x="116" y="178" width="44" height="72" rx="10" fill="#8a8f9c" stroke="#0d1030" stroke-width="5"/><rect x="34" y="70" width="132" height="120" rx="22" fill="#9aa0ad" stroke="#0d1030" stroke-width="5"/><rect x="4" y="84" width="34" height="96" rx="14" fill="#8a8f9c" stroke="#0d1030" stroke-width="5"/><rect x="162" y="84" width="34" height="96" rx="14" fill="#8a8f9c" stroke="#0d1030" stroke-width="5"/><rect x="62" y="14" width="76" height="62" rx="16" fill="#9aa0ad" stroke="#0d1030" stroke-width="5"/><rect x="76" y="36" width="16" height="10" fill="#5ac8fa"/><rect x="108" y="36" width="16" height="10" fill="#5ac8fa"/><path d="M60 110l26 18-10 24M140 104l-20 30" stroke="#5a5f6e" stroke-width="4" fill="none"/>`,
  `<rect x="44" y="226" width="112" height="28" rx="6" fill="#b8860b" stroke="#0d1030" stroke-width="5"/><path d="M60 226q-6-90 40-120 46 30 40 120z" fill="#ffd60a" stroke="#0d1030" stroke-width="5"/><circle cx="100" cy="76" r="38" fill="#ffd60a" stroke="#0d1030" stroke-width="5"/><path d="M62 52l14-30 12 18 12-26 12 26 12-18 14 30z" fill="#ffb800" stroke="#0d1030" stroke-width="4"/><circle cx="86" cy="76" r="6" fill="#ff2e63"/><circle cx="114" cy="76" r="6" fill="#ff2e63"/><path d="M88 96q12 8 24 0" stroke="#0d1030" stroke-width="4" fill="none"/><circle cx="100" cy="160" r="12" fill="#5ac8fa" stroke="#0d1030" stroke-width="4"/>`,
  `<path d="M30 120q-30-60 20-100 0 40 30 50z" fill="#bf2a2a" stroke="#0d1030" stroke-width="5"/><path d="M170 120q30-60-20-100 0 40-30 50z" fill="#bf2a2a" stroke="#0d1030" stroke-width="5"/><path d="M40 140q0-90 60-90t60 90q0 60-60 104-60-44-60-104z" fill="#e24b4a" stroke="#0d1030" stroke-width="5"/><path d="M70 60l-14-40 30 26M130 60l14-40-30 26" fill="#ffd60a" stroke="#0d1030" stroke-width="4"/><path d="M62 118l26 10M138 118l-26 10" stroke="#0d1030" stroke-width="6"/><circle cx="78" cy="124" r="7" fill="#ffd60a"/><circle cx="122" cy="124" r="7" fill="#ffd60a"/><path d="M76 200q24 16 48 0" stroke="#0d1030" stroke-width="5" fill="none"/><path d="M84 202l6 12 6-12M104 202l6 12 6-12" fill="#fff" stroke="#0d1030" stroke-width="2"/><circle cx="88" cy="180" r="5" fill="#0d1030"/><circle cx="112" cy="180" r="5" fill="#0d1030"/>`];
+/* объёмная мишень: у каждой мишени свои цвета колец */
+const TG_PAL=[["#ffd23f","#c98a2a","#ffe9a8","#a8742a","#7a4a20","🌾"],["#ffd23f","#ff3b30","#fff6ea","#e8d6b8","#7a4a20",""],["#ff2e63","#6a7a9a","#e8edf5","#b8c2d6","#3a4258","🛡"],
+ ["#34ffb0","#5a6a5a","#b8c2b0","#8a948a","#3a4238","🗿"],["#fff6c8","#ff3b30","#ffd23f","#c98a2a","#8a5a10","👑"],["#ff2e63","#0a8a5a","#1a2a2a","#34ffb0","#052a2a","🐉"]];
+function tgDisc(t){const P=TG_PAL[t]||TG_PAL[1];return '<i class="tgl"></i><i class="tgs"></i><div class="tgd" style="--c0:'+P[0]+';--c1:'+P[1]+';--c2:'+P[2]+';--c3:'+P[3]+';--rim:'+P[4]+'"></div>'+(P[5]?'<span class="tge">'+P[5]+'</span>':"")}
 /* что видит игрок прямо сейчас: энергия по времени минус ещё не отправленные удары */
-function campView(){const C=S.camp||{runes:0,en:CAMP_E0,at:NOW(),lv:{pw:0,en:0,rg:0,cr:0,sq:0},t:0,hp:TARGETS[0].hp,sqAt:NOW(),kills:0,total:0};
+function campView(){const C=S.camp||{runes:0,en:CAMP_E0,at:NOW(),lv:{pw:0,en:0,rg:0,cr:0,sq:0},t:0,hp:TARGETS[0].hp,sqAt:NOW(),kills:0,total:0};C.gm=(S.golemUntil||0)>NOW()?1:0;
   const mx=campMax(C),en=Math.min(mx,C.en+Math.max(0,NOW()-C.at)/campFull(C)*mx)-cpPend-cpFly,pw=campPow(C,S.cards);
   return {C,mx,en:Math.max(0,en),pw,runes:Math.floor(C.runes+(cpPend+cpFly)*pw),sq:campSq(C,NOW()),full:campFull(C)}}
 function openCamp(){setTab("camp");cpHp=null;renderCamp();sfx.lock();loadCampTop(true)}
@@ -1004,7 +1008,7 @@ function campHit(e){const V=campView();if(V.en<1){$("cp-tg").classList.remove("n
     $("cp-eh").textContent="Энергия кончилась. Полная через "+tleft(Math.ceil((1-V.en/V.mx)*V.full))+" — бот напомнит";return}
   cpPend++;const T=TARGETS[V.C.t];cpHp=(cpHp==null?V.C.hp:cpHp)-V.pw;if(cpHp<=0)cpHp=T.hp;
   const now=performance.now();cpCombo=now-cpLast<450?cpCombo+1:1;cpLast=now;const cb=$("cp-combo");
-  if(cpCombo>=5){cb.textContent="КОМБО ×"+cpCombo;cb.classList.add("on");cb.classList.remove("pop");void cb.offsetWidth;cb.classList.add("pop")}
+  if(cpCombo>=5){$("cp-cbn").textContent="×"+cpCombo;cb.classList.add("on");cb.classList.remove("pop");void cb.offsetWidth;cb.classList.add("pop")}
   const g=$("cp-tg");g.classList.remove("hit");void g.offsetWidth;g.classList.add("hit");
   const h=$("cp-hero");h.classList.remove("atk");void h.offsetWidth;h.classList.add("atk");
   const tr=g.getBoundingClientRect(),x=tr.left+tr.width*(.35+Math.random()*.3),y=tr.top+tr.height*(.25+Math.random()*.35);
@@ -1014,12 +1018,12 @@ function campHit(e){const V=campView();if(V.en<1){$("cp-tg").classList.remove("n
 setInterval(()=>{if(performance.now()-cpLast>700&&$("cp-combo"))$("cp-combo").classList.remove("on")},300);
 function renderCamp(light){if(!S||$("sec-camp").hidden)return;const V=campView(),C=V.C,T=TARGETS[C.t];updCash();
   $("cp-ru").textContent=fmtN(V.runes);const tr=campTrainer(S.cards),tb=campBonus(S.cards);
-  $("cp-stat").innerHTML="удар <b>+"+String(V.pw).replace(".",",")+"</b> · крит <b>"+Math.round(campCrit(C)*100)+"%</b>"+(tb?"<br>тренер <b>+"+Math.round(tb*100)+"%</b>":"");
+  $("cp-stat").innerHTML="удар <b>+"+String(V.pw).replace(".",",")+"</b><br>крит <b>"+Math.round(campCrit(C)*100)+"%</b>"+(tb?"<br>тренер <b>+"+Math.round(tb*100)+"%</b>":"");
   const th=tr?tr.h:-1;if(th!==cpTrH){cpTrH=th;$("cp-hpic").innerHTML=th>=0?portrait(th,tr):portrait(0,null);$("cp-hn").textContent=th>=0?HEROES[th][0]:"Новобранец"}
-  $("cp-eb").style.width=(V.en/V.mx*100)+"%";$("cp-et").textContent=Math.floor(V.en)+"/"+V.mx;
-  const hp=cpHp==null?C.hp:cpHp;$("cp-hpb").style.width=Math.max(0,hp/T.hp*100)+"%";$("cp-hpt").textContent=fmtN(Math.max(0,hp))+" / "+fmtN(T.hp)+" · сундук "+fmtN(T.chest)+" 💠";
+  $("cp-eb").style.width=(V.en/V.mx*100)+"%";$("cp-et").textContent=Math.floor(V.en)+" / "+V.mx;$("cp-en").textContent=fmtN(Math.floor(V.en));
+  const hp=cpHp==null?C.hp:cpHp;$("cp-hpb").style.width=Math.min(100,Math.max(0,hp/T.hp*100))+"%";$("cp-hpt").textContent=T.n.toUpperCase()+" · "+fmtN(Math.max(0,hp))+" / "+fmtN(T.hp);
   if(V.en>=1)$("cp-eh").textContent=V.en>=V.mx?"Энергия полная — тапай по мишени!":"Полная энергия через "+tleft(Math.ceil((1-V.en/V.mx)*V.full));
-  if(cpLastT!==C.t){cpLastT=C.t;$("cp-tg").innerHTML='<svg viewBox="0 0 200 260" aria-hidden="true">'+TG_SVG[C.t]+'</svg>';$("cp-tname").textContent=T.n+" · ×"+String(T.m).replace(".",",")}
+  if(cpLastT!==C.t){cpLastT=C.t;$("cp-tg").innerHTML=tgDisc(C.t);$("cp-tname").innerHTML="🎯 ×"+String(T.m).replace(".",",")+" · сундук "+fmtN(T.chest)+" 💠"}
   if(light)return;
   const sq=$("cp-sq");if(C.lv.sq){sq.innerHTML="";const t=document.createElement("div");t.innerHTML="<b>🛡 Оруженосец</b><small>тренирует, пока тебя нет: "+fmtN(campSqRate(C))+" рун в час, копит до "+SQ_HOURS+" ч</small>";
     const b=document.createElement("button");b.type="button";b.className="mini2";b.textContent=V.sq>0?"Забрать "+fmtN(V.sq):"Копит…";b.disabled=V.sq<1;
@@ -1922,7 +1926,7 @@ async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textC
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
 
 /* ---------- вкладки ---------- */
-function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
+function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t||(t==="cas"&&k==="camp"));$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold();$("fchest").onclick=()=>openGold("chest");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
