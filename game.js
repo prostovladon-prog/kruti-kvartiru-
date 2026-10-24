@@ -1786,7 +1786,7 @@ function drawTraderT(){const left=Math.max(0,trd.left-(NOW()-trdAt));$("trd-t").
 let auc=null,aucAt=0;
 async function loadAuc(force){if(!ONLINE)return null;if(force||!auc||NOW()-aucAt>8000){const r=await act("auc");if(r!==null){auc=r;aucAt=NOW()}}drawAuc();return auc}
 function aucLeft(){return auc?Math.max(0,auc.left-(NOW()-aucAt)):0}
-function drawAuc(){const box=$("auc-box"),bn=$("auc-go");if(!box)return;const A=auc;
+function drawAuc(){const box=$("auc-box"),bn=$("auc-go");if(!box)return;const A=auc&&auc.card?auc:null;
   if(bn){const show=A&&(A.phase==="on"||A.phase==="soon"&&aucLeft()<3600e3);bn.hidden=!show;if(show){$("auc-go-t").textContent=A.phase==="on"?"🔨 Аукцион идёт! "+tleft(aucLeft()):"🔨 Аукцион через "+tleft(aucLeft());$("auc-go-s").textContent=HEROES[A.card.h][0]+", "+FIN[A.card.f].k.toLowerCase()+(A.bid?" · ставка "+fmtC(A.bid):" · старт "+fmtC(A.min))}}
   if(!A){box.hidden=true;return}box.hidden=false;
   $("auc-t").textContent=A.phase==="on"?"⏳ "+tleft(aucLeft()):A.phase==="soon"?"старт через "+tleft(aucLeft()):"завершён";
@@ -1798,7 +1798,7 @@ function drawAuc(){const box=$("auc-box"),bn=$("auc-go");if(!box)return;const A=
   const bt=B.querySelector(".aucbt");
   if(A.phase==="on"&&!A.mine){[[1,""],[1.2,"+20%"]].forEach(([m,l])=>{const amt=Math.ceil(A.next*m),b=document.createElement("button");b.type="button";b.className=m===1?"craftbtn":"ghost";b.textContent=(l?l+" · ":"Ставка ")+fmtC(amt);
       b.onclick=async()=>{if(S.cash<amt){toast("Не хватает "+fmt(amt-S.cash));return}b.disabled=true;const r=await act("auc_bid",{amt});b.disabled=false;if(r){auc=r;aucAt=NOW();sfx.coin();hapN("success");renderAll()}else loadAuc(true);drawAuc()};bt.appendChild(b)})}}
-setInterval(()=>{if(!ONLINE||!S)return;if(auc&&auc.phase!=="done"&&aucLeft()<=0)loadAuc(true);else if(auc){const B=$("auc-body");if(B)B.dataset.k="";drawAuc()}
+setInterval(()=>{if(!ONLINE||!S)return;if(auc&&auc.phase!=="done"&&aucLeft()<=0)loadAuc(true);else if(auc)drawAuc()
   if(auc&&auc.phase==="on"&&NOW()-aucAt>4000&&(!$("sec-shop").hidden||!$("sec-spin").hidden))loadAuc(true)},1000);
 setTimeout(()=>{try{loadAuc(true)}catch(e){}},3000);
 $("auc-go").onclick=()=>{setTab("shop");shView="buy";renderShop();setTimeout(()=>$("auc-box").scrollIntoView({behavior:"smooth",block:"center"}),300)};
