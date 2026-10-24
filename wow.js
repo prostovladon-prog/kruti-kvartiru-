@@ -394,3 +394,11 @@ const _renderCas2=renderCas;renderCas=function(){_renderCas2();const a=$("cs-adm
   const run=()=>{raf=0;const L=[...q];q.clear();L.forEach(n=>{if(n.isConnected)scan(n)})};
   new MutationObserver(ms=>{for(const m of ms){if(m.type==="characterData")q.add(m.target);else m.addedNodes.forEach(n=>q.add(n))}if(!raf)raf=requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true,characterData:true});
   scan(document.body)})();
+
+/* ---------- автообновление: если на сайте уже новая версия, а Telegram показал старую из памяти — перезагружаемся на свежую ---------- */
+(function(){const mv=document.querySelector('meta[name="app-ver"]'),cur=mv&&mv.content;if(!cur)return;
+  async function check(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const v=(await r.json()).v;if(!v||v===cur)return;
+    let tried=null;try{tried=sessionStorage.getItem("we-upd")}catch(e){}if(tried===v)return;try{sessionStorage.setItem("we-upd",v)}catch(e){}
+    try{if(typeof campFlush==="function")await campFlush()}catch(e){}
+    const u=new URL(location.href);u.searchParams.set("u",v);location.replace(u.toString())}catch(e){}}
+  setTimeout(check,1500);setInterval(()=>{if(!document.hidden)check()},5*60e3);document.addEventListener("visibilitychange",()=>{if(!document.hidden)check()})})();
