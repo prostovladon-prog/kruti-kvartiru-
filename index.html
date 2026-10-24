@@ -7,7 +7,7 @@
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=7ac02ee1">
+<link rel="stylesheet" href="style.css?v=1cee81c5">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -269,6 +269,7 @@
   <section id="sec-top" hidden>
     <div class="box"><div class="rowb"><h3 id="top-h">Топ мира</h3><b class="num topr" id="top-rank"></b></div><p id="top-t"></p>
       <div class="nickrow"><span>Твой ник: <b id="my-nick"></b></span><button type="button" class="mini2" id="nick-go">Выбрать</button></div></div>
+    <div class="box dtopb" id="dtop-box"><div class="rowb"><h3>🏅 Герои дня</h3><b class="num" id="dtop-left"></b></div><p class="dtp">Каждый день в полночь топ-3 в каждом рейтинге получают подарок: 🥇 +10, 🥈 +5, 🥉 +3 прокрутки</p><div id="dtop-body"><p>Загружаю…</p></div></div>
     <div class="seg seg4" id="top-seg"><button type="button" data-v="worth" aria-pressed="true">Богачи</button><button type="button" data-v="cards" aria-pressed="false">Карточки</button><button type="button" data-v="album" aria-pressed="false">Альбом</button><button type="button" data-v="wins" aria-pressed="false">Бойцы</button></div>
     <div class="list" id="top-list"></div>
     <div class="box"><h3>Прямо сейчас выбили</h3><div class="feed" id="feed"></div></div>
@@ -286,8 +287,8 @@
     <div class="colseg" id="col-seg" role="tablist"><button type="button" data-v="cards" aria-pressed="true">🃏 Карточки</button><button type="button" data-v="beauty" aria-pressed="false">✨ Витрина красоты</button><button type="button" data-v="merge" aria-pressed="false">🔀 Слияние</button></div>
     <div id="colp-cards">
       <div class="colsort" id="col-sort"><button type="button" data-s="v" aria-pressed="true">💰 Цена</button><button type="button" data-s="r" aria-pressed="false">💎 Редкость</button><button type="button" data-s="f" aria-pressed="false">✨ Отделка</button><button type="button" data-s="n" aria-pressed="false">🕐 Новые</button><button type="button" data-s="p" aria-pressed="false">⚔️ Сила</button></div>
+      <div class="colact" id="col-act"><button type="button" class="ghost" id="sellcommon">💰 Продать все обычные</button><button type="button" class="ghost" id="col-pick">☑️ Выбрать</button></div>
       <div class="list" id="col"></div>
-      <button type="button" class="ghost colsell" id="sellcommon">Продать все обычные</button>
     </div>
     <div id="colp-beauty" hidden><div id="beauty"></div></div>
     <div id="colp-merge" hidden><div class="box merge"><h3>Слияние</h3><p>Три одинаковых воина с одной отделкой превращаются в одного с отделкой выше.</p><div id="merge"></div></div></div>
@@ -306,7 +307,7 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=5737949b"></script>
-<script src="game.js?v=00ca5954"></script>
+<script src="rules.js?v=d2051b5b"></script>
+<script src="game.js?v=e5d06032"></script>
 </body>
 </html>

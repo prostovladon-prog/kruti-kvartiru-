@@ -612,6 +612,17 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
 
 /* --- разовая рассылка 17:00: без поддельного времени не срабатывает и ничего не ломает --- */
 await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'").get() || Date.now() >= Date.UTC(2026,9,23,14,0), "рассылка 17:00 не уходит раньше времени");
+/* --- продажа выбранных и герои дня --- */
+{ const U = 7201; await call(U, "sync"); for (let i = 0; i < 3; i++) await call(U, "open");
+  let s = await call(U, "sync"); const ids = s.S.cards.slice(0, 3).map(c => c.id), sum = s.S.cards.slice(0, 3).reduce((a, c) => a + c.v * .85, 0), cash0 = s.S.cash;
+  let r = await call(U, "sellmany", { ids }); ok(r.ok && r.res.n === 3 && Math.abs(r.S.cash - cash0 - sum) < .05 && r.S.cards.length === s.S.cards.length - 3, "продать выбранные: 3 карточки одним нажатием");
+  r = await call(U, "sellmany", { ids: [999999] }); ok(!r.ok, "чужую карточку продать нельзя");
+  await call(U, "camp_tap", { n: 30 });
+  r = await call(U, "dtop"); const tap = r.ok && r.res.cats.find(c => c.k === "tap"); ok(tap && tap.me > 0 && tap.top.length > 0, "герои дня: тапы засчитаны (" + (tap && tap.me) + ")");
+  db.prepare("INSERT OR REPLACE INTO dtop(day,k,uid,n) VALUES(?,?,?,?)").run(new Date(Date.now() + 3 * 3600e3 - 864e5).toISOString().slice(0, 10), "fight", U, 50);
+  db.prepare("DELETE FROM kv WHERE k='dtop_paid'").run(); const g0 = db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(U).g;
+  await worker.tick(env); await worker.tick(env); const g1 = db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(U).g;
+  ok(g1 - g0 === 10, "герой дня за вчера получил +10 прокруток (" + (g1 - g0) + ")"); }
 /* --- дыра в крафте закрыта --- */
 { const U = 7101; await call(U, "sync");
   const ins = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(?,?,0,?,?,0,0,?,'[300,300,300,300,300]',0,0,0,0,0)");

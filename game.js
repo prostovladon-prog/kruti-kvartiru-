@@ -734,6 +734,21 @@ function renderAlbum(){
 /* ---------- collection ---------- */
 let colView="cards",colSort="v";
 const RK=["обычн.","редкие","эпич.","легенд.","миф."];
+/* выбор карточек для продажи */
+let colPick=false,colSel=new Set();
+const sellableUI=c=>!away(c)&&!FIN[c.f].excl&&!HEROES[c.h][4].one;
+function colBar(){let b=$("col-bar");if(!colPick){if(b)b.remove();return}
+  if(!b){b=document.createElement("div");b.id="col-bar";b.className="colbar";document.body.appendChild(b)}
+  const sel=S.cards.filter(c=>colSel.has(c.id)),sum=sel.reduce((a,c)=>a+c.v*QUICK,0);
+  b.innerHTML='<button type="button" class="ghost" id="cb-x">Отмена</button><button type="button" class="ghost" id="cb-all">Все обычные</button><button type="button" class="craftbtn" id="cb-go"'+(sel.length?"":" disabled")+'>Продать '+sel.length+(sel.length?" за "+fmtC(sum):"")+'</button>';
+  $("cb-x").onclick=()=>{colPick=false;colSel.clear();renderCol()};
+  $("cb-all").onclick=()=>{S.cards.forEach(c=>{if(c.f===0&&HEROES[c.h][2]===0&&sellableUI(c))colSel.add(c.id)});renderCol()};
+  $("cb-go").onclick=async()=>{const ids=[...colSel].filter(id=>S.cards.some(c=>c.id===id));if(!ids.length)return;const sel=S.cards.filter(c=>colSel.has(c.id)),rare=sel.filter(c=>HEROES[c.h][2]>=3||c.f>=2||c.part);
+    if(rare.length&&!(await confirmMany(sel,rare)))return;const r=await act("sellmany",{ids});if(!r)return;
+    colPick=false;colSel.clear();if(current&&!S.cards.some(x=>x.id===current.id)){current=null;$("sell").disabled=true}sfx.coin();renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))}}
+function confirmMany(sel,rare){return new Promise(res=>{const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+  sh.innerHTML='<div class="box nickbox"><h3>Продать '+sel.length+' карточек?</h3><p>Среди них есть редкие: '+rare.slice(0,6).map(c=>HEROES[c.h][0]+" ("+FIN[c.f].k.toLowerCase()+")").join(", ")+(rare.length>6?" и ещё "+(rare.length-6):"")+'. На рынке их можно продать дороже.</p><button type="button" class="craftbtn" id="cmn-yes">Да, продать за '+fmtC(sel.reduce((a,c)=>a+c.v*QUICK,0))+'</button><button type="button" class="ghost" id="cmn-no">Отмена</button></div>';
+  $("cmn-yes").onclick=()=>{closeModal();res(true)};$("cmn-no").onclick=()=>{closeModal();res(false)}})}
 function renderCol(){
   // шапка коллекции
   const tot=S.cards.reduce((a,c)=>a+c.v,0),best=[...S.cards].sort((a,b)=>b.v-a.v)[0],cnt=[0,0,0,0,0];S.cards.forEach(c=>cnt[HEROES[c.h][2]]++);
@@ -753,11 +768,17 @@ function renderCol(){
   [...S.cards].sort(cmp).forEach(c=>{const t=tier(c),el=document.createElement("div");el.className="tl2"+(t===3?" leg":t===4?" myth":"");el.style.setProperty("--c",HT[t].c);
     el.innerHTML=`<span class="rb">${HT[t].k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
     const cb=el.querySelector(".cbtn");cb.setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");cb.onclick=()=>openCardView(c,{mine:true});
+    if(colPick){const ok=sellableUI(c);el.classList.add(ok?"pick":"nopick");if(colSel.has(c.id))el.classList.add("sel");
+      el.insertAdjacentHTML("beforeend",'<span class="pk">'+(colSel.has(c.id)?"✓":"")+'</span>');
+      el.onclick=e=>{e.stopPropagation();if(!ok){toast(c.listed?"Карточка на рынке":away(c)?"Карточка занята":"Эту карточку нельзя продать системе");return}if(colSel.has(c.id))colSel.delete(c.id);else colSel.add(c.id);sfx.tick&&sfx.tick();renderCol()};
+      el.querySelectorAll("button").forEach(b=>b.onclick=null)}
     if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";cb.appendChild(fb)}
     const m=el.querySelector(".more");
     if(away(c)){m.textContent=c.listed?"🏷":c.lock?"⚔️":"🧭";m.title=c.listed?"На рынке":c.lock?"В бою на арене":"В походе"}else if(FIN[c.f].excl){m.textContent="🏆";m.title="Трофей"}
-    m.onclick=()=>cardMenu(c);box.appendChild(el)});
+    if(!colPick)m.onclick=()=>cardMenu(c);box.appendChild(el)});
+  colBar();$("col-pick").textContent=colPick?"✖ Отменить выбор":"☑️ Выбрать";
 }
+$("col-pick").onclick=()=>{colPick=!colPick;colSel.clear();renderCol()};
 /* меню «⋯»: рассмотреть или продать — чтобы не продать карточку случайным нажатием */
 function cardMenu(c){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const busy=away(c),tro=FIN[c.f].excl;
   sh.innerHTML='<div class="box nickbox cmenu"><div class="sellprev"></div><h3></h3><button type="button" class="craftbtn" id="cm-view">'+(c.part?'🧩 Собрать воина':'🔍 Рассмотреть и закалить')+'</button><button type="button" class="ghost cm-num" id="cm-num">✍️ Свой номер на карточке</button>'+(busy||tro?'<p class="cm-note"></p>':'<button type="button" class="linkbtn" id="cm-sell"></button>')+'<button type="button" class="ghost" id="cm-x">Закрыть</button></div>';
@@ -1818,7 +1839,17 @@ function renderAdmin(){renderAdminPromo();const sb=$("admin-stats");sb.hidden=!(
   $("luck-t").textContent=on?"Включён ещё "+tleft(S.luckUntil-NOW())+". Выпадают легендарные и мифические воины, дорогие отделки и красивые номера. Видишь эту панель только ты.":"Выключен. На 3 часа делает прокрутки на твоём аккаунте очень удачными. Проданные карточки потом вернутся в общий пул.";
   $("luck-go").textContent=on?"Выключить":"Включить на 3 часа";$("luck-go").style.background=on?"var(--red)":""}
 $("luck-go").onclick=async()=>{const on=!((S.luckUntil||0)>NOW());const r=await act("luck_set",{on});if(r){renderAdmin();toast(on?"Режим удачи включён на 3 часа":"Режим удачи выключен")}};
-async function renderTop(force){renderAdmin();$("my-nick").textContent=S.nick||"не выбран";$("nick-go").textContent=S.nick?"Сменить":"Выбрать";document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
+/* герои дня */
+let dtAt=0,dtData=null;
+async function loadDtop(force){const box=$("dtop-body");if(!box)return;if(!ONLINE){$("dtop-box").hidden=true;return}
+  if(force||!dtData||NOW()-dtAt>15000){const r=await act("dtop");if(r){dtData=r;dtAt=NOW()}}
+  const D=dtData;if(!D)return;$("dtop-left").textContent="⏳ "+tleft(Math.max(0,D.left-(NOW()-dtAt)));box.innerHTML="";
+  for(const C of D.cats){const w=document.createElement("div");w.className="dtc";w.innerHTML='<div class="dth"><b></b><small></small></div><div class="dtl"></div>';
+    w.querySelector("b").textContent=C.ic+" "+C.n;w.querySelector("small").textContent="у тебя: "+fmtN(C.me);const L=w.querySelector(".dtl");
+    if(!C.top.length)L.innerHTML='<div class="cp-empty">Пока никого — первое место свободно!</div>';
+    C.top.forEach((r,i)=>{const d=document.createElement("div");d.className="cpt"+(r.uid===S.uid?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent=i<3?["🥇","🥈","🥉"][i]:i+1;fxName(d.children[1],"",r.name,r.uid);d.children[2].textContent=fmtN(r.n)+(i<3?" · +"+D.prize[i]+"🎴":"");L.append(d)});
+    box.append(w)}}
+async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textContent=S.nick||"не выбран";$("nick-go").textContent=S.nick?"Сменить":"Выбрать";document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
   $("top-h").textContent=TP[tpView].t;
   const box=$("top-list");if(!tpCache[tpView])box.innerHTML='<p style="margin:0;color:#5a5f80">Загружаю…</p>';
   const kind=tpView,r=await loadTop(kind,force);if(!r||kind!==tpView)return;
@@ -1835,7 +1866,7 @@ async function renderTop(force){renderAdmin();$("my-nick").textContent=S.nick||"
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
 
 /* ---------- вкладки ---------- */
-function setTab(t){if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
+function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t);$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold();$("fchest").onclick=()=>openGold("chest");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
