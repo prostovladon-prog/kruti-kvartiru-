@@ -1483,3 +1483,7 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .cp-lite b{color:#ffd23f}
 #sec-camp .cp-ar.lite .w3sc .rays,#sec-camp .cp-ar.lite .cp-torch,#sec-camp .cp-ar.lite .cp-torch::before,#sec-camp .cp-ar.lite .cp-tg,#sec-camp .cp-ar.lite .cp-hero,#sec-camp .cp-ar.lite .cp-hpb i,#sec-camp .cp-ar.lite .cp-bar i,#sec-camp .cp-ar.lite .cp-combo b{animation:none!important}
 #sec-camp .cp-ar.lite .cp-hero{filter:none}#sec-camp .cp-ar.lite .w3sc .fog{display:none}#sec-camp .cp-ar.lite .cpf{text-shadow:2px 2px 0 #0d1030}
+.front.collab .plate{font-family:"Arial Black",Arial,sans-serif}.front.collab .plate b,.front.collab .plate i u{-webkit-text-stroke:.6px #0d1030}
+.front.collab .top b{font-weight:900;-webkit-text-stroke:.8px #fff}
+.front.collab .foot>b{font-weight:900;font-size:1.2em}
+.front.collab .plate b{color:#0d1030!important;-webkit-text-fill-color:#0d1030;background:none!important;animation:none!important;letter-spacing:.5px}

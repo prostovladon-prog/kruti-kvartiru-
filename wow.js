@@ -327,33 +327,31 @@ async function termsGate(){if(termsOn||!termsNeed())return;termsOn=true;const d=
 
 /* ---------- карточка-коллаборация «Воины Эпох × Номерок»: А777МР 77, бесценная, 1 из 1 ---------- */
 const plateHTML=()=>'<span class="plate"><b>А<em>777</em>МР</b><i><u>77</u><small><s></s>RUS</small></i></span>';
-DETAILED["А777МР 77"]=u=>{const L=portrait(30,null).replace(/^<svg[^>]*>/,'<svg x="-42" y="6" width="190" height="190" viewBox="0 0 200 200">');
- const zz="M104 0 L94 30 L108 60 L92 92 L106 124 L90 156 L104 200";
+DETAILED["А777МР 77"]=u=>{const L=portrait(30,null).replace(/^<svg[^>]*>/,'<svg x="6" y="-4" width="188" height="188" viewBox="0 0 200 200">');
+ const T=(x,y,sz,t,anc)=>`<text x="${x}" y="${y}" text-anchor="${anc||"middle"}" font-size="${sz}" font-weight="900" fill="#0d1030" stroke="#0d1030" stroke-width="1.1" paint-order="stroke" font-family="'Arial Black',Arial,sans-serif">${t}</text>`;
+ const fist=(x,flip)=>`<g transform="translate(${x} 150) scale(${flip?-.62:.62} .62)"><path d="M-12 -6 Q-14 -16 -4 -17 L8 -17 Q14 -16 14 -8 L14 14 Q14 22 6 22 L-4 22 Q-14 22 -14 12Z" fill="#1a1a2a" stroke="#0d1030" stroke-width="2.5"/><path d="M-4 -17 V4 M2 -17 V4 M8 -16 V4" stroke="#3a3a5a" stroke-width="1.6"/><path d="M-14 4 Q-22 6 -20 16" fill="none" stroke="#c0262c" stroke-width="5" stroke-linecap="round"/></g>`;
  return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
- <clipPath id="cl${u}"><path d="M0 0 H104 L94 30 L108 60 L92 92 L106 124 L90 156 L104 200 H0Z"/></clipPath>
- <clipPath id="cr${u}"><path d="M104 0 H200 V200 H104 L90 156 L106 124 L92 92 L108 60 L94 30Z"/></clipPath>
- <linearGradient id="ng${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05081f"/><stop offset=".55" stop-color="#1a0a3a"/><stop offset="1" stop-color="#3a0a3a"/></linearGradient>
- <linearGradient id="cb${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fa0c8"/><stop offset=".35" stop-color="#2a3352"/><stop offset="1" stop-color="#05070f"/></linearGradient>
- <linearGradient id="gl${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fe7ff"/><stop offset=".5" stop-color="#1a2a5a"/><stop offset="1" stop-color="#0a1030"/></linearGradient>
- <radialGradient id="hl${u}"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#bff6ff"/><stop offset="1" stop-color="#00e5ff" stop-opacity="0"/></radialGradient>
- <linearGradient id="sm${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff9f0a"/></linearGradient></defs>
- <g clip-path="url(#cl${u})"><rect width="200" height="200" fill="#2a0a5a"/>${L}</g>
- <g clip-path="url(#cr${u})"><rect width="200" height="200" fill="url(#ng${u})"/>
-  ${[[108,40,12,52,"#ff2e63"],[124,26,14,66,"#7a5aff"],[142,48,10,44,"#00e5ff"],[156,18,16,74,"#ff2e63"],[176,36,12,56,"#00e5ff"],[190,52,10,40,"#7a5aff"]].map(([x,y,w,h,c])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#0a0c24" stroke="${c}" stroke-width="1.2" opacity=".9"/>`+[0,1,2,3].map(k=>`<rect x="${x+3}" y="${y+6+k*10}" width="${w-6}" height="3" fill="${c}" opacity="${.35+((x+k)%3)*.2}"/>`).join("")).join("")}
-  <path d="M104 200 L140 92 L160 92 L200 200Z" fill="#14162e"/><path d="M150 100 V112 M150 124 V142 M150 156 V184" stroke="#ffd23f" stroke-width="3" stroke-dasharray="1 0"/>
-  <path d="M108 150 Q110 120 126 110 L174 110 Q192 120 194 150 L194 170 Q150 178 108 170Z" fill="url(#cb${u})" stroke="#0d1030" stroke-width="2.5"/>
-  <path d="M124 112 L134 90 Q150 84 166 90 L176 112Z" fill="url(#gl${u})" stroke="#0d1030" stroke-width="2.5"/><path d="M134 108 L140 94 Q146 92 150 92" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/>
-  <ellipse cx="122" cy="136" rx="20" ry="13" fill="url(#hl${u})"/><ellipse cx="178" cy="136" rx="20" ry="13" fill="url(#hl${u})"/>
-  <path d="M114 134 L128 132 L130 140 L116 142Z M186 134 L172 132 L170 140 L184 142Z" fill="#fff" stroke="#0d1030" stroke-width="1.5"/>
-  <rect x="134" y="140" width="32" height="12" rx="3" fill="#05070f" stroke="#7fe7ff" stroke-width="1.2"/><path d="M138 146 H162" stroke="#7fe7ff" stroke-width="1" opacity=".7"/>
-  <path d="M110 150 Q150 158 192 150" stroke="#ff2e63" stroke-width="2" fill="none" opacity=".8"/></g>
- <path d="${zz}" fill="none" stroke="#00e5ff" stroke-width="7" opacity=".45"/><path d="${zz}" fill="none" stroke="url(#sm${u})" stroke-width="3.5" stroke-linejoin="round"/>
- <circle cx="99" cy="20" r="13" fill="#0d1030" stroke="url(#sm${u})" stroke-width="3"/><text x="99" y="26" text-anchor="middle" font-size="18" font-weight="900" fill="#fff" font-family="Arial,sans-serif">×</text>
-
+ <linearGradient id="ng${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05081f"/><stop offset=".6" stop-color="#1a0a3a"/><stop offset="1" stop-color="#3a0a3a"/></linearGradient>
+ <linearGradient id="pl${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#eef1f7"/><stop offset="1" stop-color="#c9d0de"/></linearGradient>
+ <linearGradient id="sm${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff9f0a"/></linearGradient>
+ <radialGradient id="gw${u}"><stop offset="0" stop-color="#00e5ff" stop-opacity=".55"/><stop offset="1" stop-color="#00e5ff" stop-opacity="0"/></radialGradient></defs>
+ <rect width="100" height="200" fill="#2a0a5a"/><rect x="100" width="100" height="200" fill="url(#ng${u})"/>
+ ${[[104,52,12,60,"#ff2e63"],[122,36,14,76,"#7a5aff"],[142,58,10,54,"#00e5ff"],[160,28,16,84,"#ff2e63"],[180,46,12,66,"#00e5ff"]].map(([x,y,w,h,c])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#0a0c24" stroke="${c}" stroke-width="1.2"/>`+[0,1,2,3].map(k=>`<rect x="${x+3}" y="${y+6+k*11}" width="${w-6}" height="3" fill="${c}" opacity=".6"/>`).join("")).join("")}
+ ${[[8,40],[24,70],[14,110],[36,26],[70,18]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.6" fill="#ffd23f" opacity=".8"/>`).join("")}
+ <ellipse cx="100" cy="120" rx="95" ry="70" fill="url(#gw${u})"/>
+ ${L}
+ <g transform="rotate(-3 100 136)"><rect x="36" y="112" width="128" height="40" rx="6" fill="url(#pl${u})" stroke="#0d1030" stroke-width="3.5"/>
+  <rect x="40" y="115.5" width="121" height="33" rx="3.5" fill="none" stroke="#0d1030" stroke-width="1.6"/>
+  ${T(82,142,20,'А<tspan font-size="26">777</tspan>МР')}
+  <path d="M131 115 V149" stroke="#0d1030" stroke-width="2.5"/>${T(147,133,16,"77")}
+  ${T(142,145,7,"RUS")}<rect x="150" y="139" width="9" height="2.2" fill="#fff" stroke="#0d1030" stroke-width=".5"/><rect x="150" y="141.2" width="9" height="2.2" fill="#2a5ad0"/><rect x="150" y="143.4" width="9" height="2.2" fill="#d0262c"/>
+  <path d="M44 119 H118" stroke="#fff" stroke-width="2" opacity=".9"/></g>
+ ${fist(44,0)}${fist(156,1)}
+ <path d="M100 0 V12" stroke="url(#sm${u})" stroke-width="3"/><circle cx="100" cy="16" r="11" fill="#0d1030" stroke="url(#sm${u})" stroke-width="2.5"/><text x="100" y="21.5" text-anchor="middle" font-size="16" font-weight="900" fill="#fff" font-family="Arial,sans-serif">×</text>
  </svg>`};
 function collabFace(root,c){const q=s=>root.querySelector(s);root.classList.add("collab");root.style.clipPath="";
   q(".top span").textContent="🤝 1 ИЗ 1";q(".era").textContent="Воины Эпох × Номерок";q(".finish").textContent="💎 Бесценная · 1/1";
-  q(".foot>b").textContent="БЕСЦЕННАЯ";const sn=q(".foot .sn");sn.innerHTML=plateHTML();sn.classList.remove("nice");const rb=q(".ribbon");rb.hidden=false;rb.textContent="🤝 Коллаборация";
+  q(".foot>b").textContent="БЕСЦЕННАЯ";const sn=q(".foot .sn");sn.innerHTML=plateHTML();sn.classList.remove("nice");q(".ribbon").hidden=true;
   q(".foot>b").textContent="БЕСЦЕННАЯ";q(".power").textContent="«Единственный такой номер в мире»";
   if(!q(".clx"))q(".in").insertAdjacentHTML("beforeend",'<i class="clx c1"></i><i class="clx c2"></i><i class="clx c3"></i>')}
 
