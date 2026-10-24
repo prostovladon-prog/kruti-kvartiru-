@@ -1596,7 +1596,7 @@ let storyStep=0;
    Telegram разрешает боту писать только тем, кто согласился. Спрашиваем, когда кончились прокрутки: тогда это реально полезно. */
 const canPmAsk=()=>ONLINE&&!S.pm&&tg&&tg.requestWriteAccess&&(!tg.isVersionAtLeast||tg.isVersionAtLeast("6.9"));
 function renderPm(){const row=$("pm-row");if(row)row.hidden=!canPmAsk()}
-function enablePm(){if(!canPmAsk())return;try{tg.requestWriteAccess(ok=>{if(ok){act("pm_on").then(()=>{S.pm=1;renderPm();toast("🔔 Напоминания включены! Бот напишет, когда прокрутки будут готовы")})}else toast("Без разрешения бот не сможет напомнить о прокрутках")})}catch(e){}}
+function enablePm(){if(!canPmAsk())return;try{tg.requestWriteAccess(ok=>{if(ok){act("pm_on").then(r=>{S.pm=1;renderAll();renderPm();if(r&&r.bonus){sfx.reveal(2);burst(3);hapN("success");toast("🔔 Напоминания включены! +"+r.bonus+" прокрутки в подарок 🎁")}else toast("🔔 Напоминания включены! Бот напишет, когда прокрутки будут готовы")})}else toast("Без разрешения бот не сможет напомнить о прокрутках")})}catch(e){}}
 $("pm-go").onclick=enablePm;
 function askPm(){if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{asked=localStorage.getItem("we-pm-ask")}catch(e){}if(asked)return;try{localStorage.setItem("we-pm-ask","1")}catch(e){}
   const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;

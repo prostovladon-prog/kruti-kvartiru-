@@ -404,3 +404,19 @@ const _renderCas2=renderCas;renderCas=function(){_renderCas2();const a=$("cs-adm
     try{if(typeof campFlush==="function")await campFlush()}catch(e){}
     const u=new URL(location.href);u.searchParams.set("u",v);location.replace(u.toString())}catch(e){}}
   setTimeout(check,1500);setInterval(()=>{if(!document.hidden)check()},5*60e3);document.addEventListener("visibilitychange",()=>{if(!document.hidden)check()})})();
+
+/* ---------- удержание: сундук возвращения на завтра и +3 прокрутки за напоминания ---------- */
+function drawCb(){const b=$("cb-box");if(!b)return;if(!S||!ONLINE||!S.cb||S.cb.c||(S.cards||[]).length<1){b.hidden=true;return}b.hidden=false;const left=S.cb.at-NOW(),ready=left<=0;
+  const k=ready?"r":"w"+Math.ceil(left/60e3);if(b.dataset.k===k)return;b.dataset.k=k;b.classList.toggle("ready",ready);
+  b.innerHTML='<div class="cbi">'+chestSVG(ready?"legend":"royal",64)+'</div><div class="cbt"><b>'+(ready?"🎁 Сундук возвращения готов!":"🎁 Завтра здесь будет сундук")+'</b><small>'+(ready?"5 прокруток и 300 "+'<i class="gc1"></i>'+" — забирай!":"5 прокруток и 300 "+'<i class="gc1"></i>'+". Откроется через "+tleft(left)+(S.pm?"":" — включи напоминания, бот позовёт"))+'</small></div>'+
+   (ready?'<button type="button" class="craftbtn" id="cb-go">Забрать</button>':(S.pm?"":'<button type="button" class="mini2" id="cb-pm">🔔 +3 🎴</button>'));
+  const go=$("cb-go");if(go)go.onclick=async()=>{go.disabled=true;const r=await act("cb_claim");if(r){sfx.fanfare();burst(4);hapN("success");toast("🎁 +"+r.sp+" прокруток и +"+r.cash+" монет!");renderAll()}else go.disabled=false};
+  const pm=$("cb-pm");if(pm)pm.onclick=()=>enablePm()}
+setInterval(()=>{try{if(S&&!$("sec-spin").hidden)drawCb()}catch(e){}},1000);
+const _renderFree=renderFree;renderFree=function(){_renderFree();try{drawCb()}catch(e){}};
+/* после ника и соглашения один раз предлагаем напоминания с подарком */
+function pmBonusAsk(){if(!S||!ONLINE||!S.nick||S.pm||S.pmBonus||termsNeed()||typeof canPmAsk!=="function"||!canPmAsk()||!$("modal").hidden||document.querySelector(".terms,.wrev,.onb-hl,#onb"))return;
+  try{if(localStorage.getItem("we-pm-ask2"))return;localStorage.setItem("we-pm-ask2","1")}catch(e){return}
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox"><h3>🔔 +3 прокрутки за напоминания</h3><p>Разреши боту писать — и сразу получишь <b>3 прокрутки</b>. Бот напомнит, когда готовы новые прокрутки, позовёт за сундуком и скажет, если купят твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pmb-yes">Включить и забрать +3</button><button type="button" class="ghost" id="pmb-no">Не сейчас</button></div>';
+  $("pmb-yes").onclick=()=>{closeModal();enablePm()};$("pmb-no").onclick=closeModal}
+setInterval(()=>{try{pmBonusAsk()}catch(e){}},4000);

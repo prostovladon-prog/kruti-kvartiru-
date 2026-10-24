@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="ru">
-<head><meta name="app-ver" content="01217b37bf">
+<head><meta name="app-ver" content="3776a5d1a5">
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=38d09338">
+<link rel="stylesheet" href="style.css?v=c1d4e35f">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -60,6 +60,7 @@
       <details class="chal-r"><summary>Правила</summary><div id="chal-rules"></div></details></div>
     <div class="promo" id="promo" hidden><div class="promo-h">⏳ АКЦИЯ <b id="promo-left">3:00:00</b></div><div class="promo-t" id="promo-t"></div><div class="bar"><i id="promo-bar"></i></div><button type="button" class="craftbtn" id="promo-go">Пригласить друзей</button></div>
     <div class="vipbox" id="vipbox" hidden>👑 <b>VIP</b> <span id="vip-t"></span></div>
+    <div class="box cbbox" id="cb-box" hidden></div>
     <div class="box free" id="free-box"><div class="free-row"><div><h3>Прокрутки</h3><p id="free-t">Каждые 4 часа даётся 3 бесплатных прокрутки</p></div><b class="num" id="free-n" style="font-family:var(--display);font-size:22px">3/3</b></div>
     <button type="button" class="freecamp" id="free-camp"><span>🎯</span><span><b>Нужно больше прокруток?</b><small id="free-camp-t">Купи до 5 в день за руны в Тренировочном лагере</small></span><i>→</i></button></div>
     <div class="box rarebox" id="rare-box"><div class="rowb"><h3>💎 Самые редкие воины</h3><button type="button" class="mini2" id="rare-all">Все шансы</button></div><p class="rare-n">Шанс выпасть на одну прокрутку. Отделка и номер выпадают отдельно — золотая или «ошибка печати» на мифическом воине бывает раз в жизни.</p><div class="rare-g" id="rare-g"></div></div>
@@ -71,7 +72,7 @@
     <div class="box"><div class="rowb"><h3>Гарантия</h3><b class="num" id="pity-n" style="font-family:var(--display)"></b></div><div class="bar"><i id="pity-bar" style="background:var(--r3)"></i></div><p id="pity-t"></p></div>
     <div class="box" id="bonus"><h3>Бонусы</h3>
       <div class="shopi" id="fnd-row" hidden><b id="fnd-h">🏆 Основатели: 15 друзей</b><button type="button" class="mini2" id="fnd-go">Пригласить</button><small id="fnd-t"></small><div class="bar" style="grid-column:1/-1"><i id="fnd-bar" style="background:var(--yellow)"></i></div></div>
-      <div class="shopi" id="pm-row" hidden><b>🔔 Напоминания</b><button type="button" class="mini2" id="pm-go">Включить</button><small>Бот напишет, когда прокрутки будут готовы, кто напал на твоих воинов и кто купил твою карточку</small></div>
+      <div class="shopi" id="pm-row" hidden><b>🔔 Напоминания</b><button type="button" class="mini2" id="pm-go">Включить · +3 🎴</button><small>Бот напишет, когда прокрутки будут готовы, кто напал на твоих воинов и кто купил твою карточку</small></div>
       <div class="shopi" id="pio-row" hidden><b id="pio-h">🏅 Первопроходец</b><button type="button" class="mini2" id="pio-go">Рамка</button><small id="pio-t"></small></div>
       <div class="shopi" id="sub-row"><b>Подпишись на канал</b><button type="button" class="mini2" id="sub-go">Подписаться</button><small id="sub-t">@voinyepoh: новости, события и розыгрыши. За подписку +10 прокруток</small></div>
       <div class="shopi" id="story-row"><b>Выложи историю</b><button type="button" class="mini2" id="story-go">Выложить</button><small id="story-t">Картинка игры и твоя ссылка в истории Telegram: +10 прокруток раз в неделю</small></div>
@@ -330,7 +331,7 @@
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
 <script src="rules.js?v=dcfdb67d"></script>
-<script src="game.js?v=25732f6a"></script>
-<script src="wow.js?v=18812048"></script>
+<script src="game.js?v=7bddeda5"></script>
+<script src="wow.js?v=56afdd96"></script>
 </body>
 </html>

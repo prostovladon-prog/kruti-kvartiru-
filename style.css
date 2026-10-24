@@ -1510,3 +1510,9 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .chal-h span{white-space:normal;min-width:0;flex:1;line-height:1.15}.chal-h b{flex:none}
 #cash{background:linear-gradient(180deg,#f7b500,#b86e00 70%,#8a4f00);-webkit-background-clip:text;background-clip:text;filter:none}
 .srct.f{grid-template-columns:1fr 38px 38px 46px 46px 46px 46px;font-size:12px}.srct.f b{font-size:10px;line-height:1.1}.srct.f u{display:block;text-decoration:none;font-size:10px;font-weight:700;opacity:.6}
+.cbbox{display:flex;align-items:center;gap:10px;background:linear-gradient(115deg,#fff6d6,#ffe7a8);border:3px solid var(--ink)}
+.cbbox .cbi{flex:none;width:64px;height:64px}.cbbox .cbt{flex:1;min-width:0}.cbbox b{display:block;font-family:var(--display);font-size:15px}.cbbox small{display:block;font-size:12.5px;color:#5a5f80;font-weight:700;margin-top:2px}
+.cbbox.ready{background:linear-gradient(115deg,#ffd23f,#ff9f0a);animation:wpulse 1.6s ease-in-out infinite}.cbbox.ready small{color:#0d1030}
+.cbbox .craftbtn{width:auto;padding:10px 14px;flex:none}
+.cbbox.ready{animation:cbglow 1.6s ease-in-out infinite}@keyframes cbglow{50%{box-shadow:0 0 0 4px #fff6c8,0 0 26px #ffb800}}
+#cb-box{display:flex!important;flex-direction:row!important;align-items:center;text-align:left;padding:12px}#cb-box .cbi svg{width:64px;height:64px}

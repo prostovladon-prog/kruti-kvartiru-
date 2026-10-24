@@ -715,7 +715,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=23;
+const SCHEMA_V=24;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -776,7 +776,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE INDEX IF NOT EXISTS rm_a ON rm(a, phase)",
     "CREATE TABLE IF NOT EXISTS gifts (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER NOT NULL, k TEXT NOT NULL, no INTEGER NOT NULL, how TEXT, shelf INTEGER NOT NULL DEFAULT 0, from_uid INTEGER, created INTEGER)",
     "CREATE UNIQUE INDEX IF NOT EXISTS gifts_kn ON gifts(k,no)","CREATE INDEX IF NOT EXISTS gifts_o ON gifts(owner,shelf)",
-    "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+    "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN pm_bonus INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -882,7 +882,7 @@ async function stateFor(env,me){
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
-  S.spins=(S.spins??0)+(u.gift_spins||0);S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
+  S.spins=(S.spins??0)+(u.gift_spins||0);S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
   Object.assign(S,await nickFx(env));S.shopOn=1;   // переливающиеся ники и «Король Эпох» месяца
   if(u.founder&&!u.founder_seen){await env.DB.prepare("UPDATE users SET founder_seen=1 WHERE id=?").bind(me.id).run();delete topCache.founders}
@@ -1857,6 +1857,14 @@ function blastText(C,rows){const P=lotIn(C,rows),T=P.reduce((a,r)=>a+r.n,0),left
   if(!P.length)return "😳 ВЫ СЕРЬЁЗНО?\n\nДо розыгрыша "+C.prizes[0]+" — "+left+", а в нём НИ ОДНОГО участника.\n\nПервый, кто позовёт "+frA(C.min)+", заберёт приз со стопроцентным шансом. Это можешь быть ты 🤨"+tail+"\n\nЗабери приз себе 👇";
   return "😳 ВЫ СЕРЬЁЗНО?\n\nВ розыгрыше "+C.prizes[0]+" всего "+P.length+" "+(P.length%10>=2&&P.length%10<=4&&(P.length%100<12||P.length%100>14)?"участника":"участников")+" и "+tk(T)+". Шанс выиграть сейчас — как никогда!\n\nВы реально отдадите им приз без боя? 🤨"+tail+"\n\nЗабери шанс себе 👇"}
 let blastBusy=false;
+/* удержание: +3 прокрутки за включённые напоминания; сундук возвращения на следующий день после регистрации, бот зовёт за ним с 12:00 до 21:00 */
+const PM_BONUS=3, CB={sp:5,cash:300};
+let cbBusy=false;
+async function cbTick(env){if(cbBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now(),h=new Date(now+TZ).getUTCHours();if(h<12||h>=21)return;
+  cbBusy=true;try{const d0=dayNum(now)*864e5-TZ,y0=d0-864e5;
+    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND cb_claim=0 AND cb_note=0 AND created>=? AND created<? LIMIT 25").bind(y0,d0).all()).results;
+    for(const u of us){await env.DB.prepare("UPDATE users SET cb_note=1 WHERE id=?").bind(u.id).run();
+      await notify(env,u.id,"🎁 Твой сундук готов!\n\nВчера ты начал собирать воинов — а сегодня тебя ждёт подарок: "+CB.sp+" прокруток и "+CB.cash+" 🪙.\n\nЗаходи и забирай, пока не остыл 🔥","🎁 Забрать сундук")}}finally{cbBusy=false}}
 /* ---------- разовая рассылка о большом обновлении 24.10: пост в канал + всем в бота (окно 20:30–22:50 по Минску, если не успели — завтра 9:30–12:00) ---------- */
 const TERMS_V=1;
 const UPD={id:"upd2410",win:[[Date.UTC(2026,9,24,17,0),Date.UTC(2026,9,24,19,50)]],photo:"assets/post-update.jpg?v=1",
@@ -1904,7 +1912,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -1940,7 +1948,13 @@ async function handle(req,env){{
         else{const mu=await env.DB.prepare("SELECT stake FROM users WHERE id=?").bind(me.id).first();if(mu&&mu.stake)o=await pickOpponent(env,me,p,true)}
         const r=await doAction(env,me,"duel",p,o?{oppCard:o.card,oppName:o.name,oppUid:o.owner}:null);
         if(o)await logFight(env,me,p.id,o,r.res,stake);await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
-      if(a==="pm_on"){await env.DB.prepare("UPDATE users SET pm=1 WHERE id=?").bind(me.id).run();return J({ok:true,res:{}})}
+      if(a==="pm_on"){await env.DB.prepare("UPDATE users SET pm=1 WHERE id=?").bind(me.id).run();
+        const b=await env.DB.prepare("UPDATE users SET pm_bonus=1,gift_spins=gift_spins+? WHERE id=? AND pm_bonus=0").bind(PM_BONUS,me.id).run();
+        return J({ok:true,res:{bonus:b.meta.changes===1?PM_BONUS:0},S:await stateFor(env,me)})}
+      if(a==="cb_claim"){const u=await env.DB.prepare("SELECT created,cb_claim FROM users WHERE id=?").bind(me.id).first();if(!u||u.cb_claim)fail("Сундук уже забран");
+        if(dayNum(Date.now())<=dayNum(u.created||Date.now()))fail("Сундук откроется завтра — заходи!");
+        const r=await env.DB.prepare("UPDATE users SET cb_claim=1,gift_spins=gift_spins+?,cash=cash+? WHERE id=? AND cb_claim=0").bind(CB.sp,CB.cash,me.id).run();if(r.meta.changes!==1)fail("Сундук уже забран");
+        return J({ok:true,res:CB,S:await stateFor(env,me)})}
       if(a==="stake_set"){await env.DB.prepare("UPDATE users SET stake=? WHERE id=?").bind(p.on?1:0,me.id).run();return J({ok:true,res:{on:!!p.on},S:await stateFor(env,me)})}
       if(a==="chat_get")return J({ok:true,res:await chatGet(env,p)});
       if(a==="chat_send")return J({ok:true,res:await chatSend(env,me,p)});
