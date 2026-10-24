@@ -874,7 +874,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(c.sn===sn)fail("У этой карточки уже такой номер");
     if(await env.DB.prepare("SELECT 1 FROM cards WHERE sn=?").bind(sn).first())fail("Номер "+fmtSn(sn)+" уже занят. Выбери другой");
     return {item,stars:numPrice(sn),title:"Номер "+fmtSn(sn),desc:"Свой номер "+fmtSn(sn)+" на карточке «"+HEROES[c.h][0]+"»",data:{card:c.id,sn}}}
-  if(item==="gift"){const k=String(p.k||""),G=GIFTS[k];if(!G||G.luck)fail("Этот подарок не продаётся: он выпадает только из кейса");
+  if(item==="gift"){const k=String(p.k||""),G=GIFTS[k];if(!G||!G.stars)fail("Этот подарок не продаётся за звёзды");
     if(((await giftLeft(env))[k]||0)<=0)fail("Тираж «"+G.n+"» закончился");
     return {item,stars:G.stars,title:"Подарок «"+G.n+"»",desc:"Подарок «"+G.n+"» ("+GR[G.r].toLowerCase()+", тираж "+G.run+"). Поставь на витрину или подари другу",data:{k}}}
   if(item==="golem"){const f=p.forever?1:0;return {item,stars:f?GOLEM.f:GOLEM.w,title:"Каменный голем",desc:"Голем в лагере "+(f?"навсегда":"на "+GOLEM.days+" дней")+": энергии в 2 раза больше и она восстанавливается в 2 раза быстрее",data:{forever:f}}}

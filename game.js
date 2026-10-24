@@ -1603,9 +1603,9 @@ function askPm(){if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{as
 const canForge=c=>!(FIN[c.f].excl||c.part)&&(c.stars||0)<STAR_MAX&&lvl(c)>=STAR_LVL[c.stars||0];
 function forgeHint(){if(!S||onbStep>=0||!$("modal").hidden||$("onb"))return;let shown=null;try{shown=localStorage.getItem("we-forge-hint")}catch(e){}if(shown)return;
   if(S.cards.some(c=>c.stars))return;const c=S.cards.find(canForge);if(!c)return;try{localStorage.setItem("we-forge-hint","1")}catch(e){}
-  const el=$("tab-col");el.classList.add("onb-hl");const b=document.createElement("div");b.id="onb";b.className="onb";
+  const el=$("tab-cards");el.classList.add("onb-hl");const b=document.createElement("div");b.id="onb";b.className="onb";
   b.innerHTML='<div class="onb-n">Новое</div><p></p><div class="onb-b"><button type="button" class="mini2" id="fh-go">Показать</button><button type="button" class="ghost" id="fh-no">Потом</button></div>';
-  b.querySelector("p").textContent="⭐ "+HEROES[c.h][0]+" дорос до "+lvl(c)+" уровня! Его можно закалить: +10% к силе, цена ×1,3 и новый вид карточки. Закалка во вкладке «Мои»: нажми на карточку.";
+  b.querySelector("p").textContent="⭐ "+HEROES[c.h][0]+" дорос до "+lvl(c)+" уровня! Его можно закалить: +10% к силе, цена ×1,3 и новый вид карточки. Закалка во вкладке «Карты» → «Мои»: нажми на карточку.";
   document.body.appendChild(b);const r=el.getBoundingClientRect();b.style.top=Math.max(10,r.top-14-b.offsetHeight)+"px";
   const done=()=>{el.classList.remove("onb-hl");b.remove()};
   $("fh-no").onclick=done;$("fh-go").onclick=()=>{done();setTab("col");setTimeout(()=>openCardView(c,{mine:true}),300)}}
@@ -1926,15 +1926,22 @@ async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textC
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
 
 /* ---------- вкладки ---------- */
-function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas"].forEach(k=>{const b=$("tab-"+k);if(b)b.setAttribute("aria-selected",k===t||(t==="cas"&&k==="camp"));$("sec-"+k).hidden=k!==t});renderAll();scrollTo(0,0)}
-$("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold();$("fchest").onclick=()=>openGold("chest");$("tab-camp").onclick=()=>openCamp();$("tab-album").onclick=()=>setTab("album");$("tab-col").onclick=()=>setTab("col");$("tab-craft").onclick=()=>setTab("craft");$("tab-duel").onclick=()=>setTab("duel");$("tab-shop").onclick=()=>setTab("shop");$("tab-top").onclick=()=>setTab("top");
+const SUBS={cards:[["col","🗂 Мои"],["album","📖 Альбом"],["craft","⚒ Крафт"]],fight:[["duel","⚔️ Бой"],["camp","🎯 Лагерь"]],prof:[["prof","👤 Профиль"],["top","🏆 Топ"]]};
+const GRP={col:"cards",album:"cards",craft:"cards",duel:"fight",camp:"fight",prof:"prof",top:"prof"},lastSub={};
+function drawSub(t){document.querySelectorAll(".subnav").forEach(e=>e.remove());const g=GRP[t];if(!g)return;const d=document.createElement("div");d.className="subnav";
+  d.innerHTML=SUBS[g].map(([k,n])=>'<button type="button" data-sub="'+k+'" aria-pressed="'+(k===t)+'">'+n+'</button>').join("");$("sec-"+t).prepend(d);
+  d.onclick=e=>{const b=e.target.closest("[data-sub]");if(!b||b.dataset.sub===t)return;goSub(b.dataset.sub)}}
+function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else setTab(k)}
+function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof"].forEach(k=>{$("sec-"+k).hidden=k!==t});
+  const grp=GRP[t]||t;["spin","cards","fight","cas","gold","shop","prof"].forEach(n=>{const b=$("tab-"+n);if(b)b.setAttribute("aria-selected",n===grp)});if(GRP[t])lastSub[grp]=t;drawSub(t);renderAll();scrollTo(0,0)}
+$("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold("gifts");$("fchest").onclick=()=>openGold("chest");$("tab-cards").onclick=()=>setTab(lastSub.cards||"col");$("tab-fight").onclick=()=>goSub(lastSub.fight||"duel");$("tab-cas").onclick=()=>{if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas")};$("tab-shop").onclick=()=>setTab("shop");$("tab-prof").onclick=()=>goSub(lastSub.prof||"prof");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/^\$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
 function renderAll(){if(!S)return;updCash();{const on=!ONLINE||!!S.shopOn;$("gold-go").hidden=!on;$("gold-hdr").hidden=!on;$("tab-gold").hidden=!on;$("fchest").hidden=!on;document.querySelector("nav.tabs").classList.toggle("g9",on);
   $("fchest-t").textContent=S.newbie?"СУНДУКИ":"−50%"}if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-gold").hidden)renderGold();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
 
 /* ---------- СОКРОВИЩНИЦА: сундуки, составные воины и понт за ⭐ Telegram Stars ---------- */
-let goldTab="chest",goldData=null,goldBusy=false;
+let goldTab="gifts",goldData=null,goldBusy=false;
 const CHEST_COL={newbie:["#7ee89a","#0d5c2a","#34c759"],small:["#7cc8ff","#0b3c8c","#0a84ff"],royal:["#ffd27a","#8a3a08","#ff9f0a"],warrior:["#ff8a8a","#7a0f12","#ff3b30"],legend:["#e0a8ff","#4a1478","#bf5af2"],mythic:["#fff1a8","#b8580b","#ffd60a"]};
 let chestN=0;
 function chestSVG(k,s){const [c1,c2,gl]=CHEST_COL[k],id="ch"+(++chestN);return `<svg viewBox="0 0 120 100" class="chsvg" style="width:${s}px;height:${s*100/120}px;filter:drop-shadow(0 0 14px ${gl})" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
@@ -2253,17 +2260,17 @@ const ONB=[
   {el:"open",t:"Привет, воин! ⚔️ Жми «Открыть» или тапни по карточке — выпадет случайный воин. На старте у тебя 5 бесплатных прокруток.",wait:true},
   {el:"stage",t:"Цена карточки зависит от редкости воина, отделки (блестящая, голограмма, золото, ошибка печати) и номера. Красивые номера вроде 777 777 стоят в разы дороже."},
   {el:"free-box",t:"Каждые 4 часа — 3 бесплатные прокрутки. Ещё: +10 за подписку на канал и +10 за каждого друга."},
-  {el:"tab-camp",t:"🎯 Лагерь — игра в игре: тапай по мишени, копи руны 💠, прокачивайся и покупай за руны прокрутки."},
+  {el:"tab-fight",t:"⚔️ Бой и 🎯 Лагерь — тапай по мишени, копи руны 💠, прокачивайся и покупай за руны прокрутки."},
   {el:"cash-box",t:"Сверху твои деньги 🪙 и руны 💠."},
   {el:"rare-box",t:"💎 А вот за кем охотиться: самые редкие воины и шанс их выбить."},
-  {el:"tabs",t:"Внизу остальное: бои и арена с друзьями, альбом, крафт, рынок, «Мои» с витриной редкостей и топ мира. Удачи! 🍀"}];
+  {el:"tabs",t:"Внизу остальное: карты и альбом, бои, казино, подарки, рынок и твой профиль с витриной. Удачи! 🍀"}];
 /* «Что нового» для тех, кто уже играл: коротко про новые функции, один раз */
 const ONB_NEW=[
-  {el:"tab-camp",t:"Новое! 🎯 Лагерь — тапай по мишени, копи руны 💠 и прокачивайся. Чем реже твой лучший воин, тем больше рун."},
+  {el:"tab-fight",t:"Новое! 🎯 Лагерь — тапай по мишени, копи руны 💠 и прокачивайся. Чем реже твой лучший воин, тем больше рун."},
   {el:"free-camp",t:"Прокрутки теперь покупаются за руны в Лагере — до 5 в день."},
   {el:"cash-box",t:"Руны 💠 видны сверху рядом с деньгами. Нажми на них — откроется Лагерь."},
   {el:"rare-box",t:"💎 Здесь самые редкие воины игры и шанс их выбить. Сёгун и Мерлин — 1 на ~2500 прокруток!"},
-  {el:"tab-col",t:"В «Мои» — сортировка, витрина всех видов карточек и слияние. Удачи! 🍀"}];
+  {el:"tab-cards",t:"В «Карты» — сортировка, витрина всех видов карточек и слияние. Удачи! 🍀"}];
 let onbStep=-1,ONBS=ONB,ONBK="we-onb";
 function startOnb(){let done=null;try{done=localStorage.getItem("we-onb")}catch(e){}if(done||!S||S.cards.length)return false;ONBS=ONB;ONBK="we-onb";onbStep=0;showOnb();return true}
 function startWhatsNew(){let done=null;try{done=localStorage.getItem("we-new1")}catch(e){}if(done||!S)return false;ONBS=ONB_NEW;ONBK="we-new1";onbStep=0;showOnb();return true}

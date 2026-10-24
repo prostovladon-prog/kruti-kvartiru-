@@ -1,6 +1,11 @@
 /* wow.js — подарки и витрины, казино рун, голем и 3D-эффекты лагеря. Подключается после game.js */
 /* объёмные глянцевые подарки: базовая форма + объём (радиальные градиенты), блики, ободок света */
-function giftSVG(k,s){const u=k+Math.random().toString(36).slice(2,7);
+function giftSVG(k,s){const GE=GIFTS[k];if(GE&&GE.base){const v=Math.random().toString(36).slice(2,7);
+   return `<svg viewBox="0 0 120 120" width="${s}" height="${s}" class="gerr" style="overflow:visible" aria-hidden="true"><defs><filter id="gx${v}" x="-20%" y="-20%" width="140%" height="140%"><feColorMatrix in="SourceGraphic" type="hueRotate" values="${GE.err}" result="m"/>`+
+    `<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 .2 0 0 0 .75 0" result="r"/><feOffset in="r" dx="-5" dy="1" result="ro"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .75 0" result="c"/><feOffset in="c" dx="5" dy="-1" result="co"/>`+
+    `<feMerge><feMergeNode in="ro"/><feMergeNode in="co"/><feMergeNode in="m"/></feMerge></filter></defs><g filter="url(#gx${v})">${giftSVG(GE.base,120)}</g>`+
+    `<g opacity=".55"><rect x="0" y="38" width="120" height="3" fill="#fff"/><rect x="10" y="74" width="110" height="2" fill="#00e5ff"/></g><g transform="rotate(-12 96 14)"><rect x="74" y="4" width="44" height="18" rx="4" fill="#ff2e63" stroke="#fff" stroke-width="2"/><text x="96" y="17.5" text-anchor="middle" font-size="11" font-weight="900" fill="#fff" font-family="sans-serif">ERROR</text></g></svg>`}
+ const u=k+Math.random().toString(36).slice(2,7);
  const rg=(id,c1,c2,c3,cx,cy)=>`<radialGradient id="${id}${u}" cx="${cx||.35}" cy="${cy||.3}" r=".85"><stop offset="0" stop-color="${c1}"/><stop offset=".55" stop-color="${c2}"/><stop offset="1" stop-color="${c3}"/></radialGradient>`;
  const lg=(id,a,b,c)=>`<linearGradient id="${id}${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient>`;
  const spec=`<radialGradient id="sp${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
@@ -57,6 +62,45 @@ function giftSVG(k,s){const u=k+Math.random().toString(36).slice(2,7);
    <path d="M30 22 Q8 24 12 44 Q16 58 34 56 M90 22 Q112 24 108 44 Q104 58 86 56" fill="none" stroke="url(#b${u})" stroke-width="6"/><path d="M30 22 Q8 24 12 44 Q16 58 34 56 M90 22 Q112 24 108 44 Q104 58 86 56" fill="none" stroke="#4a2a02" stroke-width="1.5"/>
    <path d="M54 76 H66 V92 H54Z" fill="url(#b${u})" stroke="#4a2a02" stroke-width="2"/><path d="M34 92 H86 L90 110 H30Z" fill="url(#b${u})" stroke="#4a2a02" stroke-width="2.5"/>
    <path d="M60 30 l8 10 -8 10 -8 -10z" fill="url(#c${u})" stroke="#052a4a" stroke-width="1.5"/>${hl(42,28,10,4,-60)}<path d="M40 100 H80" stroke="#fff6c8" stroke-width="2" opacity=".7"/>`,"#ffd23f"),
+ potion:()=>W(rg("g","#ffd6f6","#e01fb8","#4a0540",.4,.55)+lg("gl","#ffffff","#d6e6ff","#8aa0c8")+rg("c","#fff7c2","#e8a91a","#6a3a04"),
+  `<path d="M48 10 H72 V34 Q100 46 98 76 Q96 108 60 110 Q24 108 22 76 Q20 46 48 34Z" fill="url(#gl${u})" stroke="#1a2040" stroke-width="2.5" opacity=".55"/>
+   <path d="M26 70 Q60 60 94 70 Q94 106 60 107 Q26 106 26 70Z" fill="url(#g${u})" stroke="#4a0540" stroke-width="2"/>
+   <circle cx="44" cy="84" r="5" fill="#fff" opacity=".6"/><circle cx="68" cy="92" r="3.5" fill="#fff" opacity=".6"/><circle cx="76" cy="78" r="2.5" fill="#fff" opacity=".6"/>
+   <path d="M48 10 H72 V34 Q100 46 98 76 Q96 108 60 110 Q24 108 22 76 Q20 46 48 34Z" fill="none" stroke="#1a2040" stroke-width="2.5"/>
+   <rect x="44" y="4" width="32" height="12" rx="4" fill="url(#c${u})" stroke="#4a2a02" stroke-width="2"/>${hl(38,56,8,14,20)}`,"#ff4dd8"),
+ rose:()=>W(rg("g","#ffb0c0","#e0103f","#4a0010",.45,.4)+rg("l","#d6ffe0","#2fbf5a","#0a4a22"),
+  `<path d="M60 64 Q62 92 56 116" fill="none" stroke="#1a6a32" stroke-width="6" stroke-linecap="round"/>
+   <path d="M58 92 Q34 84 30 98 Q46 104 58 96Z M60 84 Q84 72 90 86 Q74 94 60 88Z" fill="url(#l${u})" stroke="#052a12" stroke-width="2"/>
+   <path d="M60 70 Q24 66 26 38 Q30 14 60 12 Q90 14 94 38 Q96 66 60 70Z" fill="url(#g${u})" stroke="#3a0010" stroke-width="2.5"/>
+   <path d="M60 58 Q38 54 42 36 Q50 22 62 26 Q76 30 72 42 Q66 50 56 44 Q52 38 60 34" fill="none" stroke="#3a0010" stroke-width="2.5"/>${hl(42,28,10,4,-35)}`,"#ff3b6b"),
+ shield:()=>W(lg("g","#e6f4ff","#3a8ad0","#0a2a5a")+rg("h","#fff7c2","#e8b33a","#6a3a04"),
+  `<path d="M60 8 Q86 20 106 18 Q108 76 60 112 Q12 76 14 18 Q34 20 60 8Z" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2.5"/>
+   <path d="M60 18 Q82 28 96 27 Q96 72 60 100 Q24 72 24 27 Q38 28 60 18Z" fill="url(#g${u})" stroke="#0a1a3a" stroke-width="2"/>
+   <path d="M60 36 l7 15 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2"/>${hl(40,36,10,4,-60)}`,"#5ac8fa"),
+ cake:()=>W(rg("g","#fff0f6","#ff9cc4","#a8306a")+lg("c","#7a4020","#5a2a10","#3a1a08")+rg("f","#fff6c8","#ffd23f","#ff7a1a"),
+  `<path d="M16 72 H104 V104 Q60 114 16 104Z" fill="url(#c${u})" stroke="#2a1004" stroke-width="2.5"/>
+   <path d="M16 72 Q16 60 60 58 Q104 60 104 72 Q104 82 92 78 Q86 90 78 80 Q70 92 60 80 Q50 92 42 80 Q34 90 28 78 Q16 82 16 72Z" fill="url(#g${u})" stroke="#5a1030" stroke-width="2.5"/>
+   ${[36,60,84].map((x,i)=>`<rect x="${x-4}" y="${36-i%2*4}" width="8" height="${24+i%2*4}" rx="2" fill="${["#5ac8fa","#ffd23f","#34ffb0"][i]}" stroke="#1a2040" stroke-width="1.5"/><path d="M${x} ${30-i%2*4} q-6 -8 0 -16 q6 8 0 16z" fill="url(#f${u})"/>`).join("")}
+   ${[30,48,70,90].map((x,i)=>`<circle cx="${x}" cy="${94-i%2*6}" r="3" fill="${["#ff2e63","#ffd23f","#5ac8fa","#34ffb0"][i]}"/>`).join("")}${hl(34,64,10,3,-5)}`,"#ffb3d1"),
+ horn:()=>W(lg("g","#fff8e6","#e8c27a","#7a5020")+rg("h","#fff7c2","#e8b33a","#6a3a04"),
+  `<path d="M12 30 Q30 20 46 40 Q66 70 104 66 Q112 86 96 98 Q50 104 24 64 Q14 48 12 30Z" fill="url(#g${u})" stroke="#3a2004" stroke-width="2.5"/>
+   <ellipse cx="102" cy="82" rx="9" ry="17" fill="#3a2004" stroke="#2a1404" stroke-width="2"/>
+   ${[[34,46],[56,70],[78,82]].map(([x,y])=>`<path d="M${x-4} ${y-14} Q${x+8} ${y-2} ${x} ${y+14}" fill="none" stroke="url(#h${u})" stroke-width="6"/><path d="M${x-4} ${y-14} Q${x+8} ${y-2} ${x} ${y+14}" fill="none" stroke="#4a2a02" stroke-width="1.2"/>`).join("")}${hl(30,36,10,3,30)}`,"#e8c27a"),
+ lamp:()=>W(rg("g","#fff7c2","#f2b51c","#7a4a06")+rg("s","#e6fbff","#a0b8ff","#5a3aff",.5,.6),
+  `<path d="M70 4 Q86 10 76 22 Q96 28 92 48 Q74 54 60 42 Q48 30 70 4Z" fill="url(#s${u})" opacity=".75"/>
+   <path d="M16 82 Q14 64 40 62 L82 62 Q98 50 112 40 Q108 58 94 70 Q96 92 60 96 Q30 98 16 82Z" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/>
+   <path d="M40 62 Q60 46 80 62" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/><circle cx="60" cy="50" r="5" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2"/>
+   <path d="M14 76 Q2 70 6 60 Q14 62 18 70" fill="none" stroke="#4a2a02" stroke-width="5"/><path d="M38 100 H82 L76 110 H44Z" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/>
+   <circle cx="54" cy="78" r="5" fill="#ff2e63" stroke="#4a2a02" stroke-width="1.5"/>${hl(36,72,12,4,-10)}`,"#ffd23f"),
+ hourglass:()=>W(rg("h","#fff7c2","#e8b33a","#6a3a04")+lg("gl","#ffffff","#bff6ff","#6ac8e8")+lg("sd","#fff0a0","#ffc23a","#e08a10"),
+  `<rect x="22" y="6" width="76" height="12" rx="4" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2.5"/><rect x="22" y="102" width="76" height="12" rx="4" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2.5"/>
+   <path d="M32 18 Q32 50 56 60 Q32 70 32 102 H88 Q88 70 64 60 Q88 50 88 18Z" fill="url(#gl${u})" stroke="#1a3a5a" stroke-width="2.5" opacity=".8"/>
+   <path d="M40 34 Q44 48 58 56 L62 56 Q76 48 80 34Z" fill="url(#sd${u})"/><path d="M60 58 V92" stroke="#ffc23a" stroke-width="2.5"/><path d="M38 100 Q60 80 82 100Z" fill="url(#sd${u})"/>
+   <path d="M26 18 V102 M94 18 V102" stroke="url(#h${u})" stroke-width="5"/>${hl(42,30,4,10,10)}`,"#7fe7ff"),
+ egg:()=>W(rg("g","#ffe6b0","#ff7a1a","#5a1004",.4,.35)+rg("sc","#fff6c8","#ffd23f","#c96a10"),
+  `<path d="M60 8 Q96 14 98 70 Q98 110 60 112 Q22 110 22 70 Q24 14 60 8Z" fill="url(#g${u})" stroke="#3a0a02" stroke-width="2.5"/>
+   ${[[44,42],[70,36],[58,62],[36,72],[82,64],[48,90],[74,90]].map(([x,y])=>`<path d="M${x-8} ${y} Q${x} ${y-10} ${x+8} ${y} Q${x} ${y+6} ${x-8} ${y}Z" fill="url(#sc${u})" stroke="#5a1a04" stroke-width="1.5"/>`).join("")}
+   <path d="M30 56 l10 6 -4 8 10 4 M86 50 l-8 8 6 6 -8 6" fill="none" stroke="#fff6c8" stroke-width="2" opacity=".85"/>${hl(44,26,12,5,-30)}`,"#ff7a1a"),
  helm:()=>W(rg("g","#fff7c2","#e8b33a","#6a3a04"),
   `<path d="M24 84 Q20 24 60 18 Q100 24 96 84 L82 84 L80 54 L40 54 L38 84Z" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/><path d="M54 54 L54 96 L66 96 L66 54" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/>
    <path d="M60 18 Q64 2 82 6" fill="none" stroke="#c0262c" stroke-width="8" stroke-linecap="round"/><circle cx="60" cy="32" r="6" fill="#c0262c" stroke="#4a2a02" stroke-width="2"/>${hl(40,34,12,5,-40)}`,"#ffd23f")};
@@ -68,11 +112,16 @@ const GBG={crown:"radial-gradient(circle at 50% 36%,#fff6c8,#ffb800 30%,#c2410c 
  sword:"radial-gradient(circle at 50% 40%,#e6fbff,#3a9ad0 40%,#0a1a3a 78%)",helm:"radial-gradient(circle at 50% 40%,#fff3c0,#d08a1a 45%,#3a1a05 80%)",
  shoe:"radial-gradient(circle at 50% 40%,#ffffff,#8a9ab8 40%,#1a2236 80%)",dice:"radial-gradient(circle at 50% 40%,#ffd0da,#c0102f 45%,#2a0208 80%)",
  clover:"radial-gradient(circle at 50% 40%,#e0ffe8,#1a9a50 42%,#032a12 80%)",mask:"radial-gradient(circle at 50% 40%,#ffb0c0,#a0001f 45%,#1a0005 80%)",
- cup:"conic-gradient(from 0deg at 50% 40%,#3a1a00,#ffd23f,#7a3a00,#fff6c8,#3a1a00)"};
-const STAR_GIFTS=Object.keys(GIFTS).filter(k=>!GIFTS[k].luck).sort((a,b)=>GIFTS[b].r-GIFTS[a].r),LUCK_GIFTS=Object.keys(GIFTS).filter(k=>GIFTS[k].luck).sort((a,b)=>GIFTS[b].r-GIFTS[a].r);
+ cup:"conic-gradient(from 0deg at 50% 40%,#3a1a00,#ffd23f,#7a3a00,#fff6c8,#3a1a00)",
+ potion:"radial-gradient(circle at 50% 60%,#ffd6f6,#c010a0 40%,#2a0228 80%)",rose:"radial-gradient(circle at 50% 35%,#ffe0e8,#d0103f 42%,#2a0010 80%)",
+ shield:"radial-gradient(circle at 50% 40%,#e6f4ff,#1a6ad0 42%,#06143a 80%)",cake:"radial-gradient(circle at 50% 40%,#fff0f6,#ff6aa8 40%,#3a0a24 80%)",
+ horn:"radial-gradient(circle at 50% 40%,#fff3d6,#b07a2a 42%,#2a1604 80%)",lamp:"radial-gradient(circle at 50% 30%,#d6e0ff,#5a3aff 35%,#2a0a5a 62%,#0a0420)",
+ hourglass:"conic-gradient(from 0deg at 50% 40%,#06243a,#7fe7ff,#0a3a6a,#fff6c8,#06243a)",egg:"radial-gradient(circle at 50% 70%,#ffd23f,#ff5a1f 32%,#7a0a04 62%,#1a0202)",
+ err:"repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 2px,transparent 2px 4px),conic-gradient(from 0deg at 50% 40%,#ff2e63,#2a0a5a,#00e5ff,#0a0420,#ff2e63)"};
+const byR=(a,b)=>GIFTS[b].r-GIFTS[a].r||GIFTS[a].run-GIFTS[b].run,STAR_GIFTS=Object.keys(GIFTS).filter(k=>!GIFTS[k].luck&&!GIFTS[k].base).sort(byR),LUCK_GIFTS=Object.keys(GIFTS).filter(k=>GIFTS[k].luck).sort(byR),ERR_GIFTS=Object.keys(GIFTS).filter(k=>GIFTS[k].base).sort(byR);
 const gNo=g=>"№ "+String(g.no).padStart(3,"0")+"/"+GIFTS[g.k].run;
 function giftCard(k,o){o=o||{};const G=GIFTS[k],L=o.left;
-  return `<div class="gc${G.r>=4?" myth":""}${G.luck?" luck":""}${o.small?" small":""}" style="--g:${G.g};--rc:${GR_C[G.r]}"><div class="bg" style="background:${GBG[k]}"></div>${G.r>=3?'<div class="rays"></div>':""}<div class="foil"></div><div class="ic">${giftSVG(k,100)}</div><div class="glare"></div><span class="rr">${GR[G.r].toUpperCase()}</span><span class="run">тираж ${fmtN(G.run)}</span><div class="nm">${G.n}</div>${L!=null?`<div class="lb"><i style="width:${Math.max(0,L)/G.run*100}%"></i></div><div class="lt">${L>0?"осталось "+fmtN(L)+" из "+fmtN(G.run):"тираж закончился"}</div>`:""}${o.btn||""}</div>`}
+  return `<div class="gc${G.r>=4?" myth":""}${G.base?" err":""}${G.luck?" luck":""}${o.small?" small":""}" style="--g:${G.g};--rc:${GR_C[G.r]}"><div class="bg" style="background:${G.base?GBG.err:GBG[k]}"></div>${G.r>=3?'<div class="rays"></div>':""}<div class="foil"></div><div class="ic">${giftSVG(k,100)}</div><div class="glare"></div><span class="rr">${GR[G.r].toUpperCase()}</span><span class="run">тираж ${fmtN(G.run)}</span><div class="nm">${G.n}</div>${L!=null?`<div class="lb"><i style="width:${Math.max(0,L)/G.run*100}%"></i></div><div class="lt">${L>0?"осталось "+fmtN(L)+" из "+fmtN(G.run):"тираж закончился"}</div>`:""}${o.btn||""}</div>`}
 /* частицы на холсте: искры, ромбики, конфетти */
 function wFx(cv){const X=cv.getContext("2d"),P=[];let run=false;const fit=()=>{const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);cv.width=r.width*d;cv.height=r.height*d;X.setTransform(d,0,0,d,0,0)};fit();
   const loop=()=>{const r=cv.getBoundingClientRect();X.clearRect(0,0,r.width,r.height);
@@ -99,10 +148,12 @@ async function putOnShelf(id){const used=new Set((S.gifts||[]).filter(g=>g.shelf
 /* ---------- Сокровищница: вкладка «Подарки» ---------- */
 const _renderGold=renderGold;
 renderGold=function(){_renderGold();if(goldTab!=="gifts")return;const B=$("gold-body"),L=(goldData&&goldData.gleft)||{};
-  B.innerHTML='<div class="gshead"><h3>🎁 Подарки Эпох</h3><p>У каждого подарка свой тираж на весь мир — номер навсегда остаётся на подарке. Ставь на витрину и дари друзьям. Подарки нельзя продать.</p><div class="row2"><button type="button" class="craftbtn" data-shelf="1">🏛 Моя витрина</button><button type="button" class="craftbtn" data-cas="1" style="background:linear-gradient(180deg,#e0c8ff,#9a5af2);color:#fff">🎰 Кейс</button></div></div>'+
-   '<div class="gg3">'+STAR_GIFTS.map(k=>{const l=goldData?L[k]:null,sold=l===0;return giftCard(k,{left:l,btn:'<button type="button" class="pr" data-gk="'+k+'"'+(sold?" disabled":"")+'>'+(sold?"раскуплено":"⭐ "+GIFTS[k].stars)+'</button>'})}).join("")+'</div>'+
-   '<div class="ghd">🍀 Серия «Удача» — только из кейса</div><p class="gnote">Эти подарки не продаются за звёзды. Их можно только выбить в кейсе в Казино рун (лагерь) — и Корону Эпох тоже, но шанс мизерный: 1 на 20 000.</p>'+
-   '<div class="gg3">'+LUCK_GIFTS.map(k=>giftCard(k,{left:goldData?L[k]:null,btn:'<button type="button" class="pr" data-cas="1">из кейса · '+(CASE.p.find(x=>x[1].g===k)[0]*100).toLocaleString("ru",{maximumFractionDigits:2})+'%</button>'})).join("")+'</div>'};
+  const buyB=k=>{const l=goldData?L[k]:null,sold=l===0;return '<button type="button" class="pr" data-gk="'+k+'"'+(sold?" disabled":"")+'>'+(sold?"раскуплено":"⭐ "+GIFTS[k].stars)+'</button>'};
+  const card=k=>giftCard(k,{left:goldData?L[k]:null,btn:buyB(k)+(GIFTS[k].luck?'<span class="incase">🎰 и в кейсе</span>':"")});
+  B.innerHTML='<div class="gshead"><h3>🎁 Подарки Эпох</h3><p>У каждого подарка свой тираж на весь мир — номер навсегда остаётся на подарке. Ставь на витрину и дари друзьям. Подарки нельзя продать.</p><div class="row2"><button type="button" class="craftbtn" data-shelf="1">🏛 Моя витрина</button><button type="button" class="craftbtn" data-cas="1" style="background:linear-gradient(180deg,#e0c8ff,#9a5af2);color:#fff">🎰 Казино</button></div></div>'+
+   '<div class="ghd err">🖨 ОШИБКА ПЕЧАТИ</div><p class="gnote">Бракованный тираж: цвета сбились при печати. Только за звёзды, в кейсе не выпадают. Всего от 10 до 50 штук на весь мир.</p><div class="gg3">'+ERR_GIFTS.map(card).join("")+'</div>'+
+   '<div class="ghd">⭐ Подарки Эпох</div><div class="gg3">'+STAR_GIFTS.map(card).join("")+'</div>'+
+   '<div class="ghd">🍀 Серия «Удача»</div><p class="gnote">Их можно купить за звёзды или выбить в кейсе в Казино. А ещё в кейсе с шансом 1 на 20 000 падает Корона Эпох.</p><div class="gg3">'+LUCK_GIFTS.map(card).join("")+'</div>'};
 $("gold-body").addEventListener("click",e=>{const t=e.target.closest("button");if(!t||t.disabled)return;
   if(t.dataset.gk)buyItem({item:"gift",k:t.dataset.gk});else if(t.dataset.shelf)openShelf();else if(t.dataset.cas)openCas("case")});
 const _payShow=payShow;
@@ -119,16 +170,16 @@ function shelfHTML(o){const by={};(o.shelf||[]).forEach(g=>by[g.shelf]=g);let ro
    '<div class="stats"><div>'+(o.shelf||[]).length+' / '+SHELF_N+'<small>на витрине</small></div><div>⭐ '+fmtN(o.gval)+'<small>стоимость</small></div><div>'+(o.grank?"#"+o.grank:"—")+'<small>в топе витрин</small></div></div>'+
    '<h4>🏛 ВИТРИНА <span>👁 '+fmtN(o.gv||0)+'</span></h4><div class="cab"><div class="gls"></div>'+rows+'</div>'+(o.extra||"")+'</div>'}
 let shTop=null;
-async function openShelf(){if(!ONLINE){toast("Витрина работает в игре через бота");return}const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<p style="text-align:center">Загружаю витрину…</p>';
-  const t=await act("gift_top");if(t)shTop=t;drawShelf()}
-function drawShelf(){const sh=$("msheet");if($("modal").hidden)return;const gs=S.gifts||[],T=(shTop&&shTop.top)||[],rank=T.findIndex(r=>r.uid===S.uid)+1,best=[...S.cards].sort((a,b)=>b.v-a.v)[0];
+async function openShelf(){if(!$("modal").hidden)closeModal();setTab("prof");const sh=$("prof-body");if(!ONLINE){sh.innerHTML='<p class="prof-off">Профиль и витрина работают в игре через бота</p>';return}
+  if(!sh.firstChild)sh.innerHTML='<p class="prof-off">Загружаю витрину…</p>';else drawShelf();const t=await act("gift_top");if(t)shTop=t;drawShelf()}
+function drawShelf(){const sh=$("prof-body");if($("sec-prof").hidden)return;const gs=S.gifts||[],T=(shTop&&shTop.top)||[],rank=T.findIndex(r=>r.uid===S.uid)+1,best=[...S.cards].sort((a,b)=>b.v-a.v)[0];
   const inv=gs.length?'<div class="winv">'+gs.map(g=>'<button type="button" style="--g:'+GIFTS[g.k].g+'" class="'+(g.shelf?"on":"")+'" data-inv="'+g.id+'">'+giftSVG(g.k,52)+'<span>'+gNo(g)+'</span></button>').join("")+'</div>':'<div class="emp">Подарков пока нет. Купи в Сокровищнице, выбей в кейсе или попроси друга подарить 😉</div>';
   const top='<div class="gtop">'+(T.length?T.slice(0,10).map((r,i)=>'<div class="cpt'+(r.uid===S.uid?" me":"")+'" data-u="'+r.uid+'"><i>'+(i<3?["🥇","🥈","🥉"][i]:i+1)+'</i><span></span><b>⭐ '+fmtN(r.s)+'</b></div>').join(""):'<div class="emp">Пока пусто — стань первым!</div>')+'</div>';
-  sh.innerHTML='<button type="button" class="x" id="wsx">Закрыть</button>'+shelfHTML({mine:1,shelf:gs.filter(g=>g.shelf>0),gn:gs.length,gval:gs.reduce((a,g)=>a+giftVal(g.k),0),grank:rank,gv:S.gv,h:best?best.h:0,card:best,
-    extra:'<p class="note">Нажми «＋», чтобы поставить подарок, или на подарок, чтобы убрать или подарить</p><div class="wsbtns"><button type="button" class="wsb1" id="ws-send">🎁 ПОДАРИТЬ</button><button type="button" class="wsb2" id="ws-shop">⭐ МАГАЗИН</button></div>'+
+  sh.innerHTML=shelfHTML({mine:1,shelf:gs.filter(g=>g.shelf>0),gn:gs.length,gval:gs.reduce((a,g)=>a+giftVal(g.k),0),grank:rank,gv:S.gv,h:best?best.h:0,card:best,
+    extra:'<div class="wsbtns pro"><button type="button" id="pf-nick">✏️ Ник</button><button type="button" id="pf-ttl">🎖 Титулы</button><button type="button" id="pf-top">🏆 Топ</button></div><p class="note">Нажми «＋», чтобы поставить подарок, или на подарок, чтобы убрать или подарить</p><div class="wsbtns"><button type="button" class="wsb1" id="ws-send">🎁 ПОДАРИТЬ</button><button type="button" class="wsb2" id="ws-shop">⭐ МАГАЗИН</button></div>'+
     '<h4 style="margin-top:14px">🎒 ВСЕ ПОДАРКИ <span>'+gs.length+'</span></h4>'+inv+'<h4 style="margin-top:14px">🏆 ТОП ВИТРИН</h4>'+top})+'';
   sh.querySelector(".nk").textContent=myName();sh.querySelectorAll(".gtop .cpt").forEach((d,i)=>fxName(d.querySelector("span"),"",T[i].name,T[i].uid));
-  $("wsx").onclick=closeModal;$("ws-shop").onclick=()=>{closeModal();openGold("gifts")};$("ws-send").onclick=()=>sendHelp(null);
+  $("ws-shop").onclick=()=>openGold("gifts");$("pf-nick").onclick=()=>$("nick-go").click();$("pf-ttl").onclick=()=>$("ttl-go").click();$("pf-top").onclick=()=>setTab("top");$("ws-send").onclick=()=>sendHelp(null);
   sh.querySelector(".wsh").onclick=async e=>{const b=e.target.closest("button");if(!b)return;
     if(b.dataset.u){const u=+b.dataset.u;if(u!==S.uid){closeModal();openParam("u_"+u)}return}
     const tr=e.target.closest(".cpt[data-u]");if(tr&&+tr.dataset.u!==S.uid){closeModal();openParam("u_"+tr.dataset.u);return}
@@ -245,11 +296,11 @@ const _campFloat=campFloat;campFloat=function(t,cls,x,y){_campFloat(t,cls,x,y);i
   const c=document.createElement("div");c.className="w3crit";c.textContent=t.replace("💥 ","")+"!";ar.append(c);setTimeout(()=>c.remove(),820);if(w3){const r=ar.getBoundingClientRect();w3.burst(r.width*.62,r.height*.5,50,["#fff6c8","#ffd23f","#ff9f0a","#ff2e63"],9,.25,60,6)}}};
 
 /* ---------- что нового и ссылки ---------- */
-function newsGifts(){if(!S||!ONLINE||!S.shopOn||!$("modal").hidden||document.querySelector(".wrev,.onb-hl"))return false;try{if(localStorage.getItem("we-news-gift1"))return true;localStorage.setItem("we-news-gift1","1")}catch(e){return true}
+function newsGifts(){if(!S||!ONLINE||!S.shopOn||!$("modal").hidden||document.querySelector(".wrev,.onb-hl"))return false;try{if(localStorage.getItem("we-news-gift2"))return true;localStorage.setItem("we-news-gift2","1")}catch(e){return true}
   const m=$("modal"),sh=$("msheet");m.hidden=false;
-  sh.innerHTML='<div class="box nickbox newsb"><h3>🎁 Подарки, витрины и казино!</h3><div style="display:flex;justify-content:center;gap:4px">'+giftSVG("crown",84)+giftSVG("ring",84)+giftSVG("cup",84)+'</div><ul>'+
-   '<li>🎁 <b>Подарки Эпох</b> — у каждого свой тираж, номер навсегда на подарке</li><li>🏛 <b>Витрина</b> — 9 мест для подарков, топ витрин, дари друзьям</li>'+
-   '<li>🎰 <b>Казино рун</b> в лагере: кейс как в CS:GO, слоты и «больше-меньше»</li><li>🗿 <b>Каменный голем</b> — энергии ×2 в лагере</li><li>🎯 Лагерь стал объёмным — бей мишень!</li></ul>'+
+  sh.innerHTML='<div class="box nickbox newsb"><h3>🎁 Подарки, витрины и казино!</h3><div style="display:flex;justify-content:center;gap:4px">'+giftSVG("crown_x",84)+giftSVG("egg",84)+giftSVG("cup",84)+'</div><ul>'+
+   '<li>🎁 <b>Подарки</b> — 19 подарков, у каждого свой тираж и номер навсегда</li><li>🖨 <b>Ошибка печати</b> — бракованные подарки, всего 10–50 штук на весь мир</li>'+
+   '<li>👤 <b>Профиль</b> — твоя витрина на 9 подарков, топ витрин, дари друзьям</li><li>🎰 <b>Казино</b> — кейс как в CS:GO, слоты и «больше-меньше»</li><li>🗿 <b>Каменный голем</b> — энергии ×2 в лагере (вкладка «Бой»)</li></ul>'+
    '<button type="button" class="craftbtn" id="ng-go">Смотреть подарки</button><button type="button" class="ghost" id="ng-x">Позже</button></div>';
   $("ng-go").onclick=()=>{closeModal();openGold("gifts")};$("ng-x").onclick=closeModal;return true}
 {let n=0;const t=setInterval(()=>{if(++n>30||newsGifts())clearInterval(t)},4000)}

@@ -1398,3 +1398,27 @@ nav.tabs #tab-gold i{position:absolute;top:-10px;right:-4px;font-style:normal;fo
 #sec-camp .cp-hero{bottom:66px}
 .cp-hpb{overflow:hidden}
 .wrev .ghost{background:rgba(255,255,255,.12)!important;border:2px solid rgba(255,255,255,.6)!important;color:#fff!important}
+.gc .incase{position:absolute;right:8px;top:34px;font-size:9.5px;font-weight:900;padding:1px 6px;border-radius:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.5);color:#fff}
+.ghd.err{background:linear-gradient(90deg,#ff2e63,#7a3aff,#00e5ff,#ff2e63);background-size:300% 100%;animation:wholo 3s linear infinite;color:#fff;text-shadow:2px 2px 0 #0d1030;padding:8px 12px;border-radius:12px;border:2px solid #0d1030;letter-spacing:.04em}
+.gc.err{border-color:#ff2e63;box-shadow:0 0 18px rgba(255,46,99,.6),0 0 0 2px #00e5ff inset}
+.gc.err .ic{animation:wbob 2.4s ease-in-out infinite,wglitch 1.8s steps(1) infinite}
+.gc.err .bg{animation:errbg 2.6s steps(1) infinite}@keyframes errbg{0%,90%,100%{filter:none}92%{filter:hue-rotate(90deg) saturate(2)}96%{filter:invert(.15) hue-rotate(-60deg)}}
+.gc.err .rr{background:#ff2e63;color:#fff}
+svg.gerr{animation:wglitch 2.4s steps(1) infinite}
+/* ===== нижнее меню: 7 вкладок с иконками, внутри разделов — подвкладки ===== */
+.tabs.nav7 div{display:flex;gap:2px}
+.tabs.nav7 button{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 0 6px;font-size:10px;font-weight:800;letter-spacing:-.02em;position:relative;overflow:visible}
+.tabs.nav7 button b{font-size:19px;line-height:1.05;font-weight:400;filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
+.tabs.nav7 button[aria-selected="true"] b{transform:scale(1.12)}
+.tabs.nav7 #tab-gold{background:linear-gradient(180deg,#fff1a8,#ffb800 60%,#ff9f0a);color:#07040f;border:2px solid #07040f}
+.tabs.nav7 #tab-gold[aria-selected="true"]{background:#fff}
+.tabs.nav7 #tab-cas{background:linear-gradient(115deg,#7a1fa8,#c2185b,#7a1fa8);background-size:200% 100%;animation:wholo 4s linear infinite;color:#fff}
+.tabs.nav7 #tab-cas[aria-selected="true"]{background:var(--yellow);color:var(--ink);animation:none}
+.tabs.nav7 .tdot{position:absolute;top:3px;right:8px}
+.subnav{display:flex;gap:6px;padding:4px;margin-bottom:10px;background:rgba(7,4,15,.55);border:2px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink)}
+.subnav button{flex:1;padding:9px 4px;border:0;border-radius:12px;background:none;color:#cfd6ff;font:inherit;font-weight:900;font-size:13.5px;cursor:pointer}
+.subnav button[aria-pressed="true"]{background:var(--yellow);color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+#sec-camp .cp-top,#cs-back{display:none}
+#sec-prof .wsh{border-radius:22px;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);overflow:hidden}
+.prof-off{text-align:center;color:#fff;font-weight:800;padding:30px 10px}
+.wsbtns.pro button{background:rgba(255,255,255,.1);color:#fff;border:2px solid rgba(255,255,255,.4);font-size:13px}

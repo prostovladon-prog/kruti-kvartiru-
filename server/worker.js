@@ -427,19 +427,34 @@ const snap=c=>JSON.parse(JSON.stringify(c));
 /* ---------- подарки: у каждого свой тираж на весь мир ----------
    звёздная серия продаётся за ⭐ в Сокровищнице, серия «Удача» выпадает только из кейса в казино.
    Корона Эпох — единственный звёздный подарок, который с мизерным шансом может выпасть и из кейса */
-const GR=["Обычный","Редкий","Эпический","Легендарный","Мифический"], GR_C=["#8f9bb3","#34c759","#0a84ff","#bf5af2","#ff9f0a"], GR_V=[15,25,50,100,250];
+const GR=["Обычный","Редкий","Эпический","Легендарный","Мифический","Ошибка печати"], GR_C=["#8f9bb3","#34c759","#0a84ff","#bf5af2","#ff9f0a","#ff2e63"], GR_V=[15,25,50,100,250,1000];
+/* luck:1 — подарок есть и в кейсе казино (и продаётся за ⭐). err — «ошибка печати»: та же форма, но сбитые цвета, только за ⭐, крошечный тираж */
 const GIFTS={
  helm:{n:"Золотой шлем",r:0,run:5000,stars:15,g:"#ffd23f"},
+ potion:{n:"Зелье силы",r:0,run:5000,stars:15,g:"#ff4dd8"},
+ rose:{n:"Вечная роза",r:0,run:5000,stars:15,g:"#ff3b6b"},
+ shoe:{n:"Подкова удачи",r:0,run:1000,stars:15,luck:1,g:"#c9d3e6"},
  sword:{n:"Меч в камне",r:1,run:2000,stars:25,g:"#9fe8ff"},
+ shield:{n:"Щит героя",r:1,run:2000,stars:25,g:"#5ac8fa"},
+ cake:{n:"Праздничный торт",r:1,run:2000,stars:25,g:"#ffb3d1"},
+ dice:{n:"Кости судьбы",r:1,run:500,stars:25,luck:1,g:"#ff4d6d"},
  dragon:{n:"Дракончик",r:2,run:1000,stars:50,g:"#34ffb0"},
+ horn:{n:"Рог викинга",r:2,run:1000,stars:50,g:"#e8c27a"},
+ lamp:{n:"Лампа джинна",r:2,run:1000,stars:50,g:"#ffd23f"},
+ clover:{n:"Четырёхлистник",r:2,run:300,stars:50,luck:1,g:"#47e891"},
  feather:{n:"Перо феникса",r:3,run:300,stars:100,g:"#ff6a1a"},
  ring:{n:"Кольцо Эпох",r:3,run:300,stars:100,g:"#c56bff"},
+ hourglass:{n:"Песочные часы Эпох",r:3,run:300,stars:100,g:"#7fe7ff"},
+ mask:{n:"Маска сёгуна",r:3,run:100,stars:100,luck:1,g:"#ff2e63"},
  crown:{n:"Корона Эпох",r:4,run:100,stars:250,g:"#ffb800"},
- shoe:{n:"Подкова удачи",r:0,run:1000,luck:1,g:"#c9d3e6"},
- dice:{n:"Кости судьбы",r:1,run:500,luck:1,g:"#ff4d6d"},
- clover:{n:"Четырёхлистник",r:2,run:300,luck:1,g:"#47e891"},
- mask:{n:"Маска сёгуна",r:3,run:100,luck:1,g:"#ff2e63"},
- cup:{n:"Кубок Фортуны",r:4,run:30,luck:1,g:"#ffd23f"}};
+ egg:{n:"Яйцо дракона",r:4,run:100,stars:250,g:"#ff7a1a"},
+ cup:{n:"Кубок Фортуны",r:4,run:30,stars:250,luck:1,g:"#ffd23f"},
+ crown_x:{n:"Корона Эпох",base:"crown",err:150,r:5,run:10,stars:1000,g:"#3ab0ff"},
+ cup_x:{n:"Кубок Фортуны",base:"cup",err:280,r:5,run:10,stars:1000,g:"#ff4dd8"},
+ egg_x:{n:"Яйцо дракона",base:"egg",err:200,r:5,run:25,stars:500,g:"#7a5aff"},
+ ring_x:{n:"Кольцо Эпох",base:"ring",err:110,r:5,run:25,stars:500,g:"#34ffb0"},
+ feather_x:{n:"Перо феникса",base:"feather",err:190,r:5,run:25,stars:500,g:"#3ab0ff"},
+ dragon_x:{n:"Дракончик",base:"dragon",err:250,r:5,run:50,stars:300,g:"#ff4dd8"}};
 const giftVal=k=>GIFTS[k]?GIFTS[k].stars||GR_V[GIFTS[k].r]:0, SHELF_N=9;
 /* ---------- казино за руны лагеря. Возврат игроку около 90%, есть лимит в день ---------- */
 const CAS_DAY=30;
@@ -1541,7 +1556,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(c.sn===sn)fail("У этой карточки уже такой номер");
     if(await env.DB.prepare("SELECT 1 FROM cards WHERE sn=?").bind(sn).first())fail("Номер "+fmtSn(sn)+" уже занят. Выбери другой");
     return {item,stars:numPrice(sn),title:"Номер "+fmtSn(sn),desc:"Свой номер "+fmtSn(sn)+" на карточке «"+HEROES[c.h][0]+"»",data:{card:c.id,sn}}}
-  if(item==="gift"){const k=String(p.k||""),G=GIFTS[k];if(!G||G.luck)fail("Этот подарок не продаётся: он выпадает только из кейса");
+  if(item==="gift"){const k=String(p.k||""),G=GIFTS[k];if(!G||!G.stars)fail("Этот подарок не продаётся за звёзды");
     if(((await giftLeft(env))[k]||0)<=0)fail("Тираж «"+G.n+"» закончился");
     return {item,stars:G.stars,title:"Подарок «"+G.n+"»",desc:"Подарок «"+G.n+"» ("+GR[G.r].toLowerCase()+", тираж "+G.run+"). Поставь на витрину или подари другу",data:{k}}}
   if(item==="golem"){const f=p.forever?1:0;return {item,stars:f?GOLEM.f:GOLEM.w,title:"Каменный голем",desc:"Голем в лагере "+(f?"навсегда":"на "+GOLEM.days+" дней")+": энергии в 2 раза больше и она восстанавливается в 2 раза быстрее",data:{forever:f}}}

@@ -699,7 +699,6 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const A = 8101, B = 8102; await call(A, "sync"); await call(B, "sync");
   let r = await buy(A, { item: "gift", k: "crown" }); ok(r.ok && r.res.status === "done" && r.res.res.gift.no === 1 && r.S.gifts.length === 1, "купил Корону Эпох за звёзды: № 1");
   r = await buy(B, { item: "gift", k: "crown" }); ok(r.res.res.gift.no === 2, "следующая корона — № 2");
-  r = await cp(A, "invoice", { item: "gift", k: "cup" }); ok(!r.ok && /только из кейса/.test(r.err), "подарки серии «Удача» за звёзды не продаются");
   db.prepare("INSERT INTO gifts(owner,k,no,created) SELECT -5,'helm',value,0 FROM (WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM n WHERE value<5000) SELECT value FROM n)").run();
   r = await cp(A, "invoice", { item: "gift", k: "helm" }); ok(!r.ok && /закончился/.test(r.err), "тираж закончился — купить нельзя");
   const gid = (await call(A, "sync")).S.gifts[0].id;
@@ -710,6 +709,8 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await call(A, "gift_send", { id: gid, to: B }); ok(r.ok && !r.S.gifts.length, "подарил другу");
   r = await call(B, "sync"); ok(r.S.gifts.length === 2 && r.S.gifts.some(g => g.id === gid && g.shelf === 0 && g.from_uid === A), "друг получил подарок");
   r = await call(A, "gift_top"); ok(r.ok && r.res.top[0].uid === B && r.res.left.crown === 98, "топ витрин и остаток тиража");
+  r = await buy(A, { item: "gift", k: "cup" }); ok(r.ok && r.res.res.gift.k === "cup", "подарок из кейса теперь можно купить и за звёзды");
+  r = await buy(A, { item: "gift", k: "crown_x" }); ok(r.ok && r.res.res.gift.no === 1, "ошибка печати: Корона № 1 из 10");
   // казино
   const setRunes = (uid, n) => { const u = db.prepare("SELECT state FROM users WHERE id=?").get(uid); const st = JSON.parse(u.state); st.camp = st.camp || { en: 0, at: Date.now(), lv: { pw: 0, en: 0, rg: 0, cr: 0, sq: 0 }, t: 0, hp: 100, kills: 0, total: 0, sqAt: Date.now() }; st.camp.runes = n; db.prepare("UPDATE users SET state=? WHERE id=?").run(JSON.stringify(st), uid); };
   setRunes(A, 49999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 50 000 рун: без рун не открыть");
