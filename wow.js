@@ -681,7 +681,7 @@ function drawStatsX(){const R=stData&&stData.x,b=$("st-body");if(!R||!b||R.err&&
     ${tile(fmtN(S0.all.s)+" ⭐","потрачено всего",S0.all.n+" покупок · "+S0.all.u+" донатеров")}
     ${tile(fmtN(S0.today.s)+" ⭐","сегодня",S0.today.n+" покупок · "+S0.today.u+" чел.")}
     ${tile(fmtN(S0.week.s)+" ⭐","за 7 дней",S0.week.n+" покупок · "+S0.week.u+" чел.")}
-    ${tile(fmtN(S0.refund.s)+" ⭐","возвраты",S0.refund.n+" шт.")}</div>
+    ${tile(fmtN(S0.refund.s)+" ⭐","возвраты",S0.refund.n+" шт.")}${R.bal?tile(fmtN(R.bal.left)+" ⭐","на игровых балансах",R.bal.users+" игроков · потрачено с баланса "+fmtN(R.bal.spent)+" ⭐ ("+R.bal.buys+" пок.)"):""}</div>
     <svg viewBox="0 0 ${W} ${H}" class="stch">${bars}</svg>
     <div class="stl"><b>По товарам</b>${S0.items.map(i=>`<div class="str"><span>${ITEM_N[i.item]||i.item}</span><i>${i.n} шт.${i.t?" · сегодня "+i.t:""}</i><b>${fmtN(i.s)} ⭐</b></div>`).join("")||"<p class=cln>Покупок пока нет</p>"}</div>
     <div class="stl"><b>Кто сколько потратил</b>${S0.top.map((u,i)=>`<div class="str"><span>${i+1}. <q data-n="${i}"></q></span><i>${u.n} пок. · ${dt(u.last)}</i><b>${fmtN(u.s)} ⭐</b></div>`).join("")||"<p class=cln>Пока никто</p>"}</div>
@@ -730,3 +730,19 @@ function drawLinks(){const R=stData,b=$("st-body");if(!R||!b)return;const L=R.st
       r.rows.map((u,i)=>'<div class="lnk-r'+(u.mx>=5?" hot":"")+'"><span data-i="'+i+'"></span><i>'+dt(u.created)+'</i><i>'+dt(u.seen)+'</i><i>'+u.days+'</i><b>'+u.mx+'</b><i>'+(u.cur||"—")+'</i></div>').join("")+'</div>');
     d.querySelectorAll("[data-i]").forEach(e=>e.textContent=r.rows[+e.dataset.i].name||"?")})}
 {const _ds2=drawStats;drawStats=function(){_ds2();try{drawLinks()}catch(e){console.error(e)}}}
+
+/* ===================== розыгрыш на звёзды: три победителя ===================== */
+{const _dc=drawChal;drawChal=function(){_dc();try{const C=chData;if(!C||!C.multi)return;const hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16),T=C.tickets||0;
+  $("chal").querySelector(".chal-h span").textContent="⭐ РОЗЫГРЫШ 600 ЗВЁЗД";
+  const dd=t=>new Date(t+3*3600e3).toISOString().slice(0,10);$("chal-t").textContent=C.phase==="soon"?(dd(C.start)===dd(NOW())?"Сегодня":"Завтра")+" с "+hm(C.start)+" до "+hm(C.end)+": пригласи "+C.min+" друзей — и ты в розыгрыше. Три победителя: 300, 200 и 100 ⭐!":"Пригласи "+C.min+" друзей — и ты участник. Каждый друг = 1 билет: чем больше друзей, тем больше шанс. В "+hm(C.end)+" бот выберет трёх победителей: 300, 200 и 100 ⭐. Звёзды — на игровой баланс.";
+  $("chal-p").innerHTML=C.prizes.map((p,k)=>'<div>'+["🥇","🥈","🥉"][k]+'<b>'+p+'</b>'+(k+1)+' место</div>').join("")+'<div>🎟<b>'+T+'</b>'+plural(T,"билет","билета","билетов")+'</div>';
+  $("chal-rules").textContent="Считаются только живые новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Друг твоего друга тоже засчитывается тебе. От "+C.min+" друзей ты участник, каждый друг — 1 билет. В "+hm(C.end)+" бот случайно выбирает трёх разных победителей: чем больше билетов, тем выше шанс. Призы: 300, 200 и 100 ⭐ на игровой баланс — ими можно оплатить любые покупки в игре. Время — минское. Накрутка ботами и пустыми аккаунтами = снятие с розыгрыша."}catch(e){console.error(e)}}}
+
+/* ===================== игровой баланс звёзд ===================== */
+function balBadge(){if(!S)return;const n=S.starBal||0;let b=$("starbal");const host=$("gold-body");if(!host)return;
+  if(!n){if(b)b.remove();return}if(!b||!host.contains(b)){b=document.createElement("div");b.id="starbal";b.className="starbal";host.prepend(b)}
+  b.innerHTML='<b>⭐ '+fmtN(n)+'</b><span>звёзд на игровом балансе<small>Ими можно оплатить любую покупку здесь — выбери «Оплатить с баланса»</small></span>'}
+{const _rg5=renderGold;renderGold=function(){_rg5();try{balBadge()}catch(e){}}}
+{const _bi=buyItem;buyItem=async function(p){const n=(S&&S.starBal)||0;if(!n||!ONLINE||p&&p._tg)return _bi(p);
+  wSheet('<h3 style="margin:0 0 6px">Как оплатить?</h3><p class="cln">На игровом балансе <b>⭐ '+fmtN(n)+'</b>. Если звёзд на балансе не хватит, игра скажет — тогда оплати через Telegram.</p><button type="button" class="craftbtn" data-bal="1">⭐ Оплатить с баланса</button><button type="button" class="ghost" data-tg="1" style="width:100%;margin-top:8px">Оплатить через Telegram</button>',
+   btn=>{if(btn.dataset.tg){_bi(Object.assign({},p,{_tg:1}));return}if(btn.dataset.bal){(async()=>{if(goldBusy)return;goldBusy=true;try{const r=await act("pay_bal",p);if(r)payShow(r)}finally{goldBusy=false}})();return}})}}

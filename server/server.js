@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=27;
+const SCHEMA_V=28;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -93,7 +93,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN pm_bonus INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN vip_t INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN clan INTEGER NOT NULL DEFAULT 0",
     "CREATE TABLE IF NOT EXISTS clans (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, name_key TEXT NOT NULL, owner INTEGER NOT NULL, h INTEGER NOT NULL DEFAULT 0, created INTEGER)","CREATE UNIQUE INDEX IF NOT EXISTS clans_nk ON clans(name_key)",
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
-    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -199,7 +199,7 @@ async function stateFor(env,me){
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
-  S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
+  S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
   Object.assign(S,await nickFx(env));S.shopOn=1;   // переливающиеся ники и «Король Эпох» месяца
   if(u.founder&&!u.founder_seen){await env.DB.prepare("UPDATE users SET founder_seen=1 WHERE id=?").bind(me.id).run();delete topCache.founders}
@@ -387,7 +387,7 @@ async function adminStats(env){
 
 /* расширенная статистика: звёзды, пропуск, Покорение, слияние, кланы, подарки, VIP */
 async function adminStatsX(env,now,t0,D,days,by){const one=async(q,...a)=>(await env.DB.prepare(q).bind(...a).first())||{},all=async(q,...a)=>(await env.DB.prepare(q).bind(...a).all()).results;
-  const PD="status IN ('paid','done')";
+  const PD="status IN ('paid','done') AND COALESCE(charge,'')<>'bal'";
   const st={all:await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD}`),
     today:await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=?`,t0),
     week:await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=?`,t0-6*D),
@@ -408,7 +408,8 @@ async function adminStatsX(env,now,t0,D,days,by){const one=async(q,...a)=>(await
   const gifts=await all("SELECT how,COUNT(*) AS n FROM gifts GROUP BY how"),giftSent=await one("SELECT COUNT(*) AS n FROM gifts WHERE from_uid IS NOT NULL AND from_uid>0");
   const vip=await one("SELECT SUM(vip_until>?) AS n,SUM(vip_until>? AND vip_t=3) AS d,SUM(vip_until>? AND vip_t=2) AS g FROM users",now,now,now),golem=await one("SELECT SUM(golem_until>?) AS n FROM users",now);
   const cnt=k=>T["a_"+k]||0,wk=k=>days.slice(-7).reduce((a,d)=>a+((by[d]||{})["a_"+k]||0),0);
-  return {stars:st,starsDays:stD,season:{...pass,no:sn+1,name:passTheme(sn).n,end:passEnd(sn),quests:passQ.q||0,questDay:passQ.dn||0},
+  const bal=await one("SELECT COALESCE(SUM(star_bal),0) AS s,SUM(star_bal>0) AS n FROM users"),balSpent=await one("SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n FROM payments WHERE charge='bal' AND status IN ('paid','done')");
+  return {bal:{left:bal.s||0,users:bal.n||0,spent:balSpent.s||0,buys:balSpent.n||0},stars:st,starsDays:stD,season:{...pass,no:sn+1,name:passTheme(sn).n,end:passEnd(sn),quests:passQ.q||0,questDay:passQ.dn||0},
     conq:{...conq,top:conqTop,today:cnt("conq_fight"),week:wk("conq_fight")},fuse:{today:cnt("fuse"),week:wk("fuse"),starred:stars.n||0,stars:stars.s||0,forge:cnt("forge")},
     wel:{got:wel.got||0,wait:wel.wait||0},clans:{n:clans.n||0,members:inClan.n||0,dmg:clanHits.d||0,hitters:clanHits.u||0,hitsToday:clanToday.n||0},
     gifts:Object.fromEntries(gifts.map(g=>[g.how||"?",g.n])),giftSent:giftSent.n||0,vip:{n:vip.n||0,diamond:vip.d||0,gold:vip.g||0,golem:golem.n||0},
@@ -941,9 +942,11 @@ async function paidUpdate(env,uid,sp){const m=/^p(\d+)$/.exec(sp.invoice_payload
   if(P.uid!==uid||sp.currency!=="XTR"||sp.total_amount!==P.stars)return payRefund(env,Object.assign(P,{charge:sp.telegram_payment_charge_id,uid}),"Сумма не совпала со счётом");
   await payApply(env,P.id)}
 async function payRefund(env,P,msg){
-  if(!/^sim/.test(String(P.charge||"")))await tgApi(env,"refundStarPayment",{user_id:P.uid,telegram_payment_charge_id:P.charge});
+  const bal=String(P.charge||"")==="bal";
+  if(bal)await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(P.stars,P.uid).run();
+  else if(!/^sim/.test(String(P.charge||"")))await tgApi(env,"refundStarPayment",{user_id:P.uid,telegram_payment_charge_id:P.charge});
   await env.DB.prepare("UPDATE payments SET status='refund',res=? WHERE id=?").bind(JSON.stringify({err:msg}),P.id).run();
-  await notify(env,P.uid,"↩️ "+msg+"\n\nЗвёзды ("+P.stars+" ⭐) вернулись на твой счёт.","🏪 Сокровищница",PAGE+"?shop=1")}
+  await notify(env,P.uid,"↩️ "+msg+"\n\nЗвёзды ("+P.stars+" ⭐) вернулись "+(bal?"на игровой баланс.":"на твой счёт."),"🏪 Сокровищница",PAGE+"?shop=1")}
 async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM payments WHERE id=?").bind(pid).first();if(!P||P.status!=="paid")return;
   const d=JSON.parse(P.p||"{}"),I=SHOP[P.item];let res,msg="";
   try{
@@ -988,7 +991,7 @@ async function payTick(env){
 async function payStatus(env,me,p){const P=await env.DB.prepare("SELECT id,item,status,res FROM payments WHERE id=? AND uid=?").bind(p.pid|0,me.id).first();if(!P)fail("Нет такого счёта");
   return {pid:P.id,item:P.item,status:P.status,res:P.res?JSON.parse(P.res):null}}
 /* топ донатеров месяца (без администраторов) и «Король Эпох» — первое место */
-async function donors(env){return cached("donors",30e3,async()=>(await env.DB.prepare("SELECT p.uid,SUM(p.stars) AS s,COALESCE(u.nick,u.name) AS name FROM payments p JOIN users u ON u.id=p.uid WHERE p.month=? AND p.status='done' GROUP BY p.uid ORDER BY s DESC LIMIT 13").bind(monthOf(Date.now())).all()).results.filter(r=>!isAdmin(env,r.uid)).slice(0,10))}
+async function donors(env){return cached("donors",30e3,async()=>(await env.DB.prepare("SELECT p.uid,SUM(p.stars) AS s,COALESCE(u.nick,u.name) AS name FROM payments p JOIN users u ON u.id=p.uid WHERE p.month=? AND p.status='done' AND COALESCE(p.charge,'')<>'bal' GROUP BY p.uid ORDER BY s DESC LIMIT 13").bind(monthOf(Date.now())).all()).results.filter(r=>!isAdmin(env,r.uid)).slice(0,10))}
 async function nickFx(env){return cached("nfx",30e3,async()=>{const fx={};
   for(const r of (await env.DB.prepare("SELECT id,fx FROM users WHERE fx_until>? AND fx IS NOT NULL").bind(Date.now()).all()).results)fx[r.id]=r.fx;
   const ttl={};for(const r of (await env.DB.prepare("SELECT id,title FROM users WHERE title IS NOT NULL AND title<>'' LIMIT 1000").all()).results)ttl[r.id]=r.title;
@@ -997,7 +1000,7 @@ async function shopInfo(env,me){
   const comp=await cached("shopcomp",10e3,async()=>{const o={};for(const h of COMP)o[h]={l:0,r:0,full:0,e:[0,0,0]};
     for(const r of (await env.DB.prepare("SELECT h,f,part,COUNT(*) AS n FROM cards WHERE h>=? GROUP BY h,f,part").bind(NBASE).all()).results){const x=o[r.h];if(!x)continue;
       if(r.f===4)x.e[r.part|0]=1;else if(r.part===1)x.l+=r.n;else if(r.part===2)x.r+=r.n;else x.full+=r.n}return o});
-  const mine=((await env.DB.prepare("SELECT SUM(stars) AS s FROM payments WHERE uid=? AND month=? AND status='done'").bind(me.id,monthOf(Date.now())).first())||{}).s||0;
+  const mine=((await env.DB.prepare("SELECT SUM(stars) AS s FROM payments WHERE uid=? AND month=? AND status='done' AND COALESCE(charge,'')<>'bal'").bind(me.id,monthOf(Date.now())).first())||{}).s||0;
   const u=await env.DB.prepare("SELECT fx,fx_until FROM users WHERE id=?").bind(me.id).first()||{};
   const ones=await cached("shopones",10e3,async()=>{const o={};for(const h of ONE)o[h]=null;
     for(const r of (await env.DB.prepare("SELECT c.h,COALESCE(u.nick,u.name) AS name,c.owner FROM cards c LEFT JOIN users u ON u.id=c.owner WHERE c.f=4 AND c.h>=?").bind(NBASE).all()).results)if(ONE.includes(r.h))o[r.h]={name:r.name||"Игрок",uid:r.owner};return o});
@@ -1056,15 +1059,21 @@ async function onUpdate(env,upd){
    Рассылка ботом в слоты (минское время), итоги — в конце. Настройки можно переопределить в kv "chal". */
 const CHAL_OPEN=3,CHAL_LATE=50*60e3;
 /* розыгрыш (lot): от C.min друзей — участник, каждый друг = билет, победитель один, выбирается случайно по билетам */
-const CHAL_DEFAULT={id:"2026-10-25",lot:1,secret:1,min:2,start:Date.UTC(2026,9,25,5,30),end:Date.UTC(2026,9,25,19),prizes:["секретного приза"],img:"assets/post-secret.jpg?v=1",slots:[8.5,11.5,14.5,17.5,19,20,21],chanSlots:[8.5,10,14,17.5,21],chan:"@voinyepoh"};
+const CHAL_DEFAULT={id:"2026-10-26",lot:1,multi:1,min:2,start:Date.UTC(2026,9,26,5,30),end:Date.UTC(2026,9,26,19),prizes:["300 ⭐","200 ⭐","100 ⭐"],bal:[300,200,100],img:"assets/post-stars.jpg?v=1",slots:[8.5,11.5,14.5,17.5,19,20,21],chanSlots:[8.5,10,14,17.5,21],chan:"@voinyepoh"};
 /* секретный приз 25.10: бесценная карточка-коллаборация «Воины Эпох × Номерок» А777МР 77. До финала не раскрываем */
 const SEC_LINE="🎁 Главный приз — СЕКРЕТ 🤫\n💰 Суммарно он стоит больше, чем все наши прошлые конкурсы — в районе $100\n🤝 Это подарок лично от игры «Номерок»";
-const PZ=C=>C.secret?"СЕКРЕТНОГО ПРИЗА":C.prizes[0], PZl=C=>C.secret?"секретного приза":C.prizes[0];
+const PZ=C=>C.secret?"СЕКРЕТНОГО ПРИЗА":C.multi?"600 ⭐":C.prizes[0], PZl=C=>C.secret?"секретного приза":C.multi?"600 ⭐":C.prizes[0];
+/* розыгрыш с тремя победителями (звёзды на игровой баланс) */
+const W1=C=>C.multi?"трёх победителей":"победителя";
+const ML=C=>"🥇 "+C.prizes[0]+"   🥈 "+C.prizes[1]+"   🥉 "+C.prizes[2]+"\n🏆 Три победителя — выиграть может любой!";
+const MNOTE="⭐ Звёзды зачисляются на игровой баланс — ими можно оплатить любые покупки в игре (VIP, пропуск, сундуки, подарки)";
 async function chalCfg(env){return await cached("chalcfg",30e3,async()=>{const k=await kvGet(env,"chal");return k&&k.id>=CHAL_DEFAULT.id?k:CHAL_DEFAULT})}   // старый конкурс в kv не мешает новому
 const tk=n=>n+" "+(n%10===1&&n%100!==11?"билет":n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?"билета":"билетов");
 const lotIn=(C,rows)=>rows.filter(r=>r.n>=C.min);
 /* честный выбор победителя: случайное число по сумме билетов */
 function lotDraw(C,rows){const P=lotIn(C,rows),T=P.reduce((a,r)=>a+r.n,0);if(!T)return null;const b=new Uint32Array(1);crypto.getRandomValues(b);let x=b[0]%T;for(const r of P){x-=r.n;if(x<0)return r}return P[P.length-1]}
+/* несколько победителей: по очереди, без повторов, шанс по билетам */
+function lotDrawN(C,rows,k){let P=lotIn(C,rows).slice();const out=[];for(let i=0;i<k&&P.length;i++){const W=lotDraw({min:0},P);if(!W)break;out.push(W);P=P.filter(r=>r.uid!==W.uid)}return out}
 async function chalBoard(env,C){return await cached("chalb",20e3,async()=>{
   const q="json_extract(c.state,'$.day.opened')>=? AND c.created>=? AND c.created<?";
   const d=(await env.DB.prepare("SELECT c.ref AS uid,COUNT(*) AS n FROM users c WHERE c.ref IS NOT NULL AND "+q+" GROUP BY c.ref").bind(CHAL_OPEN,C.start,C.end).all()).results;
@@ -1083,18 +1092,19 @@ async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(!C||
   const i=rows.findIndex(r=>r.uid===me.id),mine=i>=0?{...rows[i],place:i+1}:{d:0,l2:0,n:0,place:0};
   return {id:C.id,start:C.start,end:C.end,left:Math.max(0,(now<C.start?C.start:C.end)-now),phase:chalPhase(C,now),prizes:C.prizes,need:CHAL_OPEN,x2:now>=C.start&&now<C.end?1:0,
     top:rows.slice(0,10).map((r,k)=>({place:k+1,name:r.name,n:r.n,d:r.d,l2:r.l2,vip:r.vip,me:r.uid===me.id?1:0})),me:{n:mine.n,d:mine.d,l2:mine.l2,place:mine.place},total:rows.length,
-    lot:C.lot?1:0,secret:C.secret?1:0,min:C.min||0,tickets:C.lot?lotIn(C,rows).reduce((a,r)=>a+r.n,0):0,players:C.lot?lotIn(C,rows).length:0}}
+    lot:C.lot?1:0,secret:C.secret?1:0,multi:C.multi?1:0,min:C.min||0,tickets:C.lot?lotIn(C,rows).reduce((a,r)=>a+r.n,0):0,players:C.lot?lotIn(C,rows).length:0}}
 const fmtLeft=ms=>{const m=Math.max(0,Math.round(ms/60e3));return ((m>=60?Math.floor(m/60)+" ч ":"")+(m%60?(m%60)+" мин":"")).trim()||"0 мин"};
 const hmM=t=>{const d=new Date(t+TZ);return d.getUTCHours()+":"+String(d.getUTCMinutes()).padStart(2,"0")};
 const MEDAL=["🥇","🥈","🥉"],frN=n=>n+" "+(n%10===1&&n%100!==11?"друг":n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?"друга":"друзей");
 function chalPrizes(C){return MEDAL.map((m,k)=>m+" подарок Telegram на "+C.prizes[k]).join("\n")+"\nПриз можно забрать подарком или звёздами ⭐"}
 const LOT_PAID="✅ Все призы прошлого конкурса мы выплатили — отзывы победителей можно посмотреть в чате.";
 function lotHook(C,rows){const P=lotIn(C,rows),T=P.reduce((a,r)=>a+r.n,0);
-  return P.length?"🎟 В розыгрыше уже "+P.length+" "+(P.length%10===1&&P.length%100!==11?"участник":P.length%10>=2&&P.length%10<=4&&(P.length%100<12||P.length%100>14)?"участника":"участников")+" и "+tk(T)+". Пригласи "+frA(C.min)+" — и ты в игре!":"🎟 В розыгрыше пока никого! Пригласи "+frA(C.min)+" — и шанс забрать "+(C.secret?"секретный приз":C.prizes[0])+" почти 100%!"}
+  return P.length?"🎟 В розыгрыше уже "+P.length+" "+(P.length%10===1&&P.length%100!==11?"участник":P.length%10>=2&&P.length%10<=4&&(P.length%100<12||P.length%100>14)?"участника":"участников")+" и "+tk(T)+". Пригласи "+frA(C.min)+" — и ты в игре!":"🎟 В розыгрыше пока никого! Пригласи "+frA(C.min)+" — и шанс забрать "+(C.secret?"секретный приз":C.multi?"300 ⭐":C.prizes[0])+" почти 100%!"}
 function lotText(C,slot,rows,now){const last=slot===C.slots.length-1,hook=lotHook(C,rows);
   if(slot===0&&C.secret)return "🔥 СТАРТ! САМЫЙ КРУПНЫЙ РОЗЫГРЫШ В ИСТОРИИ ИГРЫ\n\n"+SEC_LINE+"\n\nСегодня до "+hmM(C.end)+" зови друзей в «Воины Эпох»:\n👥 "+frA(C.min)+" — и ты участник\n🎟 Каждый друг = 1 билет. Больше друзей — больше шанс\n🏆 Победитель один — выиграть может любой!\n\n"+LOT_PAID+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
+  if(slot===0&&C.multi)return "⭐ СТАРТ! РОЗЫГРЫШ 600 ЗВЁЗД — ТРИ ПОБЕДИТЕЛЯ\n\n"+ML(C)+"\n\nСегодня до "+hmM(C.end)+" зови друзей в «Воины Эпох»:\n👥 "+frA(C.min)+" — и ты участник\n🎟 Каждый друг = 1 билет. Чем больше друзей — тем больше шанс\n✅ Считаются только живые друзья, которые играют\n\n"+MNOTE+"\n\n"+LOT_PAID+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
   if(slot===0)return "🎟 СТАРТ! РОЗЫГРЫШ "+C.prizes[0]+" — ВЫИГРАТЬ МОЖЕТ ЛЮБОЙ\n\nСегодня до "+hmM(C.end)+" зови друзей в «Воины Эпох»:\n\n👥 "+frA(C.min)+" — и ты участник розыгрыша\n🎟 Каждый друг = 1 билет. Больше друзей — больше шанс\n🏆 Победитель один: подарок Telegram на "+C.prizes[0]+" или звёзды\n\nМы учли ваши пожелания: теперь не нужно обгонять лидера — повезти может каждому!\n\n"+LOT_PAID+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
-  return (last?"⏰ ПОСЛЕДНИЙ ЧАС! До розыгрыша "+fmtLeft(C.end-now):"🎟 РОЗЫГРЫШ "+PZ(C)+" ИДЁТ — до конца "+fmtLeft(C.end-now))+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+hook+"\n\n🎟 Каждый друг = +1 билет. Друг твоего друга тоже считается!\n\n"+CHAL_X2+"\n\nВ "+hmM(C.end)+" бот выберет победителя случайно по билетам 👇"}
+  return (last?"⏰ ПОСЛЕДНИЙ ЧАС! До розыгрыша "+fmtLeft(C.end-now):"🎟 РОЗЫГРЫШ "+PZ(C)+" ИДЁТ — до конца "+fmtLeft(C.end-now))+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+hook+"\n\n🎟 Каждый друг = +1 билет. Друг твоего друга тоже считается!\n\n"+CHAL_X2+(C.multi?"\n\n"+ML(C):"")+"\n\nВ "+hmM(C.end)+" бот выберет "+W1(C)+" случайно по билетам 👇"}
 function chalText(C,slot,rows,now){if(C.lot)return lotText(C,slot,rows,now);const last=slot===C.slots.length-1,pr=chalPrizes(C);
   const top=rows.slice(0,3).map((r,k)=>MEDAL[k]+" "+r.name+" — "+r.n).join("\n");
   if(C.ext&&C.slots[slot]===C.ext)return "⏰ ВЫ ПРОСИЛИ — МЫ ПРОДЛИЛИ!\n\nМногие были на работе, в школе и по делам и не успели позвать друзей. Поэтому челлендж продлён до "+hmM(C.end)+"! 🔥\n\n"+chalHook(C,rows)+"\n\n"+(top?"Сейчас в топе:\n"+top+"\n\n":"")+"Призы:\n"+pr+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
@@ -1109,13 +1119,14 @@ function chalHook(C,rows){const L=rows[0];if(!L)return "🤯 В таблице �
 /* посты в канал по своему расписанию (C.chanSlots), если оно задано */
 function lotChan(C,k,now,rows){const bot="\n\n👉 @VoinyEpohBot",S=C.chanSlots,h=lotHook(C,rows||[]);
   if(k===0)return chanPost(C,0,now,rows);
-  if(k===S.length-1)return {text:"⏰ ПОСЛЕДНИЙ ЧАС! До розыгрыша "+PZl(C)+" — "+fmtLeft(C.end-now)+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+h+"\n\nВ "+hmM(C.end)+" бот случайно выберет победителя по билетам. Ещё можно успеть 🔥"+bot};
+  if(k===S.length-1)return {text:"⏰ ПОСЛЕДНИЙ ЧАС! До розыгрыша "+PZl(C)+" — "+fmtLeft(C.end-now)+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+h+(C.multi?"\n\n"+ML(C):"")+"\n\nВ "+hmM(C.end)+" бот случайно выберет "+W1(C)+" по билетам. Ещё можно успеть 🔥"+bot};
   const T=[null,"☕ Доброе утро, воины! Розыгрыш "+PZl(C)+" уже идёт","⚡ Розыгрыш "+PZl(C)+" в самом разгаре","🔥 До розыгрыша "+PZl(C)+" осталось "+fmtLeft(C.end-now)][k]||"🎟 Розыгрыш "+PZl(C)+" идёт";
-  return {text:T+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+h+"\n\n👥 Пригласи "+frA(C.min)+" — и ты участник\n🎟 Каждый друг = +1 билет, друг твоего друга тоже считается\n🏆 Победитель один — выбираем в "+hmM(C.end)+"\n\n"+CHAL_X2+bot}}
+  return {text:T+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+h+"\n\n👥 Пригласи "+frA(C.min)+" — и ты участник\n🎟 Каждый друг = +1 билет, друг твоего друга тоже считается\n"+(C.multi?"🏆 Три победителя: "+C.prizes.join(", ")+" — выбираем в ":"🏆 Победитель один — выбираем в ")+hmM(C.end)+"\n\n"+CHAL_X2+bot}}
 function chanPost(C,slot,now,rows){rows=rows||[];if(C.lot){const bot="\n\n👉 @VoinyEpohBot";
   if(slot===0&&C.secret)return {photo:1,text:"🔥 САМЫЙ КРУПНЫЙ РОЗЫГРЫШ В ИСТОРИИ «ВОИНОВ ЭПОХ»!\n\n"+SEC_LINE+"\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+":\n👥 Пригласи "+frA(C.min)+" — и ты в розыгрыше\n🎟 Каждый друг = 1 билет: больше друзей — больше шанс\n🏆 Победитель один — повезти может каждому 🍀\n\n"+LOT_PAID+"\n\n"+CHAL_X2+bot};
+  if(slot===0&&C.multi)return {photo:1,text:"⭐ РОЗЫГРЫШ 600 ЗВЁЗД — ТРИ ПОБЕДИТЕЛЯ!\n\n"+ML(C)+"\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+":\n👥 Пригласи "+frA(C.min)+" в «Воины Эпох» — и ты в розыгрыше\n🎟 Каждый друг = 1 билет: чем больше друзей — тем больше шанс\n✅ Считаются только живые друзья, которые играют\n\n"+MNOTE+"\n\n"+LOT_PAID+"\n\n"+CHAL_X2+bot};
   if(slot===0)return {photo:1,text:"🎟 РОЗЫГРЫШ "+C.prizes[0]+" — ВЫИГРАТЬ МОЖЕТ ЛЮБОЙ!\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+":\n👥 Пригласи "+frA(C.min)+" в «Воины Эпох» — и ты в розыгрыше\n🎟 Каждый друг = 1 билет: больше друзей — больше шанс\n🏆 Победитель один — подарок Telegram на "+C.prizes[0]+" или звёзды\n\nВы просили — мы сделали: теперь не нужно быть первым, повезти может каждому 🍀\n\n"+LOT_PAID+"\n\n"+CHAL_X2+bot};
-  if(slot===C.slots.length-1)return {text:"⏰ До розыгрыша "+PZl(C)+" остался "+fmtLeft(C.end-now)+"!\n\n"+lotHook(C,rows)+"\n\nВ "+hmM(C.end)+" бот случайно выберет победителя по билетам. Успей позвать друзей 🔥"+bot};
+  if(slot===C.slots.length-1)return {text:"⏰ До розыгрыша "+PZl(C)+" остался "+fmtLeft(C.end-now)+"!\n\n"+lotHook(C,rows)+"\n\nВ "+hmM(C.end)+" бот случайно выберет "+W1(C)+" по билетам. Успей позвать друзей 🔥"+bot};
   if(C.slots[slot]===14.5)return {text:"⚡ Половина дня позади — розыгрыш "+PZl(C)+" в "+hmM(C.end)+"!\n\n"+lotHook(C,rows)+"\n\n🎟 Каждый друг = +1 билет"+bot};
   return null}const pr=chalPrizes(C),bot="\n\n👉 @VoinyEpohBot",hook=chalHook(C,rows)+"\n\n"+CHAL_X2+"\n\n";
   if(slot===0)return {photo:1,text:"🔥 ЧЕЛЛЕНДЖ ДНЯ — разыгрываем подарки Telegram!\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+": кто пригласит больше друзей в «Воины Эпох», тот забирает приз 👇\n"+pr+"\n\n💡 Фишка: если твой друг позовёт своего друга, он засчитается и тебе. Чем длиннее цепочка, тем выше ты в таблице!\n\n📊 Таблица лидеров онлайн — вкладка «Крутить»"+bot};
@@ -1155,6 +1166,12 @@ async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{con
   if(now>=C.end&&!st.fin){delete topCache.chalb;const rows=(await chalBoard(env,C)).slice(0,50);await kvSet(env,"chal_res:"+C.id,{rows,at:now});st.fin=1;st.res=0;await kvSet(env,"chal_st:"+C.id,st)}
   if(st.fin===1&&!st.res&&C.lot){st.res=1;await kvSet(env,"chal_st:"+C.id,st);const R=(await kvGet(env,"chal_res:"+C.id))||{},rows=R.rows||[];
     const all=await chalBoard(env,C),P=lotIn(C,all),T=P.reduce((a,r)=>a+r.n,0),W=lotDraw(C,all);R.winner=W||null;R.players=P.length;R.tickets=T;await kvSet(env,"chal_res:"+C.id,R);
+    if(C.multi){const Ws=lotDrawN(C,all,3);R.winners=Ws;await kvSet(env,"chal_res:"+C.id,R);
+      for(let k=0;k<Ws.length;k++){const w=Ws[k],amt=C.bal[k];await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(amt,w.uid).run();
+        await notify(env,w.uid,MEDAL[k]+" ТЫ ВЫИГРАЛ "+(k+1)+" МЕСТО В РОЗЫГРЫШЕ!\n\nУ тебя было "+tk(w.n)+" из "+T+" — и удача выбрала тебя 🍀\n\n⭐ "+amt+" звёзд уже на твоём игровом балансе! Трать их на любые покупки в игре: VIP, сезонный пропуск, сундуки, подарки. При покупке выбирай «Оплатить с баланса».","⭐ Потратить звёзды",PAGE+"?shop=1")}
+      for(const a of ADMINS)await notify(env,a,"🎟 Розыгрыш "+C.id+": участников "+P.length+", билетов "+T+".\n\nПобедители (звёзды уже зачислены на игровой баланс):\n"+(Ws.map((w,k)=>MEDAL[k]+" "+w.name+" (id "+w.uid+") — "+tk(w.n)+" → "+C.bal[k]+" ⭐").join("\n")||"никто не набрал "+C.min+" друзей")+"\n\nВсе участники:\n"+(P.slice(0,30).map(r=>r.name+" (id "+r.uid+") — "+tk(r.n)).join("\n")||"—"),"⚔️ Открыть");
+      await chanSend(env,C,{text:Ws.length?"🎉 ИТОГИ РОЗЫГРЫША 600 ⭐\n\nУчастников: "+P.length+", билетов: "+T+"\n\n"+Ws.map((w,k)=>MEDAL[k]+" "+w.name+" — "+C.prizes[k]).join("\n")+"\n\nПоздравляем! Звёзды уже на игровом балансе победителей ⭐ Спасибо всем, кто звал друзей — следующий розыгрыш скоро 🔥\n\n👉 @VoinyEpohBot":"🎟 Розыгрыш завершён: никто не набрал "+frA(C.min)+". Звёзды переносятся на следующий розыгрыш 🔥\n\n👉 @VoinyEpohBot"});
+      return}
     let card=null;if(W&&C.secret)card=await collabGrant(env,W.uid);
     if(W&&C.secret)await notify(env,W.uid,"🎉 ТЫ ВЫИГРАЛ САМЫЙ КРУПНЫЙ РОЗЫГРЫШ!\n\nУ тебя было "+tk(W.n)+" из "+T+" — и удача выбрала тебя 🍀\n\n🤝 Твой секретный приз — бесценная карточка-коллаборация «Воины Эпох × Номерок» с номером А777МР 77! Она одна во всём мире"+(card?" и уже лежит в твоей коллекции":"")+".\n\n💎 У неё нет оценки: продать её можно только на рынке, и цену назначаешь ты сам. Подарок лично от «Номерка».","💎 Открыть карточку");
     else if(W)await notify(env,W.uid,"🎉 ТЫ ВЫИГРАЛ РОЗЫГРЫШ "+C.prizes[0]+"!\n\nУ тебя было "+tk(W.n)+" из "+T+" — и удача выбрала тебя 🍀\n\nТвой приз: подарок Telegram на "+C.prizes[0]+" или звёзды на ту же сумму. Напиши @voinovadmin, что выбираешь, и пришли свой ID: "+W.uid,"⚔️ Играть");
@@ -1378,6 +1395,11 @@ async function handle(req,env){{
       if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize"||a==="trader_take"||a==="trader_give"||a==="auc_win"||a==="cas_comp")fail("Неизвестное действие");
       if(a==="shop")return J({ok:true,res:await shopInfo(env,me)});
       if(a==="invoice")return J({ok:true,res:await invoice(env,me,p)});
+      if(a==="pay_bal"){const I=await payItem(env,me.id,p),now=Date.now();
+        const r=await env.DB.prepare("UPDATE users SET star_bal=star_bal-? WHERE id=? AND star_bal>=?").bind(I.stars,me.id,I.stars).run();
+        if(r.meta.changes!==1){const u=await env.DB.prepare("SELECT star_bal FROM users WHERE id=?").bind(me.id).first();fail("На игровом балансе "+((u&&u.star_bal)||0)+" ⭐, а нужно "+I.stars+" ⭐")}
+        const row=await env.DB.prepare("INSERT INTO payments(uid,item,p,stars,status,month,created,charge,paid) VALUES(?,?,?,?,'paid',?,?,'bal',?) RETURNING id").bind(me.id,I.item,JSON.stringify(I.data||{}),I.stars,monthOf(now),now,now).first();
+        await payApply(env,row.id);return J({ok:true,res:await payStatus(env,me,{pid:row.id}),S:await stateFor(env,me)})}
       if(a==="pay_status")return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)});
       if(a==="pay_sim"){if(env.PAY_SIM!=="1")fail("Неизвестное действие");const P=await env.DB.prepare("SELECT * FROM payments WHERE id=? AND uid=?").bind(p.pid|0,me.id).first();if(!P)fail("Нет такого счёта");
         await paidUpdate(env,me.id,{currency:"XTR",total_amount:P.stars,invoice_payload:"p"+P.id,telegram_payment_charge_id:"sim"+P.id});return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)})}

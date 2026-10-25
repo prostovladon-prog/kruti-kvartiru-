@@ -534,6 +534,16 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await cc(6200, "sync"); { const c = r.S.cards.find(x => x.f === 6); ok(c && c.v === 0, "карточка в коллекции победителя");
     let q = await cc(6200, "sell", { id: c.id }); ok(!q.ok, "бесценную нельзя продать системе");
     q = await cc(6200, "list", { id: c.id, price: 5000000 }); ok(q.ok, "бесценную можно выставить на рынок за свою цену"); }
+  // розыгрыш на звёзды: три победителя, звёзды на игровой баланс
+  await cc(8, "chal_set", { cfg: { id: "zz1", lot: 1, multi: 1, min: 1, start: n0 - 36e5, end: Date.now() - 1, prizes: ["300 ⭐", "200 ⭐", "100 ⭐"], bal: [300, 200, 100], slots: [] } });
+  await worker.tick(envC); await worker.tick(envC);
+  { const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:zz1'").get().v); const b = id => db.prepare("SELECT star_bal s FROM users WHERE id=?").get(id).s;
+    ok(fin.winners && fin.winners.length === 3 && new Set(fin.winners.map(w => w.uid)).size === 3, "звёздный розыгрыш: три разных победителя");
+    ok(fin.winners.map((w, k) => b(w.uid) === [300, 200, 100][k]).every(Boolean), "звёзды зачислены на игровой баланс: 300, 200, 100");
+    db.prepare("UPDATE users SET star_bal=200 WHERE id=6200").run();
+    const before = b(6200); let q = await cc(6200, "pay_bal", { item: "golem" }); ok(q.ok && q.res.status === "done" && q.S.starBal === before - 99 && q.S.golemUntil > Date.now(), "покупка с игрового баланса: голем за 99 ⭐");
+    db.prepare("UPDATE users SET star_bal=10 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "golem" }); ok(!q.ok && /балансе 10/.test(q.err), "не хватает звёзд на балансе — покупки нет");
+    q = await cc(8, "stats"); ok(q.ok && q.res.x.bal.spent >= 99, "в статистике видно траты с баланса, они не считаются донатом"); }
   await cc(8, "chal_set", { cfg: { id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] } });
 }
 
