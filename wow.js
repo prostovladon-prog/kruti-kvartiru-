@@ -179,12 +179,12 @@ async function putOnShelf(id){const used=new Set((S.gifts||[]).filter(g=>g.shelf
 const _renderGold=renderGold;
 renderGold=function(){_renderGold();if(goldTab!=="gifts")return;const B=$("gold-body"),L=(goldData&&goldData.gleft)||{};
   const buyB=k=>{const l=goldData?L[k]:null,sold=l===0;return '<button type="button" class="pr" data-gk="'+k+'"'+(sold?" disabled":"")+'>'+(sold?"раскуплено":"⭐ "+GIFTS[k].stars)+'</button>'};
-  const card=k=>giftCard(k,{left:goldData?L[k]:null,btn:buyB(k)+(GIFTS[k].luck?'<span class="incase">🎰 и в кейсе</span>':"")});
+  const card=k=>giftCard(k,{left:goldData?L[k]:null,btn:buyB(k)+(CASE.p.some(x=>x[1].g===k)?'<span class="incase">🎰 и в кейсе</span>':"")});
   B.innerHTML='<div class="gshead"><h3>🎁 Подарки Эпох</h3><p>У каждого подарка свой тираж на весь мир — номер навсегда остаётся на подарке. Ставь на витрину и дари друзьям. Подарки нельзя продать.</p><div class="row2"><button type="button" class="craftbtn" data-shelf="1">🏛 Моя витрина</button><button type="button" class="craftbtn" data-cas="1" style="background:linear-gradient(180deg,#e0c8ff,#9a5af2);color:#fff">🎰 Казино</button></div></div>'+
    '<div class="ghd">👑 VIP-статусы</div><div class="vipg">'+[1,2,3].map(t=>{const V=VIP_T[t],cur=vipTier(S)===t;return '<div class="vipc v'+t+(cur?" on":"")+'"><i>'+V.ic+'</i><b>'+V.n.replace("VIP ","")+'</b><small>'+V.days+' дней</small><ul><li>🎴 <b>'+V.sp+'</b> прокруток / 4 ч</li><li>💱 +'+V.ex+' обмен'+(V.ex===1?"":"а")+' рун</li><li>'+V.ic+' значок у ника</li></ul><button type="button" class="pr" data-vip="'+t+'">⭐ '+V.stars+'</button>'+(cur?'<em>активен ещё '+Math.ceil((S.vipUntil-NOW())/864e5)+' дн.</em>':"")+'</div>'}).join("")+'</div><p class="gnote">Обычно — '+SPINS_MAX+' прокруток каждые 4 часа. Купишь VIP, пока активен прошлый, — дни сложатся, а статус станет выше.</p>'+
    '<div class="ghd err">🖨 ОШИБКА ПЕЧАТИ</div><p class="gnote">Бракованный тираж: цвета сбились при печати. Только за звёзды, в кейсе не выпадают. Всего от 10 до 50 штук на весь мир.</p><div class="gg3">'+ERR_GIFTS.map(card).join("")+'</div>'+
    '<div class="ghd">⭐ Подарки Эпох</div><div class="gg3">'+STAR_GIFTS.map(card).join("")+'</div>'+
-   '<div class="ghd">🍀 Серия «Удача»</div><p class="gnote">Их можно купить за звёзды или выбить в кейсе в Казино. А ещё в кейсе с шансом 1 на 100 000 падает Корона Эпох.</p><div class="gg3">'+LUCK_GIFTS.map(card).join("")+'</div>'};
+   '<div class="ghd">🍀 Серия «Удача»</div><p class="gnote">Их можно купить за звёзды или выбить в кейсе в Казино. А ещё в кейсе (10 000 💠) иногда падают Свиток, Зелье, Топор, Самоцвет, Колесо, Око и даже Корона Эпох — 1 на 100 000.</p><div class="gg3">'+LUCK_GIFTS.map(card).join("")+'</div>'};
 $("gold-body").addEventListener("click",e=>{const t=e.target.closest("button");if(!t||t.disabled)return;
   if(t.dataset.vip)buyItem({item:"vip",t:+t.dataset.vip});else if(t.dataset.gk)buyItem({item:"gift",k:t.dataset.gk});else if(t.dataset.shelf)openShelf();else if(t.dataset.cas)openCas("case")});
 const _payShow=payShow;
@@ -258,16 +258,16 @@ let csTab="case",csBet=1000,csBusy=false;
 function openCas(t){if(!ONLINE){toast("Казино работает в игре через бота");return}if(t)csTab=t;campFlush();setTab("cas");renderCas()}
 function casK(){const K=S.cas||{};return K.d===new Date(Date.now()+3*3600e3).toISOString().slice(0,10)?K:{n:0,cs:0}}
 function csBal(){$("cs-ru").textContent=fmtN(campView().runes);const K=casK();$("cs-day").innerHTML="руны для игры<br>в казино"}
-const PRZ=CASE.p.map(([p,P])=>P.g?{g:P.g,c:GR_C[GIFTS[P.g].r],p}:{r:P.r,c:P.r>=1e4?"#0a84ff":P.r>=6e3?"#34c759":"#8f9bb3",p});
-const csTile=x=>x.g?'<div class="itc" style="--c:'+x.c+'">'+giftSVG(x.g,64)+'<span>'+GIFTS[x.g].n+'</span></div>':'<div class="itc" style="--c:'+x.c+'"><span style="font-size:40px">💠</span><span class="rn">+'+fmtN(x.r)+'</span></div>';
+const PRZ=CASE.p.map(([p,P])=>P.g?{g:P.g,c:GR_C[GIFTS[P.g].r],p}:P.r===0?{r:0,e:1,c:"#4a4a5a",p}:{r:P.r,c:P.r>=3e4?"#bf5af2":P.r>=15e3?"#0a84ff":P.r>=8e3?"#34c759":"#8f9bb3",p});
+const csTile=x=>x.e?'<div class="itc empty" style="--c:#4a4a5a"><span style="font-size:40px">💨</span><span class="rn">Пусто</span></div>':x.g?'<div class="itc" style="--c:'+x.c+'">'+giftSVG(x.g,64)+'<span>'+GIFTS[x.g].n+'</span></div>':'<div class="itc" style="--c:'+x.c+'"><span style="font-size:40px">💠</span><span class="rn">+'+fmtN(x.r)+'</span></div>';
 const rollPrz=()=>{let x=Math.random();for(const z of PRZ){if(x<z.p)return z;x-=z.p}return PRZ[0]};
 function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySelectorAll("#cs-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===csTab));const B=$("cs-body"),K=casK();
   const bets='<div class="cs-bets" id="cs-bets">'+[1e3,5e3,1e4,25e3,5e4].map(b=>'<button type="button" data-bet="'+b+'" aria-pressed="'+(b===csBet)+'">'+(b>=1e3?b/1e3+"K":b)+'</button>').join("")+'</div>';
   if(csTab==="case"){const prev=[];for(let i=0;i<12;i++)prev.push(PRZ[[0,3,1,0,4,2,0,5,1,3,0,6][i]]);
-    B.innerHTML='<div class="cs-box"><h3>📦 КЕЙС «УДАЧА»</h3><div class="sub">Руны, подарки серии «Удача» с тиражом — и крошечный шанс на Корону Эпох</div><div class="cs-chest">'+chestSVG("legend",150)+'</div>'+
+    B.innerHTML='<div class="cs-box"><h3>📦 КЕЙС «УДАЧА»</h3><div class="sub">Руны до 30 000, редкие подарки с тиражом, а бывает и пусто. Самый мизерный шанс — Корона Эпох</div><div class="cs-chest">'+chestSVG("legend",150)+'</div>'+
       '<div class="cs-strip" id="cs-strip"><div class="tr" id="cs-tr">'+prev.map(csTile).join("")+'</div><div class="vig"></div><div class="cs-ptr"></div></div>'+
       '<button type="button" class="cs-go" id="cs-open"'+((K.cs||0)>=CASE.day?" disabled":"")+'>'+((K.cs||0)>=CASE.day?"НА СЕГОДНЯ ВСЁ":"ОТКРЫТЬ · "+fmtN(CASE.price)+" 💠")+'</button>'+
-      '<details class="cs-odds"><summary>Шансы — всё честно</summary><table>'+PRZ.map(z=>'<tr><td>'+(z.g?"🎁 "+GIFTS[z.g].n+" ("+GR[GIFTS[z.g].r].toLowerCase()+", тираж "+GIFTS[z.g].run+")":"💠 +"+fmtN(z.r)+" рун")+'</td><td>'+(z.p*100).toLocaleString("ru",{maximumFractionDigits:3})+'%</td></tr>').join("")+'</table><p>Если тираж подарка закончился, вместо него +'+fmtN(CASE.sold)+' рун.</p></details></div>';
+      '<details class="cs-odds"><summary>Шансы — всё честно</summary><table>'+PRZ.map(z=>'<tr><td>'+(z.e?"💨 Пусто":z.g?"🎁 "+GIFTS[z.g].n+" ("+GR[GIFTS[z.g].r].toLowerCase()+", тираж "+GIFTS[z.g].run+")":"💠 +"+fmtN(z.r)+" рун")+'</td><td>'+(z.p*100).toLocaleString("ru",{maximumFractionDigits:3})+'%</td></tr>').join("")+'</table><p>Если тираж подарка закончился, вместо него +'+fmtN(CASE.sold)+' рун.</p></details></div>';
     $("cs-open").onclick=caseOpen}
   if(csTab==="slot"){B.innerHTML='<div class="cs-box"><h3>🎰 СЛОТЫ ЭПОХ</h3><div class="sub">Три в ряд — большой выигрыш. Пара — ×'+String(SLOT.pair[1]).replace(".",",")+'</div>'+
       '<div class="slm">'+[0,1,2].map(i=>'<div class="slr" id="sl'+i+'"><div class="st"><div>'+["💎","👑","⚔️"][i]+'</div></div></div>').join("")+'</div><div class="slres" id="sl-res"></div>'+bets+
@@ -286,17 +286,18 @@ function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySel
 $("cs-seg").onclick=e=>{const b=e.target.closest("[data-c]");if(!b||csBusy)return;csTab=b.dataset.c;renderCas()};
 $("cs-back").onclick=()=>{if(!csBusy)openCamp()};$("cs-entry").onclick=()=>openCas();
 async function caseOpen(){if(csBusy)return;if(campView().runes<CASE.price){toast("Нужно ещё "+fmtN(CASE.price-campView().runes)+" рун — потренируйся в лагере");return}
-  csBusy=true;$("cs-open").disabled=true;const r=await act("cas_case");if(!r){csBusy=false;renderCas();return}
-  const won=r.g?PRZ.find(z=>z.g===r.g.k):r.sold?PRZ[0]:PRZ.find(z=>z.r===r.r)||PRZ[0];const N=48,W=42,items=[];for(let i=0;i<N;i++)items.push(i===W?won:rollPrz());
+  csBusy=true;$("cs-open").disabled=true;const r=await act("cas_case");if(!r){csBusy=false;renderCas();return}csHide=r.r||0;updCash();csBal();
+  const won=r.g?PRZ.find(z=>z.g===r.g.k):r.sold?(PRZ.find(z=>z.r===CASE.sold)||PRZ[1]):PRZ.find(z=>!z.g&&z.r===r.r)||PRZ[0];const N=48,W=42,items=[];for(let i=0;i<N;i++)items.push(i===W?won:rollPrz());
   const tr=$("cs-tr"),st=$("cs-strip");tr.style.transition="none";tr.style.transform="translateX(0)";tr.innerHTML=items.map(csTile).join("");void tr.offsetWidth;
   const sw=st.getBoundingClientRect().width,tw=106,target=W*tw+50-sw/2+Math.round((Math.random()-.5)*60);
-  tr.style.transition="transform 5.6s cubic-bezier(.08,.6,.12,1)";tr.style.transform="translateX(-"+target+"px)";let last=-1;
+  tr.style.transition="transform 5.6s cubic-bezier(.08,.6,.12,1)";tr.style.transform="translateX(-"+target+"px)";csLast={html:tr.innerHTML,x:"translateX(-"+target+"px)",w:W};let last=-1;
   const tick=()=>{if(!csBusy)return;const m=new DOMMatrix(getComputedStyle(tr).transform),i=Math.floor((-m.m41+sw/2)/tw);if(i!==last){last=i;tone(900+Math.random()*200,.025,"square",.03);hap("light")}requestAnimationFrame(tick)};tick();
-  setTimeout(()=>{csBusy=false;if(r.g){wReveal(r.g,"🎁 "+GIFTS[r.g.k].n,GIFTS[r.g.k].luck?"Из кейса «Удача»!":"НЕВЕРОЯТНО! Корона Эпох из кейса!",'<button type="button" class="craftbtn" data-put="'+r.g.id+'">🏛 Поставить на витрину</button>')}
+  setTimeout(()=>{csBusy=false;csHide=0;updCash();if(r.g){wReveal(r.g,"🎁 "+GIFTS[r.g.k].n,GIFTS[r.g.k].r>=4?"НЕВЕРОЯТНО! Из кейса!":"Выпал из кейса «Удача»!",'<button type="button" class="craftbtn" data-put="'+r.g.id+'">🏛 Поставить на витрину</button>')}
+    else if(!r.r){hap("light");toast("💨 Пусто. Повезёт в следующий раз!")}
     else{sfx.coin();hapN("success");toast((r.sold?"Тираж «"+GIFTS[r.sold].n+"» закончился — ":"")+"+"+fmtN(r.r)+" рун 💠");const R=st.getBoundingClientRect();boom(R.left+R.width/2,R.top+R.height/2,won.c)}renderCas()},5900)}
 let boomFx=null;function boom(x,y,c){if(!boomFx){const cv=document.createElement("canvas");cv.style.cssText="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:250";document.body.append(cv);boomFx=wFx(cv)}boomFx.fit();boomFx.burst(x,y,60,[c,"#fff","#ffd23f","#7fe7ff"],8,.15,70,5)}
 async function slotGo(){if(csBusy)return;if(campView().runes<csBet){toast("Не хватает рун на ставку");return}csBusy=true;$("cs-slgo").disabled=true;$("sl-res").textContent="";$("sl-res").className="slres";
-  const r=await act("cas_slot",{bet:csBet});if(!r){csBusy=false;renderCas();return}const sym=SLOT.sym,res=$("sl-res");
+  const r=await act("cas_slot",{bet:csBet});if(!r){csBusy=false;renderCas();return}csHide=r.win||0;updCash();csBal();setTimeout(()=>{csHide=0;updCash()},2200);const sym=SLOT.sym,res=$("sl-res");
   [0,1,2].forEach(i=>{const el=$("sl"+i),s=el.querySelector(".st"),n=16+i*6,list=[];el.classList.remove("win");for(let k=0;k<n;k++)list.push(sym[Math.floor(Math.random()*sym.length)]);list.push(r.reels[i]);
     s.style.transition="none";s.style.transform="translateY(0)";s.innerHTML=list.map(x=>"<div>"+x+"</div>").join("");void s.offsetWidth;
     s.style.transition="transform "+(1.1+i*.45)+"s cubic-bezier(.2,.7,.2,1.04)";s.style.transform="translateY(-"+(n*110)+"px)";setTimeout(()=>{tone(300+i*120,.06,"square",.05);hap("medium")},(1.1+i*.45)*1000)});
@@ -483,7 +484,7 @@ function drawClan(){const b=$("clan-body");if(!b||$("sec-clan").hidden||!clData)
      '<div class="clform"><input id="cl-name" maxlength="16" placeholder="Название клана"><button type="button" class="craftbtn" id="cl-make">Создать · '+fmtN(CLAN.cost)+' 🪙</button></div><p class="cln">Или вступи в клан из таблицы ниже</p></div>'+top}
   else{const C=D.clan,B=D.boss,pct=Math.max(0,Math.min(100,B.dmg/B.hp*100)),inv="https://t.me/VoinyEpohBot?startapp=c_"+C.id;
     b.innerHTML='<div class="box clhead"><div class="clem">'+portrait(C.h,null)+'</div><div><h3 class="clnm0"></h3><small>'+C.members.length+'/'+CLAN.max+' участников'+(C.place?' · '+C.place+' место за неделю':"")+'</small></div></div>'+
-     '<div class="box clboss"><div class="clbh"><b>👹 '+B.name+' · ур. '+B.lvl+'</b><small>до конца недели '+clLeft(D.weekEnd-NOW())+'</small></div><div class="clbp">'+portrait(B.h,null)+'</div>'+
+     '<div class="box clboss"><div class="clbh"><b>👹 '+B.name+' · ур. '+B.lvl+'</b><small>до конца недели '+clLeft(D.weekEnd-NOW())+'</small></div>'+clBossHTML(B)+
      '<div class="clhp"><i style="width:'+(100-pct)+'%"></i><span>'+fmtN(B.hp-B.dmg)+' / '+fmtN(B.hp)+'</span></div><p class="cln">Повержено боссов на этой неделе: <b>'+B.kills+'</b> · урон клана: <b>'+fmtN(B.total)+'</b></p>'+
      '<button type="button" class="craftbtn clhit" id="cl-hit"'+(D.left<=0?" disabled":"")+'>'+(D.left>0?"⚔️ Ударить ("+D.left+" из "+CLAN.hits+" сегодня)":"Удары на сегодня закончились — завтра снова")+'</button><p class="cln">Бьют 3 твоих самых сильных воина (по атаке). Закаляй карточки — урон растёт</p></div>'+
      '<div class="box clmem"><div class="rowb"><h3>👥 Участники</h3><button type="button" class="mini2" id="cl-inv">Позвать друга</button></div>'+C.members.map((m,i)=>'<div class="clr"><i>'+(i+1)+'</i><span class="clnm"></span><b>'+fmtN(m.dmg)+'</b></div>').join("")+'<button type="button" class="ghost" id="cl-leave" style="margin-top:10px;width:100%">Выйти из клана</button></div>'+top;
@@ -510,3 +511,20 @@ function drawEras(){const sec=$("sec-album");if(!sec||sec.hidden||!S)return;let 
      (got?'<em>✅</em>':done?'<button type="button" class="mini2" data-era="'+x.k+'">Забрать</button>':'')+'</div>'}).join("");
   box.onclick=async e=>{const t=e.target.closest("[data-era]");if(!t)return;t.disabled=true;const r=await act("era_claim",{k:t.dataset.era});if(r){sfx.fanfare();burst(4);hapN("success");toast("🗺 Эпоха собрана! +"+r.sp+" прокруток и +"+fmtN(r.cash)+" монет");renderAll()}else t.disabled=false}}
 const _renderAlbum=renderAlbum;renderAlbum=function(){_renderAlbum();try{drawEras()}catch(e){}};
+
+/* кейс: после прокрутки лента остаётся на выпавшем призе, а не прыгает в начало */
+let csLast=null;
+const _renderCas4=renderCas;renderCas=function(){_renderCas4();try{if(csTab!=="case"||!csLast||csBusy)return;const tr=$("cs-tr");if(!tr)return;tr.style.transition="none";tr.innerHTML=csLast.html;tr.style.transform=csLast.x;const t=tr.children[csLast.w];if(t)t.classList.add("won")}catch(e){}};
+/* любое действие сразу обновляет руны и монеты в шапке */
+{const _act=act;act=async function(n,p){const r=await _act(n,p);try{updCash()}catch(e){}return r}}
+
+/* босс клана в стиле «Ошибка печати»: аура, RGB-сдвиг, полосы сбоя, угли. Только transform/opacity — легко даже слабым телефонам */
+function clBossHTML(B){const lite=campLite||(window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches);
+  return '<div class="clbp'+(lite?" lite":"")+'"><div class="cba"></div><div class="cbr"></div><div class="cbd">'+portrait(B.h,null)+'</div><div class="cbs"></div><div class="cbg"></div>'+
+   (lite?"":'<i class="cbe" style="--x:18%;--d:0s"></i><i class="cbe" style="--x:74%;--d:1.1s"></i><i class="cbe" style="--x:42%;--d:2.2s"></i><i class="cbe" style="--x:86%;--d:.6s"></i><i class="cbe" style="--x:30%;--d:1.7s"></i>')+
+   '<b class="cbt">ERR0R</b></div>'}
+
+/* пока лента/барабан крутятся, выигрыш не «спойлерим» в шапке: показываем баланс уже со списанием, но без приза */
+let csHide=0;
+{const _u=updCash;updCash=function(){_u();if(csHide>0)try{const v=fmtN(Math.max(0,campView().runes-csHide));$("cash-r").textContent=v;const c=$("cs-ru");if(c)c.textContent=v}catch(e){}}}
+{const _b=csBal;csBal=function(){_b();if(csHide>0)try{$("cs-ru").textContent=fmtN(Math.max(0,campView().runes-csHide))}catch(e){}}}

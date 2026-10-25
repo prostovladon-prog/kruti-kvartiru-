@@ -743,7 +743,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await buy(A, { item: "vip", t: 1 }); ok(r.ok && r.S.vipT === 2 && r.S.vipUntil > Date.now() + 36 * 864e5, "Серебро поверх Золота: дни сложились, статус остался Золото");
   // казино
   const setRunes = (uid, n) => { const u = db.prepare("SELECT state FROM users WHERE id=?").get(uid); const st = JSON.parse(u.state); st.camp = st.camp || { en: 0, at: Date.now(), lv: { pw: 0, en: 0, rg: 0, cr: 0, sq: 0 }, t: 0, hp: 100, kills: 0, total: 0, sqAt: Date.now() }; st.camp.runes = n; db.prepare("UPDATE users SET state=? WHERE id=?").run(JSON.stringify(st), uid); };
-  setRunes(A, 4999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 5 000 рун: без рун не открыть");
+  setRunes(A, 9999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 10 000 рун: без рун не открыть");
   setRunes(A, 2e6); let gifts = 0, runes = 0;
   for (let i = 0; i < 10; i++) { r = await call(A, "cas_case"); if (!r.ok) { ok(false, "кейс: " + r.err); break } if (r.res.g) gifts++; else runes += r.res.r; }
   ok(r.ok && (gifts + runes / 27e3 >= 10 || runes > 0), "10 кейсов открыто (подарков: " + gifts + ")");
