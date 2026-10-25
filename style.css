@@ -1725,3 +1725,47 @@ body.lite .cqcloud,body.lite .psshine,body.lite .psglow,body.lite .psic,body.lit
 .stch{width:100%;height:auto;background:#fbf8f0;border-radius:12px;margin:8px 0}
 .stl{margin:10px 0;background:#fbf8f0;border-radius:12px;padding:8px 10px}.stl>b{display:block;font-size:13px;margin-bottom:4px}
 .str{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px dashed rgba(0,0,0,.1);font-size:12.5px}.str span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.str i{font-style:normal;color:#5a5f80;font-size:11.5px}.str b{font-family:var(--display)}
+
+/* ===================== ПРОИЗВОДИТЕЛЬНОСТЬ =====================
+   Бесконечные анимации — только transform/opacity (их делает видеокарта, без перерисовки).
+   То, что перерисовывало экран 60 раз в секунду (фон, тени, градиенты), стало статичным или переведено на transform. */
+/* блик на карточках: двигаем слой, а не фон */
+.front.shiny .in::after,.front.holo .in::after,.front.gold .in::after{left:-150%;right:-150%;width:auto;background-size:100% 100%!important;animation:sweepT 2.6s linear infinite;will-change:transform}
+.front.shiny .in::after{background:linear-gradient(115deg,transparent 45%,rgba(255,255,255,.9) 50%,transparent 55%)}
+.front.gold .in::after{background:linear-gradient(115deg,transparent 44%,rgba(255,255,255,.95) 50%,transparent 56%);animation-duration:2s}
+.front.holo .in::after{background:linear-gradient(115deg,transparent 40%,#ff9bd0 45%,#9be7ff 50%,#fff59b 55%,transparent 60%);animation-duration:3s}
+@keyframes sweepT{from{transform:translateX(-22%)}to{transform:translateX(22%)}}
+.front.founder .in::after{animation:none}
+/* вращающиеся радужные рамки — статичные (вращение пересчитывало градиент каждый кадр) */
+.front.holo,.front.star5,.front.founder,.face.front[data-frame=rainbow]{animation:none}
+/* нижнее меню и кнопки, которые видны всегда */
+.tabs.nav7 #tab-cas,nav.tabs #tab-gold{animation:none}
+.cs-entry,.ghd.err,.clx.c1,.clx.c2,.clx.c3,#chal.secret,.vipc.v3,.gc .foil,.tl2.leg,.tl2.myth,.rare-c.myth,.buyspin.ready,.freecamp.hot,.cbbox.ready,#ar-stats button:not(:disabled),.trsh,.trader .tri.star,.trader h3,.front.star4 .art::after,.front.star5 .art::after{animation:none!important}
+.gc .foil{mix-blend-mode:normal;opacity:.12}
+/* гирлянда колеса: мигание прозрачностью вместо перекраски */
+#wf-bulbs:not(.alt):not(.win) .wb.b0{animation:wblO 1.6s ease-in-out infinite}@keyframes wblO{50%{opacity:.35}}
+/* огромные вращающиеся лучи — поменьше (меньше памяти видеокарты) */
+#wf-box::before{width:620px;height:620px;margin:-310px}
+/* мини-карточки: никаких анимаций, в т.ч. у ::before/::after */
+.minic *::before,.minic *::after{animation:none!important;mix-blend-mode:normal!important}
+.minic .xr,.minic .fx{display:none!important}
+/* приложение свёрнуто — всё на паузе */
+body.paused *,body.paused *::before,body.paused *::after{animation-play-state:paused!important}
+.face.front.holo .art::after{animation:none;background-size:100% 100%;opacity:.16;mix-blend-mode:normal}
+/* лагерь: полоски HP и энергии без бегущего градиента */
+.cp-hp i,.cp-hpb i,#sec-camp .cp-bar i{animation:none!important}
+/* «Ошибка печати» в витринах и магазине: сдвиг цветов статичный, покачивание — transform */
+.gc.err .ic{animation:wbob 2.4s ease-in-out infinite!important;filter:drop-shadow(-2px 0 rgba(255,46,99,.75)) drop-shadow(2px 0 rgba(0,229,255,.75))}
+.gc.err .bg,.gc.err *{animation-name:none}
+.gc.err .ic{animation-name:wbob!important}
+/* лавка/торговец */
+.trader .tri.star,.trader .tri.star *{animation:none!important}
+.dia{animation:none!important}
+/* витрины подарков: в сетке карточки не качаются в 3D (это самое тяжёлое), блик и лучи — только у редких */
+.gc{animation:none!important}
+.gc:not(.myth):not(.err):not(.luck) .glare,.gc:not(.myth):not(.err) .rays{animation:none!important;display:none}
+.wrev .gc,.wsheet .gc.big{animation:wtilt 6s ease-in-out infinite!important}
+.box.trader,.box.trader::before,.golem3{animation:none!important}
+.gc.myth .ic,.xsl.myth .ic{animation:wbob 2.4s ease-in-out infinite!important}
+.gc svg.gerr,.xsl svg.gerr{animation:none!important}
+.gc:not(.myth):not(.err):not(.luck) .ic{animation:none!important}

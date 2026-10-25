@@ -781,7 +781,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); ok(!q.ok && /Факелы/.test(q.err), "5 факелов в день — дальше завтра"); }
   // Слияние душ
   { let s = (await call(A, "sync")).S; const H = s.cards.find(c => !c.part && c.f < 5)?.h;
-    db.prepare("UPDATE cards SET h=?, stars=0 WHERE owner=? AND part=0 AND f<5").run(H, A); s = (await call(A, "sync")).S;
+    db.prepare("UPDATE cards SET h=?, stars=0, no=900000+id WHERE owner=? AND part=0 AND f<5").run(H, A); s = (await call(A, "sync")).S;
     const same = s.cards.filter(c => c.h === H && !c.part && !c.listed && !c.away && !c.lock && c.f < 5);
     let q = await call(A, "fuse", { id: same[0].id, ids: [same[1].id, same[2].id] }); ok(!q.ok && /нужно 1/.test(q.err), "слияние ★1: нужна ровно 1 копия");
     q = await call(A, "fuse", { id: same[0].id, ids: [same[1].id] }); ok(q.ok && q.res.stars === 1 && !q.S.cards.some(c => c.id === same[1].id), "слияние душ: копия сгорела, ★1 без уровня и монет");

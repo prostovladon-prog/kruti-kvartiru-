@@ -622,10 +622,13 @@ function fillFace(root,c){
 const MINI=new Map();let miniN=0;
 function miniSlot(c){if(MINI.size>3000)MINI.clear();const k="m"+(++miniN);MINI.set(k,c);return `<span class="minic" data-k="${k}"></span>`}
 const miniRO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(e=>{const w=e.contentRect.width;if(w)e.target.style.setProperty("--z",w/300)})):null;
+/* мини-карточки рисуются, только когда подъезжают к экрану: список из 40 карт открывается сразу, без подвисания */
+const miniIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){miniIO.unobserve(e.target);fillMini(e.target)}}),{rootMargin:"500px 0px"}):null;
+function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
+  if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)}
 function hydrate(root){if(!root||!root.querySelectorAll)return;const list=root.matches&&root.matches(".minic[data-k]")?[root]:root.querySelectorAll(".minic[data-k]");
-  list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;
-    const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
-    if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)})}
+  list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;el._mc=c;
+    if(miniIO&&!el.closest(".cqbt,.wrev,#modal"))miniIO.observe(el);else fillMini(el)})}
 new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)hydrate(n)}).observe(document.body,{childList:true,subtree:true});
 function showCard(c){fillFace(front,c);$("p-val").textContent=isCollab(c)?"БЕСЦЕННАЯ":fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
 let current=null,busy=false;
@@ -980,7 +983,7 @@ let refillAsked=0;
 function renderFree(){if(!S)return;
   if(S.refillAt&&NOW()>=S.refillAt){if(ONLINE){if(NOW()-refillAsked>10000){refillAsked=NOW();act("sync").then(()=>renderAll())}}else{refill(S,NOW());save()}}
   const bb=$("buy-go");if(bb){bb.hidden=false;const V=campView();
-    bb.innerHTML="<span class=\"cpe-ic\">🎯</span><span class=\"cpe-t\"><b>Тренировочный лагерь</b><small>⚡ "+Math.floor(V.en)+"/"+V.mx+" · 💠 "+fmtN(V.runes)+" рун"+(V.sq>0?" · 🛡 +"+fmtN(V.sq):"")+"</small></span><span class=\"cpe-go\">Тапать</span>";
+    {const h="<span class=\"cpe-ic\">🎯</span><span class=\"cpe-t\"><b>Тренировочный лагерь</b><small>⚡ "+Math.floor(V.en)+"/"+V.mx+" · 💠 "+fmtN(V.runes)+" рун"+(V.sq>0?" · 🛡 +"+fmtN(V.sq):"")+"</small></span><span class=\"cpe-go\">Тапать</span>";if(bb._h!==h){bb._h=h;bb.innerHTML=h}}
     bb.classList.toggle("ready",V.en>=V.mx*.99)}
   {const fc=$("free-camp");if(fc){const left=BUY_MAX-spinsBought(S,NOW()),pr=spinPrice(S,NOW()),ru=campView().runes;
     $("free-camp-t").textContent=left<=0?"Сегодня куплено "+BUY_MAX+" из "+BUY_MAX+" — завтра ещё, а пока тапай руны":"Купи за руны в Тренировочном лагере: следующая за "+fmtN(pr)+" 💠 (у тебя "+fmtN(ru)+"), ещё "+left+" сегодня";
@@ -2296,7 +2299,7 @@ const ONB_NEW=[
   {el:"tab-cards",t:"В «Карты» — сортировка, витрина всех видов карточек и слияние. Удачи! 🍀"}];
 let onbStep=-1,ONBS=ONB,ONBK="we-onb";
 function startOnb(){let done=null;try{done=localStorage.getItem("we-onb")}catch(e){}if(done||!S||S.cards.length)return false;ONBS=ONB;ONBK="we-onb";onbStep=0;showOnb();return true}
-function startWhatsNew(){let done=null;try{done=localStorage.getItem("we-new1")}catch(e){}if(done||!S)return false;ONBS=ONB_NEW;ONBK="we-new1";onbStep=0;showOnb();return true}
+function startWhatsNew(){return false;let done=null;try{done=localStorage.getItem("we-new1")}catch(e){}if(done||!S)return false;ONBS=ONB_NEW;ONBK="we-new1";onbStep=0;showOnb();return true}
 function onbEnd(){onbClear();onbStep=-1;try{localStorage.setItem(ONBK,"1");localStorage.setItem("we-new1","1")}catch(e){}if(ONBK==="we-onb")setTimeout(askNick,400)}
 function onbClear(){document.querySelectorAll(".onb-hl").forEach(e=>e.classList.remove("onb-hl"));const b=$("onb");if(b)b.remove()}
 function showOnb(){onbClear();const st=ONBS[onbStep];if(!st){onbEnd();return}
@@ -2326,3 +2329,6 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   if(!fromLink)setTimeout(()=>{if(!startOnb()&&!(S.cards.length&&startWhatsNew()))askNick()},600);
 })();
 
+
+/* свернули приложение — анимации на паузе, телефон не греется */
+document.addEventListener("visibilitychange",()=>{document.body.classList.toggle("paused",document.hidden)});
