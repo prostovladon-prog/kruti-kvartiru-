@@ -1769,3 +1769,12 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .gc.myth .ic,.xsl.myth .ic{animation:wbob 2.4s ease-in-out infinite!important}
 .gc svg.gerr,.xsl svg.gerr{animation:none!important}
 .gc:not(.myth):not(.err):not(.luck) .ic{animation:none!important}
+/* «Карты»: карточки чуть-чуть живые — по каждой иногда пробегает блик (только transform, по очереди) */
+#sec-col .minic .front .in::after{content:"";position:absolute;top:0;bottom:0;left:-150%;right:-150%;pointer-events:none;z-index:6;mix-blend-mode:normal!important;
+  background:linear-gradient(115deg,transparent 46%,rgba(255,255,255,.32) 50%,transparent 54%)!important;background-size:100% 100%!important;
+  animation:colSheen 6.5s ease-in-out var(--sd,0s) infinite!important;will-change:transform}
+#sec-col .minic .front.shiny .in::after,#sec-col .minic .front.gold .in::after{background:linear-gradient(115deg,transparent 44%,rgba(255,255,255,.75) 50%,transparent 56%)!important}
+#sec-col .minic .front.holo .in::after{background:linear-gradient(115deg,transparent 40%,rgba(255,155,208,.55) 45%,rgba(155,231,255,.6) 50%,rgba(255,245,155,.55) 55%,transparent 60%)!important}
+@keyframes colSheen{0%{transform:translateX(-22%)}28%,100%{transform:translateX(22%)}}
+body.lite #sec-col .minic .front .in::after{animation:none!important;display:none}
+@media (prefers-reduced-motion:reduce){#sec-col .minic .front .in::after{animation:none!important;display:none}}

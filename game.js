@@ -624,11 +624,14 @@ function miniSlot(c){if(MINI.size>3000)MINI.clear();const k="m"+(++miniN);MINI.s
 const miniRO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(e=>{const w=e.contentRect.width;if(w)e.target.style.setProperty("--z",w/300)})):null;
 /* мини-карточки рисуются, только когда подъезжают к экрану: список из 40 карт открывается сразу, без подвисания */
 const miniIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){miniIO.unobserve(e.target);fillMini(e.target)}}),{rootMargin:"500px 0px"}):null;
-function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
+function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;el.style.setProperty("--sd",(Math.random()*6.5).toFixed(2)+"s");const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
   if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)}
 function hydrate(root){if(!root||!root.querySelectorAll)return;const list=root.matches&&root.matches(".minic[data-k]")?[root]:root.querySelectorAll(".minic[data-k]");
-  list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;el._mc=c;
-    if(miniIO&&!el.closest(".cqbt,.wrev,#modal"))miniIO.observe(el);else fillMini(el)})}
+  const els=[];list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;el._mc=c;els.push(el)});
+  if(!miniIO){els.forEach(fillMini);return}
+  // то, что уже на экране (или рядом), рисуем сразу — без мигания; остальное по мере прокрутки
+  const H=innerHeight+600,near=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return true;const r=el.getBoundingClientRect();return r.width>0&&r.bottom>-600&&r.top<H});
+  els.forEach((el,i)=>{if(near[i])fillMini(el);else miniIO.observe(el)})}
 new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)hydrate(n)}).observe(document.body,{childList:true,subtree:true});
 function showCard(c){fillFace(front,c);$("p-val").textContent=isCollab(c)?"БЕСЦЕННАЯ":fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
 let current=null,busy=false;
