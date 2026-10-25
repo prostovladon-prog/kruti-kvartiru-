@@ -101,6 +101,34 @@ function giftSVG(k,s){const GE=GIFTS[k];if(GE&&GE.base){const v=Math.random().to
   `<path d="M60 8 Q96 14 98 70 Q98 110 60 112 Q22 110 22 70 Q24 14 60 8Z" fill="url(#g${u})" stroke="#3a0a02" stroke-width="2.5"/>
    ${[[44,42],[70,36],[58,62],[36,72],[82,64],[48,90],[74,90]].map(([x,y])=>`<path d="M${x-8} ${y} Q${x} ${y-10} ${x+8} ${y} Q${x} ${y+6} ${x-8} ${y}Z" fill="url(#sc${u})" stroke="#5a1a04" stroke-width="1.5"/>`).join("")}
    <path d="M30 56 l10 6 -4 8 10 4 M86 50 l-8 8 6 6 -8 6" fill="none" stroke="#fff6c8" stroke-width="2" opacity=".85"/>${hl(44,26,12,5,-30)}`,"#ff7a1a"),
+ scroll:()=>W(lg("p","#fff8e6","#f0d9a8","#c9a46a")+rg("h","#fff7c2","#e8b33a","#6a3a04")+rg("s","#ff9a9a","#d0141f","#4a0508"),
+  `<rect x="22" y="22" width="76" height="70" rx="4" fill="url(#p${u})" stroke="#5a3a10" stroke-width="2.5"/>
+   <rect x="14" y="14" width="92" height="14" rx="7" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2.5"/><rect x="14" y="86" width="92" height="14" rx="7" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2.5"/>
+   ${[40,50,60,70].map(y=>`<path d="M32 ${y} H${y%20?80:72}" stroke="#8a6a3a" stroke-width="3" stroke-linecap="round"/>`).join("")}
+   <circle cx="82" cy="94" r="10" fill="url(#s${u})" stroke="#2a0204" stroke-width="2"/><path d="M78 104 l-4 12 8 -6 8 6 -4 -12" fill="#d0141f" stroke="#2a0204" stroke-width="1.5"/>${hl(36,30,12,3,-5)}`,"#e8c27a"),
+ axe:()=>W(lg("g","#ffffff","#c9d3e6","#5d6a7e")+lg("w","#c98a4a","#7a4a20","#3a2010")+rg("h","#fff7c2","#e8b33a","#6a3a04"),
+  `<path d="M56 10 L66 10 L70 112 L52 112Z" fill="url(#w${u})" stroke="#2a1404" stroke-width="2.5"/>
+   <path d="M64 20 Q104 14 108 52 Q90 46 66 54Z" fill="url(#g${u})" stroke="#1a2030" stroke-width="2.5"/><path d="M56 20 Q16 14 12 52 Q30 46 54 54Z" fill="url(#g${u})" stroke="#1a2030" stroke-width="2.5"/>
+   <path d="M100 26 Q104 36 104 46 M20 26 Q16 36 16 46" stroke="#fff" stroke-width="2.5" opacity=".9"/><rect x="52" y="18" width="16" height="40" rx="3" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2"/>
+   <path d="M54 80 H68 M54 90 H68" stroke="#e8b33a" stroke-width="4"/>${hl(86,30,10,3,-20)}`,"#9fe8ff"),
+ gem:()=>W(lg("a","#e6fbff","#5ac8fa","#0a3a8a")+lg("b","#bff6ff","#2a7ad0","#06205a"),
+  `<path d="M30 40 L46 18 H74 L90 40 L60 106Z" fill="url(#a${u})" stroke="#06205a" stroke-width="2.5" stroke-linejoin="round"/>
+   <path d="M30 40 H90 M46 18 L54 40 L60 106 L66 40 L74 18 M54 40 L60 18 L66 40" fill="none" stroke="#06205a" stroke-width="1.8" stroke-linejoin="round"/>
+   <path d="M30 40 L60 106 L54 40Z" fill="url(#b${u})" opacity=".6"/><path d="M50 22 L56 36" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/>${hl(44,32,8,3,-50)}`,"#5ac8fa"),
+ trident:()=>W(lg("g","#e6fbff","#34c7c7","#0a5a6a")+rg("h","#fff7c2","#e8b33a","#6a3a04"),
+  `<path d="M56 40 H64 V114 H56Z" fill="url(#h${u})" stroke="#4a2a02" stroke-width="2.5"/>
+   <path d="M28 14 L34 6 L40 14 V46 Q40 52 46 52 H74 Q80 52 80 46 V14 L86 6 L92 14 V50 Q92 62 78 62 H42 Q28 62 28 50Z" fill="url(#g${u})" stroke="#063a3a" stroke-width="2.5" stroke-linejoin="round"/>
+   <path d="M54 52 V8 L60 0 L66 8 V52Z" fill="url(#g${u})" stroke="#063a3a" stroke-width="2.5" stroke-linejoin="round"/>
+   <circle cx="60" cy="72" r="6" fill="#ff2e63" stroke="#4a2a02" stroke-width="2"/>${hl(34,24,3,10,0)}${hl(58,22,2,10,0)}`,"#34c7c7"),
+ wheel:()=>W(rg("g","#fff7c2","#e8b33a","#6a3a04"),
+  `<circle cx="60" cy="60" r="50" fill="url(#g${u})" stroke="#4a2a02" stroke-width="3"/>
+   ${[...Array(8)].map((_,i)=>{const a=i*Math.PI/4,a2=a+Math.PI/4;return `<path d="M60 60 L${60+42*Math.cos(a)} ${60+42*Math.sin(a)} A42 42 0 0 1 ${60+42*Math.cos(a2)} ${60+42*Math.sin(a2)}Z" fill="${["#ff2e63","#ffd23f","#34c759","#0a84ff","#bf5af2","#ff9f0a","#5ac8fa","#ff4dd8"][i]}" stroke="#4a2a02" stroke-width="1.5"/>`}).join("")}
+   <circle cx="60" cy="60" r="10" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/><path d="M60 4 L52 18 H68Z" fill="#fff" stroke="#4a2a02" stroke-width="2"/>${hl(40,30,14,5,-40)}`,"#ffd23f"),
+ eye:()=>W(rg("g","#fff7c2","#e8b33a","#6a3a04")+rg("i","#d6ffe0","#34ffb0","#0a5a3a",.5,.5)+rg("e","#ffffff","#ffe6a0","#c98a2a"),
+  `<path d="M6 60 Q60 4 114 60 Q60 116 6 60Z" fill="url(#e${u})" stroke="#4a2a02" stroke-width="3"/>
+   <circle cx="60" cy="60" r="26" fill="url(#i${u})" stroke="#0a3a2a" stroke-width="2.5"/><ellipse cx="60" cy="60" rx="7" ry="22" fill="#0d1030"/>
+   <path d="M6 60 Q60 4 114 60" fill="none" stroke="url(#g${u})" stroke-width="7"/><path d="M6 60 Q60 116 114 60" fill="none" stroke="url(#g${u})" stroke-width="7"/>
+   <circle cx="50" cy="50" r="5" fill="#fff" opacity=".9"/>${hl(40,36,12,4,-25)}`,"#34ffb0"),
  helm:()=>W(rg("g","#fff7c2","#e8b33a","#6a3a04"),
   `<path d="M24 84 Q20 24 60 18 Q100 24 96 84 L82 84 L80 54 L40 54 L38 84Z" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/><path d="M54 54 L54 96 L66 96 L66 54" fill="url(#g${u})" stroke="#4a2a02" stroke-width="2.5"/>
    <path d="M60 18 Q64 2 82 6" fill="none" stroke="#c0262c" stroke-width="8" stroke-linecap="round"/><circle cx="60" cy="32" r="6" fill="#c0262c" stroke="#4a2a02" stroke-width="2"/>${hl(40,34,12,5,-40)}`,"#ffd23f")};
@@ -117,6 +145,8 @@ const GBG={crown:"radial-gradient(circle at 50% 36%,#fff6c8,#ffb800 30%,#c2410c 
  shield:"radial-gradient(circle at 50% 40%,#e6f4ff,#1a6ad0 42%,#06143a 80%)",cake:"radial-gradient(circle at 50% 40%,#fff0f6,#ff6aa8 40%,#3a0a24 80%)",
  horn:"radial-gradient(circle at 50% 40%,#fff3d6,#b07a2a 42%,#2a1604 80%)",lamp:"radial-gradient(circle at 50% 30%,#d6e0ff,#5a3aff 35%,#2a0a5a 62%,#0a0420)",
  hourglass:"conic-gradient(from 0deg at 50% 40%,#06243a,#7fe7ff,#0a3a6a,#fff6c8,#06243a)",egg:"radial-gradient(circle at 50% 70%,#ffd23f,#ff5a1f 32%,#7a0a04 62%,#1a0202)",
+ scroll:"radial-gradient(circle at 50% 40%,#fff8e6,#c9a46a 45%,#3a2410 80%)",axe:"radial-gradient(circle at 50% 40%,#e6f4ff,#5d6a7e 45%,#14182a 80%)",gem:"radial-gradient(circle at 50% 40%,#e6fbff,#1a6ad0 42%,#040e2a 80%)",
+ trident:"radial-gradient(circle at 50% 40%,#d6ffff,#0a8a8a 42%,#032a2a 80%)",wheel:"conic-gradient(from 0deg at 50% 40%,#ff2e63,#ffd23f,#34c759,#0a84ff,#bf5af2,#ff2e63)",eye:"radial-gradient(circle at 50% 50%,#d6ffe0,#0a8a5a 35%,#3a2a04 70%,#0a0802)",
  err:"repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 2px,transparent 2px 4px),conic-gradient(from 0deg at 50% 40%,#ff2e63,#2a0a5a,#00e5ff,#0a0420,#ff2e63)"};
 const byR=(a,b)=>GIFTS[b].r-GIFTS[a].r||GIFTS[a].run-GIFTS[b].run,STAR_GIFTS=Object.keys(GIFTS).filter(k=>!GIFTS[k].luck&&!GIFTS[k].base).sort(byR),LUCK_GIFTS=Object.keys(GIFTS).filter(k=>GIFTS[k].luck).sort(byR),ERR_GIFTS=Object.keys(GIFTS).filter(k=>GIFTS[k].base).sort(byR);
 const gNo=g=>"№ "+String(g.no).padStart(3,"0")+"/"+GIFTS[g.k].run;
@@ -151,13 +181,17 @@ renderGold=function(){_renderGold();if(goldTab!=="gifts")return;const B=$("gold-
   const buyB=k=>{const l=goldData?L[k]:null,sold=l===0;return '<button type="button" class="pr" data-gk="'+k+'"'+(sold?" disabled":"")+'>'+(sold?"раскуплено":"⭐ "+GIFTS[k].stars)+'</button>'};
   const card=k=>giftCard(k,{left:goldData?L[k]:null,btn:buyB(k)+(GIFTS[k].luck?'<span class="incase">🎰 и в кейсе</span>':"")});
   B.innerHTML='<div class="gshead"><h3>🎁 Подарки Эпох</h3><p>У каждого подарка свой тираж на весь мир — номер навсегда остаётся на подарке. Ставь на витрину и дари друзьям. Подарки нельзя продать.</p><div class="row2"><button type="button" class="craftbtn" data-shelf="1">🏛 Моя витрина</button><button type="button" class="craftbtn" data-cas="1" style="background:linear-gradient(180deg,#e0c8ff,#9a5af2);color:#fff">🎰 Казино</button></div></div>'+
+   '<div class="ghd">👑 VIP-статусы</div><div class="vipg">'+[1,2,3].map(t=>{const V=VIP_T[t],cur=vipTier(S)===t;return '<div class="vipc v'+t+(cur?" on":"")+'"><i>'+V.ic+'</i><b>'+V.n.replace("VIP ","")+'</b><small>'+V.days+' дней</small><ul><li>🎴 <b>'+V.sp+'</b> прокруток / 4 ч</li><li>💱 +'+V.ex+' обмен'+(V.ex===1?"":"а")+' рун</li><li>'+V.ic+' значок у ника</li></ul><button type="button" class="pr" data-vip="'+t+'">⭐ '+V.stars+'</button>'+(cur?'<em>активен ещё '+Math.ceil((S.vipUntil-NOW())/864e5)+' дн.</em>':"")+'</div>'}).join("")+'</div><p class="gnote">Обычно — '+SPINS_MAX+' прокруток каждые 4 часа. Купишь VIP, пока активен прошлый, — дни сложатся, а статус станет выше.</p>'+
    '<div class="ghd err">🖨 ОШИБКА ПЕЧАТИ</div><p class="gnote">Бракованный тираж: цвета сбились при печати. Только за звёзды, в кейсе не выпадают. Всего от 10 до 50 штук на весь мир.</p><div class="gg3">'+ERR_GIFTS.map(card).join("")+'</div>'+
    '<div class="ghd">⭐ Подарки Эпох</div><div class="gg3">'+STAR_GIFTS.map(card).join("")+'</div>'+
-   '<div class="ghd">🍀 Серия «Удача»</div><p class="gnote">Их можно купить за звёзды или выбить в кейсе в Казино. А ещё в кейсе с шансом 1 на 20 000 падает Корона Эпох.</p><div class="gg3">'+LUCK_GIFTS.map(card).join("")+'</div>'};
+   '<div class="ghd">🍀 Серия «Удача»</div><p class="gnote">Их можно купить за звёзды или выбить в кейсе в Казино. А ещё в кейсе с шансом 1 на 100 000 падает Корона Эпох.</p><div class="gg3">'+LUCK_GIFTS.map(card).join("")+'</div>'};
 $("gold-body").addEventListener("click",e=>{const t=e.target.closest("button");if(!t||t.disabled)return;
-  if(t.dataset.gk)buyItem({item:"gift",k:t.dataset.gk});else if(t.dataset.shelf)openShelf();else if(t.dataset.cas)openCas("case")});
+  if(t.dataset.vip)buyItem({item:"vip",t:+t.dataset.vip});else if(t.dataset.gk)buyItem({item:"gift",k:t.dataset.gk});else if(t.dataset.shelf)openShelf();else if(t.dataset.cas)openCas("case")});
 const _payShow=payShow;
-payShow=function(r){if(r&&r.status==="done"&&r.item==="gift"&&r.res&&r.res.gift){renderAll();loadGold();const g=r.res.gift;wReveal(g,"🎁 "+GIFTS[g.k].n,"Подарок твой! Поставь его на витрину или подари другу",'<button type="button" class="craftbtn" data-put="'+g.id+'">🏛 Поставить на витрину</button>');return}
+payShow=function(r){if(r&&r.status==="done"&&r.item==="gift"&&r.res&&r.res.gift&&giftFor&&Date.now()-giftFor.t<6e5){const T=giftFor,g=r.res.gift;giftFor=null;
+    act("gift_send",{id:g.id,to:T.uid}).then(x=>{if(x){sfx.fanfare();burst(4);hapN("success");toast("🎁 «"+GIFTS[g.k].n+"» "+gNo(g)+" подарен игроку "+x.name+"!");try{refreshOther()}catch(e){}}else{renderAll();toast("Подарок у тебя — подари его из своей витрины")}});return}
+  if(r&&r.status==="done"&&r.item==="gift"&&r.res&&r.res.gift){renderAll();loadGold();const g=r.res.gift;wReveal(g,"🎁 "+GIFTS[g.k].n,"Подарок твой! Поставь его на витрину или подари другу",'<button type="button" class="craftbtn" data-put="'+g.id+'">🏛 Поставить на витрину</button>');return}
+  if(r&&r.status==="done"&&r.item==="vip"){renderAll();sfx.fanfare();burst(4);hapN("success");const V=VIP_T[(r.res&&r.res.t)||1];toast(V.ic+" "+V.n+" включён! "+V.sp+" прокруток каждые 4 часа");loadGold();return}
   if(r&&r.status==="done"&&r.item==="golem"){renderAll();sfx.fanfare();hapN("success");toast("🗿 Голем в лагере! Энергия ×2 и восстанавливается в 2 раза быстрее");if(!$("sec-camp").hidden)renderCamp();return}
   return _payShow(r)};
 
@@ -198,13 +232,18 @@ function sendHelp(id){const F=friendsGet(),fr=Object.keys(F).filter(n=>/^u_\d+/.
     b=>{if(!b.dataset.fp)return false;closeModal();openParam(b.dataset.fp).then(()=>{if(id)giftTo(id)})});
   document.querySelectorAll(".wsheet [data-fp]").forEach((b,i)=>b.textContent="🏛 "+fr[i])}
 let shOther=null;
-function giftTo(id){if(!shOther)return;const F=shOther,gs=(S.gifts||[]);if(!gs.length){toast("У тебя пока нет подарков. Купи в Сокровищнице 🎁");return}
+let giftFor=null;
+function giftBuyFor(F){const L=(goldData&&goldData.gleft)||{};const ks=Object.keys(GIFTS).filter(k=>GIFTS[k].stars&&L[k]!==0).sort((a,b)=>GIFTS[a].stars-GIFTS[b].stars);
+  wSheet('<h3>🎁 Купить подарок для <span class="wto"></span></h3><p style="font-size:13px;margin:0 0 8px">Выбери подарок — после оплаты он сразу уйдёт игроку, а бот ему напишет</p><div class="winv">'+ks.map(k=>'<button type="button" style="--g:'+GIFTS[k].g+'" data-bk="'+k+'">'+giftSVG(k,52)+'<span>⭐ '+GIFTS[k].stars+'</span></button>').join("")+'</div>',
+    b=>{if(!b.dataset.bk)return false;giftFor={uid:F.uid,name:F.name,t:Date.now()};buyItem({item:"gift",k:b.dataset.bk})});
+  document.querySelector(".wsheet .wto").textContent=F.name}
+function giftTo(id){if(!shOther)return;const F=shOther,gs=(S.gifts||[]);if(!gs.length){giftBuyFor(F);return}
   const pickOne=gid=>{const g=gs.find(x=>x.id===gid),G=GIFTS[g.k];
     wSheet('<div style="display:flex;justify-content:center">'+giftSVG(g.k,96)+'</div><h3 style="text-align:center">Подарить «'+G.n+'» '+gNo(g)+'?</h3><p style="text-align:center;font-size:13px;margin:0 0 10px">Игрок: <b class="wto"></b>. Вернуть подарок будет нельзя.</p><button type="button" class="craftbtn" data-ok="1">🎁 Подарить</button>',
       b=>{if(!b.dataset.ok)return false;act("gift_send",{id:gid,to:F.uid}).then(r=>{if(r){sfx.fanfare();hapN("success");toast("🎁 Подарок отправлен игроку "+r.name+"!");refreshOther()}})});
     document.querySelector(".wsheet .wto").textContent=F.name};
   if(id)return pickOne(id);
-  wSheet('<h3>Что подарить?</h3><div class="winv">'+gs.map(g=>'<button type="button" style="--g:'+GIFTS[g.k].g+'" data-pick="'+g.id+'">'+giftSVG(g.k,52)+'<span>'+gNo(g)+'</span></button>').join("")+'</div>',b=>{if(!b.dataset.pick)return false;setTimeout(()=>pickOne(+b.dataset.pick),50)})}
+  wSheet('<h3>Что подарить?</h3><div class="winv">'+gs.map(g=>'<button type="button" style="--g:'+GIFTS[g.k].g+'" data-pick="'+g.id+'">'+giftSVG(g.k,52)+'<span>'+gNo(g)+'</span></button>').join("")+'</div><button type="button" class="craftbtn" data-newg="1" style="margin-top:10px">⭐ Купить новый подарок для него</button>',b=>{if(b.dataset.newg){setTimeout(()=>giftBuyFor(F),50);return}if(!b.dataset.pick)return false;setTimeout(()=>pickOne(+b.dataset.pick),50)})}
 async function refreshOther(){if(!shOther)return;const r=await act("profile",{uid:shOther.uid});if(r&&!$("modal").hidden)openShowcase(Object.assign(r,{p:shOther.p}))}
 const _openShowcase=openShowcase;
 openShowcase=function(F){_openShowcase(F);if(!F||F.shelf==null)return;shOther=F;const sh=$("msheet"),who=sh.querySelector(".who");
@@ -218,8 +257,8 @@ openShowcase=function(F){_openShowcase(F);if(!F||F.shelf==null)return;shOther=F;
 let csTab="case",csBet=1000,csBusy=false;
 function openCas(t){if(!ONLINE){toast("Казино работает в игре через бота");return}if(t)csTab=t;campFlush();setTab("cas");renderCas()}
 function casK(){const K=S.cas||{};return K.d===new Date(Date.now()+3*3600e3).toISOString().slice(0,10)?K:{n:0,cs:0}}
-function csBal(){$("cs-ru").textContent=fmtN(campView().runes);const K=casK();$("cs-day").innerHTML="игр сегодня <b>"+(K.n||0)+"/"+CAS_DAY+"</b><br>кейсов <b>"+(K.cs||0)+"/"+CASE.day+"</b>"}
-const PRZ=CASE.p.map(([p,P])=>P.g?{g:P.g,c:GR_C[GIFTS[P.g].r],p}:{r:P.r,c:P.r>=1e5?"#0a84ff":P.r>=6e4?"#34c759":"#8f9bb3",p});
+function csBal(){$("cs-ru").textContent=fmtN(campView().runes);const K=casK();$("cs-day").innerHTML="руны для игры<br>в казино"}
+const PRZ=CASE.p.map(([p,P])=>P.g?{g:P.g,c:GR_C[GIFTS[P.g].r],p}:{r:P.r,c:P.r>=1e4?"#0a84ff":P.r>=6e3?"#34c759":"#8f9bb3",p});
 const csTile=x=>x.g?'<div class="itc" style="--c:'+x.c+'">'+giftSVG(x.g,64)+'<span>'+GIFTS[x.g].n+'</span></div>':'<div class="itc" style="--c:'+x.c+'"><span style="font-size:40px">💠</span><span class="rn">+'+fmtN(x.r)+'</span></div>';
 const rollPrz=()=>{let x=Math.random();for(const z of PRZ){if(x<z.p)return z;x-=z.p}return PRZ[0]};
 function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySelectorAll("#cs-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===csTab));const B=$("cs-body"),K=casK();
@@ -227,7 +266,7 @@ function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySel
   if(csTab==="case"){const prev=[];for(let i=0;i<12;i++)prev.push(PRZ[[0,3,1,0,4,2,0,5,1,3,0,6][i]]);
     B.innerHTML='<div class="cs-box"><h3>📦 КЕЙС «УДАЧА»</h3><div class="sub">Руны, подарки серии «Удача» с тиражом — и крошечный шанс на Корону Эпох</div><div class="cs-chest">'+chestSVG("legend",150)+'</div>'+
       '<div class="cs-strip" id="cs-strip"><div class="tr" id="cs-tr">'+prev.map(csTile).join("")+'</div><div class="vig"></div><div class="cs-ptr"></div></div>'+
-      '<button type="button" class="cs-go" id="cs-open"'+((K.cs||0)>=CASE.day?" disabled":"")+'>'+((K.cs||0)>=CASE.day?"НА СЕГОДНЯ ВСЁ":"ОТКРЫТЬ · "+fmtN(CASE.price)+" 💠")+'</button><div class="cs-lim">сегодня открыто '+(K.cs||0)+' из '+CASE.day+'</div>'+
+      '<button type="button" class="cs-go" id="cs-open"'+((K.cs||0)>=CASE.day?" disabled":"")+'>'+((K.cs||0)>=CASE.day?"НА СЕГОДНЯ ВСЁ":"ОТКРЫТЬ · "+fmtN(CASE.price)+" 💠")+'</button>'+
       '<details class="cs-odds"><summary>Шансы — всё честно</summary><table>'+PRZ.map(z=>'<tr><td>'+(z.g?"🎁 "+GIFTS[z.g].n+" ("+GR[GIFTS[z.g].r].toLowerCase()+", тираж "+GIFTS[z.g].run+")":"💠 +"+fmtN(z.r)+" рун")+'</td><td>'+(z.p*100).toLocaleString("ru",{maximumFractionDigits:3})+'%</td></tr>').join("")+'</table><p>Если тираж подарка закончился, вместо него +'+fmtN(CASE.sold)+' рун.</p></details></div>';
     $("cs-open").onclick=caseOpen}
   if(csTab==="slot"){B.innerHTML='<div class="cs-box"><h3>🎰 СЛОТЫ ЭПОХ</h3><div class="sub">Три в ряд — большой выигрыш. Пара — ×'+String(SLOT.pair[1]).replace(".",",")+'</div>'+

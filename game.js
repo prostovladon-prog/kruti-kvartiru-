@@ -1123,7 +1123,7 @@ function renderPromo(){if(!S)return;const P=S.promo,box=$("promo");
   if(on){$("promo-left").textContent=tleft(P.end-NOW());const h=Math.min(P.have,P.need);
     $("promo-t").innerHTML="";$("promo-t").textContent="Пригласи "+P.need+" друзей, пока идёт таймер, и получи 👑 VIP на 7 дней: "+VIP_SPINS+" прокруток вместо "+SPINS_MAX+", значок VIP в топе и чате и золотое оформление. У тебя "+h+" из "+P.need;
     $("promo-bar").style.width=h/P.need*100+"%"}
-  const vb=$("vipbox");vb.hidden=!isVip();if(isVip())$("vip-t").textContent="ещё "+Math.ceil((S.vipUntil-NOW())/864e5)+" дн. · "+VIP_SPINS+" прокруток каждые 4 часа";
+  const vb=$("vipbox");vb.hidden=!isVip();if(isVip()){const V=VIP_T[vipTier(S)];$("vip-t").textContent=V.n+" · ещё "+Math.ceil((S.vipUntil-NOW())/864e5)+" дн. · "+V.sp+" прокруток каждые 4 часа"}
   document.body.classList.toggle("vip",isVip())}
 $("promo-go").onclick=()=>$("ref-go").click();
 setInterval(renderFree,1000);
@@ -1600,7 +1600,7 @@ function enablePm(){if(!canPmAsk())return;try{tg.requestWriteAccess(ok=>{if(ok){
 $("pm-go").onclick=enablePm;
 function askPm(){if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{asked=localStorage.getItem("we-pm-ask")}catch(e){}if(asked)return;try{localStorage.setItem("we-pm-ask","1")}catch(e){}
   const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  sh.innerHTML='<div class="box nickbox"><h3>🔔 Напомнить о прокрутках?</h3><p>Новые 3 прокрутки будут через 4 часа. Бот напишет, когда они будут готовы, а ещё если кто-то нападёт на твоих воинов или купит твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pm-yes">Да, напоминать</button><button type="button" class="ghost" id="pm-no">Не надо</button></div>';
+  sh.innerHTML='<div class="box nickbox"><h3>🔔 Напомнить о прокрутках?</h3><p>Новые '+SPINS_MAX+' прокруток будут через 4 часа. Бот напишет, когда они будут готовы, а ещё если кто-то нападёт на твоих воинов или купит твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pm-yes">Да, напоминать</button><button type="button" class="ghost" id="pm-no">Не надо</button></div>';
   $("pm-yes").onclick=()=>{closeModal();enablePm()};$("pm-no").onclick=closeModal}
 
 /* ---------- подсказка про закалку ---------- */
@@ -1798,7 +1798,11 @@ function drawAuc(){const box=$("auc-box"),bn=$("auc-go");if(!box)return;const A=
   const bt=B.querySelector(".aucbt");
   if(A.phase==="soon"){const b=document.createElement("button");b.type="button";b.className="ghost";b.disabled=true;b.textContent="🔒 Ставки откроются в 8:00";bt.appendChild(b)}
   if(A.phase==="on"&&!A.mine){[[1,""],[1.2,"+20%"]].forEach(([m,l])=>{const amt=Math.ceil(A.next*m),b=document.createElement("button");b.type="button";b.className=m===1?"craftbtn":"ghost";b.textContent=(l?l+" · ":"Ставка ")+fmtC(amt);
-      b.onclick=async()=>{if(S.cash<amt){toast("Не хватает "+fmt(amt-S.cash));return}b.disabled=true;const r=await act("auc_bid",{amt});b.disabled=false;if(r){auc=r;aucAt=NOW();sfx.coin();hapN("success");renderAll()}else loadAuc(true);drawAuc()};bt.appendChild(b)})}}
+      b.onclick=async()=>{if(S.cash<amt){toast("Не хватает "+fmt(amt-S.cash));return}b.disabled=true;const r=await act("auc_bid",{amt});b.disabled=false;if(r){auc=r;aucAt=NOW();sfx.coin();hapN("success");renderAll()}else loadAuc(true);drawAuc()};bt.appendChild(b)});
+    const own=document.createElement("div");own.className="aucown";own.innerHTML='<input type="number" inputmode="numeric" placeholder="сумма" min="'+Math.ceil(A.next)+'"><button type="button" class="mini2">Поставить</button>';
+    const inp=own.querySelector("input"),ob=own.querySelector("button");
+    ob.onclick=async()=>{const amt=Math.floor(+inp.value||0);if(amt<Math.ceil(A.next)){toast("Минимальная ставка "+fmt(Math.ceil(A.next)));return}if(S.cash<amt){toast("Не хватает "+fmt(amt-S.cash));return}
+      ob.disabled=true;const r=await act("auc_bid",{amt});ob.disabled=false;if(r){auc=r;aucAt=NOW();sfx.coin();hapN("success");renderAll()}else loadAuc(true);drawAuc()};bt.appendChild(own)}}
 setInterval(()=>{if(!ONLINE||!S)return;if(auc&&auc.phase!=="done"&&aucLeft()<=0)loadAuc(true);else if(auc)drawAuc()
   if(auc&&auc.phase==="on"&&NOW()-aucAt>4000&&(!$("sec-shop").hidden||!$("sec-spin").hidden))loadAuc(true)},1000);
 setTimeout(()=>{try{loadAuc(true)}catch(e){}},3000);
@@ -2249,7 +2253,7 @@ function openSupport(kind){const id=S&&S.uid?S.uid:"—",info="ID: "+id+(S&&S.ni
   toast("Твой ID скопирован — вставь его в сообщение");const u="https://t.me/"+SUPPORT;
   setTimeout(()=>{if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank")},700)}
 function openHelp(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  const Q=[["Как получить прокрутки?","3 бесплатные каждые 4 часа (VIP — 5), +1 за серию входов, задания дня, +10 за подписку на канал, +10 за историю, +10 за каждого друга по твоей ссылке и до 5 в день за руны в Тренировочном лагере."],["Что такое Тренировочный лагерь?","Игра в игре: тапай по мишени, каждый удар тратит ⚡ энергию и приносит 💠 руны. Энергия восстанавливается сама, бот напомнит, когда она полная. За руны прокачивай силу удара, энергию, крит и оруженосца, открывай мишени сильнее (до Дракона) и покупай прокрутки. Разбил мишень — получи сундук рун. Тренирует твой самый редкий воин: редкий даёт +10% рун, эпический +25%, легендарный +50%, мифический +100%."],
+  const Q=[["Как получить прокрутки?","10 бесплатных каждые 4 часа (VIP — 13–20), +1 за серию входов, задания дня, +10 за подписку на канал, +10 за историю, +10 за каждого друга по твоей ссылке и до 5 в день за руны в Тренировочном лагере."],["Что такое Тренировочный лагерь?","Игра в игре: тапай по мишени, каждый удар тратит ⚡ энергию и приносит 💠 руны. Энергия восстанавливается сама, бот напомнит, когда она полная. За руны прокачивай силу удара, энергию, крит и оруженосца, открывай мишени сильнее (до Дракона) и покупай прокрутки. Разбил мишень — получи сундук рун. Тренирует твой самый редкий воин: редкий даёт +10% рун, эпический +25%, легендарный +50%, мифический +100%."],
    ["От чего зависит цена карточки?","От редкости воина, отделки (блестящая, голограмма, золото, ошибка печати), красивого номера (777 777, 000 001) и закалки ★."],
    ["Как усилить воина?","Бои, походы и босс дают опыт. С уровнем открывается закалка ★1–★5 во вкладке «Мои» — нажми на карточку."],
    ["Как сражаться с живыми игроками?","«Бой» → «⚡ Арена». Создай бой или прими чужой. Можно позвать друга по ссылке и биться вживую."],
@@ -2266,7 +2270,7 @@ $("help-go").onclick=openHelp;
 const ONB=[
   {el:"open",t:"Привет, воин! ⚔️ Жми «Открыть» или тапни по карточке — выпадет случайный воин. На старте у тебя 5 бесплатных прокруток.",wait:true},
   {el:"stage",t:"Цена карточки зависит от редкости воина, отделки (блестящая, голограмма, золото, ошибка печати) и номера. Красивые номера вроде 777 777 стоят в разы дороже."},
-  {el:"free-box",t:"Каждые 4 часа — 3 бесплатные прокрутки. Ещё: +10 за подписку на канал и +10 за каждого друга."},
+  {el:"free-box",t:"Каждые 4 часа — 10 бесплатных прокруток. Ещё: +10 за подписку на канал и +10 за каждого друга."},
   {el:"tab-fight",t:"⚔️ Бой и 🎯 Лагерь — тапай по мишени, копи руны 💠, прокачивайся и покупай за руны прокрутки."},
   {el:"cash-box",t:"Сверху твои деньги 🪙 и руны 💠."},
   {el:"rare-box",t:"💎 А вот за кем охотиться: самые редкие воины и шанс их выбить."},

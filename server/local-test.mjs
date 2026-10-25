@@ -57,28 +57,28 @@ const ok = (cond, msg) => { console.log((cond ? "✓ " : "✗ ") + msg); if (!co
 
 /* --- первопроходцы: первые 100 игроков --- */
 {
-  let r = await call(9000, "sync"); ok(r.S.pioneer >= 1 && r.S.spins === 25 && r.S.pioneerNew === true, "первопроходец №" + r.S.pioneer + ": +20 прокруток (" + r.S.spins + ")");
-  r = await call(9000, "sync"); ok(r.S.pioneerNew === false && r.S.spins === 25, "награда первопроходца выдаётся один раз");
+  let r = await call(9000, "sync"); ok(r.S.pioneer >= 1 && r.S.spins === 32 && r.S.pioneerNew === true, "первопроходец №" + r.S.pioneer + ": +20 прокруток (" + r.S.spins + ")");
+  r = await call(9000, "sync"); ok(r.S.pioneerNew === false && r.S.spins === 32, "награда первопроходца выдаётся один раз");
   r = await call(9000, "open"); const pc = r.res.card;
   r = await call(9000, "frame", { id: pc.id, frame: "pioneer" }); ok(r.ok && r.S.cards.find(c => c.id === pc.id).frame === "pioneer", "рамка «Первопроходец» бесплатно надета");
   const used = db.prepare("SELECT MAX(pioneer) m FROM users").get().m;
   for (let i = used + 1; i <= 100; i++) db.prepare("INSERT INTO users(id,name,cash,state,ver,pioneer) VALUES(?,?,0,'{}',0,?)").run(100000 + i, "dummy", i);
-  r = await call(9001, "sync"); ok(!r.S.pioneer && r.S.spins === 5 && r.S.pioneersLeft === 0, "101-й игрок уже не первопроходец, мест осталось " + r.S.pioneersLeft);
+  r = await call(9001, "sync"); ok(!r.S.pioneer && r.S.spins === 12 && r.S.pioneersLeft === 0, "101-й игрок уже не первопроходец, мест осталось " + r.S.pioneersLeft);
   r = await call(9001, "open"); r = await call(9001, "frame", { id: r.res.card.id, frame: "pioneer" }); ok(!r.ok && /первых 100/.test(r.err), "рамку первопроходца другим не надеть: " + r.err);
   r = await call(9001, "profile", { uid: 9000 }); ok(r.res.pi >= 1, "значок первопроходца виден в витрине");
 }
 
 /* --- игрок A открывает карточки --- */
 let r = await call(1, "sync");
-ok(r.ok && r.S.spins === 5 && r.S.cash === 100, "новый игрок: 5 прокруток и $100");
-for (let i = 0; i < 5; i++) r = await call(1, "open");
-ok(r.ok && r.S.cards.length === 5 && r.S.spins === 0, "5 открытий, прокрутки закончились");
+ok(r.ok && r.S.spins === 12 && r.S.cash === 100, "новый игрок: 12 прокруток и 100 монет");
+for (let i = 0; i < 12; i++) r = await call(1, "open");
+ok(r.ok && r.S.cards.length === 12 && r.S.spins === 0, "12 открытий, прокрутки закончились");
 r = await call(1, "open"); ok(!r.ok && /закончились/.test(r.err), "без прокруток открыть нельзя: " + r.err);
 for (let i = 0; i < 4; i++) await call(1, "topup");
 const par = await Promise.all(Array.from({ length: 6 }, () => call(1, "open")));
 r = await call(1, "sync");
 const okN = par.filter(x => x.ok).length;
-ok(r.S.cards.length === 5 + okN && r.S.spins === 12 - okN, "6 открытий одновременно: прошло " + okN + ", ни одно не задвоилось (" + r.S.cards.length + " карточек, " + r.S.spins + " прокруток)");
+ok(r.S.cards.length === 12 + okN && r.S.spins === 12 - okN, "6 открытий одновременно: прошло " + okN + ", ни одно не задвоилось (" + r.S.cards.length + " карточек, " + r.S.spins + " прокруток)");
 const sns = db.prepare("SELECT COUNT(*) n, COUNT(DISTINCT sn) d FROM cards").get();
 ok(sns.n === sns.d, "все номера уникальны (" + sns.n + ")");
 
@@ -358,7 +358,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   // VIP получает 5 прокруток при пополнении
   db.prepare("UPDATE users SET gift_spins=0 WHERE id=9500").run();
   const st = JSON.parse(db.prepare("SELECT state FROM users WHERE id=9500").get().state); st.spins = 0; st.refillAt = Date.now() - 1; db.prepare("UPDATE users SET state=? WHERE id=9500").run(JSON.stringify(st));
-  r = await ca(9500, "open"); ok(r.ok && r.S.spins === 4, "VIP: пополнение до 5 прокруток (после открытия осталось " + r.S.spins + ")");
+  r = await ca(9500, "open"); ok(r.ok && r.S.spins === 12, "VIP: пополнение до 13 прокруток (после открытия осталось " + r.S.spins + ")");
   r = await ca(9500, "top", { kind: "worth" }); const me = r.res.items.find(x => x.uid === 9500); ok(me && me.vip === 1, "в топе отмечен VIP");
   // рассылка порциями
   for (let i = 0; i < 45; i++) db.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,pm) VALUES(?,?,0,'{}',0,1)").run(200000 + i, "b");
@@ -726,22 +726,24 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await call(A, "gift_top"); ok(r.ok && r.res.top[0].uid === B && r.res.left.crown === 98, "топ витрин и остаток тиража");
   r = await buy(A, { item: "gift", k: "cup" }); ok(r.ok && r.res.res.gift.k === "cup", "подарок из кейса теперь можно купить и за звёзды");
   r = await buy(A, { item: "gift", k: "crown_x" }); ok(r.ok && r.res.res.gift.no === 1, "ошибка печати: Корона № 1 из 10");
+  r = await buy(A, { item: "vip", t: 2 }); ok(r.ok && r.res.res.t === 2 && r.S.vipT === 2 && r.S.vipUntil > Date.now() + 29 * 864e5, "VIP Золото куплен на 30 дней");
+  r = await buy(A, { item: "vip", t: 1 }); ok(r.ok && r.S.vipT === 2 && r.S.vipUntil > Date.now() + 36 * 864e5, "Серебро поверх Золота: дни сложились, статус остался Золото");
   // казино
   const setRunes = (uid, n) => { const u = db.prepare("SELECT state FROM users WHERE id=?").get(uid); const st = JSON.parse(u.state); st.camp = st.camp || { en: 0, at: Date.now(), lv: { pw: 0, en: 0, rg: 0, cr: 0, sq: 0 }, t: 0, hp: 100, kills: 0, total: 0, sqAt: Date.now() }; st.camp.runes = n; db.prepare("UPDATE users SET state=? WHERE id=?").run(JSON.stringify(st), uid); };
-  setRunes(A, 44999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 45 000 рун: без рун не открыть");
+  setRunes(A, 4999); r = await call(A, "cas_case"); ok(!r.ok && /Не хватает/.test(r.err), "кейс за 5 000 рун: без рун не открыть");
   setRunes(A, 2e6); let gifts = 0, runes = 0;
   for (let i = 0; i < 10; i++) { r = await call(A, "cas_case"); if (!r.ok) { ok(false, "кейс: " + r.err); break } if (r.res.g) gifts++; else runes += r.res.r; }
   ok(r.ok && (gifts + runes / 27e3 >= 10 || runes > 0), "10 кейсов открыто (подарков: " + gifts + ")");
   r = await call(A, "cas_slot", { bet: 1000 }); ok(r.ok, "слот сыгран");
-  db.prepare("UPDATE users SET cash=1000000 WHERE id=?").run(A);
+  db.prepare("UPDATE users SET cash=1000000,vip_until=0 WHERE id=?").run(A);
   { let q = await call(A, "ex_runes", {}); ok(q.ok && q.res.n === 10000 && q.res.r === 10000 && q.res.next === 19800, "обмен: 1-й пакет 10 000 рун за 1% (10 000 из 1 млн)");
-    for (let i = 0; i < 4; i++) q = await call(A, "ex_runes", {}); ok(q.ok && q.res.k === 5, "5 пакетов за день");
-    q = await call(A, "ex_runes", {}); ok(!q.ok && /пакетов/.test(q.err), "лимит 5 пакетов в день");
+    for (let i = 0; i < 9; i++) q = await call(A, "ex_runes", {}); ok(q.ok && q.res.k === 10, "10 пакетов за день");
+    q = await call(A, "ex_runes", {}); ok(!q.ok && /пакетов/.test(q.err), "лимит 10 пакетов в день");
     db.prepare("UPDATE users SET cash=500 WHERE id=?").run(B); q = await call(B, "ex_runes", {}); ok(!q.ok && /Не хватает/.test(q.err), "бедному — минимум 1 000 монет"); }
   r = await call(A, "cas_feed"); ok(r.ok && Array.isArray(r.res), "лента казино доступна всем");
   r = await call(A, "cas_stats"); ok(!r.ok, "статистика казино — только админу");
   { const n = db.prepare("SELECT COUNT(*) n FROM cas_log WHERE uid=?").get(A).n; ok(n === 11, "журнал казино: 10 кейсов + 1 слот (" + n + ")"); }
-  r = await call(A, "cas_case"); ok(!r.ok && /10 кейсов/.test(r.err), "не больше 10 кейсов в день");
+  r = await call(A, "cas_case"); ok(r.ok, "кейсы без дневного лимита");
   r = await call(A, "cas_comp"); ok(!r.ok, "компенсацию напрямую не вызвать");
   r = await call(A, "cas_slot", { bet: 500 }); ok(!r.ok && /Ставка от/.test(r.err), "слоты: ставка от 1 000");
   const s0 = (await call(A, "sync")).S.camp.runes; r = await call(A, "cas_slot", { bet: 1000 });

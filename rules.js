@@ -2,7 +2,7 @@
    Этот файл работает и в браузере (локальный режим), и на сервере (Cloudflare Worker).
    Здесь нет ничего про интерфейс: только данные игры и действия, которые меняют состояние игрока. */
 
-const CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=3, PITY=30, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
+const CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 const HT=[{k:"Обычный",c:"#8f9bb3",b:[1,3]},{k:"Редкий",c:"#34c759",b:[4,9]},{k:"Эпический",c:"#0a84ff",b:[15,30]},{k:"Легендарный",c:"#bf5af2",b:[60,120]},{k:"Мифический",c:"#ff9f0a",b:[300,500]}];
 const HEROES=[
@@ -65,16 +65,16 @@ const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one), O
 const HALF_RUN=300, HALF_P={drop:.0035,right:.15,err:.004}, PART_K=["","Левая ½","Правая ½"];
 const notHalf=(c,m)=>{if(c.part)fail(m||"Половинка не может это делать. Собери из двух половинок целого воина в Сокровищнице");return c};
 const FIN=[
- {k:"Обычная",cls:"",w:78,m:1,run:Infinity,col:"#ffffff"},
- {k:"Блестящая",cls:"shiny",w:16,m:4,run:1000,col:"#b8c2d8"},
- {k:"Голограмма",cls:"holo",w:5,m:15,run:100,col:"#c56bff"},
- {k:"Золотая",cls:"gold",w:.9,m:80,run:10,col:"#ffcc33"},
- {k:"Ошибка печати",cls:"error",w:.1,m:600,run:1,col:"#ff2e63"},
+ {k:"Обычная",cls:"",w:83,m:1,run:Infinity,col:"#ffffff"},
+ {k:"Блестящая",cls:"shiny",w:12.5,m:4,run:1000,col:"#b8c2d8"},
+ {k:"Голограмма",cls:"holo",w:3.6,m:15,run:100,col:"#c56bff"},
+ {k:"Золотая",cls:"gold",w:.65,m:80,run:10,col:"#ffcc33"},
+ {k:"Ошибка печати",cls:"error",w:.07,m:600,run:1,col:"#ff2e63"},
  {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1},
  {k:"Бесценная",cls:"collab",w:0,m:0,run:1,col:"#00e5ff",excl:1,collab:1}];   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
-const HW=[10,4.5,1.6,.35,.06];          // вес выпадения воина по его редкости
+const HW=[10,4.5,1.15,.25,.045];   // при 10 прокрутках раз в 4 часа редкие выпадают чуть реже          // вес выпадения воина по его редкости
 
 /* ---------- номера карточек: 6 цифр, уникальны на всю игру ---------- */
 const NICE=[
@@ -319,8 +319,10 @@ function freshState(){return {cash:START_CASH,spins:SPINS_MAX+2,refillAt:null,pi
 function day(st,now){if(!st.day||st.day.d!==today(now))st.day={d:today(now),opened:0,wins:0,crafts:0,got:[]};return st.day}
 function boss(st,now){if(!st.boss||st.boss.w!==weekKey(now))st.boss={w:weekKey(now),dmg:0,got:[],day:"",hits:0,extra:0,squad:[]};if(st.boss.day!==today(now)){st.boss.day=today(now);st.boss.hits=0;st.boss.extra=0}return st.boss}
 /* сколько прокруток даётся раз в 4 часа: VIP получает 5 (сервер ставит st.vipUntil) */
-const VIP_SPINS=5;
-const spinCap=st=>(st.vipUntil||0)>Date.now()?VIP_SPINS:SPINS_MAX;
+/* VIP-статусы за звёзды: больше прокруток каждые 4 часа и больше пакетов обмена рун. Обычный VIP из акций = Серебро */
+const VIP_T=[null,{k:"silver",n:"VIP Серебро",ic:"🥈",sp:13,ex:1,stars:99,days:7},{k:"gold",n:"VIP Золото",ic:"👑",sp:16,ex:3,stars:299,days:30},{k:"diamond",n:"VIP Алмаз",ic:"💎",sp:20,ex:6,stars:699,days:30}];
+const VIP_SPINS=13, vipOn=st=>(st.vipUntil||0)>Date.now(), vipTier=st=>vipOn(st)?Math.max(1,Math.min(3,st.vipT||1)):0;
+const spinCap=st=>vipOn(st)?VIP_T[vipTier(st)].sp:SPINS_MAX;
 function refill(st,now){const cap=spinCap(st);if(st.spins==null)st.spins=cap;if(st.refillAt&&now>=st.refillAt){st.spins=Math.max(st.spins,cap);st.refillAt=null}}
 function checkStreak(st,now){const t=today(now);if(st.streak&&st.streak.last===t)return;const n=st.streak&&st.streak.last===yday(now)?st.streak.n%7+1:1;st.streak={last:t,n,claimed:false}}
 function touch(st,now){refill(st,now);checkStreak(st,now);day(st,now);boss(st,now);st.ach=st.ach||{};st.doneCh=st.doneCh||{}}
@@ -368,7 +370,7 @@ function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>i<NB
 /* легенда 1 из 1 (Тор и др.): только «Ошибка печати», свой номер. null — если все уже у игроков */
 function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1);if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
   const c=makeCard(ctx,h,4),want=HEROES[h][4].sn;if(want&&ctx.snFree(want)){ctx.takeSn(want);c.sn=want;c.v=priceOf(h,4,1,want,false)}return c}
-const ONE_P={legend:.005,mythic:.02}, DON_P={legend:.04}, SPIN_P={don:.0003,one:.00001};   // в прокрутке: богатырь 0,03% (каждый 0,01%), легенда 1 из 1 — 0,001%
+const ONE_P={legend:.005,mythic:.02}, DON_P={legend:.04}, SPIN_P={don:.0002,one:.000007};   // в прокрутке: богатырь 0,03% (каждый 0,01%), легенда 1 из 1 — 0,001%
 /* ---------- Сокровищница: покупки за Telegram Stars ----------
    Лимита на человека нет: редкость держится общим тиражом (300 правых половинок на воина, 30 мифических сундуков в месяц на всю игру).
    Отделки и номера в сундуках выпадают с обычными шансами, ничего не подкручено. */
@@ -451,6 +453,13 @@ const GIFTS={
  crown:{n:"Корона Эпох",r:4,run:100,stars:250,g:"#ffb800"},
  egg:{n:"Яйцо дракона",r:4,run:100,stars:250,g:"#ff7a1a"},
  cup:{n:"Кубок Фортуны",r:4,run:30,stars:250,luck:1,g:"#ffd23f"},
+ scroll:{n:"Свиток мудрости",r:0,run:5000,stars:15,g:"#e8c27a"},
+ axe:{n:"Боевой топор",r:1,run:2000,stars:25,g:"#9fe8ff"},
+ gem:{n:"Сапфир эпохи",r:2,run:1000,stars:50,g:"#5ac8fa"},
+ wheel:{n:"Колесо Фортуны",r:3,run:300,stars:100,g:"#ffd23f"},
+ trident:{n:"Трезубец Посейдона",r:3,run:300,stars:100,g:"#34c7c7"},
+ eye:{n:"Око дракона",r:4,run:100,stars:250,g:"#34ffb0"},
+ trident_x:{n:"Трезубец Посейдона",base:"trident",err:300,r:5,run:25,stars:500,g:"#ff4dd8"},
  crown_x:{n:"Корона Эпох",base:"crown",err:150,r:5,run:10,stars:1000,g:"#3ab0ff"},
  cup_x:{n:"Кубок Фортуны",base:"cup",err:280,r:5,run:10,stars:1000,g:"#ff4dd8"},
  egg_x:{n:"Яйцо дракона",base:"egg",err:200,r:5,run:25,stars:500,g:"#7a5aff"},
@@ -460,20 +469,21 @@ const GIFTS={
 const giftVal=k=>GIFTS[k]?GIFTS[k].stars||GR_V[GIFTS[k].r]:0, SHELF_N=9;
 /* ---------- казино за руны лагеря. Возврат игроку около 90%, есть лимит в день ---------- */
 const CAS_DAY=30;
-const CASE={price:45e3,day:10,sold:27e3,
- p:[[.44995,{r:27e3}],[.25,{r:54e3}],[.15,{r:9e4}],[.09,{g:"shoe"}],[.04,{g:"dice"}],[.015,{g:"clover"}],[.0045,{g:"mask"}],[.0005,{g:"cup"}],[.00005,{g:"crown"}]]};
+/* кейс 5 000 рун без дневного лимита. Подарки реже, чем раньше, — кейс дешёвый, а тиражи ограничены. Отдача рунами ~86% */
+const CASE={price:5e3,day:1e9,sold:2500,
+ p:[[.55,{r:2500}],[.28,{r:6e3}],[.12264,{r:1e4}],[.03,{g:"shoe"}],[.012,{g:"dice"}],[.004,{g:"clover"}],[.0012,{g:"mask"}],[.00015,{g:"cup"}],[.00001,{g:"crown"}]]};
 const SLOT={min:1e3,max:5e4,t:[[.002,"💎",50],[.005,"👑",20],[.02,"⚔️",8],[.06,"🍀",4]],pair:[.2,1.5],sym:["💎","👑","⚔️","🍀","🔔","🍒"]};
 const HL={min:1e3,max:5e4,k:.92,cap:100};
 /* обмен монет на руны пакетами по 10 000 💠. Цена — процент от монет игрока: 1-й пакет за день 1%, 2-й 2% … 5-й 5% (не меньше 1 000 🪙).
    Богатый платит больше, бедный — минимум. Монеты сгорают, рун больше 50 000 в день не получить */
-const EX={pack:1e4,base:.01,step:.01,min:1000,day:5};
+const EX={pack:1e4,base:.01,step:.01,min:1000,day:10};
 function exDay(st,now){const E=st.ex||(st.ex={});const d=mskDay(now);if(E.d!==d){E.d=d;E.k=0}E.k=E.k||0;return E}
-const exPrice=(cash,k)=>Math.max(EX.min,Math.ceil((cash||0)*(EX.base+EX.step*k)));
+const exMax=st=>EX.day+(vipTier(st)?VIP_T[vipTier(st)].ex:0), exPrice=(cash,k)=>Math.max(EX.min,Math.ceil((cash||0)*(EX.base+EX.step*k)));
 function casDay(st,now){const K=st.cas||(st.cas={});const d=mskDay(now);if(K.d!==d){K.d=d;K.n=0;K.cs=0}return K}
 const hlP=(c,dir)=>dir==="up"?(13-c)/13:(c-1)/13, card13=()=>1+Math.floor(Math.random()*13);
 function casBet(st,ctx,b,R){const C=camp(st,ctx.now),K=casDay(st,ctx.now);b=Math.floor(+b||0);
   if(!(b>=R.min&&b<=R.max))fail("Ставка от "+R.min.toLocaleString("ru")+" до "+R.max.toLocaleString("ru")+" рун");
-  if(K.n>=CAS_DAY)fail("На сегодня всё: "+CAS_DAY+" игр в день. Казино откроется завтра");
+  
   if(C.runes<b)fail("Не хватает рун: нужно "+b.toLocaleString("ru"));C.runes-=b;K.n++;return C}
 const ACTIONS={
   sync(){return {}},
@@ -599,14 +609,13 @@ const ACTIONS={
   camp_target(G){const {st,ctx}=G;const C=camp(st,ctx.now);if(C.t>=TARGETS.length-1)fail("Это самая сильная мишень");
     const T=TARGETS[C.t+1];if(C.runes<T.cost)fail("Не хватает рун: нужно "+T.cost);if(C.lv.sq){const g=campSq(C,ctx.now);C.runes+=g;campEarn(C,ctx.now,g)}C.sqAt=ctx.now;C.runes-=T.cost;C.t++;C.hp=T.hp;return {t:C.t}},
   cas_case(G){const {st,ctx}=G;const C=camp(st,ctx.now),K=casDay(st,ctx.now);
-    if(K.cs>=CASE.day)fail("Сегодня открыто "+CASE.day+" кейсов из "+CASE.day+". Новые завтра");
     if(C.runes<CASE.price)fail("Не хватает рун: кейс стоит "+CASE.price.toLocaleString("ru"));
     C.runes-=CASE.price;K.cs++;const L=ctx.giftLeft||{},P=CASE.p[pick(CASE.p.map(x=>x[0]))][1];
     if(P.g&&(L[P.g]||0)>0){ctx.giftWin=P.g;return {gift:P.g,i:CASE.p.findIndex(x=>x[1]===P)}}
     const r=P.g?CASE.sold:P.r;C.runes+=r;return {r,sold:P.g||null,i:CASE.p.findIndex(x=>x[1]===P)}},
   cas_comp(G){if(!G.ctx.grant)fail("Неизвестное действие");const C=camp(G.st,G.ctx.now);C.runes+=CASE.sold;return {r:CASE.sold}},
-  ex_runes(G){const {st,ctx}=G;const C=camp(st,ctx.now),E=exDay(st,ctx.now);if(E.k>=EX.day)fail("Сегодня уже обменяно "+EX.day+" пакетов. Завтра лимит обновится");
-    const n=exPrice(st.cash,E.k);if(G.p.max!=null&&n>+G.p.max)fail("Цена изменилась — посмотри ещё раз");pay(st,n);C.runes+=EX.pack;E.k++;return {n,r:EX.pack,k:E.k,next:E.k<EX.day?exPrice(st.cash,E.k):0}},
+  ex_runes(G){const {st,ctx}=G;const C=camp(st,ctx.now),E=exDay(st,ctx.now);if(E.k>=exMax(st))fail("Сегодня уже обменяно "+exMax(st)+" пакетов. Завтра лимит обновится");
+    const n=exPrice(st.cash,E.k);if(G.p.max!=null&&n>+G.p.max)fail("Цена изменилась — посмотри ещё раз");pay(st,n);C.runes+=EX.pack;E.k++;return {n,r:EX.pack,k:E.k,next:E.k<exMax(st)?exPrice(st.cash,E.k):0}},
   cas_slot(G){const {st,ctx}=G;const C=casBet(st,ctx,G.p.bet,SLOT),b=Math.floor(+G.p.bet);let x=Math.random(),reels,m=0;
     const any=()=>SLOT.sym[Math.floor(Math.random()*SLOT.sym.length)];
     for(const [p,s2,k] of SLOT.t){if(x<p){reels=[s2,s2,s2];m=k;break}x-=p}
@@ -686,4 +695,4 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

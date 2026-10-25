@@ -1520,3 +1520,18 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .cs-ex .exh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.cs-ex .exh b{font-family:var(--display);font-size:14px}.cs-ex .exh small{font-size:12px;color:#5a5f80;font-weight:700}
 .cs-ex .exr{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.cs-ex .exr button{padding:7px 2px;border-radius:10px;border:2px solid var(--ink);background:#fff;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer}
 .cs-ex .exr button[aria-pressed="true"]{background:var(--yellow)}.cs-ex .exn{margin:6px 0 0;font-size:13px;font-weight:700;color:#5a5f80}
+/* соглашение на любом телефоне: прокручивается всё окно целиком, кнопка всегда достижима (крупный шрифт в системе) */
+.terms{overflow-y:auto;-webkit-overflow-scrolling:touch;align-items:flex-start;padding:max(12px,env(safe-area-inset-top)) 12px max(20px,env(safe-area-inset-bottom))}
+.terms .tbox{max-height:none;margin:auto 0}
+.terms .tdoc{flex:none;max-height:38vh;min-height:0}
+.aucown{display:flex;gap:6px;margin-top:6px;width:100%}.aucown input{flex:1;min-width:0;padding:9px 10px;border-radius:12px;border:2px solid var(--ink);font:inherit;font-weight:800;font-size:15px}
+.aucown button{flex:none}
+.vipg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.vipc{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:10px 6px 10px;border-radius:16px;border:2px solid #0d1030;color:#fff;overflow:hidden}
+.vipc.v1{background:linear-gradient(160deg,#cfd6e6,#7d8aa3 60%,#4a556e)}.vipc.v2{background:linear-gradient(160deg,#ffe27a,#d08a10 60%,#7a4a06)}.vipc.v3{background:linear-gradient(160deg,#bff6ff,#3ab0ff 45%,#7a3aff);background-size:200% 200%;animation:wholo 5s linear infinite}
+.vipc.on{box-shadow:0 0 0 3px #34ffb0,0 0 18px #34ffb0}
+.vipc i{font-style:normal;font-size:30px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.3))}.vipc b{font-family:var(--display);font-size:14px;text-shadow:2px 2px 0 #0d1030}.vipc small{font-size:11px;font-weight:800;opacity:.9}
+.vipc ul{list-style:none;margin:6px 0 8px;padding:0;font-size:10.5px;font-weight:700;line-height:1.35;text-shadow:1px 1px 0 rgba(13,16,48,.6)}.vipc ul b{font-family:inherit;font-size:inherit;text-shadow:none}
+.vipc .pr{position:static;width:100%;padding:6px 2px;border-radius:10px;font-weight:900;font-size:13px;color:#0d1030;background:linear-gradient(180deg,#fff6c8,#ffd23f);border:2px solid #0d1030;cursor:pointer;font-family:inherit;margin-top:auto}
+.vipc em{font-style:normal;font-size:10px;font-weight:800;margin-top:4px}
+.aucg{grid-template-columns:110px minmax(0,1fr)}.auci{min-width:0}.aucbt>*{width:100%;box-sizing:border-box;min-width:0}.aucbt .craftbtn,.aucbt .ghost{white-space:normal}.aucown input{width:100%}
