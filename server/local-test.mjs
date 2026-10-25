@@ -721,6 +721,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     db.prepare("UPDATE users SET created=created-90000000 WHERE id=?").run(A); const c0 = (await call(A, "sync")).S;
     q = await call(A, "cb_claim"); ok(q.ok && q.S.spins === c0.spins + 5 && q.S.cash >= c0.cash + 300 && q.S.cb.c === 1, "на следующий день сундук: +5 прокруток и +300 монет");
     q = await call(A, "cb_claim"); ok(!q.ok, "сундук забирается один раз"); }
+  { db.prepare("UPDATE users SET cash=cash+20000,clan=0 WHERE id IN (?,?)").run(A, B);
+    let q = await call(A, "clan_create", { name: "Тестовый_Клан" }); ok(q.ok && q.res.id > 0, "клан создан");
+    const cid = q.res.id; q = await call(B, "clan_create", { name: "тестовый клан" }); ok(!q.ok, "второго клана с таким названием нет");
+    q = await call(B, "clan_join", { id: cid }); ok(q.ok, "друг вступил в клан");
+    q = await call(A, "clan_info"); ok(q.ok && q.res.clan.members.length === 2 && q.res.boss.lvl === 1 && q.res.boss.hp === 60000 && q.res.left === 3, "клан: 2 участника, босс 60 000 HP, 3 удара");
+    q = await call(A, "clan_hit"); ok(q.ok && q.res.dmg > 0 && q.res.left === 2, "удар по боссу: " + q.res.dmg);
+    db.prepare("UPDATE clan_boss SET dmg=hp-1 WHERE clan=?").run(cid); const g0 = db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(A).g;
+    q = await call(A, "clan_hit"); ok(q.ok && q.res.kill && q.res.kill.lvl === 1, "босс повержен — сундук клана");
+    ok(db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(A).g === g0 + 10, "сундук: +10 прокруток тем, кто бил");
+    q = await call(A, "clan_info"); ok(q.res.boss.lvl === 2 && q.res.boss.hp === 90000, "следующий босс сильнее: ур. 2, 90 000 HP");
+    await call(A, "clan_hit"); q = await call(A, "clan_hit"); ok(!q.ok && /закончились/.test(q.err), "не больше 3 ударов в день");
+    q = await call(B, "clan_leave"); ok(q.ok, "вышел из клана");
+    q = await call(A, "era_claim", { k: "jap" }); ok(!q.ok && /Собери/.test(q.err), "эпоха не собрана — награды нет"); }
   r = await call(A, "sync"); ok(r.S.termsV === 0, "соглашение ещё не принято");
   r = await call(A, "terms_ok", { v: 1 }); ok(r.ok && r.S.termsV === 1 && db.prepare("SELECT terms_at FROM users WHERE id=?").get(A).terms_at > 0, "соглашение принято и записано с датой");
   r = await call(A, "gift_top"); ok(r.ok && r.res.top[0].uid === B && r.res.left.crown === 98, "топ витрин и остаток тиража");

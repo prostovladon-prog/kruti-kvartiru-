@@ -1535,3 +1535,17 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 .vipc .pr{position:static;width:100%;padding:6px 2px;border-radius:10px;font-weight:900;font-size:13px;color:#0d1030;background:linear-gradient(180deg,#fff6c8,#ffd23f);border:2px solid #0d1030;cursor:pointer;font-family:inherit;margin-top:auto}
 .vipc em{font-style:normal;font-size:10px;font-weight:800;margin-top:4px}
 .aucg{grid-template-columns:110px minmax(0,1fr)}.auci{min-width:0}.aucbt>*{width:100%;box-sizing:border-box;min-width:0}.aucbt .craftbtn,.aucbt .ghost{white-space:normal}.aucown input{width:100%}
+/* кланы */
+.clnew p{font-size:13.5px;line-height:1.4}.clform{display:flex;gap:6px;margin-top:8px}.clform input{flex:1;min-width:0;padding:10px;border-radius:12px;border:2px solid var(--ink);font:inherit;font-weight:800}.clform .craftbtn{width:auto;flex:none;padding:10px 12px;font-size:13px}
+.cln{font-size:12.5px;color:#5a5f80;margin:6px 0;line-height:1.35}
+.clr{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px dashed rgba(0,0,0,.12);font-size:14px}.clr i{font-style:normal;width:26px;text-align:center;font-weight:900}.clr span{flex:1;min-width:0;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.clr small{color:#5a5f80;font-weight:700}.clr b{font-family:var(--display)}
+.clr.me{background:#fff3c4;border-radius:10px}
+.clhead{display:flex;align-items:center;gap:12px}.clem{width:64px;height:64px;border-radius:16px;overflow:hidden;border:3px solid var(--ink);background:#2a1450;flex:none}.clem svg{width:100%;height:100%}.clhead h3{margin:0}.clhead small{color:#5a5f80;font-weight:700}
+.clboss{background:linear-gradient(180deg,#2a0a2a,#120614);color:#fff;border-color:var(--ink)}.clboss .cln{color:#d9c8ff}.clbh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.clbh b{font-family:var(--display);font-size:17px;color:#ffd23f}.clbh small{color:#d9c8ff;font-weight:700}
+.clbp{width:170px;height:170px;margin:6px auto;filter:drop-shadow(0 0 18px #ff2e63)}.clbp svg{width:100%;height:100%}.clbp.hit{animation:clhit .25s}@keyframes clhit{30%{transform:translateX(8px) rotate(3deg) scale(.95);filter:brightness(2) drop-shadow(0 0 30px #fff)}}
+.clhp{position:relative;height:22px;border-radius:12px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.5);overflow:hidden}.clhp i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#ff2e63,#ff9f0a);transition:width .3s}.clhp span{position:relative;display:block;text-align:center;font-size:12px;font-weight:900;line-height:18px;text-shadow:1px 1px 0 #000}
+.clhit{margin-top:8px}
+/* эпохи */
+.erab .era{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(0,0,0,.12)}.erab .era>i{font-style:normal;font-size:26px;width:34px;text-align:center}.erab .era>div{flex:1;min-width:0}.erab .era b{font-size:14px}
+.erb{height:8px;border-radius:5px;background:#e8e3d6;overflow:hidden;margin:3px 0}.erb u{display:block;height:100%;background:linear-gradient(90deg,#34c759,#ffd23f)}.erab .era small{font-size:11.5px;color:#5a5f80;font-weight:700}
+.erab .era.ready{background:#fff3c4;border-radius:12px;padding:8px 6px}.erab .era.got{opacity:.7}.erab .era em{font-style:normal;font-size:20px}

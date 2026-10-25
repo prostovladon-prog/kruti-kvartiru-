@@ -470,3 +470,43 @@ function drawEx(){const b=$("cs-ex");if(!b||!S)return;const k=exK(),left=EX.day-
   b.onclick=async e=>{const t=e.target.closest("button");if(!t||t.disabled||t.id!=="cx-go")return;t.disabled=true;const r=await act("ex_runes",{max:pr});
     if(r){sfx.coin();hapN("success");toast("💱 −"+fmtN(r.n)+" монет · +"+fmtN(r.r)+" рун");renderAll();try{renderCas()}catch(x){}}drawEx()}}
 const _renderCas3=renderCas;renderCas=function(){_renderCas3();try{drawEx()}catch(e){}};
+
+/* ---------- кланы ---------- */
+let clData=null,clBusy=false;
+async function openClan(){setTab("clan");const b=$("clan-body");if(!ONLINE){b.innerHTML='<div class="box"><p>Кланы работают в игре через бота</p></div>';return}if(!clData)b.innerHTML='<div class="box"><p>Загружаю клан…</p></div>';await loadClan()}
+async function loadClan(){const r=await act("clan_info");if(r){clData=r;drawClan()}}
+const clLeft=ms=>{const h=Math.max(0,Math.floor(ms/3600e3));return h>=24?Math.floor(h/24)+" д "+(h%24)+" ч":h+" ч"};
+function drawClan(){const b=$("clan-body");if(!b||$("sec-clan").hidden||!clData)return;const D=clData;
+  const top='<div class="box cltop"><h3>🏆 Кланы недели</h3><p class="cln">Считается урон по боссам за неделю. В понедельник топ-3 получают награды: каждому участнику 🥇 +'+CLAN.week[0]+', 🥈 +'+CLAN.week[1]+', 🥉 +'+CLAN.week[2]+' прокруток</p>'+
+   (D.top.length?D.top.map((c,i)=>'<div class="clr'+(D.clan&&c.id===D.clan.id?" me":"")+'"><i>'+(i<3?["🥇","🥈","🥉"][i]:i+1)+'</i><span class="clnm"></span><small>'+c.n+'/'+CLAN.max+'</small><b>'+fmtN(c.total)+'</b>'+(!D.clan&&c.n<CLAN.max?'<button type="button" class="mini2" data-join="'+c.id+'">Вступить</button>':"")+'</div>').join(""):'<p class="cln">Кланов пока нет — создай первый!</p>')+'</div>';
+  if(!D.clan){b.innerHTML='<div class="box clnew"><h3>🛡 Кланы</h3><p>Собери команду до '+CLAN.max+' человек. Каждую неделю — общий босс: все бьют его своими воинами (3 удара в день). Победили босса — каждому, кто бил, сундук: <b>+'+CLAN.chest.sp+' прокруток и +'+CLAN.chest.cash+' 🪙</b>, а следующий босс сильнее и снова с сундуком.</p>'+
+     '<div class="clform"><input id="cl-name" maxlength="16" placeholder="Название клана"><button type="button" class="craftbtn" id="cl-make">Создать · '+fmtN(CLAN.cost)+' 🪙</button></div><p class="cln">Или вступи в клан из таблицы ниже</p></div>'+top}
+  else{const C=D.clan,B=D.boss,pct=Math.max(0,Math.min(100,B.dmg/B.hp*100)),inv="https://t.me/VoinyEpohBot?startapp=c_"+C.id;
+    b.innerHTML='<div class="box clhead"><div class="clem">'+portrait(C.h,null)+'</div><div><h3 class="clnm0"></h3><small>'+C.members.length+'/'+CLAN.max+' участников'+(C.place?' · '+C.place+' место за неделю':"")+'</small></div></div>'+
+     '<div class="box clboss"><div class="clbh"><b>👹 '+B.name+' · ур. '+B.lvl+'</b><small>до конца недели '+clLeft(D.weekEnd-NOW())+'</small></div><div class="clbp">'+portrait(B.h,null)+'</div>'+
+     '<div class="clhp"><i style="width:'+(100-pct)+'%"></i><span>'+fmtN(B.hp-B.dmg)+' / '+fmtN(B.hp)+'</span></div><p class="cln">Повержено боссов на этой неделе: <b>'+B.kills+'</b> · урон клана: <b>'+fmtN(B.total)+'</b></p>'+
+     '<button type="button" class="craftbtn clhit" id="cl-hit"'+(D.left<=0?" disabled":"")+'>'+(D.left>0?"⚔️ Ударить ("+D.left+" из "+CLAN.hits+" сегодня)":"Удары на сегодня закончились — завтра снова")+'</button><p class="cln">Бьют 3 твоих самых сильных воина (по атаке). Закаляй карточки — урон растёт</p></div>'+
+     '<div class="box clmem"><div class="rowb"><h3>👥 Участники</h3><button type="button" class="mini2" id="cl-inv">Позвать друга</button></div>'+C.members.map((m,i)=>'<div class="clr"><i>'+(i+1)+'</i><span class="clnm"></span><b>'+fmtN(m.dmg)+'</b></div>').join("")+'<button type="button" class="ghost" id="cl-leave" style="margin-top:10px;width:100%">Выйти из клана</button></div>'+top;
+    b.querySelector(".clnm0").textContent=(C.owner===S.uid?"👑 ":"")+C.name;b.querySelectorAll(".clmem .clnm").forEach((e,i)=>e.textContent=(C.members[i].vip?"👑 ":"")+C.members[i].name+(C.members[i].uid===S.uid?" (ты)":""));
+    $("cl-inv").onclick=()=>{const t="Вступай в мой клан «"+C.name+"» в «Воинах Эпох» — вместе бьём босса за сундуки!";try{tg.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(inv)+"&text="+encodeURIComponent(t))}catch(e){try{navigator.clipboard.writeText(inv);toast("Ссылка скопирована")}catch(x){}}};
+    $("cl-leave").onclick=async()=>{if(!confirmLeave())return;const r=await act("clan_leave");if(r){toast("Ты вышел из клана");clData=null;loadClan()}}}
+  b.querySelectorAll(".cltop .clnm").forEach((e,i)=>e.textContent=D.top[i].name);
+  b.onclick=async e=>{const t=e.target.closest("button");if(!t||t.disabled||clBusy)return;clBusy=true;try{
+    if(t.dataset.join){const r=await act("clan_join",{id:+t.dataset.join});if(r){sfx.fanfare();toast("🛡 Ты в клане!");await loadClan()}}
+    else if(t.id==="cl-make"){const r=await act("clan_create",{name:$("cl-name").value});if(r){sfx.fanfare();burst(3);toast("🛡 Клан создан! Зови друзей");renderAll();await loadClan()}}
+    else if(t.id==="cl-hit"){t.disabled=true;const r=await act("clan_hit");if(r){const bp=b.querySelector(".clbp");bp.classList.remove("hit");void bp.offsetWidth;bp.classList.add("hit");hap(r.crit?"heavy":"medium");tone(120,.12,"square",.08);
+        toast((r.crit?"💥 КРИТ! ":"⚔️ ")+"−"+fmtN(r.dmg)+" боссу");if(r.kill){sfx.fanfare();burst(4);hapN("success");toast("🏆 Босс повержен! Сундук клана: +"+r.kill.sp+" прокруток и +"+r.kill.cash+" монет");renderAll()}await loadClan()}else t.disabled=false}}finally{clBusy=false}}}
+let clConfirm=0;function confirmLeave(){if(NOW()-clConfirm<4000)return true;clConfirm=NOW();toast("Нажми ещё раз, чтобы выйти из клана");return false}
+/* приглашение в клан по ссылке ?startapp=c_<id> */
+(function(){const sp=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param)||"";const m=/^c_(\d+)$/.exec(sp);
+  const go=new URLSearchParams(location.search).get("clan");if(!m&&!go)return;const t=setInterval(async()=>{if(!S)return;clearInterval(t);await openClan();
+    if(m&&clData&&!clData.clan){const id=+m[1],c=(clData.top||[]).find(x=>x.id===id);if(c){const r=await act("clan_join",{id});if(r){toast("🛡 Ты вступил в клан «"+c.name+"»!");await loadClan()}}}},400)})();
+
+/* ---------- эпохи в альбоме ---------- */
+function drawEras(){const sec=$("sec-album");if(!sec||sec.hidden||!S)return;let box=$("era-box");if(!box){box=document.createElement("div");box.id="era-box";box.className="box erab";const sub=sec.querySelector(".subnav");if(sub)sub.after(box);else sec.prepend(box)}
+  const have=new Set((S.cards||[]).map(c=>c.h)),E=S.eras||{};
+  box.innerHTML='<h3>🗺 Эпохи</h3><p class="cln">Собери всех воинов эпохи — получи награду и значок эпохи</p>'+ERAS.map(x=>{const n=x.h.filter(h=>have.has(h)).length,done=n===x.h.length,got=E[x.k];
+    return '<div class="era'+(got?" got":done?" ready":"")+'"><i>'+x.ic+'</i><div><b>'+x.n+'</b><div class="erb"><u style="width:'+(n/x.h.length*100)+'%"></u></div><small>'+n+' из '+x.h.length+' · награда: '+x.sp+' прокруток и '+fmtN(x.cash)+' 🪙</small></div>'+
+     (got?'<em>✅</em>':done?'<button type="button" class="mini2" data-era="'+x.k+'">Забрать</button>':'')+'</div>'}).join("");
+  box.onclick=async e=>{const t=e.target.closest("[data-era]");if(!t)return;t.disabled=true;const r=await act("era_claim",{k:t.dataset.era});if(r){sfx.fanfare();burst(4);hapN("success");toast("🗺 Эпоха собрана! +"+r.sp+" прокруток и +"+fmtN(r.cash)+" монет");renderAll()}else t.disabled=false}}
+const _renderAlbum=renderAlbum;renderAlbum=function(){_renderAlbum();try{drawEras()}catch(e){}};

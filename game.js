@@ -1937,13 +1937,13 @@ async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textC
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
 
 /* ---------- вкладки ---------- */
-const SUBS={cards:[["col","🗂 Мои"],["album","📖 Альбом"],["craft","⚒ Крафт"]],fight:[["duel","⚔️ Бой"],["camp","🎯 Лагерь"]],prof:[["prof","👤 Профиль"],["top","🏆 Топ"]]};
-const GRP={col:"cards",album:"cards",craft:"cards",duel:"fight",camp:"fight",prof:"prof",top:"prof"},lastSub={};
+const SUBS={cards:[["col","🗂 Мои"],["album","📖 Альбом"],["craft","⚒ Крафт"]],fight:[["duel","⚔️ Бой"],["clan","🛡 Клан"],["camp","🎯 Лагерь"]],prof:[["prof","👤 Профиль"],["top","🏆 Топ"]]};
+const GRP={col:"cards",album:"cards",craft:"cards",duel:"fight",camp:"fight",clan:"fight",prof:"prof",top:"prof"},lastSub={};
 function drawSub(t){document.querySelectorAll(".subnav").forEach(e=>e.remove());const g=GRP[t];if(!g)return;const d=document.createElement("div");d.className="subnav";
   d.innerHTML=SUBS[g].map(([k,n])=>'<button type="button" data-sub="'+k+'" aria-pressed="'+(k===t)+'">'+n+'</button>').join("");$("sec-"+t).prepend(d);
   d.onclick=e=>{const b=e.target.closest("[data-sub]");if(!b||b.dataset.sub===t)return;goSub(b.dataset.sub)}}
-function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else setTab(k)}
-function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof"].forEach(k=>{$("sec-"+k).hidden=k!==t});
+function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else if(k==="clan")openClan();else setTab(k)}
+function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof","clan"].forEach(k=>{$("sec-"+k).hidden=k!==t});
   const grp=GRP[t]||t;["spin","cards","fight","cas","gold","shop","prof"].forEach(n=>{const b=$("tab-"+n);if(b)b.setAttribute("aria-selected",n===grp)});if(GRP[t])lastSub[grp]=t;drawSub(t);renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold("gifts");$("fchest").onclick=()=>openGold("chest");$("tab-cards").onclick=()=>setTab(lastSub.cards||"col");$("tab-fight").onclick=()=>goSub(lastSub.fight||"duel");$("tab-cas").onclick=()=>{if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas")};$("tab-shop").onclick=()=>setTab("shop");$("tab-prof").onclick=()=>goSub(lastSub.prof||"prof");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/ 🪙$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
