@@ -326,7 +326,7 @@ class GameError extends Error{}
 function fail(m){throw new GameError(m)}
 
 /* ---------- состояние игрока ---------- */
-function freshState(){return {cash:START_CASH,spins:SPINS_MAX+2,refillAt:null,pity:0,guar:0,best:0,bestFin:0,niceCount:0,crafted:0,totalWins:0,ach:{},doneCh:{},squad:[]}}
+function freshState(){return {wel:0,cash:START_CASH,spins:SPINS_MAX+2,refillAt:null,pity:0,guar:0,best:0,bestFin:0,niceCount:0,crafted:0,totalWins:0,ach:{},doneCh:{},squad:[]}}
 function day(st,now){if(!st.day||st.day.d!==today(now))st.day={d:today(now),opened:0,wins:0,crafts:0,got:[]};return st.day}
 function boss(st,now){if(!st.boss||st.boss.w!==weekKey(now))st.boss={w:weekKey(now),dmg:0,got:[],day:"",hits:0,extra:0,squad:[]};if(st.boss.day!==today(now)){st.boss.day=today(now);st.boss.hits=0;st.boss.extra=0}return st.boss}
 /* сколько прокруток даётся раз в 4 часа: VIP получает 5 (сервер ставит st.vipUntil) */
@@ -558,9 +558,11 @@ const ACTIONS={
     if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
     else if(rr<SPIN_P.one+SPIN_P.don)c=rollTier(ctx,-1,DON);   // богатырь
     if(!c&&!epic&&!ctx.noRare&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
-    if(!c)c=rollCard(ctx,epic);if(epic&&(st.guar||0)>0)st.guar--;
+    st.nOp=(st.nOp||0)+1;let wel=0;
+    if(st.wel===0&&st.nOp>=2&&!c){wel=1;st.wel=1;const pl=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]===3),h=pl[Math.floor(Math.random()*pl.length)];c=makeCard(ctx,h,ctx.issuedOf(h,1)<FIN[1].run?1:0)}   // подарок новичку: на 2-й прокрутке легендарный воин с блеском
+    if(!c)c=rollCard(ctx,epic);if(epic&&!wel&&(st.guar||0)>0)st.guar--;
     st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;
-    addCard(G,c);day(st,ctx.now).opened++;return {card:c}},
+    addCard(G,c);day(st,ctx.now).opened++;return wel?{card:c,wel:1}:{card:c}},
 
   sell(G){const c=burnable(freeCard(G,G.p.id)),got=Math.round(c.v*QUICK*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
 
@@ -1001,7 +1003,7 @@ async function stateFor(env,me){
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
-  S.spins=(S.spins??0)+(u.gift_spins||0);S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
+  S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
   Object.assign(S,await nickFx(env));S.shopOn=1;   // переливающиеся ники и «Король Эпох» месяца
   if(u.founder&&!u.founder_seen){await env.DB.prepare("UPDATE users SET founder_seen=1 WHERE id=?").bind(me.id).run();delete topCache.founders}
@@ -2048,16 +2050,16 @@ async function cbTick(env){if(cbBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY
       await notify(env,u.id,"🎁 Твой сундук готов!\n\nВчера ты начал собирать воинов — а сегодня тебя ждёт подарок: "+CB.sp+" прокруток и "+CB.cash+" 🪙.\n\nЗаходи и забирай, пока не остыл 🔥","🎁 Забрать сундук")}}finally{cbBusy=false}}
 /* ---------- разовая рассылка о большом обновлении 24.10: пост в канал + всем в бота (окно 20:30–22:50 по Минску, если не успели — завтра 9:30–12:00) ---------- */
 const TERMS_V=1;
-const UPD={id:"upd2410",win:[[Date.UTC(2026,9,24,17,0),Date.UTC(2026,9,24,19,50)]],photo:"assets/post-update.jpg?v=1",
- chan:"🔥 КРУПНОЕ ОБНОВЛЕНИЕ «ВОИНОВ ЭПОХ»!\n\n🎁 Подарки — 25 штук, у каждого свой тираж и номер навсегда\n🖨 Ошибка печати — бракованные подарки, всего 10–50 штук на весь мир\n👤 Профиль с витриной — выставляй подарки, дари друзьям, попади в топ витрин\n🎰 Казино — кейс как в CS:GO, слоты и «больше-меньше»\n🎯 Объёмный лагерь и 🗿 Каменный голем\n📱 Новое удобное меню\n\n⚡ А ЗАВТРА — КРУПНЫЙ РОЗЫГРЫШ!\nГлавный приз просто удивительный: он связан с игрой «Номерок». И приз будет в прямом смысле очень крутой 😏\n\nВключи уведомления, чтобы не пропустить старт 🔔\n\n👉 @VoinyEpohBot",
- dm:"🔥 Вышло КРУПНОЕ ОБНОВЛЕНИЕ!\n\n🎁 25 подарков с тиражами и номерами\n🖨 Подарки «Ошибка печати» — всего 10–50 штук на весь мир\n👤 Твой профиль с витриной — дари подарки друзьям\n🎰 Казино: кейс как в CS:GO, слоты, «больше-меньше»\n🎯 Объёмный лагерь и 🗿 Каменный голем\n📱 Новое меню\n\n⚡ А завтра — КРУПНЫЙ РОЗЫГРЫШ. Главный приз просто удивительный: он связан с игрой «Номерок». И в прямом смысле очень крутой 😏\n\nЗаходи посмотреть 👇"};
+const UPD={id:"upd2510",cut:Date.UTC(2026,9,25,17,45),noChan:1,win:[[Date.UTC(2026,9,25,17,40),Date.UTC(2026,9,25,19,30)]],photo:"assets/post-upd2510.jpg?v=1",btn:"🗺 Покорять земли",link:"?conq=1",chan:"",
+ dm:"⚔️ БОЛЬШОЕ ОБНОВЛЕНИЕ «ВОИНОВ ЭПОХ»!\n\n🗺 Покорение Эпох — карта мира: 5 глав, 40 земель и боссы. Собери отряд из 3 воинов, используй слабости эпох и захватывай земли ради прокруток, рун и легендарных карточек\n\n🎖 Стартовал «Сезон Викингов»! Каждый день новые задания и 30 уровней наград: эпические и легендарные карточки, титул «Герой сезона» и сезонная рамка\n\n🔥 Слияние душ — дубликаты больше не мусор: сожги копии воина и получи звезду без прокачки и монет\n\n🎰 Кейс «Удача» обновлён: 12 подарков, вплоть до Короны Эпох\n\nПервая глава уже ждёт тебя 👇"};
 let updBusy=false;
 async function updBlast(env){if(updBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();if(!UPD.win.some(([a,b])=>now>=a&&now<b))return;
   updBusy=true;try{const st=(await kvGet(env,"blast:"+UPD.id))||{ch:0,after:0,done:0,n:0};if(st.done&&st.ch)return;
+    if(!st.ch&&UPD.noChan){st.ch=1;await kvSet(env,"blast:"+UPD.id,st)}
     if(!st.ch){st.ch=1;await kvSet(env,"blast:"+UPD.id,st);try{await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+UPD.photo,caption:UPD.chan,reply_markup:{inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]}})}catch(e){}}
     if(st.done)return;
-    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-    for(const u of us){if(await notify(env,u.id,UPD.dm,"🎁 Смотреть обновление",PAGE+"?shop=1",PAGE+UPD.photo))st.n++;st.after=u.id}
+    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? AND created<? ORDER BY id LIMIT 25").bind(st.after,UPD.cut||9e15).all()).results;   // только тем, кто уже в игре
+    for(const u of us){if(await notify(env,u.id,UPD.dm,UPD.btn||"🎁 Смотреть обновление",PAGE+(UPD.link||"?shop=1"),PAGE+UPD.photo))st.n++;st.after=u.id}
     if(us.length<25){st.done=1;for(const a of ADMINS)await notify(env,a,"✅ Рассылка об обновлении: пост в канал и "+st.n+" игрокам в бота.","⚔️ Открыть")}
     await kvSet(env,"blast:"+UPD.id,st)}finally{updBusy=false}}
 async function lotBlast(env){if(blastBusy)return;const now=Date.now();if(now<BLAST.at||now>BLAST.at+3*3600e3)return;

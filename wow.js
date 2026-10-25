@@ -336,7 +336,7 @@ const _campFloat=campFloat;campFloat=function(t,cls,x,y){_campFloat(t,cls,x,y);i
   const c=document.createElement("div");c.className="w3crit";c.textContent=t.replace("💥 ","")+"!";ar.append(c);setTimeout(()=>c.remove(),820);if(w3){const r=ar.getBoundingClientRect();w3.burst(r.width*.62,r.height*.5,50,["#fff6c8","#ffd23f","#ff9f0a","#ff2e63"],9,.25,60,6)}}};
 
 /* ---------- что нового и ссылки ---------- */
-function newsGifts(){if(!S||!ONLINE||!S.shopOn||!$("modal").hidden||document.querySelector(".wrev,.onb-hl"))return false;try{if(localStorage.getItem("we-news-upd3"))return true;if(termsNeed())return false;localStorage.setItem("we-news-upd3","1")}catch(e){return true}
+function newsGifts(){return true;if(!S||!ONLINE||!S.shopOn||!$("modal").hidden||document.querySelector(".wrev,.onb-hl"))return false;try{if(localStorage.getItem("we-news-upd3"))return true;if(termsNeed())return false;localStorage.setItem("we-news-upd3","1")}catch(e){return true}
   const m=$("modal"),sh=$("msheet");m.hidden=false;
   sh.innerHTML='<div class="box nickbox newsb"><h3>🔥 Крупное обновление!</h3><div style="display:flex;justify-content:center;gap:4px">'+giftSVG("crown_x",84)+giftSVG("egg",84)+giftSVG("cup",84)+'</div><ul>'+
    '<li>🎁 <b>Подарки</b> — 25 подарков, у каждого свой тираж и номер навсегда</li><li>🖨 <b>Ошибка печати</b> — бракованные подарки, всего 10–50 штук на весь мир</li>'+
@@ -651,3 +651,21 @@ function drawPassStrip(){if(!S)return;let el=$("ps-strip");const fb=$("free-box"
 {const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&r.item==="pass"){renderAll();sfx.fanfare();hapN("success");burst(4);toast("🎖 Пропуск открыт! Забирай награды");psKey="";goSub("pass");return}return _ps(r)}}
 /* лёгкий режим лагеря выключает декоративные анимации во всей игре */
 {const _la=liteApply;liteApply=function(){_la();try{document.body.classList.toggle("lite",campLite)}catch(e){}};try{document.body.classList.toggle("lite",campLite)}catch(e){}}
+
+/* «что нового» — только тем, кто был в игре до обновления. Новички видят только обучение */
+const NEWS4_CUT=Date.UTC(2026,9,25,17,45);
+function newsUpd4(){if(!S||!ONLINE||!$("modal").hidden||document.querySelector(".wrev,.onb-hl,.terms,.cqbt"))return false;if(!S.created||S.created>=NEWS4_CUT)return true;
+  try{if(localStorage.getItem("we-news-upd4"))return true;if(termsNeed())return false;localStorage.setItem("we-news-upd4","1")}catch(e){return true}
+  const m=$("modal"),sh=$("msheet");m.hidden=false;const T=passTheme(passSeason(NOW()));
+  sh.innerHTML='<div class="box nickbox newsb"><h3>⚔️ Большое обновление!</h3><ul>'+
+   '<li>🗺 <b>Покорение Эпох</b> — карта мира: 5 глав, 40 земель и боссы. Отряд из 3 воинов, слабости эпох, сундуки с карточками</li>'+
+   '<li>'+T.ic+' <b>'+T.n+'</b> — задания каждый день и 30 уровней наград, вплоть до легендарных карточек</li>'+
+   '<li>🔥 <b>Слияние душ</b> — сожги копии воина и получи звезду без прокачки</li>'+
+   '<li>🎰 <b>Кейс «Удача»</b> — 12 подарков, вплоть до Короны Эпох</li></ul>'+
+   '<button type="button" class="craftbtn" id="n4-go">🗺 Покорять земли</button><button type="button" class="ghost" id="n4-ps">'+T.ic+' Открыть сезон</button></div>';
+  $("n4-go").onclick=()=>{closeModal();goSub("conq")};$("n4-ps").onclick=()=>{closeModal();goSub("pass")};return true}
+{let n=0;const t=setInterval(()=>{if(++n>30||newsUpd4())clearInterval(t)},4000)}
+/* ссылки из бота: ?conq=1 — карта, ?pass=1 — сезон */
+{const q=new URLSearchParams(location.search),k=q.get("conq")?"conq":q.get("pass")?"pass":null;if(k){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{try{localStorage.setItem("we-news-upd4","1")}catch(e){}goSub(k)},600)},300)}}
+/* подарок новичку на 2-й прокрутке */
+{const _a3=act;act=async function(n,p){const r=await _a3(n,p);try{if(n==="open"&&r&&r.wel)setTimeout(()=>{sfx.fanfare();hapN("success");burst(4);toast("🎁 Подарок новичку: ЛЕГЕНДАРНЫЙ воин с блеском! Добро пожаловать в «Воины Эпох»")},1900)}catch(e){}return r}}

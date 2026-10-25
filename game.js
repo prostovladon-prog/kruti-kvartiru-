@@ -2035,7 +2035,7 @@ function anyPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=fa
     sh.querySelector(".anyf").onclick=e2=>{const t=e2.target.closest("[data-f]");if(t)anyConfirm(h,+t.dataset.f)}}}
 function anyConfirm(h,f){closeModal();buyItem({item:"any",h,f})}
 /* что нового: показывается каждому игроку один раз после обновления */
-function newsUpd(){if(!S||(ONLINE&&!S.shopOn)||!$("modal").hidden||onbStep>=0||document.querySelector(".onb-hl"))return;try{if(localStorage.getItem("we-news-gold1"))return;localStorage.setItem("we-news-gold1","1")}catch(e){return}
+function newsUpd(){return;if(!S||(ONLINE&&!S.shopOn)||!$("modal").hidden||onbStep>=0||document.querySelector(".onb-hl"))return;try{if(localStorage.getItem("we-news-gold1"))return;localStorage.setItem("we-news-gold1","1")}catch(e){return}
   const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   sh.innerHTML='<div class="box nickbox newsb"><h3>🔥 Большое обновление!</h3><div class="nws">'+miniSlot(demoOne(ONE[0]))+miniSlot(demoOne(DON[0],0))+miniSlot(Object.assign(demoOne(COMP[0],0),{no:17}))+'</div><ul>'+
    '<li>🏪 <b>Сокровищница</b> — сундуки с прокрутками, карточками и половинками</li>'+

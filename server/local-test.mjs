@@ -798,5 +798,9 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "pass_claim", { lv: 30, prem: 1 }); ok(!q.ok && /Уже/.test(q.err), "награду не забрать дважды");
     q = await call(A, "title_buy", { k: "season" }); ok(!q.ok, "титул сезона не купить за монеты"); }
 }
+{ const N = 7701; let q = await call(N, "open"); ok(q.ok && !q.res.wel, "новичок: 1-я прокрутка обычная");
+  q = await call(N, "open"); ok(q.ok && q.res.wel === 1 && q.res.card.f === 1, "новичок: на 2-й прокрутке легендарный воин с блеском");
+  q = await call(N, "open"); ok(q.ok && !q.res.wel, "подарок новичку только один раз");
+  q = await call(1, "open"); ok(q.ok && !q.res.wel, "старым игрокам подарок новичка не выпадает"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
