@@ -1721,3 +1721,7 @@ svg.gerr{animation:wglitch 2.4s steps(1) infinite}
 body.lite .cqcloud,body.lite .psshine,body.lite .psglow,body.lite .psic,body.lite .psstrip::after,body.lite .psbuy::after{display:none}
 .cqbf span{background:rgba(0,0,0,.45);border-radius:8px;padding:2px 4px}
 #conq-body>.cln{color:#d9d4ff}
+.stx h4{margin:16px 0 8px;font-size:15px}.stx q{quotes:none;font-weight:800}
+.stch{width:100%;height:auto;background:#fbf8f0;border-radius:12px;margin:8px 0}
+.stl{margin:10px 0;background:#fbf8f0;border-radius:12px;padding:8px 10px}.stl>b{display:block;font-size:13px;margin-bottom:4px}
+.str{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px dashed rgba(0,0,0,.1);font-size:12.5px}.str span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.str i{font-style:normal;color:#5a5f80;font-size:11.5px}.str b{font-family:var(--display)}

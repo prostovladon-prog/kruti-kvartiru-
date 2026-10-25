@@ -669,3 +669,44 @@ function newsUpd4(){if(!S||!ONLINE||!$("modal").hidden||document.querySelector("
 {const q=new URLSearchParams(location.search),k=q.get("conq")?"conq":q.get("pass")?"pass":null;if(k){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{try{localStorage.setItem("we-news-upd4","1")}catch(e){}goSub(k)},600)},300)}}
 /* подарок новичку на 2-й прокрутке */
 {const _a3=act;act=async function(n,p){const r=await _a3(n,p);try{if(n==="open"&&r&&r.wel)setTimeout(()=>{sfx.fanfare();hapN("success");burst(4);toast("🎁 Подарок новичку: ЛЕГЕНДАРНЫЙ воин с блеском! Добро пожаловать в «Воины Эпох»")},1900)}catch(e){}return r}}
+
+/* ===================== АДМИН: звёзды и всё новое ===================== */
+const ITEM_N={pass:"🎖 Сезонный пропуск",vip:"👑 VIP",gift:"🎁 Подарки",golem:"🗿 Голем",fx:"✨ Ник",num:"✍️ Свой номер",any:"🃏 Любая карточка",newbie:"🐣 Новичку",small:"📦 Малый сундук",royal:"👑 Королевский",warrior:"⚔️ Воинский",legend:"🌟 Легендарный",mythic:"🐉 Мифический",dream:"💭 Карточка мечты",custom:"💭 Карточка мечты"};
+function drawStatsX(){const R=stData&&stData.x,b=$("st-body");if(!R||!b||R.err&&!R.stars){if(R&&R.err&&b)b.insertAdjacentHTML("beforeend",'<p class="cln">Ошибка статистики: '+R.err+'</p>');return}
+  const X=document.createElement("div");X.className="stx";const tile=(v,l,sub)=>`<div class="stt"><b class="num">${v}</b><span>${l}</span>${sub?`<small>${sub}</small>`:""}</div>`,dt=t=>{const d=new Date(t+3*3600e3);return d.toISOString().slice(8,10)+"."+d.toISOString().slice(5,7)+" "+d.toISOString().slice(11,16)};
+  const S0=R.stars,mx=Math.max(1,...R.starsDays.map(d=>d.s)),W=300,H=96,bw=W/R.starsDays.length;
+  const bars=R.starsDays.map((d,i)=>{const h=d.s/mx*(H-22);return `<rect x="${i*bw+2}" y="${H-14-h}" width="${bw-4}" height="${h}" rx="2" fill="#ffb800"><title>${d.d}: ${d.s} ⭐</title></rect>`+(d.s?`<text x="${i*bw+bw/2}" y="${H-17-h}" text-anchor="middle" font-size="8" fill="#5a5f80">${d.s}</text>`:"")+(i%2===1?`<text x="${i*bw+bw/2}" y="${H-2}" text-anchor="middle" font-size="8.5" fill="#5a5f80">${d.d.slice(8)}</text>`:"")}).join("");
+  const C=R.conq,P=R.season,F=R.fuse,K=R.clans,V=R.vip,T=R.today,G=R.gifts;
+  X.innerHTML=`<h4>⭐ Звёзды (донат)</h4><div class="stgrid">
+    ${tile(fmtN(S0.all.s)+" ⭐","потрачено всего",S0.all.n+" покупок · "+S0.all.u+" донатеров")}
+    ${tile(fmtN(S0.today.s)+" ⭐","сегодня",S0.today.n+" покупок · "+S0.today.u+" чел.")}
+    ${tile(fmtN(S0.week.s)+" ⭐","за 7 дней",S0.week.n+" покупок · "+S0.week.u+" чел.")}
+    ${tile(fmtN(S0.refund.s)+" ⭐","возвраты",S0.refund.n+" шт.")}</div>
+    <svg viewBox="0 0 ${W} ${H}" class="stch">${bars}</svg>
+    <div class="stl"><b>По товарам</b>${S0.items.map(i=>`<div class="str"><span>${ITEM_N[i.item]||i.item}</span><i>${i.n} шт.${i.t?" · сегодня "+i.t:""}</i><b>${fmtN(i.s)} ⭐</b></div>`).join("")||"<p class=cln>Покупок пока нет</p>"}</div>
+    <div class="stl"><b>Кто сколько потратил</b>${S0.top.map((u,i)=>`<div class="str"><span>${i+1}. <q data-n="${i}"></q></span><i>${u.n} пок. · ${dt(u.last)}</i><b>${fmtN(u.s)} ⭐</b></div>`).join("")||"<p class=cln>Пока никто</p>"}</div>
+    <div class="stl"><b>Последние покупки</b>${S0.last.map((p,i)=>`<div class="str"><span><q data-l="${i}"></q></span><i>${ITEM_N[p.item]||p.item} · ${dt(p.t)}</i><b>${p.stars} ⭐</b></div>`).join("")}</div>
+    <h4>🎖 ${P.name} (сезон ${P.no}, до ${dt(P.end).slice(0,5)})</h4><div class="stgrid">
+    ${tile(fmtN(P.act||0),"играют в сезон","из "+fmtN(P.n||0)+" зашедших в сезоне")}
+    ${tile(fmtN(P.prem||0),"купили пропуск",fmtN((P.prem||0)*PASS.stars)+" ⭐")}
+    ${tile((+(P.lv||0)).toFixed(1),"средний уровень","10+: "+(P.l10||0)+" · 20+: "+(P.l20||0)+" · 30: "+(P.l30||0))}
+    ${tile(fmtN(P.quests||0),"заданий сделано сегодня",(P.questDay||0)+" игроков заходили · забрано наград "+T.passClaim)}</div>
+    <h4>🗺 Покорение Эпох</h4><div class="stgrid">
+    ${tile(fmtN(C.n||0),"игроков прошли точки","в среднем "+(+(C.av||0)).toFixed(1)+" точек")}
+    ${tile(fmtN(C.today),"боёв сегодня","за 7 дней "+C.week)}
+    ${tile((C.mx||0)+" / 40","лучший результат",(C.top||[]).length?"":"")}
+    ${tile(fmtN(C.ch1||0),"прошли 1-ю главу","2-ю: "+(C.ch2||0)+" · 3-ю: "+(C.ch3||0)+" · 4-ю: "+(C.ch4||0)+" · все: "+(C.ch5||0))}</div>
+    <div class="stl"><b>Дальше всех</b>${(C.top||[]).map((u,i)=>`<div class="str"><span>${i+1}. <q data-c="${i}"></q></span><i>глава ${Math.min(5,Math.floor(u.c/8)+1)}</i><b>${u.c} точек</b></div>`).join("")}</div>
+    <h4>🔥 Слияние, звёзды, новички</h4><div class="stgrid">
+    ${tile(fmtN(F.today),"слияний душ сегодня","за 7 дней "+F.week+" · закалок сегодня "+F.forge)}
+    ${tile(fmtN(F.starred),"карточек со звёздами",fmtN(F.stars)+" звёзд всего")}
+    ${tile(fmtN(R.wel.got),"новичков получили легендарку",R.wel.wait+" ещё не дошли до 2-й прокрутки")}</div>
+    <h4>🛡 Кланы, казино, VIP</h4><div class="stgrid">
+    ${tile(fmtN(K.n),"кланов",K.members+" игроков в кланах")}
+    ${tile(fmtN(K.hitsToday),"ударов по боссам сегодня","за неделю урон "+fmtN(K.dmg)+" от "+K.hitters+" чел.")}
+    ${tile(fmtN(T.case),"кейсов открыто сегодня","слоты "+T.slot+" · больше-меньше "+T.hl+" · обменов "+T.ex)}
+    ${tile(fmtN(V.n),"VIP сейчас","💎 "+V.diamond+" · 👑 "+V.gold+" · 🗿 голем у "+V.golem)}
+    ${tile(fmtN(Object.values(G).reduce((a,b)=>a+b,0)),"подарков выпущено","за звёзды "+(G.star||0)+" · из кейса "+(G.case||0)+" · подарено "+(R.giftSent||0))}
+    ${tile(fmtN(T.era),"эпох собрано сегодня","")}</div>`;
+  b.append(X);X.querySelectorAll("q[data-n]").forEach(e=>e.textContent=S0.top[+e.dataset.n].name||"?");X.querySelectorAll("q[data-l]").forEach(e=>e.textContent=S0.last[+e.dataset.l].name||"?");X.querySelectorAll("q[data-c]").forEach(e=>e.textContent=C.top[+e.dataset.c].name||"?")}
+{const _ds=drawStats;drawStats=function(){_ds();try{drawStatsX()}catch(e){console.error(e)}}}

@@ -797,6 +797,8 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "pass_claim", { lv: 30, prem: 1 }); ok(q.ok && q.res.card && q.res.title && q.S.titles.includes("season") && q.S.frames.includes("season"), "30 уровень пропуска: легендарка, титул и рамка");
     q = await call(A, "pass_claim", { lv: 30, prem: 1 }); ok(!q.ok && /Уже/.test(q.err), "награду не забрать дважды");
     q = await call(A, "title_buy", { k: "season" }); ok(!q.ok, "титул сезона не купить за монеты"); }
+  { const st8 = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "stats", p: {} }) }), { ...env, ADMINS: "8" })).json(); const X = st8.res && st8.res.x;
+    ok(st8.ok && X && !X.err && X.stars.all.s > 0 && X.stars.top.length > 0 && X.season.prem >= 1 && X.conq.n >= 1 && X.fuse.starred >= 1, "админ-статистика: звёзды " + (X && X.stars.all.s) + " ⭐, пропусков " + (X && X.season.prem) + ", в Покорении " + (X && X.conq.n) + (X && X.err ? " ОШИБКА " + X.err : "")); }
 }
 { const N = 7701; let q = await call(N, "open"); ok(q.ok && !q.res.wel, "новичок: 1-я прокрутка обычная");
   q = await call(N, "open"); ok(q.ok && q.res.wel === 1 && q.res.card.f === 1, "новичок: на 2-й прокрутке легендарный воин с блеском");

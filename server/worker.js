@@ -1179,10 +1179,41 @@ async function adminStats(env){
   const inv=(await env.DB.prepare("SELECT COALESCE(nick,name) AS name,refs FROM users WHERE refs>0 ORDER BY refs DESC LIMIT 5").all()).results;
   const T=by[days[13]]||{};
   let srcs=[];try{srcs=(await env.DB.prepare("SELECT v.code,COUNT(*) AS visits,SUM(u.src=v.code) AS fresh,SUM(u.src=v.code AND u.album>=1) AS c1,SUM(u.src=v.code AND u.nick IS NOT NULL) AS nk,SUM(u.src=v.code AND u.album>=3) AS act,SUM(u.src=v.code AND u.back=1) AS back FROM src_visits v LEFT JOIN users u ON u.id=v.uid GROUP BY v.code ORDER BY visits DESC LIMIT 40").all()).results}catch(e){}
-  return {srcs,players:tot.n||0,fromRef:tot.r||0,withNick:tot.nk||0,newToday:nw.d0||0,newYesterday:nw.d1||0,newWeek:nw.w||0,newRefToday:nw.r0||0,
+  let x={};try{x=await adminStatsX(env,now,t0,D,days,by)}catch(e){console.error("statsX",e);x={err:String(e&&e.message||e)}}
+  return {x,srcs,players:tot.n||0,fromRef:tot.r||0,withNick:tot.nk||0,newToday:nw.d0||0,newYesterday:nw.d1||0,newWeek:nw.w||0,newRefToday:nw.r0||0,
     activeToday:act.d0||0,activeWeek:act.w||0,cohort:ret.n||0,d1:ret.d1||0,back:ret.b||0,
     today:{open:T.a_open||0,craft:T.a_craft||0,duel:(T.a_duel||0)+(T.a_fduel||0),boss:T.a_boss_hit||0,forge:T.a_forge||0,story:T.a_story||0,sales:sales.n||0,salesV:Math.round(sales.v||0)},
     cardsInGame:cards.n||0,inviters:inv,days:days.map(d=>({d,n:(by[d]||{}).new||0,a:(by[d]||{}).dau||0,o:(by[d]||{}).a_open||0}))};
+}
+
+/* расширенная статистика: звёзды, пропуск, Покорение, слияние, кланы, подарки, VIP */
+async function adminStatsX(env,now,t0,D,days,by){const one=async(q,...a)=>(await env.DB.prepare(q).bind(...a).first())||{},all=async(q,...a)=>(await env.DB.prepare(q).bind(...a).all()).results;
+  const PD="status IN ('paid','done')";
+  const st={all:await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD}`),
+    today:await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=?`,t0),
+    week:await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=?`,t0-6*D),
+    refund:await one("SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n FROM payments WHERE status='refund'"),
+    items:await all(`SELECT item,COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,SUM(COALESCE(paid,created)>=?) AS t FROM payments WHERE ${PD} GROUP BY item ORDER BY s DESC`,t0),
+    top:await all(`SELECT p.uid,COALESCE(u.nick,u.name) AS name,SUM(p.stars) AS s,COUNT(*) AS n,MAX(COALESCE(p.paid,p.created)) AS last FROM payments p LEFT JOIN users u ON u.id=p.uid WHERE ${PD} GROUP BY p.uid ORDER BY s DESC LIMIT 15`),
+    last:await all(`SELECT p.item,p.stars,COALESCE(p.paid,p.created) AS t,COALESCE(u.nick,u.name) AS name FROM payments p LEFT JOIN users u ON u.id=p.uid WHERE ${PD} ORDER BY p.id DESC LIMIT 12`)};
+  const stD=[];for(const d of days.slice(-14)){const a=Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))-TZ;stD.push({d,s:(await one(`SELECT COALESCE(SUM(stars),0) AS s FROM payments WHERE ${PD} AND COALESCE(paid,created)>=? AND COALESCE(paid,created)<?`,a,a+D)).s||0})}
+  const sn=passSeason(now),J="json_extract(state,",T=by[days[days.length-1]]||{};
+  const pass=await one(`SELECT COUNT(*) AS n,SUM(${J}'$.pass.prem')=?) AS prem,AVG(MIN(30,${J}'$.pass.xp')/${PASS.xp})) AS lv,SUM(${J}'$.pass.xp')>=${PASS.xp*10}) AS l10,SUM(${J}'$.pass.xp')>=${PASS.xp*20}) AS l20,SUM(${J}'$.pass.xp')>=${PASS.xp*30}) AS l30,SUM(${J}'$.pass.xp')>0) AS act FROM users WHERE ${J}'$.pass.s')=?`,sn,sn);
+  const passQ=await one(`SELECT SUM(json_array_length(${J}'$.pass.q'))) AS q,SUM(${J}'$.pass.d')=?) AS dn FROM users WHERE ${J}'$.pass.s')=?`,mskDay(now),sn);
+  const conq=await one(`SELECT SUM(${J}'$.conq.c')>0) AS n,MAX(${J}'$.conq.c')) AS mx,AVG(${J}'$.conq.c')) AS av,SUM(${J}'$.conq.c')>=8) AS ch1,SUM(${J}'$.conq.c')>=16) AS ch2,SUM(${J}'$.conq.c')>=24) AS ch3,SUM(${J}'$.conq.c')>=32) AS ch4,SUM(${J}'$.conq.c')>=40) AS ch5 FROM users WHERE ${J}'$.conq.c') IS NOT NULL`);
+  const conqTop=await all(`SELECT COALESCE(nick,name) AS name,${J}'$.conq.c') AS c FROM users WHERE ${J}'$.conq.c')>0 ORDER BY c DESC LIMIT 5`);
+  const wel=await one(`SELECT SUM(${J}'$.wel')=1) AS got,SUM(${J}'$.wel')=0) AS wait FROM users`);
+  const stars=await one("SELECT SUM(stars>0) AS n,SUM(stars) AS s FROM cards WHERE owner>0");
+  const clans=await one("SELECT COUNT(*) AS n FROM clans"),inClan=await one("SELECT COUNT(*) AS n FROM users WHERE clan>0"),
+    clanHits=await one("SELECT COALESCE(SUM(dmg),0) AS d,COUNT(*) AS u FROM clan_hits WHERE week=?",mskWeek(now)),clanToday=await one("SELECT COALESCE(SUM(n),0) AS n FROM clan_hits WHERE day=?",mskDay(now));
+  const gifts=await all("SELECT how,COUNT(*) AS n FROM gifts GROUP BY how"),giftSent=await one("SELECT COUNT(*) AS n FROM gifts WHERE from_uid IS NOT NULL AND from_uid>0");
+  const vip=await one("SELECT SUM(vip_until>?) AS n,SUM(vip_until>? AND vip_t=3) AS d,SUM(vip_until>? AND vip_t=2) AS g FROM users",now,now,now),golem=await one("SELECT SUM(golem_until>?) AS n FROM users",now);
+  const cnt=k=>T["a_"+k]||0,wk=k=>days.slice(-7).reduce((a,d)=>a+((by[d]||{})["a_"+k]||0),0);
+  return {stars:st,starsDays:stD,season:{...pass,no:sn+1,name:passTheme(sn).n,end:passEnd(sn),quests:passQ.q||0,questDay:passQ.dn||0},
+    conq:{...conq,top:conqTop,today:cnt("conq_fight"),week:wk("conq_fight")},fuse:{today:cnt("fuse"),week:wk("fuse"),starred:stars.n||0,stars:stars.s||0,forge:cnt("forge")},
+    wel:{got:wel.got||0,wait:wel.wait||0},clans:{n:clans.n||0,members:inClan.n||0,dmg:clanHits.d||0,hitters:clanHits.u||0,hitsToday:clanToday.n||0},
+    gifts:Object.fromEntries(gifts.map(g=>[g.how||"?",g.n])),giftSent:giftSent.n||0,vip:{n:vip.n||0,diamond:vip.d||0,gold:vip.g||0,golem:golem.n||0},
+    today:{case:cnt("cas_case"),slot:cnt("cas_slot"),hl:cnt("cas_hl_go"),ex:cnt("ex_runes"),passClaim:cnt("pass_claim"),era:cnt("era_claim")}};
 }
 
 /* ---------- бои с настоящими игроками ---------- */
