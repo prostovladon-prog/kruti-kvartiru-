@@ -837,7 +837,19 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
     const b=fb.querySelector("button");b.disabled=!okL||cur.listed;if(cur.listed)b.textContent="Карточка на рынке";
     b.onclick=async()=>{b.disabled=true;const r=await act("forge",{id:cur.id});if(!r){draw();return}
       sfx.fanfare();hapN("success");burst(Math.min(4,r.stars));cv.classList.remove("forged");void cv.offsetWidth;cv.classList.add("forged");
-      draw();renderAll();toast(r.stars===3?"★3! Открыто прозвище: «"+epithet(cur)+"»":r.stars===5?"★5! Воин вознесён":"Закалка ★"+r.stars+"! Цена теперь "+fmt(r.v))}}
+      draw();renderAll();toast(r.stars===3?"★3! Открыто прозвище: «"+epithet(cur)+"»":r.stars===5?"★5! Воин вознесён":"Закалка ★"+r.stars+"! Цена теперь "+fmt(r.v))};
+    /* слияние душ: копии этого воина вместо уровня и монет */
+    {const need=s+1,cp=S.cards.filter(x=>x.id!==cur.id&&x.h===cur.h&&!x.part&&!away(x)&&!FIN[x.f].excl).sort((a,b)=>(a.stars||0)-(b.stars||0)||a.f-b.f||a.v-b.v),use=cp.slice(0,need),okF=cp.length>=need&&!cur.listed;
+     const word=n=>n===1?"копию":n<5?"копии":"копий",fu=document.createElement("div");fu.className="fuse";
+     fu.innerHTML='<h3>🔥 Слияние душ</h3><p>Без уровня и монет: сожги <b>'+need+' '+word(need)+'</b> этого воина — и он сразу получит ★'+(s+1)+'. Копий у тебя: <b>'+cp.length+'</b></p>'+
+      (use.length?'<div class="fuc">'+use.map((x,i)=>'<div class="fui" style="--i:'+i+'">'+miniSlot(x)+'<small>'+FIN[x.f].k+(x.stars?" ★"+x.stars:"")+'</small></div>').join("")+'</div>':"")+
+      '<button type="button" class="craftbtn fuseb"'+(okF?"":" disabled")+'>'+(okF?"🔥 Слить "+need+" → ★"+(s+1):"Нужно ещё "+(need-cp.length)+" "+word(need-cp.length))+'</button>';
+     fb.appendChild(fu);let warn=0;
+     fu.querySelector(".fuseb").onclick=async e=>{const bt=e.currentTarget;const rich=use.some(x=>x.stars||x.f>=2);if(rich&&NOW()-warn>4000){warn=NOW();toast("Сгорят и редкие копии ("+use.filter(x=>x.stars||x.f>=2).map(x=>FIN[x.f].k.toLowerCase()).join(", ")+"). Нажми ещё раз");return}
+       bt.disabled=true;fu.classList.add("go");tone(200,.5,"sawtooth",.05,0,900);hap("heavy");await new Promise(z=>setTimeout(z,650));
+       const r=await act("fuse",{id:cur.id,ids:use.map(x=>x.id)});if(!r){draw();return}
+       sfx.fanfare();hapN("success");burst(Math.min(4,r.stars));cv.classList.remove("forged");void cv.offsetWidth;cv.classList.add("forged");
+       draw();renderAll();toast("🔥 Слияние душ: ★"+r.stars+"!"+(r.stars===3?" Открыто прозвище: «"+epithet(cur)+"»":""))}}}
   draw()}
 
 $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))};
@@ -1744,8 +1756,8 @@ function renderLavka(){const c=S.cards.find(x=>x.id===lvPick);
   const B=bossS();$("lv-rage").disabled=(B.extra||0)>=2;$("lv-rage").textContent=(B.extra||0)>=2?"Лимит на сегодня":"Купить за 150 🪙";
   $("lv-map").disabled=S.mapDay===todayL();$("lv-map").textContent=S.mapDay===todayL()?"Уже куплена":"Купить за 120 🪙";
   $("lv-prev").innerHTML=c?miniSlot(Object.assign({},c,{frame:lvFrame})):'<span class="lvnone">Выбери воина внизу, и здесь появится превью с рамкой</span>';
-  if(FRAMES[lvFrame].only&&!S.pioneer)lvFrame="bronze";
-  const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).filter(([k,F])=>!F.only||S.pioneer).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
+  const frOk=F=>!F.only||(F.only==="season"?(S.frames||[]).includes("season"):S.pioneer);if(!frOk(FRAMES[lvFrame]))lvFrame="bronze";
+  const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).filter(([k,F])=>frOk(F)).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
     b.innerHTML=`<i></i><span><b></b><br>${F.only?"только для тебя":fmt(F.cost)}</span>`;b.querySelector("b").textContent=F.k;b.onclick=()=>{lvFrame=k;renderLavka()};fr.appendChild(b)});
   $("lv-fgo").disabled=!c;$("lv-fgo").textContent=c?(c.frame===lvFrame?"Эта рамка уже надета":"Надеть рамку «"+FRAMES[lvFrame].k+"» "+(FRAMES[lvFrame].cost?"за "+fmt(FRAMES[lvFrame].cost):"бесплатно")):"Выбери воина внизу";
   const pk=$("lv-pick");pk.innerHTML="";S.cards.filter(x=>!x.listed).sort((a,b)=>b.v-a.v).forEach(x=>{const H=HEROES[x.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",x.id===lvPick);
@@ -1810,8 +1822,8 @@ $("auc-go").onclick=()=>{setTab("shop");shView="buy";renderShop();setTimeout(()=
 /* ---------- титулы ---------- */
 function openTitles(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const own=S.titles||[];
   sh.innerHTML='<div class="box nickbox"><h3>🎖 Титулы</h3><p>Покупаются за деньги игры один раз и навсегда. Титул виден рядом с ником в топах, чате и рейтинге.</p><div class="ttll"></div><button type="button" class="ghost" id="ttl-x">Закрыть</button></div>';
-  const L=sh.querySelector(".ttll");for(const k in TITLES){const T=TITLES[k],has=own.includes(k),d=document.createElement("div");d.className="ttli"+(S.title===k?" on":"");
-    d.innerHTML='<span class="ttlb">'+T.ic+" "+T.n+'</span><b class="num">'+fmtC(T.price)+'</b>';const b=document.createElement("button");b.type="button";b.className=has?"ghost":"craftbtn";
+  const L=sh.querySelector(".ttll");for(const k in TITLES){const T=TITLES[k],has=own.includes(k);if(T.pass&&!has)continue;const d=document.createElement("div");d.className="ttli"+(S.title===k?" on":"");
+    d.innerHTML='<span class="ttlb">'+T.ic+" "+T.n+'</span><b class="num">'+(T.pass?"сезон":fmtC(T.price))+'</b>';const b=document.createElement("button");b.type="button";b.className=has?"ghost":"craftbtn";
     b.textContent=has?(S.title===k?"Снять":"Надеть"):"Купить";b.onclick=async()=>{if(!has&&S.cash<T.price){toast("Не хватает "+fmt(T.price-S.cash));return}b.disabled=true;
       const r=await act(has?"title_set":"title_buy",{k:has&&S.title===k?"":k});b.disabled=false;if(!r)return;sfx.coin();Object.keys(tpCache).forEach(x=>delete tpCache[x]);renderAll();openTitles();if(!has)toast("Теперь ты «"+T.n+"»!")};d.appendChild(b);L.appendChild(d)}
   $("ttl-x").onclick=closeModal}
@@ -1937,13 +1949,13 @@ async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textC
 document.querySelectorAll("#top-seg button").forEach(b=>b.onclick=()=>{tpView=b.dataset.v;renderTop()});
 
 /* ---------- вкладки ---------- */
-const SUBS={cards:[["col","🗂 Мои"],["album","📖 Альбом"],["craft","⚒ Крафт"]],fight:[["duel","⚔️ Бой"],["clan","🛡 Клан"],["camp","🎯 Лагерь"]],prof:[["prof","👤 Профиль"],["top","🏆 Топ"]]};
-const GRP={col:"cards",album:"cards",craft:"cards",duel:"fight",camp:"fight",clan:"fight",prof:"prof",top:"prof"},lastSub={};
+const SUBS={cards:[["col","🗂 Мои"],["album","📖 Альбом"],["craft","⚒ Крафт"]],fight:[["duel","⚔️ Бой"],["conq","🗺 Карта"],["clan","🛡 Клан"],["camp","🎯 Лагерь"]],prof:[["prof","👤 Профиль"],["pass","🎖 Пропуск"],["top","🏆 Топ"]]};
+const GRP={col:"cards",album:"cards",craft:"cards",duel:"fight",camp:"fight",clan:"fight",conq:"fight",prof:"prof",pass:"prof",top:"prof"},lastSub={};
 function drawSub(t){document.querySelectorAll(".subnav").forEach(e=>e.remove());const g=GRP[t];if(!g)return;const d=document.createElement("div");d.className="subnav";
   d.innerHTML=SUBS[g].map(([k,n])=>'<button type="button" data-sub="'+k+'" aria-pressed="'+(k===t)+'">'+n+'</button>').join("");$("sec-"+t).prepend(d);
   d.onclick=e=>{const b=e.target.closest("[data-sub]");if(!b||b.dataset.sub===t)return;goSub(b.dataset.sub)}}
-function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else if(k==="clan")openClan();else setTab(k)}
-function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof","clan"].forEach(k=>{$("sec-"+k).hidden=k!==t});
+function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else if(k==="clan")openClan();else if(k==="conq")openConq();else if(k==="pass")openPass();else setTab(k)}
+function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof","clan","conq","pass"].forEach(k=>{$("sec-"+k).hidden=k!==t});
   const grp=GRP[t]||t;["spin","cards","fight","cas","gold","shop","prof"].forEach(n=>{const b=$("tab-"+n);if(b)b.setAttribute("aria-selected",n===grp)});if(GRP[t])lastSub[grp]=t;drawSub(t);renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold("gifts");$("fchest").onclick=()=>openGold("chest");$("tab-cards").onclick=()=>setTab(lastSub.cards||"col");$("tab-fight").onclick=()=>goSub(lastSub.fight||"duel");$("tab-cas").onclick=()=>{if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas")};$("tab-shop").onclick=()=>setTab("shop");$("tab-prof").onclick=()=>goSub(lastSub.prof||"prof");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/ 🪙$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}

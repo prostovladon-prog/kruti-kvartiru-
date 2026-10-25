@@ -881,6 +881,9 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(((await giftLeft(env))[k]||0)<=0)fail("Тираж «"+G.n+"» закончился");
     return {item,stars:G.stars,title:"Подарок «"+G.n+"»",desc:"Подарок «"+G.n+"» ("+GR[G.r].toLowerCase()+", тираж "+G.run+"). Поставь на витрину или подари другу",data:{k}}}
   if(item==="vip"){const t=Math.max(1,Math.min(3,p.t|0)),V=VIP_T[t];return {item,stars:V.stars,title:V.n+" · "+V.days+" дн.",desc:V.ic+" "+V.n+" на "+V.days+" дней: "+V.sp+" прокруток каждые 4 часа вместо "+SPINS_MAX+", +"+V.ex+" пакетов обмена рун в день, корона у ника",data:{t}}}
+  if(item==="pass"){const now=Date.now(),sn=passSeason(now),u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
+    if(st.pass&&st.pass.s===sn&&st.pass.prem===sn)fail("Пропуск этого сезона уже твой");if(passEnd(sn)-now<36e5)fail("Сезон вот-вот закончится — купи пропуск следующего");
+    const T=passTheme(sn);return {item,stars:PASS.stars,title:"Пропуск: "+T.n,desc:T.ic+" Боевой пропуск «"+T.n+"»: награды всех 30 уровней — прокрутки, руны, монеты, эпическая и 2 легендарные карточки, титул и рамка сезона",data:{s:sn}}}
   if(item==="golem"){const f=p.forever?1:0;return {item,stars:f?GOLEM.f:GOLEM.w,title:"Каменный голем",desc:"Голем в лагере "+(f?"навсегда":"на "+GOLEM.days+" дней")+": энергии в 2 раза больше и она восстанавливается в 2 раза быстрее",data:{forever:f}}}
   if(item==="fx"){const k=String(p.fx||"");if(!NFX[k])fail("Нет такого эффекта");const f=p.forever?1:0;
     return {item,stars:f?NFX_PRICE.f:NFX_PRICE.m,title:"Ник «"+NFX[k]+"»",desc:"Переливающийся ник «"+NFX[k]+"» "+(f?"навсегда":"на "+NFX_DAYS+" дней")+": в топах, чате, лагере и на арене",data:{fx:k,forever:f}}}
@@ -927,6 +930,8 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       const act=(u.vip_until||0)>now,until=Math.max(now,u.vip_until||0)+V.days*864e5,t=act?Math.max(u.vip_t||1,d.t):d.t;
       await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(until,t,P.uid).run();
       res={until,t};msg=VIP_T[t].ic+" "+VIP_T[t].n+" до "+new Date(until+TZ).toISOString().slice(0,10).split("-").reverse().join(".")+"! Теперь "+VIP_T[t].sp+" прокруток каждые 4 часа."}
+    else if(P.item==="pass"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"pass_grant",{s:d.s},{grant:true})).res;delete res.events;msg="🎖 Боевой пропуск «"+passTheme(d.s).n+"» открыт! Забирай награды всех пройденных уровней во вкладке «Пропуск»."}
     else if(P.item==="golem"){const now=Date.now(),u=await env.DB.prepare("SELECT golem_until FROM users WHERE id=?").bind(P.uid).first()||{};
       const until=d.forever?9e15:Math.max(now,u.golem_until||0)+GOLEM.days*864e5;await env.DB.prepare("UPDATE users SET golem_until=MAX(golem_until,?) WHERE id=?").bind(until,P.uid).run();
       res={until};msg="🗿 Каменный голем в лагере "+(d.forever?"навсегда":"до "+new Date(until+TZ).toISOString().slice(0,10).split("-").reverse().join("."))+"! Энергии ×2 и восстанавливается в 2 раза быстрее."}
@@ -1221,7 +1226,7 @@ async function clanApi(env,me,a,p){const now=Date.now(),week=mskWeek(now),day=ms
         for(const id of ids){await env.DB.prepare("UPDATE users SET gift_spins=gift_spins+?,cash=cash+? WHERE id=? AND clan=?").bind(CLAN.chest.sp,CLAN.chest.cash,id,cid).run();
           if(id!==me.id)await notify(env,id,"🏆 Клан победил босса «"+bn+"» (ур. "+B2.lvl+")! Сундук клана: +"+CLAN.chest.sp+" прокруток и +"+CLAN.chest.cash+" 🪙 уже у тебя. Дальше босс сильнее — бейте!","⚔️ Клан",PAGE+"?clan=1")}
         kill={lvl:B2.lvl,sp:CLAN.chest.sp,cash:CLAN.chest.cash}}}
-    delete topCache["clantop"+week];return {dmg,crit,kill,left:CLAN.hits-n-1}}
+    delete topCache["clantop"+week];try{await doAction(env,me,"pass_note",{k:"clan",n:1},{grant:true})}catch(e){}return {dmg,crit,kill,left:CLAN.hits-n-1}}
   fail("Неизвестное действие")}
 /* в понедельник награды топ-3 кланам прошлой недели */
 let clanWBusy=false;

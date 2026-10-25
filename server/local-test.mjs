@@ -727,9 +727,9 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(B, "clan_join", { id: cid }); ok(q.ok, "друг вступил в клан");
     q = await call(A, "clan_info"); ok(q.ok && q.res.clan.members.length === 2 && q.res.boss.lvl === 1 && q.res.boss.hp === 60000 && q.res.left === 3, "клан: 2 участника, босс 60 000 HP, 3 удара");
     q = await call(A, "clan_hit"); ok(q.ok && q.res.dmg > 0 && q.res.left === 2, "удар по боссу: " + q.res.dmg);
-    db.prepare("UPDATE clan_boss SET dmg=hp-1 WHERE clan=?").run(cid); const g0 = db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(A).g;
+    db.prepare("UPDATE clan_boss SET dmg=hp-1 WHERE clan=?").run(cid); const g0 = (await call(A, "sync")).S.spins;
     q = await call(A, "clan_hit"); ok(q.ok && q.res.kill && q.res.kill.lvl === 1, "босс повержен — сундук клана");
-    ok(db.prepare("SELECT gift_spins g FROM users WHERE id=?").get(A).g === g0 + 10, "сундук: +10 прокруток тем, кто бил");
+    ok((await call(A, "sync")).S.spins === g0 + 10, "сундук: +10 прокруток тем, кто бил");
     q = await call(A, "clan_info"); ok(q.res.boss.lvl === 2 && q.res.boss.hp === 90000, "следующий босс сильнее: ур. 2, 90 000 HP");
     await call(A, "clan_hit"); q = await call(A, "clan_hit"); ok(!q.ok && /закончились/.test(q.err), "не больше 3 ударов в день");
     q = await call(B, "clan_leave"); ok(q.ok, "вышел из клана");
@@ -767,6 +767,36 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   // голем
   r = await buy(A, { item: "golem" }); ok(r.ok && r.res.status === "done" && r.S.golemUntil > Date.now() + 6 * 864e5, "голем на неделю куплен");
   r = await call(A, "camp_tap", { n: 1 }); ok(r.ok && r.S.camp.gm === 1, "с големом энергии в 2 раза больше");
+  // Покорение
+  { const cs = (await call(A, "sync")).S.cards.filter(c => !c.away && !c.listed && !c.part && c.f < 5 && !c.lock).slice(0, 4);
+    let q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); ok(!q.ok && /предыдущие/.test(q.err), "Покорение: нельзя прыгнуть через точку");
+    q = await call(A, "conq_fight", { n: 0, ids: cs.slice(0, 2).map(c => c.id) }); ok(!q.ok && /3 воинов/.test(q.err), "Покорение: нужен отряд из 3");
+    db.prepare("UPDATE cards SET stats='[900,900,900,900,900]' WHERE owner=?").run(A);
+    const sp0 = (await call(A, "sync")).S.spins;
+    q = await call(A, "conq_fight", { n: 0, ids: cs.slice(0, 3).map(c => c.id) }); ok(q.ok && q.res.win && q.res.first && q.res.stars === 3 && q.res.reward.cash === 60 && q.S.conq.c === 1, "Покорение: первая точка пройдена на ★★★, награда");
+    ok(q.S.spins === sp0 + 1, "★★★ даёт +1 прокрутку");
+    q = await call(A, "conq_fight", { n: 0, ids: cs.slice(0, 3).map(c => c.id) }); ok(q.ok && q.res.win && !q.res.first && !q.res.reward, "повтор точки: награды нет, но бой засчитан");
+    ok(q.S.pass.c.conq === 2, "бои в Покорении идут в задания пропуска");
+    for (let i = 0; i < 3; i++) q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) });
+    q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); ok(!q.ok && /Факелы/.test(q.err), "5 факелов в день — дальше завтра"); }
+  // Слияние душ
+  { let s = (await call(A, "sync")).S; const H = s.cards.find(c => !c.part && c.f < 5)?.h;
+    db.prepare("UPDATE cards SET h=?, stars=0 WHERE owner=? AND part=0 AND f<5").run(H, A); s = (await call(A, "sync")).S;
+    const same = s.cards.filter(c => c.h === H && !c.part && !c.listed && !c.away && !c.lock && c.f < 5);
+    let q = await call(A, "fuse", { id: same[0].id, ids: [same[1].id, same[2].id] }); ok(!q.ok && /нужно 1/.test(q.err), "слияние ★1: нужна ровно 1 копия");
+    q = await call(A, "fuse", { id: same[0].id, ids: [same[1].id] }); ok(q.ok && q.res.stars === 1 && !q.S.cards.some(c => c.id === same[1].id), "слияние душ: копия сгорела, ★1 без уровня и монет");
+    q = await call(A, "fuse", { id: same[0].id, ids: [same[2].id] }); ok(!q.ok && /нужно 2/.test(q.err), "★2 — уже 2 копии"); }
+  // Боевой пропуск
+  { let q = await call(A, "sync"); const P = q.S.pass; ok(P && P.xp > 0 && P.s === 0, "пропуск: опыт копится (" + P.xp + ")");
+    q = await call(A, "pass_claim", { lv: 1 }); ok(q.ok || /дойди/.test(q.err), "награда 1 уровня или ещё рано");
+    const u = db.prepare("SELECT state FROM users WHERE id=?").get(A), st = JSON.parse(u.state); st.pass.xp = 300 * 30; db.prepare("UPDATE users SET state=? WHERE id=?").run(JSON.stringify(st), A);
+    q = await call(A, "pass_claim", { lv: 10, prem: 1 }); ok(!q.ok && /покупки/.test(q.err), "премиум-награды только с пропуском");
+    q = await call(A, "pass_grant", { s: 0 }); ok(!q.ok, "выдать себе пропуск нельзя");
+    q = await buy(A, { item: "pass" }); ok(q.ok && q.res.status === "done" && q.S.pass.prem === 0, "пропуск куплен за звёзды");
+    q = await buy(A, { item: "pass" }); ok(!q.ok && /уже твой/.test(q.err), "второй раз не купить");
+    q = await call(A, "pass_claim", { lv: 30, prem: 1 }); ok(q.ok && q.res.card && q.res.title && q.S.titles.includes("season") && q.S.frames.includes("season"), "30 уровень пропуска: легендарка, титул и рамка");
+    q = await call(A, "pass_claim", { lv: 30, prem: 1 }); ok(!q.ok && /Уже/.test(q.err), "награду не забрать дважды");
+    q = await call(A, "title_buy", { k: "season" }); ok(!q.ok, "титул сезона не купить за монеты"); }
 }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

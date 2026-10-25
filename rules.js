@@ -162,6 +162,7 @@ const MILES=[{p:.25,t:"3 прокрутки"},{p:.5,t:"Гарантирован�
 const FRAMES={bronze:{k:"Бронзовая",cost:100,bg:"linear-gradient(135deg,#f3c58b,#a8642a 50%,#e6a96a)"},silver:{k:"Серебряная",cost:300,bg:"linear-gradient(135deg,#ffffff,#9aa6bf 45%,#f2f4fa 60%,#7d8aa3)"},
   fire:{k:"Огненная",cost:1000,bg:"linear-gradient(180deg,#ffe14d,#ff7a1a 45%,#d0141f)"},night:{k:"Звёздная ночь",cost:2000,bg:"radial-gradient(#fff 1px,transparent 1.6px) 0 0/10px 10px,linear-gradient(135deg,#0d1030,#3b2a8c)"},
   rainbow:{k:"Радужная",cost:4000,bg:"conic-gradient(#ff5f6d,#ffc371,#47e891,#3ab0ff,#c56bff,#ff5f6d)"},
+  season:{k:"Сезонная",cost:0,only:"season",bg:"conic-gradient(from 30deg,#3aa0ff,#bf5af2,#ff3b6b,#ffd23f,#34c759,#3aa0ff)"},
   pioneer:{k:"Первопроходец",cost:0,only:"pioneer",bg:"linear-gradient(135deg,#14110a,#ffd60a 30%,#fff6c8 50%,#ffd60a 70%,#14110a)"}};   // только для первых 100 игроков
 const PIONEERS=100, PIONEER_SPINS=20;
 
@@ -495,6 +496,54 @@ function casBet(st,ctx,b,R){const C=camp(st,ctx.now),K=casDay(st,ctx.now);b=Math
   if(!(b>=R.min&&b<=R.max))fail("Ставка от "+R.min.toLocaleString("ru")+" до "+R.max.toLocaleString("ru")+" рун");
   
   if(C.runes<b)fail("Не хватает рун: нужно "+b.toLocaleString("ru"));C.runes-=b;K.n++;return C}
+
+/* ===================== ПОКОРЕНИЕ ЭПОХ: карта мира, 5 глав по 8 точек =====================
+   Отряд из 3 воинов против 3 врагов: три схватки, кто выиграл 2 — тот прошёл. У каждой главы есть слабость к одной эпохе (+30%).
+   Награда за точку — только за первое прохождение (и бонус за ★★★). Повторы тратят факел и идут в задания пропуска. */
+const ERA_OF=(()=>{const m={};ERAS.forEach(E=>E.h.forEach(h=>m[h]=E.k));return m})();
+const CONQ_CH=[
+ {k:"mid",n:"Земли рыцарей",weak:"jap",bg:["#2b4a1e","#6b8f3a"],st:["Застава у брода","Старая мельница","Разбойничий лес","Монастырь","Турнирное поле","Осада крепости","Королевский тракт","Тронный зал"]},
+ {k:"ant",n:"Берега Эллады",weak:"mid",bg:["#1e3f6b","#d9b45a"],st:["Оливковая роща","Порт Пирей","Колизей","Храм Афины","Лабиринт","Марафонская равнина","Спарта","Вершина Олимпа"]},
+ {k:"nor",n:"Северные фьорды",weak:"ant",bg:["#1d3550","#9fc4d8"],st:["Ледяной брод","Деревня ярла","Курганы","Степной лагерь","Драккары","Волчья тропа","Великая степь","Чертог ярла"]},
+ {k:"jap",n:"Острова сёгунов",weak:"myth",bg:["#4a1630","#ff9fb8"],st:["Бамбуковая роща","Рисовые поля","Чайный домик","Додзё","Мост над ущельем","Замок Химэдзи","Сад сакуры","Ставка сёгуна"]},
+ {k:"myth",n:"Царство мифов",weak:"nor",bg:["#26104a","#bf5af2"],st:["Туманный лес","Логово Горыныча","Остров Буян","Огненная река","Кощеево царство","Бездна","Врата богов","Престол Хаоса"]}];
+const CONQ={per:8,torch:5,vip:2,bonus:1.3,base:450,grow:1.058,boss:1.15,cards:[1,2,2,3,3]};
+const conqN=()=>CONQ_CH.length*CONQ.per;
+const cpow=c=>[0,1,2,3,4].reduce((a,i)=>a+eff(c,i),0);
+function conqStage(n){const ch=Math.floor(n/CONQ.per),i=n%CONQ.per,C=CONQ_CH[ch],E=ERAS.find(x=>x.k===C.k),P=Math.round(CONQ.base*Math.pow(CONQ.grow,n)),boss=i===CONQ.per-1;
+  const hs=E.h.slice().sort((a,b)=>HEROES[a][2]-HEROES[b][2]),top=hs[hs.length-1];
+  const foes=[0,1,2].map(j=>{const h=boss&&j===1?top:hs[(i*3+j*2)%hs.length];return {h,p:Math.round(P*(boss?(j===1?1.3:1.05):[.9,1,1.1][j])*(boss?CONQ.boss:1))}});
+  return {n,ch,i,name:C.st[i],boss,foes,weak:C.weak,
+   r:{cash:Math.round(60+n*30),runes:500+n*150,sp:boss?5+ch*2:(i===3?3:0),card:boss?CONQ.cards[ch]:null}}}
+function conqDay(st,now){const Q=st.conq||(st.conq={c:0,s:{},d:"",t:0});const d=mskDay(now);if(Q.d!==d){Q.d=d;Q.t=0}return Q}
+const conqTorch=st=>CONQ.torch+(vipTier(st)?CONQ.vip:0);
+const conqPow=(c,weak)=>Math.round(cpow(c)*(ERA_OF[c.h]===weak?CONQ.bonus:1));
+
+/* ===================== СЕЗОН И БОЕВОЙ ПРОПУСК =====================
+   Сезон — 4 недели, у каждого своя эпоха. Опыт за задания дня и за игру. 30 уровней, у каждого бесплатная награда и награда пропуска (за звёзды). */
+const PASS={start:Date.UTC(2026,9,25,21),len:28*864e5,lv:30,xp:300,stars:199,
+ themes:[{n:"Сезон Викингов",ic:"🪓",era:"nor",c:["#0f2a44","#3aa0ff","#bfe6ff"]},{n:"Сезон Самураев",ic:"🏯",era:"jap",c:["#3a0d24","#ff3b6b","#ffd1dc"]},
+  {n:"Сезон Мифов",ic:"🐉",era:"myth",c:["#1e0b3a","#bf5af2","#ffd23f"]},{n:"Сезон Легионов",ic:"🏛",era:"ant",c:["#2a1d05","#ffb02e","#fff2c8"]},{n:"Сезон Рыцарей",ic:"⚔️",era:"mid",c:["#0b2a14","#34c759","#d6ffe0"]}]};
+const passSeason=now=>Math.max(0,Math.floor((now-PASS.start)/PASS.len));
+const passEnd=s=>PASS.start+(s+1)*PASS.len;
+const passTheme=s=>PASS.themes[s%PASS.themes.length];
+const PQ=[{k:"open",n:10,t:"Открой 10 карточек",xp:120},{k:"win",n:3,t:"Выиграй 3 боя",xp:120},{k:"tap",n:300,t:"Нанеси 300 ударов в лагере",xp:90},
+ {k:"conq",n:2,t:"Выиграй 2 боя в Покорении",xp:120},{k:"up",n:1,t:"Усиль воина: тренер, закалка или слияние",xp:100},{k:"craft",n:1,t:"Сделай крафт или слияние карт",xp:100},
+ {k:"wheel",n:1,t:"Покрути колесо удачи",xp:60},{k:"clan",n:1,t:"Ударь босса клана",xp:90},{k:"sell",n:3,t:"Продай 3 карточки",xp:70}];
+const PQ_XP={open:4,win:6,conq:10};   // опыт и без заданий: за каждую карточку, победу, бой в Покорении
+function passQuests(d){let h=0;for(const ch of d)h=(h*31+ch.charCodeAt(0))>>>0;const rest=PQ.slice(1),out=[0];
+  while(out.length<4){h=(h*1103515245+12345)>>>0;const i=1+(h>>>8)%rest.length;if(!out.includes(i))out.push(i)}return out}
+function passState(st,now){const s=passSeason(now);let P=st.pass;if(!P||P.s!==s)P=st.pass={s,xp:0,prem:P&&P.prem===s?s:-1,f:[],p:[],d:"",c:{},q:[]};
+  const d=mskDay(now);if(P.d!==d){P.d=d;P.c={};P.q=[]}return P}
+const passLv=P=>Math.min(PASS.lv,Math.floor(P.xp/PASS.xp));
+function passReward(lv,prem){   // lv 1…30
+  if(!prem){if(lv===30)return {card:2,t:"Эпическая карточка"};if(lv%5===0)return {sp:5};return lv%3===1?{cash:200+lv*20}:lv%3===2?{runes:2000+lv*200}:{sp:2}}
+  if(lv===30)return {card:3,title:"season",frame:"season",t:"Легендарная карточка, титул и рамка сезона"};if(lv===20)return {card:3,t:"Легендарная карточка"};
+  if(lv===10)return {card:2,t:"Эпическая карточка"};if(lv===25)return {frame:"season",sp:10,t:"Рамка сезона"};if(lv%5===0)return {sp:8,guar:1};
+  return lv%3===1?{cash:800+lv*60}:lv%3===2?{runes:6000+lv*400}:{sp:4}}
+function passAdd(st,ctx,k,n){if(!n)return;const P=passState(st,ctx.now);P.c[k]=(P.c[k]||0)+n;if(PQ_XP[k])P.xp+=PQ_XP[k]*n;
+  passQuests(P.d).forEach(i=>{const Q=PQ[i];if(!P.q.includes(i)&&(P.c[Q.k]||0)>=Q.n){P.q.push(i);P.xp+=Q.xp;if(ctx.events)ctx.events.push({t:"pq",q:Q.t,xp:Q.xp})}})}
+const SEASON_TITLE={n:"Герой сезона",ic:"🎖"};
 const ACTIONS={
   sync(){return {}},
 
@@ -588,7 +637,7 @@ const ACTIONS={
     pay(G.st,forgeCost(c));c.stars=s+1;c.v=Math.round(c.v*STAR_V*100)/100;return {stars:c.stars,v:c.v}},
   rage(G){const B=boss(G.st,G.ctx.now);if((B.extra||0)>=2)fail("Лимит зелий на сегодня");pay(G.st,150);B.extra=(B.extra||0)+1;return {}},
   map(G){if(G.st.mapDay===today(G.ctx.now))fail("Карта уже куплена");pay(G.st,120);G.st.mapDay=today(G.ctx.now);return {}},
-  frame(G){const c=notHalf(own(G,G.p.id)),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(F.only&&!G.ctx.pioneer)fail("Эта рамка только для первых "+PIONEERS+" игроков");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
+  frame(G){const c=notHalf(own(G,G.p.id)),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(F.only==="season"){if(!(G.st.frames||[]).includes("season"))fail("Рамка сезона — награда боевого пропуска")}else if(F.only&&!G.ctx.pioneer)fail("Эта рамка только для первых "+PIONEERS+" игроков");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
 
   task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;return {r:T.r}},
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
@@ -688,7 +737,7 @@ const ACTIONS={
     pay(st,T.price);const card=makeCard(ctx,T.h,T.f,{stats:T.stats,hue:T.hue});card.v=T.v;card.how="trader";addCard(G,card);return {card,price:T.price}},
   trader_give(G){const T=G.ctx.trader;if(!T)fail("Неизвестное действие");const c=burnable(freeCard(G,G.p.id));if(c.h!==T.h)fail("Торговец ищет другого воина");
     const got=Math.round(c.v*T.k*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
-  title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
+  title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");if(T.pass)fail("Этот титул — награда сезонного пропуска");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
     pay(st,T.price);st.titles.push(G.p.k);st.title=G.p.k;return {k:G.p.k}},
   title_set(G){const st=G.st,k=G.p.k||"";if(k&&!(st.titles||[]).includes(k))fail("Сначала купи этот титул");st.title=k;return {k}},
   /* выигрыш аукциона: только сервер, карточка кладётся даже сверх лимита */
@@ -697,14 +746,53 @@ const ACTIONS={
   season_prize(G){if(!G.ctx.season)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.sp)st.spins+=p.sp;if(p.guar)st.guar=(st.guar||0)+p.guar;let card=null;
     if(p.tier){card=rollTier(ctx,p.tier);card.how="chest";G.cards.push(card);noteCard(st,card)}return {card}},
 
+  /* Покорение: бой отрядом из 3 воинов за точку карты */
+  conq_fight(G){const {st,ctx,p}=G;const Q=conqDay(st,ctx.now),n=p.n|0;if(n<0||n>=conqN())fail("Нет такой точки");if(n>Q.c)fail("Сначала пройди предыдущие точки");
+    if(Q.t>=conqTorch(st))fail("Факелы на сегодня закончились. Завтра снова "+conqTorch(st));
+    const ids=[...new Set(p.ids||[])].slice(0,3);if(ids.length!==3)fail("Выбери 3 воинов в отряд");const me=ids.map(id=>notHalf(battleCard(G,id),"Половинки не воюют"));
+    const S=conqStage(n);Q.t++;
+    const rounds=S.foes.map((F,j)=>{const a=Math.round(conqPow(me[j],S.weak)*(.88+Math.random()*.24)),b=Math.round(F.p*(.88+Math.random()*.24));return {a,b,w:a>b?1:0,h:F.h,id:me[j].id,bonus:ERA_OF[me[j].h]===S.weak?1:0}});
+    const w=rounds.filter(r=>r.w).length,win=w>=2,stars=win?w:0;let reward=null,first=false,perfect=false;
+    me.forEach((c,j)=>addXp(ctx,c,rounds[j].w?25:10));
+    if(win){passAdd(st,ctx,"conq",1);const old=Q.s[n]||0;
+      if(n===Q.c){first=true;Q.c=n+1;const r=S.r,C=camp(st,ctx.now);reward={cash:r.cash,runes:r.runes,sp:r.sp};earn(st,r.cash);C.runes+=r.runes;st.spins+=r.sp;
+        if(r.card!=null){const c=rollTier(ctx,r.card);c.how="conq";G.cards.push(c);noteCard(st,c);reward.card=c}}
+      if(stars===3&&old<3){perfect=true;st.spins+=1;reward=reward||{};reward.sp3=1}
+      Q.s[n]=Math.max(old,stars)}
+    return {rounds,win,stars,reward,first,perfect,n,left:conqTorch(st)-Q.t}},
+
+  /* Слияние душ: сжечь копии того же воина вместо уровня и монет. ★1 — 1 копия, ★2 — 2, … ★5 — 5 */
+  fuse(G){const {st,ctx,p}=G;const c=notHalf(own(G,p.id));if(c.listed)fail("Карточка на рынке");if(FIN[c.f].excl)fail("Эту карточку не усилить");
+    const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");const need=s+1,ids=[...new Set(p.ids||[])].filter(x=>x!==c.id);
+    if(ids.length!==need)fail("Для ★"+(s+1)+" нужно "+need+" "+(need===1?"копия":"копии")+" этого воина");
+    const don=ids.map(id=>{const d=notHalf(burnable(freeCard(G,id)),"Половинки не сжечь");if(d.h!==c.h)fail("Сжечь можно только копии этого же воина");if(FIN[d.f].excl)fail("Эту карточку нельзя сжечь");return d});
+    const sum=don.reduce((a,d)=>a+d.v,0);burn(G,ids);c.stars=s+1;c.v=Math.round((c.v*STAR_V+sum*.2)*100)/100;c.xp=Math.max(c.xp||0,0);
+    passAdd(st,ctx,"up",1);passAdd(st,ctx,"craft",1);return {stars:c.stars,v:c.v,burned:need}},
+
+  /* боевой пропуск: забрать награду уровня */
+  pass_claim(G){const {st,ctx,p}=G;const P=passState(st,ctx.now),lv=p.lv|0,prem=!!p.prem;if(lv<1||lv>PASS.lv)fail("Нет такого уровня");
+    if(passLv(P)<lv)fail("Сначала дойди до "+lv+" уровня");if(prem&&P.prem!==P.s)fail("Награды пропуска — после покупки пропуска");
+    const L=prem?P.p:P.f;if(L.includes(lv))fail("Уже получено");L.push(lv);const r=passReward(lv,prem),out={};
+    if(r.cash){earn(st,r.cash);out.cash=r.cash}if(r.runes){camp(st,ctx.now).runes+=r.runes;out.runes=r.runes}if(r.sp){st.spins+=r.sp;out.sp=r.sp}if(r.guar){st.guar=(st.guar||0)+r.guar;out.guar=r.guar}
+    if(r.card!=null){const c=rollTier(ctx,r.card);c.how="pass";G.cards.push(c);noteCard(st,c);out.card=c}
+    if(r.title){st.titles=st.titles||[];if(!st.titles.includes("season"))st.titles.push("season");out.title=1}
+    if(r.frame){st.frames=st.frames||[];if(!st.frames.includes("season"))st.frames.push("season");out.frame=1}
+    return out},
+  pass_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const P=passState(G.st,G.ctx.now);if((G.p.s|0)!==P.s)fail("Сезон уже сменился");P.prem=P.s;return {s:P.s}},
+  pass_note(G){if(!G.ctx.grant)fail("Неизвестное действие");passAdd(G.st,G.ctx,String(G.p.k||""),Math.max(0,Math.min(1000,G.p.n|0)));return {}},
   topup(G){if(!G.ctx.test&&!G.ctx.admin)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */
-function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};const res=A(G)||{};return {res,cards:G.cards}}
+function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};
+  const D0=day(st,ctx.now),o0=D0.opened,w0=st.totalWins||0,c0=st.crafted||0;const res=A(G)||{};
+  try{const D=day(st,ctx.now);passAdd(st,ctx,"open",Math.max(0,D.opened-o0));passAdd(st,ctx,"win",Math.max(0,(st.totalWins||0)-w0));
+    if(name==="camp_tap")passAdd(st,ctx,"tap",res.n|0);if(name==="train"||name==="forge")passAdd(st,ctx,"up",1);if(name==="craft"||name==="merge")passAdd(st,ctx,"craft",1);
+    if(name==="wheel")passAdd(st,ctx,"wheel",1);if(name==="sell")passAdd(st,ctx,"sell",1);if(name==="sellmany"||name==="sellcommon")passAdd(st,ctx,"sell",res.n|0||1)}catch(e){}
+  return {res,cards:G.cards}}
 
 /* титулы за деньги игры: покупаются один раз навсегда, деньги сгорают. Виден рядом с ником в топах, чате и рейтинге */
-const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8}};
+const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8},season:{n:"Герой сезона",ic:"🎖",price:0,pass:1}};
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

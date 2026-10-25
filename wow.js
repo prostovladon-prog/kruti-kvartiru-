@@ -528,3 +528,126 @@ function clBossHTML(B){const lite=campLite||(window.matchMedia&&matchMedia("(pre
 let csHide=0;
 {const _u=updCash;updCash=function(){_u();if(csHide>0)try{const v=fmtN(Math.max(0,campView().runes-csHide));$("cash-r").textContent=v;const c=$("cs-ru");if(c)c.textContent=v}catch(e){}}}
 {const _b=csBal;csBal=function(){_b();if(csHide>0)try{$("cs-ru").textContent=fmtN(Math.max(0,campView().runes-csHide))}catch(e){}}}
+
+/* ===================== ПОКОРЕНИЕ ЭПОХ (карта мира) =====================
+   Анимации только transform/opacity, тяжёлые фильтры статичные. Карта перерисовывается, только когда что-то изменилось. */
+let cqCh=null,cqKey="",cqSel=null,cqBusy=false;
+const CQ_DECO={mid:["🌲","🏰","🌾","🌳","⛪","🐎"],ant:["🏛","🫒","🌊","🏺","⛵","🦉"],nor:["🏔","🌲","❄️","🛶","🐺","⛺"],jap:["🌸","⛩","🎋","🗻","🏯","🍵"],myth:["🌋","🐉","🌫","💀","🔮","🦅"]};
+const CQ_X=[22,64,80,44,18,52,82,50],CQ_GAP=104;
+const cqOk=c=>!c.part&&!away(c)&&!FIN[c.f].excl;
+function cqView(){const Q=S.conq||{c:0,s:{},d:"",t:0};const used=Q.d===mskDay(NOW())?Q.t||0:0;return {c:Q.c||0,s:Q.s||{},left:Math.max(0,conqTorch(S)-used),max:conqTorch(S)}}
+function cqEra(k){return ERAS.find(e=>e.k===k)}
+function openConq(){const V=cqView();if(cqCh==null)cqCh=Math.min(CONQ_CH.length-1,Math.floor(Math.min(V.c,conqN()-1)/CONQ.per));cqKey="";setTab("conq")}
+function drawConq(){const b=$("conq-body");if(!b||$("sec-conq").hidden||!S)return;const V=cqView(),C=CONQ_CH[cqCh],k=[cqCh,V.c,JSON.stringify(V.s),V.left].join("|");if(k===cqKey)return;cqKey=k;
+  const W=cqEra(C.weak),stars=Object.values(V.s).reduce((a,x)=>a+x,0),chDone=Math.max(0,Math.min(CONQ.per,V.c-cqCh*CONQ.per));
+  const chips=CONQ_CH.map((X,i)=>{const lock=V.c<i*CONQ.per,d=Math.max(0,Math.min(CONQ.per,V.c-i*CONQ.per));return '<button type="button" class="cqc'+(i===cqCh?" on":"")+(lock?" lock":"")+'" data-ch="'+i+'"><i>'+(lock?"🔒":cqEra(X.k).ic)+'</i><span>'+X.n+'</span><small>'+d+'/'+CONQ.per+'</small></button>'}).join("");
+  const H=CONQ.per*CQ_GAP+70,pos=i=>({x:CQ_X[i],y:H-50-i*CQ_GAP});
+  let path="",done="";for(let i=0;i<CONQ.per-1;i++){const a=pos(i),z=pos(i+1),seg=(i?"":"M"+a.x+" "+a.y)+" C"+a.x+" "+(a.y-55)+" "+z.x+" "+(z.y+55)+" "+z.x+" "+z.y;path+=seg;if(i<chDone)done+=seg}
+  const deco=CQ_DECO[C.k];let dh="";for(let i=0;i<14;i++){const side=i%2,x=side?(84+((i*37)%12)):(2+((i*53)%10)),y=30+((i*61)%(H-80));dh+='<i class="cqd" style="left:'+x+'%;top:'+y+'px;font-size:'+(22+(i*7)%16)+'px">'+deco[i%deco.length]+'</i>'}
+  const nodes=[...Array(CONQ.per)].map((_,i)=>{const n=cqCh*CONQ.per+i,p=pos(i),S0=conqStage(n),st=V.s[n]||0,cls=n<V.c?"done":n===V.c?"cur":"lock";
+    return '<button type="button" class="cqn '+cls+(S0.boss?" cqboss":"")+'" data-n="'+n+'" style="left:'+p.x+'%;top:'+p.y+'px">'+(S0.boss?'<span class="cqbp">'+portrait(S0.foes[1].h,null,true)+'</span>':'<b>'+(i+1)+'</b>')+
+      (n<V.c?'<em class="cqst">'+"★★★".slice(0,st)+'<u>'+"★★★".slice(st)+'</u></em>':"")+'<span class="cql">'+S0.name+'</span></button>'}).join("");
+  b.innerHTML='<div class="box cqhd" style="--b0:'+C.bg[0]+';--b1:'+C.bg[1]+'"><div class="cqt"><div><h3>🗺 Покорение Эпох</h3><p>Отряд из 3 воинов против 3 врагов. Выиграл 2 схватки — земля твоя</p></div><div class="cqtorch"><i>🔥</i><b>'+V.left+'</b><small>из '+V.max+'</small></div></div>'+
+    '<div class="cqchips">'+chips+'</div><div class="cqinfo"><span>Слабость главы: <b>'+W.ic+' '+W.n+'</b> +30%</span><span>★ '+stars+' / '+conqN()*3+'</span></div></div>'+
+    '<div class="cqmap" style="height:'+H+'px;--b0:'+C.bg[0]+';--b1:'+C.bg[1]+'"><div class="cqfog"></div>'+dh+'<i class="cqcloud" style="top:12%">☁️</i><i class="cqcloud c2" style="top:58%">☁️</i>'+
+    '<svg class="cqpath" viewBox="0 0 100 '+H+'" preserveAspectRatio="none"><path d="'+path+'" class="p0" vector-effect="non-scaling-stroke"/>'+(done?'<path d="'+done+'" class="p1" vector-effect="non-scaling-stroke"/>':"")+'</svg>'+nodes+'</div>'+
+    '<p class="cln" style="text-align:center">Награда за точку — при первом прохождении. За ★★★ ещё +1 🎴. В конце главы — сундук с карточкой</p>';
+  b.onclick=e=>{const ch=e.target.closest("[data-ch]");if(ch){const i=+ch.dataset.ch;if(V.c<i*CONQ.per){toast("Сначала пройди главу «"+CONQ_CH[i-1].n+"»");return}cqCh=i;cqKey="";drawConq();hap("light");return}
+    const nd=e.target.closest(".cqn");if(!nd)return;const n=+nd.dataset.n;if(n>V.c){toast("Сначала пройди предыдущую точку");hap("light");return}cqSel=null;cqStageSheet(n)};
+  requestAnimationFrame(()=>{const cur=b.querySelector(".cqn.cur");if(cur&&!cqDidScroll){cqDidScroll=1;cur.scrollIntoView({block:"center"})}})}
+let cqDidScroll=0;
+function cqAuto(n){const S0=conqStage(n),pool=S.cards.filter(cqOk).sort((a,b)=>conqPow(b,S0.weak)-conqPow(a,S0.weak)).slice(0,3);if(pool.length<3)return pool;return cqOrder(pool,S0)}
+function cqOrder(cs,S0){const P=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];let best=null,bv=-1;for(const p of P){const v=p.reduce((a,j,i)=>{const r=conqPow(cs[j],S0.weak)/S0.foes[i].p;return a+1/(1+Math.exp(-(r-1)*8))},0);if(v>bv){bv=v;best=p}}return best.map(j=>cs[j])}
+function cqStageSheet(n){const S0=conqStage(n),V=cqView(),C=CONQ_CH[S0.ch],W=cqEra(S0.weak),st=V.s[n]||0;
+  let sq=cqSel?cqSel.map(id=>S.cards.find(c=>c.id===id)).filter(Boolean):cqAuto(n);if(sq.length===3)sq=cqOrder(sq,S0);
+  const odds=j=>{if(!sq[j])return "";const r=conqPow(sq[j],S0.weak)/S0.foes[j].p;return r>1.12?"win":r>.88?"mid":"lose"};
+  const R=S0.r,rw=n<V.c?(st<3?'<div class="cqrw">Пройдено '+"★".repeat(st)+' — за ★★★ ещё <b>+1 🎴</b></div>':'<div class="cqrw">Пройдено на ★★★ — можно повторить для заданий сезона</div>'):
+    '<div class="cqrw">Награда: <b>+'+fmtN(R.cash)+' 🪙</b> · <b>+'+fmtN(R.runes)+' 💠</b>'+(R.sp?' · <b>+'+R.sp+' 🎴</b>':"")+(R.card!=null?' · <b class="cqcard" style="--c:'+HT[R.card].c+'">🃏 '+HT[R.card].k.replace(/ый$/,"ая").replace(/ий$/,"ая")+' карточка</b>':"")+'</div>';
+  const d=wSheet('<div class="cqsh" style="--b0:'+C.bg[0]+';--b1:'+C.bg[1]+'"><div class="cqsh-h"><small>'+C.n+' · точка '+(S0.i+1)+(S0.boss?" · БОСС":"")+'</small><h3>'+S0.name+'</h3></div>'+
+    '<div class="cqvs"><div class="cqrow foes">'+S0.foes.map((F,j)=>'<div class="cqfoe'+(S0.boss&&j===1?" big":"")+'"><div class="pt">'+portrait(F.h,null,true)+'</div><span>'+HEROES[F.h][0]+'</span><b>⚔ '+fmtN(F.p)+'</b></div>').join("")+'</div>'+
+    '<div class="cqmid">'+[0,1,2].map(j=>'<i class="'+odds(j)+'"></i>').join("")+'</div>'+
+    '<div class="cqrow mine">'+[0,1,2].map(j=>sq[j]?'<div class="cqme">'+miniSlot(sq[j])+'<b>⚔ '+fmtN(conqPow(sq[j],S0.weak))+(ERA_OF[sq[j].h]===S0.weak?' <em>+30%</em>':"")+'</b></div>':'<div class="cqme empty">Нет воина</div>').join("")+'</div></div>'+
+    '<div class="cqweak">'+W.ic+' Слабость: воины эпохи «'+W.n+'» бьют здесь на 30% сильнее</div>'+rw+
+    '<div class="cqbtns"><button type="button" class="ghost" data-pick="1">Сменить отряд</button><button type="button" class="craftbtn cqgo" data-go="1"'+(sq.length<3||V.left<=0?" disabled":"")+'>'+(V.left>0?"⚔️ В бой · 🔥1":"Факелы закончились — завтра")+'</button></div></div>',
+   btn=>{if(btn.dataset.pick){cqPicker(n,sq);return}if(btn.dataset.go){cqFight(n,sq);return}return false})}
+function cqPicker(n,cur){const S0=conqStage(n),list=S.cards.filter(cqOk).sort((a,b)=>conqPow(b,S0.weak)-conqPow(a,S0.weak)).slice(0,40),sel=new Set(cur.map(c=>c.id));
+  const d=wSheet('<h3 style="margin:0 0 4px">Выбери 3 воинов</h3><p class="cln">Сила с учётом слабости главы. Отмеченные «+30%» — из эпохи «'+cqEra(S0.weak).n+'»</p><div class="cqpk">'+list.map(c=>'<button type="button" class="cqpi'+(sel.has(c.id)?" on":"")+'" data-id="'+c.id+'">'+miniSlot(c)+'<span>'+HEROES[c.h][0]+'</span><b>⚔ '+fmtN(conqPow(c,S0.weak))+(ERA_OF[c.h]===S0.weak?'<em>+30%</em>':"")+'</b></button>').join("")+'</div><button type="button" class="craftbtn" data-ok="1">Готово</button>',
+   btn=>{if(btn.dataset.id){const id=+btn.dataset.id||btn.dataset.id;if(sel.has(id))sel.delete(id);else{if(sel.size>=3){toast("В отряде 3 воина. Сними кого-нибудь");return false}sel.add(id)}btn.classList.toggle("on",sel.has(id));hap("light");return false}
+     if(btn.dataset.ok){if(sel.size<3){toast("Выбери ещё "+(3-sel.size));return false}cqSel=[...sel];setTimeout(()=>cqStageSheet(n),0)}})}
+async function cqFight(n,sq){if(cqBusy)return;cqBusy=true;document.querySelectorAll(".wsheet").forEach(e=>e.remove());
+  const r=await act("conq_fight",{n,ids:sq.map(c=>c.id)}).catch(()=>null);if(!r){cqBusy=false;return}
+  const S0=conqStage(n),C=CONQ_CH[S0.ch];sfx.lock&&sfx.lock();
+  const ov=document.createElement("div");ov.className="cqbt";ov.style.cssText="--b0:"+C.bg[0]+";--b1:"+C.bg[1];
+  ov.innerHTML='<div class="cqbt-bg"></div><div class="cqbt-h"><small>'+C.n+'</small><b>'+S0.name+'</b><div class="cqdots">'+[0,1,2].map(j=>'<i data-d="'+j+'"></i>').join("")+'</div></div>'+
+   '<div class="cqbt-row rtop">'+S0.foes.map((F,j)=>'<div class="cqbf" data-j="'+j+'"><div class="pt">'+portrait(F.h,null,true)+'</div><span>'+HEROES[F.h][0]+'</span><b class="pw"></b></div>').join("")+'</div>'+
+   '<div class="cqbt-mid"><div class="cqflash"></div><div class="cqboom">💥</div><div class="cqvs2">VS</div></div>'+
+   '<div class="cqbt-row rbot">'+sq.map((c,j)=>'<div class="cqbm" data-j="'+j+'">'+miniSlot(c)+'<b class="pw"></b></div>').join("")+'</div><div class="cqres"></div><p class="cqskip">нажми, чтобы пропустить</p>';
+  document.body.append(ov);let skip=false,fin=false;ov.onclick=()=>{if(!fin)skip=true};
+  const wait=ms=>new Promise(z=>{const t0=performance.now();const f=()=>{if(skip||performance.now()-t0>=ms)z();else setTimeout(f,40)};f()});
+  await wait(450);
+  for(let j=0;j<3&&!skip;j++){const R0=r.rounds[j],me=ov.querySelector('.cqbm[data-j="'+j+'"]'),fo=ov.querySelector('.cqbf[data-j="'+j+'"]');
+    ov.classList.add("act");me.classList.add("go");fo.classList.add("go");tone(300,.2,"sawtooth",.05,0,120);await wait(420);if(skip)break;
+    me.querySelector(".pw").textContent="⚔ "+fmtN(R0.a)+(R0.bonus?" 🔥":"");fo.querySelector(".pw").textContent="⚔ "+fmtN(R0.b);
+    ov.classList.remove("hit");void ov.offsetWidth;ov.classList.add("hit");tone(110,.18,"square",.09);tone(1400,.08,"triangle",.05,.05);hap("heavy");await wait(420);if(skip)break;
+    (R0.w?fo:me).classList.add("ko");(R0.w?me:fo).classList.add("win");ov.querySelector('[data-d="'+j+'"]').className=R0.w?"w":"l";R0.w?tone(880,.12,"sine",.06):tone(180,.2,"sine",.06);await wait(520);
+    me.classList.remove("go");fo.classList.remove("go");ov.classList.remove("act");await wait(220)}
+  r.rounds.forEach((R0,j)=>{const me=ov.querySelector('.cqbm[data-j="'+j+'"]'),fo=ov.querySelector('.cqbf[data-j="'+j+'"]');me.classList.remove("go");fo.classList.remove("go");me.querySelector(".pw").textContent="⚔ "+fmtN(R0.a);fo.querySelector(".pw").textContent="⚔ "+fmtN(R0.b);(R0.w?fo:me).classList.add("ko");(R0.w?me:fo).classList.add("win");ov.querySelector('[data-d="'+j+'"]').className=R0.w?"w":"l"});
+  fin=true;ov.classList.remove("act");ov.classList.add("end",r.win?"won":"lost");const rw=r.reward||{};
+  const res=ov.querySelector(".cqres");res.innerHTML=r.win?'<h2>ПОБЕДА!</h2><div class="cqstars">'+[0,1,2].map(i=>'<i class="'+(i<r.stars?"on":"")+'" style="--d:'+(.15+i*.22)+'s">★</i>').join("")+'</div>'+
+     (r.first||r.perfect?'<div class="cqgot">'+(rw.cash?'<span>+'+fmtN(rw.cash)+' 🪙</span>':"")+(rw.runes?'<span>+'+fmtN(rw.runes)+' 💠</span>':"")+((rw.sp||0)+(rw.sp3||0)?'<span>+'+((rw.sp||0)+(rw.sp3||0))+' 🎴</span>':"")+(rw.card?'<span class="cd">🃏 карточка!</span>':"")+'</div>':'<p>Повторный бой засчитан в задания сезона</p>')+
+     '<button type="button" class="craftbtn" data-ok="1">'+(r.first&&n+1<conqN()?"Дальше →":"Отлично")+'</button>':
+    '<h2>ПОРАЖЕНИЕ</h2><p>Выиграно схваток: '+r.rounds.filter(x=>x.w).length+' из 3. Усиль воинов (тренер, закалка, слияние душ) или возьми воинов эпохи «'+cqEra(S0.weak).n+'» — они бьют на 30% сильнее.</p><button type="button" class="craftbtn" data-ok="1">Понятно</button>';
+  if(r.win){sfx.fanfare();hapN("success");if(r.stars===3)setTimeout(()=>burst(3),300)}else{sfx.lose&&sfx.lose();hapN("error")}
+  res.querySelector("[data-ok]").onclick=e=>{e.stopPropagation();ov.classList.add("out");setTimeout(()=>ov.remove(),250);cqBusy=false;cqSel=null;
+    if(r.first&&n+1<conqN()&&(n+1)%CONQ.per===0){cqCh=Math.min(CONQ_CH.length-1,cqCh+1)}cqKey="";cqDidScroll=0;renderAll();
+    if(rw.card)setTimeout(()=>showGrant({cards:[rw.card]},S0.boss?"🏆 Сундук главы!":"🃏 Награда!"),280)};
+  cqKey="";renderAll()}
+
+/* ===================== СЕЗОН И БОЕВОЙ ПРОПУСК ===================== */
+let psKey="";
+function passView(){const st={pass:S.pass?JSON.parse(JSON.stringify(S.pass)):null};const P=passState(st,NOW());const lv=passLv(P),prem=P.prem===P.s;
+  let can=0;for(let l=1;l<=lv;l++){if(!P.f.includes(l))can++;if(prem&&!P.p.includes(l))can++}
+  const qs=passQuests(P.d).map(i=>({i,Q:PQ[i],have:Math.min(PQ[i].n,P.c[PQ[i].k]||0),done:P.q.includes(i)}));return {P,lv,prem,can,qs,T:passTheme(P.s),left:passEnd(P.s)-NOW()}}
+function psRw(r,big){const parts=[];if(r.card!=null)parts.push('<span class="psi card" style="--c:'+HT[r.card].c+'">🃏</span>');if(r.title)parts.push('<span class="psi">🎖</span>');if(r.frame)parts.push('<span class="psi frm"></span>');
+  if(r.sp)parts.push('<span class="psi">🎴</span>');if(r.cash)parts.push('<span class="psi">🪙</span>');if(r.runes)parts.push('<span class="psi">💠</span>');if(r.guar)parts.push('<span class="psi">💎</span>');
+  const lab=r.t||(r.sp?"+"+r.sp+" прокр.":r.cash?"+"+fmtN(r.cash)+" 🪙":r.runes?"+"+fmtN(r.runes)+" 💠":"")+(r.guar?" + эпик":"");return '<span class="psis">'+parts.slice(0,big?3:2).join("")+'</span><small>'+lab+'</small>'}
+function openPass(){psKey="";setTab("pass")}
+function drawPass(){const b=$("pass-body");if(!b||$("sec-pass").hidden||!S)return;const V=passView(),P=V.P,k=JSON.stringify([P,V.prem,Math.floor(V.left/36e5)]);if(k===psKey)return;psKey=k;const T=V.T;
+  const xpIn=V.lv>=PASS.lv?PASS.xp:P.xp-V.lv*PASS.xp,days=Math.max(0,Math.ceil(V.left/864e5)),ring=2*Math.PI*30;
+  const rows=[...Array(PASS.lv)].map((_,i)=>{const l=i+1,reach=V.lv>=l,f=P.f.includes(l),p=P.p.includes(l),rf=passReward(l,false),rp=passReward(l,true),big=l%5===0;
+    const st=(got,ok,lock)=>got?"got":lock?"lock":ok?"can":"wait";
+    return '<div class="psr'+(reach?" on":"")+(big?" big":"")+(l===V.lv+1?" next":"")+'"><button type="button" class="pst pfree '+st(f,reach,false)+'" data-lv="'+l+'">'+psRw(rf,big)+(f?'<i class="ok">✓</i>':"")+'</button>'+
+      '<div class="psn"><b>'+l+'</b></div><button type="button" class="pst pprem '+st(p,reach,!V.prem)+'" data-lv="'+l+'" data-prem="1">'+psRw(rp,big)+(p?'<i class="ok">✓</i>':!V.prem?'<i class="lk">🔒</i>':"")+'</button></div>'}).join("");
+  b.innerHTML='<div class="pshero" style="--c0:'+T.c[0]+';--c1:'+T.c[1]+';--c2:'+T.c[2]+'"><div class="psshine"></div><div class="psglow"></div><div class="psic">'+T.ic+'</div>'+
+     '<div class="pstx"><small>СЕЗОН '+(P.s+1)+' · ⏳ ЕЩЁ '+days+' ДН.</small><h2>'+T.n+'</h2><span>30 уровней наград: прокрутки, руны, монеты и легендарные карточки</span></div>'+
+     '<div class="pslv"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="30" class="r0"/><circle cx="35" cy="35" r="30" class="r1" style="stroke-dasharray:'+ring+';stroke-dashoffset:'+(ring*(1-xpIn/PASS.xp))+'"/></svg><b>'+V.lv+'</b><small>уровень</small></div>'+
+     '<div class="psxp"><i style="width:'+(xpIn/PASS.xp*100)+'%"></i><span>'+(V.lv>=PASS.lv?"Максимальный уровень!":xpIn+" / "+PASS.xp+" XP до "+(V.lv+1)+" ур.")+'</span></div>'+
+     (V.prem?'<div class="psown">🎖 Пропуск открыт — забирай обе награды каждого уровня</div>':'<button type="button" class="psbuy" id="ps-buy"><b>🎖 Открыть пропуск · '+PASS.stars+' ⭐</b><small>2 легендарные и эпическая карточка, титул «Герой сезона», сезонная рамка, в 3 раза больше прокруток</small></button>')+'</div>'+
+    '<div class="box psq"><h3>📜 Задания дня</h3>'+V.qs.map(q=>'<div class="psqr'+(q.done?" done":"")+'"><i>'+(q.done?"✅":"📜")+'</i><div><b>'+q.Q.t+'</b><div class="psqb"><u style="width:'+(q.have/q.Q.n*100)+'%"></u></div></div><span>+'+q.Q.xp+' XP<small>'+fmtN(q.have)+'/'+fmtN(q.Q.n)+'</small></span></div>').join("")+
+     '<p class="cln">Новые задания каждый день в 00:00 МСК. Опыт идёт и просто за игру: карточка +4, победа +6, бой в Покорении +10</p></div>'+
+    '<div class="box pstrack"><div class="rowb"><h3>🏆 Награды сезона</h3>'+(V.can?'<button type="button" class="mini2 pscall" id="ps-all">Забрать всё · '+V.can+'</button>':"")+'</div><div class="pshd"><span>Бесплатно</span><span></span><span>🎖 Пропуск</span></div>'+
+     '<div class="psrows" style="--fill:'+(Math.min(V.lv,PASS.lv)/PASS.lv*100)+'%">'+rows+'</div></div>';
+  if($("ps-buy"))$("ps-buy").onclick=()=>buyItem({item:"pass"});if($("ps-all"))$("ps-all").onclick=psAll;
+  b.querySelector(".psrows").onclick=async e=>{const t=e.target.closest(".pst");if(!t)return;const l=+t.dataset.lv,pr=!!t.dataset.prem;
+    if(t.classList.contains("got")){toast("Уже получено");return}if(t.classList.contains("lock")){toast("Открой пропуск, чтобы забрать");$("ps-buy")&&$("ps-buy").scrollIntoView({block:"center"});return}
+    if(t.classList.contains("wait")){toast("Нужен "+l+" уровень. Выполняй задания дня");return}await psClaim(l,pr,t)}}
+let psBusy=false;
+async function psClaim(l,pr,el){if(psBusy)return;psBusy=true;try{const r=await act("pass_claim",{lv:l,prem:pr?1:0});if(!r)return;sfx.coin();hap("medium");
+  if(el){el.classList.add("pop");const rc=el.getBoundingClientRect();try{boom(rc.left+rc.width/2,rc.top+rc.height/2)}catch(x){}}
+  const t=[r.cash?"+"+fmtN(r.cash)+" 🪙":"",r.runes?"+"+fmtN(r.runes)+" 💠":"",r.sp?"+"+r.sp+" 🎴":"",r.guar?"гарантированный эпик":"",r.title?"титул «Герой сезона»":"",r.frame?"сезонная рамка":""].filter(Boolean).join(" · ");
+  if(r.card){sfx.fanfare();showGrant({cards:[r.card]},"🎖 Награда "+l+" уровня!")}else if(t)toast("🎖 "+t);psKey="";setTimeout(()=>{renderAll()},el?260:0)}finally{psBusy=false}}
+async function psAll(){const V=passView();const todo=[];for(let l=1;l<=V.lv;l++){if(!V.P.f.includes(l))todo.push([l,0]);if(V.prem&&!V.P.p.includes(l))todo.push([l,1])}
+  let sum={cash:0,runes:0,sp:0},cards=[];for(const [l,p] of todo){const r=await act("pass_claim",{lv:l,prem:p});if(!r)break;sum.cash+=r.cash||0;sum.runes+=r.runes||0;sum.sp+=r.sp||0;if(r.card)cards.push(r.card)}
+  sfx.fanfare();hapN("success");burst(2);psKey="";renderAll();const t=[sum.cash?"+"+fmtN(sum.cash)+" 🪙":"",sum.runes?"+"+fmtN(sum.runes)+" 💠":"",sum.sp?"+"+sum.sp+" 🎴":""].filter(Boolean).join(" · ");
+  if(cards.length)showGrant({cards,sp:sum.sp},"🎖 Награды сезона!");else if(t)toast("🎖 Получено: "+t)}
+/* полоска сезона на главном экране */
+function drawPassStrip(){if(!S)return;let el=$("ps-strip");const fb=$("free-box");if(!fb)return;if(!el){el=document.createElement("button");el.type="button";el.id="ps-strip";el.className="psstrip";fb.before(el);el.onclick=()=>goSub("pass")}
+  const V=passView(),xpIn=V.lv>=PASS.lv?PASS.xp:V.P.xp-V.lv*PASS.xp,qd=V.qs.filter(q=>q.done).length,T=V.T;el.style.cssText="--c0:"+T.c[0]+";--c1:"+T.c[1]+";--c2:"+T.c[2];
+  const h='<i class="pss-ic">'+T.ic+'</i><span class="pss-t"><b>'+T.n+' · ур. '+V.lv+'</b><small>'+(V.can?"🎁 Награды ждут: "+V.can:"📜 Задания дня: "+qd+"/4")+'</small><u><s style="width:'+(xpIn/PASS.xp*100)+'%"></s></u></span>'+(V.can?'<em>'+V.can+'</em>':'<span class="pss-go">›</span>');
+  if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}el.classList.toggle("hot",!!V.can)}
+{const _ra=renderAll;renderAll=function(){_ra();try{drawConq()}catch(e){console.error(e)}try{drawPass()}catch(e){console.error(e)}try{drawPassStrip()}catch(e){console.error(e)}}}
+/* задание дня выполнено — сразу говорим */
+{const _a2=act;act=async function(n,p){const r=await _a2(n,p);try{(r&&r.events||[]).forEach(e=>{if(e.t==="pq"){toast("📜 Задание выполнено: "+e.q+" · +"+e.xp+" XP");hap("medium")}})}catch(e){}return r}}
+{const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&r.item==="pass"){renderAll();sfx.fanfare();hapN("success");burst(4);toast("🎖 Пропуск открыт! Забирай награды");psKey="";goSub("pass");return}return _ps(r)}}
+/* лёгкий режим лагеря выключает декоративные анимации во всей игре */
+{const _la=liteApply;liteApply=function(){_la();try{document.body.classList.toggle("lite",campLite)}catch(e){}};try{document.body.classList.toggle("lite",campLite)}catch(e){}}
