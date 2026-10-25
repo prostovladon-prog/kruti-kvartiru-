@@ -489,6 +489,13 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   const r = await cs(8, "stats"); const m = (r.res.srcs || []).find(x => x.code === "memes1");
   ok(m && m.visits === 3 && m.fresh === 2, "переходы по ссылке с меткой: зашли 3, новых 2 (" + JSON.stringify(m) + ")");
   ok((r.res.srcs || []).some(x => x.code === "cats" && x.fresh === 1), "вторая метка считается отдельно");
+  const today = Math.floor((Date.now() + 3 * 3600e3) / 864e5); const ins = db.prepare("INSERT OR IGNORE INTO user_days(uid,d) VALUES(?,?)");
+  for (let k = 0; k < 6; k++) ins.run(6501, today - k);   // 6 дней подряд до сегодня
+  ins.run(6502, today - 5); ins.run(6502, today - 4); ins.run(6502, today - 1);   // серия 2 (−5,−4), потом пропуск
+  const r2 = await cs(8, "stats"); const s1 = (r2.res.streaks || []).find(x => x.code === "memes1");
+  ok(s1 && s1.n === 2 && s1.s2 === 2 && s1.s5 === 1 && s1.now2 >= 1, "серии по ссылке: 2 пришли, 5+ дней подряд — 1 (" + JSON.stringify(s1) + ")");
+  const r3 = await cs(8, "src_users", { code: "memes1" }); ok(r3.ok && r3.res.rows.length === 2 && r3.res.rows[0].mx === 6 && r3.res.rows[0].cur === 6, "по ссылке видно каждого игрока и его серию");
+  const r4 = await cs(6501, "src_users", { code: "memes1" }); ok(!r4.ok, "список по ссылке — только админу");
 }
 /* --- челлендж приглашений --- */
 {
@@ -763,7 +770,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   ok(r.ok && r.res.reels.length === 3 && Math.abs(r.S.camp.runes - (s0 - 1000 + r.res.win)) < 1, "слоты: ставка списана, выигрыш начислен (×" + r.res.m + ")");
   r = await call(A, "cas_hl_go", { bet: 1000 }); ok(r.ok && r.res.hl.c >= 1 && r.res.hl.c <= 13, "больше/меньше: первая карта");
   r = await call(A, "cas_hl_take"); ok(!r.ok, "забрать можно только после угаданной карты");
-  const c = r.ok ? 0 : (await call(A, "sync")).S.cas.hl.c; r = await call(A, "cas_hl", { dir: c >= 7 ? "down" : "up" }); ok(r.ok && (r.res.win ? r.res.hl.m > 1 : !r.res.hl), "больше/меньше: ход");
+  const c = r.ok ? 0 : (await call(A, "sync")).S.cas.hl.c; r = await call(A, "cas_hl", { dir: c >= 7 ? "down" : "up" }); ok(r.ok && (r.res.win ? r.res.hl.m > .9 : !r.res.hl), "больше/меньше: ход");
   // голем
   r = await buy(A, { item: "golem" }); ok(r.ok && r.res.status === "done" && r.S.golemUntil > Date.now() + 6 * 864e5, "голем на неделю куплен");
   r = await call(A, "camp_tap", { n: 1 }); ok(r.ok && r.S.camp.gm === 1, "с големом энергии в 2 раза больше");

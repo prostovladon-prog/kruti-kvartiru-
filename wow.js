@@ -710,3 +710,23 @@ function drawStatsX(){const R=stData&&stData.x,b=$("st-body");if(!R||!b||R.err&&
     ${tile(fmtN(T.era),"эпох собрано сегодня","")}</div>`;
   b.append(X);X.querySelectorAll("q[data-n]").forEach(e=>e.textContent=S0.top[+e.dataset.n].name||"?");X.querySelectorAll("q[data-l]").forEach(e=>e.textContent=S0.last[+e.dataset.l].name||"?");X.querySelectorAll("q[data-c]").forEach(e=>e.textContent=C.top[+e.dataset.c].name||"?")}
 {const _ds=drawStats;drawStats=function(){_ds();try{drawStatsX()}catch(e){console.error(e)}}}
+
+/* ===================== АДМИН: ссылки для блогеров/партнёров ===================== */
+const SRC_LINK="https://t.me/VoinyEpohBot?startapp=s_";
+function drawLinks(){const R=stData,b=$("st-body");if(!R||!b)return;const L=R.streaks||[],F=Object.fromEntries((R.srcs||[]).map(r=>[r.code,r]));
+  const box=document.createElement("div");box.className="srcbox lnk";
+  box.innerHTML='<h4>🔗 Ссылки для людей: сколько привёл и сколько дней подряд играют</h4>'+
+   '<div class="lnk-new"><input id="lnk-in" maxlength="32" placeholder="имя, например ivan или blogger1"><button type="button" class="craftbtn" id="lnk-go">Создать ссылку</button></div><div id="lnk-out"></div>'+
+   (L.length?'<div class="srct s"><b>метка</b><b>пришло</b><b>2+ дня</b><b>3+</b><b>5+ подряд</b><b>7+</b><b>сейчас</b></div>'+L.sort((a,b)=>b.n-a.n).map((r,i)=>'<button type="button" class="srct s" data-code="'+i+'"><span></span><i>'+r.n+'</i><i>'+(r.s2||0)+'</i><i>'+(r.s3||0)+'</i><i class="'+(r.s5?"hot":"")+'">'+(r.s5||0)+'</i><i>'+(r.s7||0)+'</i><i>'+(r.now2||0)+'</i></button>').join("")+
+    '<p class="cln">«Пришло» — новые игроки по ссылке. «5+ подряд» — сколько из них заходили 5 дней подряд или больше. «Сейчас» — у кого серия идёт прямо сейчас (заходил вчера и сегодня). Нажми на строку — увидишь каждого игрока.</p>':'<p class="cln">По ссылкам пока никто не пришёл</p>');
+  b.append(box);box.querySelectorAll(".srct.s span").forEach((e,i)=>e.textContent=L[i].code);
+  const make=()=>{const v=($("lnk-in").value||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,32);if(!v){toast("Только латиница, цифры, _ и -");return}
+    const url=SRC_LINK+v;$("lnk-out").innerHTML='<div class="lnk-url"><code></code><button type="button" class="mini2" id="lnk-cp">Копировать</button></div><p class="cln">Отдай эту ссылку человеку. Все, кто по ней придут, будут считаться в строке «'+v+'» (появится после первого перехода).</p>';
+    $("lnk-out").querySelector("code").textContent=url;$("lnk-cp").onclick=()=>{try{navigator.clipboard.writeText(url);toast("Скопировано")}catch(e){toast(url)}}};
+  $("lnk-go").onclick=make;
+  box.querySelectorAll("[data-code]").forEach(e=>e.onclick=async()=>{const code=L[+e.dataset.code].code;const r=await act("src_users",{code});if(!r)return;
+    const dt=t=>{if(!t)return "—";const d=new Date(t+3*3600e3).toISOString();return d.slice(8,10)+"."+d.slice(5,7)};
+    const d=wSheet('<h3 style="margin:0 0 4px">🔗 '+code.replace(/[<>&]/g,"")+' — '+r.rows.length+' игроков</h3><p class="cln">Ссылка: '+SRC_LINK+code.replace(/[<>&]/g,"")+'<br>Серия — сколько дней подряд заходил (лучшая), сейчас — текущая серия.</p><div class="lnk-list"><div class="lnk-r h"><b>игрок</b><b>пришёл</b><b>был</b><b>дней</b><b>серия</b><b>сейчас</b></div>'+
+      r.rows.map((u,i)=>'<div class="lnk-r'+(u.mx>=5?" hot":"")+'"><span data-i="'+i+'"></span><i>'+dt(u.created)+'</i><i>'+dt(u.seen)+'</i><i>'+u.days+'</i><b>'+u.mx+'</b><i>'+(u.cur||"—")+'</i></div>').join("")+'</div>');
+    d.querySelectorAll("[data-i]").forEach(e=>e.textContent=r.rows[+e.dataset.i].name||"?")})}
+{const _ds2=drawStats;drawStats=function(){_ds2();try{drawLinks()}catch(e){console.error(e)}}}
