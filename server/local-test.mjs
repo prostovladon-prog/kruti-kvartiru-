@@ -795,7 +795,13 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "conq_fight", { n: 0, ids: cs.slice(0, 3).map(c => c.id) }); ok(q.ok && q.res.win && !q.res.first && !q.res.reward, "повтор точки: награды нет, но бой засчитан");
     ok(q.S.pass.c.conq === 2, "бои в Покорении идут в задания пропуска");
     for (let i = 0; i < 3; i++) q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) });
-    q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); ok(!q.ok && /Факелы/.test(q.err), "5 факелов в день — дальше завтра"); }
+    q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); ok(!q.ok && /Факелы/.test(q.err), "факелы кончились"); 
+    { const u0 = db.prepare("SELECT state FROM users WHERE id=?").get(A), st0 = JSON.parse(u0.state); st0.pass.c.open = 9; st0.pass.q = []; db.prepare("UPDATE users SET state=?,gift_spins=gift_spins+3 WHERE id=?").run(JSON.stringify(st0), A); }
+    const so = await call(A, "open"); const SS = (await call(A, "sync")).S, sx = SS.conq.x || 0; ok(sx >= 1 && (so.res.events || []).some(e => e.t === "pq" && e.torch), "за выполненное задание дня +1 факел (" + sx + ")" + (so.ok ? "" : so.err));
+    for (let i = 0; i < sx; i++) await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) });
+    setRunes(A, 2500); q = await call(A, "conq_buy"); ok(q.ok && q.res.price === 1000 && q.res.left === 1, "факел за 1 000 рун");
+    q = await call(A, "conq_buy"); ok(!q.ok && /Нужно 2/.test(q.err), "следующий факел дороже — 2 000");
+    q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); ok(q.ok, "купленный факел работает"); }
   // Слияние душ
   { let s = (await call(A, "sync")).S; const H = s.cards.find(c => !c.part && c.f < 5)?.h;
     db.prepare("UPDATE cards SET h=?, stars=0, no=900000+id WHERE owner=? AND part=0 AND f<5").run(H, A); s = (await call(A, "sync")).S;

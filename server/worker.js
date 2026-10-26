@@ -509,7 +509,7 @@ const CONQ_CH=[
  {k:"nor",n:"Северные фьорды",weak:"ant",bg:["#1d3550","#9fc4d8"],st:["Ледяной брод","Деревня ярла","Курганы","Степной лагерь","Драккары","Волчья тропа","Великая степь","Чертог ярла"]},
  {k:"jap",n:"Острова сёгунов",weak:"myth",bg:["#4a1630","#ff9fb8"],st:["Бамбуковая роща","Рисовые поля","Чайный домик","Додзё","Мост над ущельем","Замок Химэдзи","Сад сакуры","Ставка сёгуна"]},
  {k:"myth",n:"Царство мифов",weak:"nor",bg:["#26104a","#bf5af2"],st:["Туманный лес","Логово Горыныча","Остров Буян","Огненная река","Кощеево царство","Бездна","Врата богов","Престол Хаоса"]}];
-const CONQ={per:8,torch:5,vip:2,bonus:1.3,base:450,grow:1.058,boss:1.15,cards:[1,2,2,3,3]};
+const CONQ={per:8,torch:5,vip:2,buy:1000,buyMax:5,bonus:1.3,base:450,grow:1.058,boss:1.15,cards:[1,2,2,3,3]};
 const conqN=()=>CONQ_CH.length*CONQ.per;
 const cpow=c=>[0,1,2,3,4].reduce((a,i)=>a+eff(c,i),0);
 function conqStage(n){const ch=Math.floor(n/CONQ.per),i=n%CONQ.per,C=CONQ_CH[ch],E=ERAS.find(x=>x.k===C.k),P=Math.round(CONQ.base*Math.pow(CONQ.grow,n)),boss=i===CONQ.per-1;
@@ -517,7 +517,9 @@ function conqStage(n){const ch=Math.floor(n/CONQ.per),i=n%CONQ.per,C=CONQ_CH[ch]
   const foes=[0,1,2].map(j=>{const h=boss&&j===1?top:hs[(i*3+j*2)%hs.length];return {h,p:Math.round(P*(boss?(j===1?1.3:1.05):[.9,1,1.1][j])*(boss?CONQ.boss:1))}});
   return {n,ch,i,name:C.st[i],boss,foes,weak:C.weak,
    r:{cash:Math.round(60+n*30),runes:500+n*150,sp:boss?5+ch*2:(i===3?3:0),card:boss?CONQ.cards[ch]:null}}}
-function conqDay(st,now){const Q=st.conq||(st.conq={c:0,s:{},d:"",t:0});const d=mskDay(now);if(Q.d!==d){Q.d=d;Q.t=0}return Q}
+function conqDay(st,now){const Q=st.conq||(st.conq={c:0,s:{},d:"",t:0});const d=mskDay(now);if(Q.d!==d){Q.d=d;Q.t=0;Q.x=0;Q.b=0}Q.x=Q.x||0;Q.b=Q.b||0;return Q}
+/* факелы: 5 в день (VIP +2) + заработанные сегодня (задания дня) + купленные за руны (1 000, 2 000, 4 000… до 5 в день) */
+const conqLeft=(st,Q)=>Math.max(0,conqTorch(st)+(Q.x||0)-Q.t), conqBuyPrice=Q=>CONQ.buy*Math.pow(2,Q.b||0);
 const conqTorch=st=>CONQ.torch+(vipTier(st)?CONQ.vip:0);
 const conqPow=(c,weak)=>Math.round(cpow(c)*(ERA_OF[c.h]===weak?CONQ.bonus:1));
 
@@ -544,7 +546,7 @@ function passReward(lv,prem){   // lv 1…30
   if(lv===10)return {card:2,t:"Эпическая карточка"};if(lv===25)return {frame:"season",sp:10,t:"Рамка сезона"};if(lv%5===0)return {sp:8,guar:1};
   return lv%3===1?{cash:800+lv*60}:lv%3===2?{runes:6000+lv*400}:{sp:4}}
 function passAdd(st,ctx,k,n){if(!n)return;const P=passState(st,ctx.now);P.c[k]=(P.c[k]||0)+n;if(PQ_XP[k])P.xp+=PQ_XP[k]*n;
-  passQuests(P.d).forEach(i=>{const Q=PQ[i];if(!P.q.includes(i)&&(P.c[Q.k]||0)>=Q.n){P.q.push(i);P.xp+=Q.xp;if(ctx.events)ctx.events.push({t:"pq",q:Q.t,xp:Q.xp})}})}
+  passQuests(P.d).forEach(i=>{const Q=PQ[i];if(!P.q.includes(i)&&(P.c[Q.k]||0)>=Q.n){P.q.push(i);P.xp+=Q.xp;conqDay(st,ctx.now).x++;if(ctx.events)ctx.events.push({t:"pq",q:Q.t,xp:Q.xp,torch:1})}})}
 const SEASON_TITLE={n:"Герой сезона",ic:"🎖"};
 const ACTIONS={
   sync(){return {}},
@@ -752,7 +754,7 @@ const ACTIONS={
 
   /* Покорение: бой отрядом из 3 воинов за точку карты */
   conq_fight(G){const {st,ctx,p}=G;const Q=conqDay(st,ctx.now),n=p.n|0;if(n<0||n>=conqN())fail("Нет такой точки");if(n>Q.c)fail("Сначала пройди предыдущие точки");
-    if(Q.t>=conqTorch(st))fail("Факелы на сегодня закончились. Завтра снова "+conqTorch(st));
+    if(conqLeft(st,Q)<=0)fail("Факелы закончились. Купи ещё за руны или выполни задание дня — за каждое +1 🔥");
     const ids=[...new Set(p.ids||[])].slice(0,3);if(ids.length!==3)fail("Выбери 3 воинов в отряд");const me=ids.map(id=>notHalf(battleCard(G,id),"Половинки не воюют"));
     const S=conqStage(n);Q.t++;
     const rounds=S.foes.map((F,j)=>{const a=Math.round(conqPow(me[j],S.weak)*(.88+Math.random()*.24)),b=Math.round(F.p*(.88+Math.random()*.24));return {a,b,w:a>b?1:0,h:F.h,id:me[j].id,bonus:ERA_OF[me[j].h]===S.weak?1:0}});
@@ -763,7 +765,9 @@ const ACTIONS={
         if(r.card!=null){const c=rollTier(ctx,r.card);c.how="conq";G.cards.push(c);noteCard(st,c);reward.card=c}}
       if(stars===3&&old<3){perfect=true;st.spins+=1;reward=reward||{};reward.sp3=1}
       Q.s[n]=Math.max(old,stars)}
-    return {rounds,win,stars,reward,first,perfect,n,left:conqTorch(st)-Q.t}},
+    return {rounds,win,stars,reward,first,perfect,n,left:conqLeft(st,Q)}},
+  conq_buy(G){const {st,ctx}=G;const Q=conqDay(st,ctx.now);if(Q.b>=CONQ.buyMax)fail("Сегодня уже куплено "+CONQ.buyMax+" факелов. Завтра снова");const pr=conqBuyPrice(Q),C=camp(st,ctx.now);
+    if(C.runes<pr)fail("Нужно "+pr.toLocaleString("ru")+" рун — потренируйся в лагере");C.runes-=pr;Q.b++;Q.x++;return {price:pr,left:conqLeft(st,Q),bought:Q.b}},
 
   /* Слияние душ: сжечь копии того же воина вместо уровня и монет. ★1 — 1 копия, ★2 — 2, … ★5 — 5 */
   fuse(G){const {st,ctx,p}=G;const c=notHalf(own(G,p.id));if(c.listed)fail("Карточка на рынке");if(FIN[c.f].excl)fail("Эту карточку не усилить");
@@ -799,7 +803,7 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.

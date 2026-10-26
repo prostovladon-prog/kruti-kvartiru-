@@ -535,7 +535,12 @@ let cqCh=null,cqKey="",cqSel=null,cqBusy=false;
 const CQ_DECO={mid:["🌲","🏰","🌾","🌳","⛪","🐎"],ant:["🏛","🫒","🌊","🏺","⛵","🦉"],nor:["🏔","🌲","❄️","🛶","🐺","⛺"],jap:["🌸","⛩","🎋","🗻","🏯","🍵"],myth:["🌋","🐉","🌫","💀","🔮","🦅"]};
 const CQ_X=[22,64,80,44,18,52,82,50],CQ_GAP=104;
 const cqOk=c=>!c.part&&!away(c)&&!FIN[c.f].excl;
-function cqView(){const Q=S.conq||{c:0,s:{},d:"",t:0};const used=Q.d===mskDay(NOW())?Q.t||0:0;return {c:Q.c||0,s:Q.s||{},left:Math.max(0,conqTorch(S)-used),max:conqTorch(S)}}
+function cqView(){const Q0=S.conq||{c:0,s:{},d:"",t:0},same=Q0.d===mskDay(NOW()),Q={t:same?Q0.t||0:0,x:same?Q0.x||0:0,b:same?Q0.b||0:0};
+  return {c:Q0.c||0,s:Q0.s||{},left:conqLeft(S,Q),max:conqTorch(S)+Q.x,b:Q.b,price:conqBuyPrice(Q)}}
+function cqBuySheet(after){const V=cqView(),ru=campView().runes;if(V.b>=CONQ.buyMax){toast("Сегодня уже куплено "+CONQ.buyMax+" факелов. Ещё +1 🔥 за каждое задание дня в «Пропуске»");return}
+  wSheet('<div style="text-align:center;font-size:54px;line-height:1">🔥</div><h3 style="text-align:center;margin:6px 0 2px">Ещё факел</h3><p class="cln" style="text-align:center">Сейчас факелов: <b>'+V.left+'</b>. Купить за руны можно ещё '+(CONQ.buyMax-V.b)+' сегодня — каждый следующий дороже.<br>А за каждое выполненное задание дня в «Пропуске» — <b>+1 🔥 бесплатно</b>.</p>'+
+   '<button type="button" class="craftbtn" data-buy="1"'+(ru<V.price?" disabled":"")+'>'+(ru<V.price?"Нужно "+fmtN(V.price)+" 💠 (у тебя "+fmtN(ru)+")":"Купить за "+fmtN(V.price)+" 💠")+'</button>'+(ru<V.price?'<button type="button" class="ghost" data-camp="1" style="width:100%;margin-top:8px">🎯 В лагерь за рунами</button>':"")+'<button type="button" class="ghost" data-pass="1" style="width:100%;margin-top:8px">📜 Задания дня</button>',
+   btn=>{if(btn.dataset.camp){openCamp();return}if(btn.dataset.pass){goSub("pass");return}if(btn.dataset.buy){(async()=>{const r=await act("conq_buy");if(!r)return;sfx.coin();hap("medium");toast("🔥 +1 факел! Осталось "+r.left);cqKey="";renderAll();if(after)after()})();return}})}
 function cqEra(k){return ERAS.find(e=>e.k===k)}
 function openConq(){const V=cqView();if(cqCh==null)cqCh=Math.min(CONQ_CH.length-1,Math.floor(Math.min(V.c,conqN()-1)/CONQ.per));cqKey="";setTab("conq")}
 function drawConq(){const b=$("conq-body");if(!b||$("sec-conq").hidden||!S)return;const V=cqView(),C=CONQ_CH[cqCh],k=[cqCh,V.c,JSON.stringify(V.s),V.left].join("|");if(k===cqKey)return;cqKey=k;
@@ -547,12 +552,12 @@ function drawConq(){const b=$("conq-body");if(!b||$("sec-conq").hidden||!S)retur
   const nodes=[...Array(CONQ.per)].map((_,i)=>{const n=cqCh*CONQ.per+i,p=pos(i),S0=conqStage(n),st=V.s[n]||0,cls=n<V.c?"done":n===V.c?"cur":"lock";
     return '<button type="button" class="cqn '+cls+(S0.boss?" cqboss":"")+'" data-n="'+n+'" style="left:'+p.x+'%;top:'+p.y+'px">'+(S0.boss?'<span class="cqbp">'+portrait(S0.foes[1].h,null,true)+'</span>':'<b>'+(i+1)+'</b>')+
       (n<V.c?'<em class="cqst">'+"★★★".slice(0,st)+'<u>'+"★★★".slice(st)+'</u></em>':"")+'<span class="cql">'+S0.name+'</span></button>'}).join("");
-  b.innerHTML='<div class="box cqhd" style="--b0:'+C.bg[0]+';--b1:'+C.bg[1]+'"><div class="cqt"><div><h3>🗺 Покорение Эпох</h3><p>Отряд из 3 воинов против 3 врагов. Выиграл 2 схватки — земля твоя</p></div><div class="cqtorch"><i>🔥</i><b>'+V.left+'</b><small>из '+V.max+'</small></div></div>'+
+  b.innerHTML='<div class="box cqhd" style="--b0:'+C.bg[0]+';--b1:'+C.bg[1]+'"><div class="cqt"><div><h3>🗺 Покорение Эпох</h3><p>Отряд из 3 воинов против 3 врагов. Выиграл 2 схватки — земля твоя</p></div><button type="button" class="cqtorch" id="cq-torch"><i>🔥</i><b>'+V.left+'</b><small>из '+V.max+'</small><em>+</em></button></div>'+
     '<div class="cqchips">'+chips+'</div><div class="cqinfo"><span>Слабость главы: <b>'+W.ic+' '+W.n+'</b> +30%</span><span>★ '+stars+' / '+conqN()*3+'</span></div></div>'+
     '<div class="cqmap" style="height:'+H+'px;--b0:'+C.bg[0]+';--b1:'+C.bg[1]+'"><div class="cqfog"></div>'+dh+'<i class="cqcloud" style="top:12%">☁️</i><i class="cqcloud c2" style="top:58%">☁️</i>'+
     '<svg class="cqpath" viewBox="0 0 100 '+H+'" preserveAspectRatio="none"><path d="'+path+'" class="p0" vector-effect="non-scaling-stroke"/>'+(done?'<path d="'+done+'" class="p1" vector-effect="non-scaling-stroke"/>':"")+'</svg>'+nodes+'</div>'+
     '<p class="cln" style="text-align:center">Награда за точку — при первом прохождении. За ★★★ ещё +1 🎴. В конце главы — сундук с карточкой</p>';
-  b.onclick=e=>{const ch=e.target.closest("[data-ch]");if(ch){const i=+ch.dataset.ch;if(V.c<i*CONQ.per){toast("Сначала пройди главу «"+CONQ_CH[i-1].n+"»");return}cqCh=i;cqKey="";drawConq();hap("light");return}
+  b.onclick=e=>{if(e.target.closest("#cq-torch")){cqBuySheet();return}const ch=e.target.closest("[data-ch]");if(ch){const i=+ch.dataset.ch;if(V.c<i*CONQ.per){toast("Сначала пройди главу «"+CONQ_CH[i-1].n+"»");return}cqCh=i;cqKey="";drawConq();hap("light");return}
     const nd=e.target.closest(".cqn");if(!nd)return;const n=+nd.dataset.n;if(n>V.c){toast("Сначала пройди предыдущую точку");hap("light");return}cqSel=null;cqStageSheet(n)};
   requestAnimationFrame(()=>{const cur=b.querySelector(".cqn.cur");if(cur&&!cqDidScroll){cqDidScroll=1;cur.scrollIntoView({block:"center"})}})}
 let cqDidScroll=0;
@@ -568,8 +573,8 @@ function cqStageSheet(n){const S0=conqStage(n),V=cqView(),C=CONQ_CH[S0.ch],W=cqE
     '<div class="cqmid">'+[0,1,2].map(j=>'<i class="'+odds(j)+'"></i>').join("")+'</div>'+
     '<div class="cqrow mine">'+[0,1,2].map(j=>sq[j]?'<div class="cqme">'+miniSlot(sq[j])+'<b>⚔ '+fmtN(conqPow(sq[j],S0.weak))+(ERA_OF[sq[j].h]===S0.weak?' <em>+30%</em>':"")+'</b></div>':'<div class="cqme empty">Нет воина</div>').join("")+'</div></div>'+
     '<div class="cqweak">'+W.ic+' Слабость: воины эпохи «'+W.n+'» бьют здесь на 30% сильнее</div>'+rw+
-    '<div class="cqbtns"><button type="button" class="ghost" data-pick="1">Сменить отряд</button><button type="button" class="craftbtn cqgo" data-go="1"'+(sq.length<3||V.left<=0?" disabled":"")+'>'+(V.left>0?"⚔️ В бой · 🔥1":"Факелы закончились — завтра")+'</button></div></div>',
-   btn=>{if(btn.dataset.pick){cqPicker(n,sq);return}if(btn.dataset.go){cqFight(n,sq);return}return false})}
+    '<div class="cqbtns"><button type="button" class="ghost" data-pick="1">Сменить отряд</button><button type="button" class="craftbtn cqgo" data-go="1"'+(sq.length<3?" disabled":"")+'>'+(V.left>0?"⚔️ В бой · 🔥1":"🔥 Ещё факел")+'</button></div></div>',
+   btn=>{if(btn.dataset.pick){cqPicker(n,sq);return}if(btn.dataset.go){if(cqView().left<=0){cqBuySheet(()=>cqStageSheet(n));return}cqFight(n,sq);return}return false})}
 function cqPicker(n,cur){const S0=conqStage(n),list=S.cards.filter(cqOk).sort((a,b)=>conqPow(b,S0.weak)-conqPow(a,S0.weak)).slice(0,40),sel=new Set(cur.map(c=>c.id));
   const d=wSheet('<h3 style="margin:0 0 4px">Выбери 3 воинов</h3><p class="cln">Сила с учётом слабости главы. Отмеченные «+30%» — из эпохи «'+cqEra(S0.weak).n+'»</p><div class="cqpk">'+list.map(c=>'<button type="button" class="cqpi'+(sel.has(c.id)?" on":"")+'" data-id="'+c.id+'">'+miniSlot(c)+'<span>'+HEROES[c.h][0]+'</span><b>⚔ '+fmtN(conqPow(c,S0.weak))+(ERA_OF[c.h]===S0.weak?'<em>+30%</em>':"")+'</b></button>').join("")+'</div><button type="button" class="craftbtn" data-ok="1">Готово</button>',
    btn=>{if(btn.dataset.id){const id=+btn.dataset.id||btn.dataset.id;if(sel.has(id))sel.delete(id);else{if(sel.size>=3){toast("В отряде 3 воина. Сними кого-нибудь");return false}sel.add(id)}btn.classList.toggle("on",sel.has(id));hap("light");return false}
@@ -623,8 +628,8 @@ function drawPass(){const b=$("pass-body");if(!b||$("sec-pass").hidden||!S)retur
      '<div class="pslv"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="30" class="r0"/><circle cx="35" cy="35" r="30" class="r1" style="stroke-dasharray:'+ring+';stroke-dashoffset:'+(ring*(1-xpIn/PASS.xp))+'"/></svg><b>'+V.lv+'</b><small>уровень</small></div>'+
      '<div class="psxp"><i style="width:'+(xpIn/PASS.xp*100)+'%"></i><span>'+(V.lv>=PASS.lv?"Максимальный уровень!":xpIn+" / "+PASS.xp+" XP до "+(V.lv+1)+" ур.")+'</span></div>'+
      (V.prem?'<div class="psown">🎖 Пропуск открыт — забирай обе награды каждого уровня</div>':'<button type="button" class="psbuy" id="ps-buy"><b>🎖 Открыть пропуск · '+PASS.stars+' ⭐</b><small>2 легендарные и эпическая карточка, титул «Герой сезона», сезонная рамка, в 3 раза больше прокруток</small></button>')+'</div>'+
-    '<div class="box psq"><h3>📜 Задания дня</h3>'+V.qs.map(q=>'<div class="psqr'+(q.done?" done":"")+'"><i>'+(q.done?"✅":"📜")+'</i><div><b>'+q.Q.t+'</b><div class="psqb"><u style="width:'+(q.have/q.Q.n*100)+'%"></u></div></div><span>+'+q.Q.xp+' XP<small>'+fmtN(q.have)+'/'+fmtN(q.Q.n)+'</small></span></div>').join("")+
-     '<p class="cln">Новые задания каждый день в 00:00 МСК. Опыт идёт и просто за игру: карточка +4, победа +6, бой в Покорении +10</p></div>'+
+    '<div class="box psq"><h3>📜 Задания дня</h3>'+V.qs.map(q=>'<div class="psqr'+(q.done?" done":"")+'"><i>'+(q.done?"✅":"📜")+'</i><div><b>'+q.Q.t+'</b><div class="psqb"><u style="width:'+(q.have/q.Q.n*100)+'%"></u></div></div><span>+'+q.Q.xp+' XP · 🔥<small>'+fmtN(q.have)+'/'+fmtN(q.Q.n)+'</small></span></div>').join("")+
+     '<p class="cln">Новые задания каждый день в 00:00 МСК. Каждое задание — ещё и <b>+1 🔥 факел</b> для Покорения. Опыт идёт и просто за игру: карточка +4, победа +6, бой в Покорении +10</p></div>'+
     '<div class="box pstrack"><div class="rowb"><h3>🏆 Награды сезона</h3>'+(V.can?'<button type="button" class="mini2 pscall" id="ps-all">Забрать всё · '+V.can+'</button>':"")+'</div><div class="pshd"><span>Бесплатно</span><span></span><span>🎖 Пропуск</span></div>'+
      '<div class="psrows" style="--fill:'+(Math.min(V.lv,PASS.lv)/PASS.lv*100)+'%">'+rows+'</div></div>';
   if($("ps-buy"))$("ps-buy").onclick=()=>buyItem({item:"pass"});if($("ps-all"))$("ps-all").onclick=psAll;
@@ -647,7 +652,7 @@ function drawPassStrip(){if(!S)return;let el=$("ps-strip");const fb=$("free-box"
   if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}el.classList.toggle("hot",!!V.can)}
 {const _ra=renderAll;renderAll=function(){_ra();try{drawConq()}catch(e){console.error(e)}try{drawPass()}catch(e){console.error(e)}try{drawPassStrip()}catch(e){console.error(e)}}}
 /* задание дня выполнено — сразу говорим */
-{const _a2=act;act=async function(n,p){const r=await _a2(n,p);try{(r&&r.events||[]).forEach(e=>{if(e.t==="pq"){toast("📜 Задание выполнено: "+e.q+" · +"+e.xp+" XP");hap("medium")}})}catch(e){}return r}}
+{const _a2=act;act=async function(n,p){const r=await _a2(n,p);try{(r&&r.events||[]).forEach(e=>{if(e.t==="pq"){toast("📜 Задание выполнено: "+e.q+" · +"+e.xp+" XP"+(e.torch?" и +1 🔥":""));hap("medium")}})}catch(e){}return r}}
 {const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&r.item==="pass"){renderAll();sfx.fanfare();hapN("success");burst(4);toast("🎖 Пропуск открыт! Забирай награды");psKey="";goSub("pass");return}return _ps(r)}}
 /* лёгкий режим лагеря выключает декоративные анимации во всей игре */
 {const _la=liteApply;liteApply=function(){_la();try{document.body.classList.toggle("lite",campLite)}catch(e){}};try{document.body.classList.toggle("lite",campLite)}catch(e){}}
