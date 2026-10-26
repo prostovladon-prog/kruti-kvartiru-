@@ -816,3 +816,15 @@ function trBadge(){if(!S||!ONLINE)return;const sec=$("sec-col");if(!sec||sec.hid
   const n=S.trIn||0;b.innerHTML='🔄 Обмены'+(n?' <em>'+n+'</em>':'');b.classList.toggle("hot",n>0)}
 {const _ra3=renderAll;renderAll=function(){_ra3();try{trBadge()}catch(e){}}}
 {const q=new URLSearchParams(location.search);if(q.get("trades")||q.get("cards")){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{setTab("col");if(q.get("trades"))trInbox()},700)},300)}}
+
+/* ===================== АДМИН: передачи карточек (поиск твинков) ===================== */
+let trSt=null,trStAt=0;
+async function drawTrStats(){const b=$("st-body");if(!b||!S||!S.admin)return;let box=$("trst");if(!box){box=document.createElement("div");box.id="trst";box.className="srcbox trst";b.append(box)}else b.append(box);
+  if(!trSt||NOW()-trStAt>60e3){box.innerHTML='<h4>🎁 Передачи карточек</h4><p class="cln">Загружаю…</p>';const r=await act("tr_stats");if(!r)return;trSt=r;trStAt=NOW()}
+  const R=trSt,P=R.pairs;box.innerHTML='<h4>🎁 Передачи карточек — кто кому отдаёт</h4><p class="cln">За 7 дней: подарков <b>'+R.week.gifts+'</b>, обменов <b>'+R.week.swaps+'</b>, отдавали <b>'+R.week.senders+'</b> игроков. Ниже — пары за 30 дней, сверху те, где «перетекло» больше всего (подарок — вся цена карточки, обмен — разница цен). Красным — подозрительные. Нажми на пару — увидишь каждую передачу.</p>'+
+   (P.length?P.map((p,i)=>'<button type="button" class="trp'+(p.risk>=2?" bad":p.risk?" warn":"")+'" data-i="'+i+'"><div class="trp-h"><span data-an="'+i+'"></span><i>→</i><span data-bn="'+i+'"></span><b>'+fmt(p.value)+'</b></div><small>🎁 '+p.gifts+' · 🔄 '+p.swaps+' · отдающий играет '+p.adays+' дн.'+(p.apaid?' · донат '+p.apaid+' ⭐':'')+' · получатель '+p.bdays+' дн.</small>'+(p.flags.length?'<em>'+p.flags.join(" · ")+'</em>':'')+'</button>').join(""):'<p class="cln">Передач пока не было</p>');
+  box.querySelectorAll("[data-an]").forEach(e=>e.textContent=P[+e.dataset.an].an);box.querySelectorAll("[data-bn]").forEach(e=>e.textContent=P[+e.dataset.bn].bn);
+  box.onclick=async e=>{const t=e.target.closest(".trp");if(!t)return;const p=P[+t.dataset.i],r=await act("tr_pair",{a:p.a,b:p.b});if(!r)return;const dt=x=>{const d=new Date(x+3*3600e3).toISOString();return d.slice(8,10)+"."+d.slice(5,7)+" "+d.slice(11,16)};
+    wSheet('<h3 style="margin:0 0 4px"><span id="tpa"></span> ⇄ <span id="tpb"></span></h3><p class="cln">id '+p.a+' → id '+p.b+'. Если похоже на твинка — сохрани эти id: по ним можно вернуть карточки и наказать вручную.</p><div class="lnk-list">'+r.rows.map((x,i)=>'<div class="trpr"><small>'+dt(x.t)+'</small><span data-r="'+i+'"></span><b>'+(x.kind==="gift"?fmt(x.av):fmt(x.av)+" ⇄ "+fmt(x.bv))+'</b></div>').join("")+'</div>');
+    $("tpa").textContent=p.an;$("tpb").textContent=p.bn;document.querySelectorAll(".trpr [data-r]").forEach(e=>{const x=r.rows[+e.dataset.r],who=x.dir?"→":"←";e.textContent=x.kind==="gift"?"🎁 "+who+" "+x.a:"🔄 "+x.a+" ⇄ "+(x.b||"?")})}}
+{const _ds3=drawStats;drawStats=function(){_ds3();try{drawTrStats()}catch(e){console.error(e)}}}

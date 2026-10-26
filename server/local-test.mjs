@@ -831,6 +831,10 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
 { const X = 7801, Y = 7802; for (const u of [X, Y]) { await call(u, "sync"); for (let k = 0; k < 3; k++) await call(u, "open"); }
   db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Игрок_X", "игрок_x", X); db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Игрок_Y", "игрок_y", Y);
   let sx = (await call(X, "sync")).S, sy = (await call(Y, "sync")).S; const cx = sx.cards[0], cy = sy.cards[0], cx2 = sx.cards[1];
+  { const q0 = await call(X, "tr_gift", { id: cx.id, nick: "игрок_y" }); ok(!q0.ok && /5\+ дней/.test(q0.err), "новым аккаунтам дарить нельзя (нужно 5+ дней обоим)"); }
+  db.prepare("UPDATE users SET created=? WHERE id=?").run(Date.now() - 6 * 864e5, X);
+  { const q0 = await call(X, "tr_gift", { id: cx.id, nick: "игрок_y" }); ok(!q0.ok && /Игрок_Y играет 0/.test(q0.err), "если получателю меньше 5 дней — тоже нельзя"); }
+  db.prepare("UPDATE users SET created=? WHERE id=?").run(Date.now() - 6 * 864e5, Y);
   let q = await call(X, "tr_gift", { id: cx.id, nick: "игрок_y" }); ok(q.ok && !q.S.cards.some(c => c.id === cx.id), "подарил карточку другу по нику");
   ok((await call(Y, "sync")).S.cards.some(c => c.id === cx.id), "карточка у друга");
   q = await call(X, "tr_gift", { id: cx.id, nick: "Игрок_Y" }); ok(!q.ok, "чужую карточку не подарить");
@@ -841,7 +845,12 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await call(X, "tr_accept", { id: T.id }); ok(!q.ok, "принять может только получатель");
   q = await call(Y, "tr_accept", { id: T.id }); ok(q.ok && q.S.cards.some(c => c.id === cx2.id) && !q.S.cards.some(c => c.id === cy.id), "обмен состоялся");
   ok((await call(X, "sync")).S.cards.some(c => c.id === cy.id), "у второго тоже");
-  q = await call(Y, "tr_accept", { id: T.id }); ok(!q.ok, "дважды не принять"); }
+  q = await call(Y, "tr_accept", { id: T.id }); ok(!q.ok, "дважды не принять");
+  const envA2 = { ...env, ADMINS: "8" }; const st8 = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "tr_stats", p: {} }) }), envA2)).json();
+  ok(st8.ok && st8.res.pairs.length >= 1 && st8.res.week.gifts >= 1, "статистика передач: видно пары игроков (" + JSON.stringify(st8.res && st8.res.pairs[0] && st8.res.pairs[0].flags) + ")");
+  const pr = st8.res.pairs[0]; const st9 = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "tr_pair", p: { a: pr.a, b: pr.b } }) }), envA2)).json();
+  ok(st9.ok && st9.res.rows.length >= 1, "по паре видно каждую передачу");
+  q = await call(X, "tr_stats"); ok(!q.ok, "статистика передач — только админу"); }
 // управление кланом
 { const H = 7901, M = 7902, N = 7903; for (const u of [H, M, N]) { await call(u, "sync"); db.prepare("UPDATE users SET cash=50000 WHERE id=?").run(u); }
   db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Новичок_Клана", "новичок_клана", N);
