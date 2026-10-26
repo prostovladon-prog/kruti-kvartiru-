@@ -1813,3 +1813,16 @@ button.cqtorch{position:relative;font:inherit;color:#fff;cursor:pointer}.cqtorch
 .stw{border-bottom:1px dashed rgba(0,0,0,.12);padding:8px 0}.stw small{display:block;color:#5a5f80;font-weight:700}.stw i{font-style:normal;color:#0a8a3a;font-weight:900}.stw>div{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:6px}.stw .craftbtn{margin:0}
 .sty-l{background:#f1ecff!important}.sty-l code{color:var(--ink)!important}
 .sty-ok{color:#0a8a3a!important}.sty-ok a{color:#7a3ad6!important}
+/* плавающая кнопка чата */
+.chatfab{position:fixed;right:14px;bottom:96px;z-index:30;width:56px;height:56px;border-radius:50%;border:3px solid var(--ink);background:radial-gradient(circle at 35% 30%,#fff6b0,#ffd23f 55%,#ff9f0a);box-shadow:0 4px 0 var(--ink),0 6px 18px rgba(0,0,0,.35);display:grid;place-items:center;cursor:pointer;padding:0;
+  transition:transform .25s cubic-bezier(.3,1.3,.5,1),opacity .2s;will-change:transform;-webkit-tap-highlight-color:transparent}
+.chatfab span{font-size:26px;line-height:1}.chatfab em{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:#ff3b30;color:#fff;border:2px solid var(--ink);font:900 11px/18px var(--body,inherit);font-style:normal;box-sizing:border-box;text-align:center}
+.chatfab.hide{transform:translateY(130px);opacity:0;pointer-events:none}.chatfab.off{transform:scale(0);opacity:0;pointer-events:none}
+.chatfab.ping{animation:fabPing .6s}@keyframes fabPing{30%{transform:scale(1.18) rotate(-8deg)}60%{transform:scale(.95) rotate(6deg)}}
+body.lite .chatfab.ping{animation:none}
+/* строка чата на главной */
+.chatstrip{width:100%;display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:9px 12px;border-radius:18px;border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);background:#fff;color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+.chatstrip>i{font-style:normal;font-size:26px;flex:none}.chatstrip .cs-t{flex:1;min-width:0}.chatstrip b{display:block;font-size:14px}.chatstrip small{display:block;font-size:12.5px;color:#5a5f80;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chatstrip em{font-style:normal;flex:none;min-width:26px;height:26px;padding:0 6px;border-radius:13px;background:#ff3b30;color:#fff;border:2px solid var(--ink);font-weight:900;font-size:12px;display:grid;place-items:center;box-sizing:border-box}
+.chatstrip .cs-on{flex:none;font-size:12px;font-weight:900;color:#0a8a3a}
+.chatfab.cover{transform:scale(.4);opacity:0;pointer-events:none}

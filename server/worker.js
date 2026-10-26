@@ -1015,6 +1015,8 @@ async function stateFor(env,me){
   S.fights=(await env.DB.prepare("SELECT id,att_name,att_card,att_h,def_h,w,l,t,seen,stake,took FROM fights WHERE def=? AND t>? ORDER BY id DESC LIMIT 6").bind(me.id,Date.now()-3*864e5).all()).results;
   if(S.fights.some(f=>!f.seen))await env.DB.prepare("UPDATE fights SET seen=1 WHERE def=? AND seen=0").bind(me.id).run();
   S.chatLast=await cached("chatlast",5e3,async()=>((await env.DB.prepare("SELECT MAX(id) AS m FROM chat").first())||{}).m||0);
+  S.chatTop=await cached("chattop",5e3,async()=>{const r=await env.DB.prepare("SELECT id,name,text,t FROM chat ORDER BY id DESC LIMIT 1").first();return r?{id:r.id,name:r.name,text:String(r.text||"").slice(0,90),t:r.t}:null});
+  S.chatOn=await cached("chaton",30e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE seen>?").bind(Date.now()-5*60e3).first())||{}).n||0);
   const P=await promo(env);if(P&&Date.now()<=P.end&&Date.now()>=P.start)S.promo={end:P.end,need:P.need,have:await promoCount(env,me.id,P)};
   touch(S,Date.now());
   // бот может писать игроку: Telegram сообщает это в данных входа

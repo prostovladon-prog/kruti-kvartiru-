@@ -863,3 +863,49 @@ async function drawStoryAdmin(){const b=$("st-body");if(!b||!S||!S.admin)return;
   R.win.forEach(w=>{const e=box.querySelector('[data-n="'+w.place+'"]');if(e)e.textContent=w.name});
   box.onclick=async e=>{const ok=e.target.closest("[data-ok]"),no=e.target.closest("[data-no]");if(!ok&&!no)return;const x=await act(ok?"story_ok":"story_no",{place:+(ok?ok.dataset.ok:no.dataset.no)});if(x){toast(ok?"✅ Подтверждено, победителю написал бот":"Заменён запасным");drawStoryAdmin()}}}
 {const _ds4=drawStats;drawStats=function(){_ds4();try{drawStoryAdmin()}catch(e){}}}
+
+/* ===================== ЧАТ: плавающая кнопка (прячется при прокрутке вниз) + последнее сообщение на главной ===================== */
+const chatAgo=t=>{const m=Math.max(0,Math.round((NOW()-t)/60e3));return m<1?"только что":m<60?m+" мин назад":m<1440?Math.floor(m/60)+" ч назад":"давно"};
+function chatUnread(){return Math.max(0,(S&&S.chatLast||0)-chatSeen())}
+function chatFab(){let f=$("chatfab");if(!f){f=document.createElement("button");f.type="button";f.id="chatfab";f.className="chatfab";f.setAttribute("aria-label","Чат игроков");f.innerHTML='<span>💬</span><em hidden></em>';document.body.append(f);f.onclick=()=>{hap("light");openChat()}}return f}
+let fabHide=false,fabY=0,fabLastN=-1;
+function fabUpdate(){if(!S)return;const f=chatFab(),n=chatUnread();const e=f.querySelector("em");e.hidden=!n;e.textContent=n>99?"99+":n;
+  const block=chatOpen||!$("modal").hidden||document.querySelector(".wsheet,.cqbt,.wrev,.terms,#onb,.onb")||($("sec-camp")&&!$("sec-camp").hidden)||($("sec-cas")&&!$("sec-cas").hidden&&csBusy);
+  f.classList.toggle("off",!!block);f.classList.toggle("hide",!!fabHide&&!block);
+  const nav=document.querySelector("nav.tabs");if(nav){const h=nav.getBoundingClientRect().height;f.style.bottom=(h+12)+"px"}
+  if(fabLastN>=0&&n>fabLastN){f.classList.remove("ping");void f.offsetWidth;f.classList.add("ping")}fabLastN=n}
+addEventListener("scroll",()=>{const y=scrollY,d=y-fabY;if(Math.abs(d)<8)return;const h=d>0&&y>120;if(h!==fabHide){fabHide=h;const f=$("chatfab");if(f)f.classList.toggle("hide",h&&!f.classList.contains("off"))}fabY=y},{passive:true});
+/* строка последнего сообщения на главной */
+function chatStrip(){if(!S||!ONLINE)return;const T=S.chatTop;let el=$("chatstrip");const host=$("free-box");if(!host)return;
+  if(!el){el=document.createElement("button");el.type="button";el.id="chatstrip";el.className="chatstrip";const ps=$("ps-strip");(ps||host).before(el);el.onclick=()=>{hap("light");openChat()}}
+  const n=chatUnread(),on=S.chatOn||0;
+  const k=JSON.stringify([T&&T.id,n,on,T&&chatAgo(T.t)]);if(el.dataset.k===k)return;el.dataset.k=k;
+  el.innerHTML='<i>💬</i><span class="cs-t"><b>Чат игроков</b><small class="cs-m"></small></span>'+(n?'<em>'+(n>99?"99+":n)+'</em>':'<span class="cs-on">🟢 '+on+'</span>');
+  el.querySelector(".cs-m").textContent=T?T.name+": "+T.text+" · "+chatAgo(T.t):"Напиши первым — здесь общаются все воины"}
+{const _ra4=renderAll;renderAll=function(){_ra4();try{fabUpdate();chatStrip()}catch(e){}}}
+setInterval(()=>{try{fabUpdate()}catch(e){}},700);
+{const _oc=openChat;openChat=function(){_oc();try{fabUpdate()}catch(e){}}}
+{const _cc=closeChat;closeChat=function(){_cc();setTimeout(()=>{try{fabUpdate();chatStrip()}catch(e){}},50)}}
+
+/* ===================== ВСПЛЫВАШКИ: не больше одной «необязательной» за заход, новичкам в первые сутки — только обучение ===================== */
+let popShown=false;
+const isNewbie=()=>!!(S&&S.created&&NOW()-S.created<864e5);
+function popWrap(fn,key,opt){return function(){if(popShown||(opt&&opt.newbieSkip&&isNewbie())||storyAnnWaiting())return;let was=null;try{was=localStorage.getItem(key)}catch(e){}const r=fn.apply(this,arguments);let now=null;try{now=localStorage.getItem(key)}catch(e){}if(!was&&now)popShown=true;return r}}
+forgeHint=popWrap(forgeHint,"we-forge-hint",{newbieSkip:1});
+pmBonusAsk=popWrap(pmBonusAsk,"we-pm-ask2",{newbieSkip:0});
+newsUpd4=popWrap(newsUpd4,"we-news-upd4",{});
+/* объявление о конкурсе историй — всем, кто заходит во время конкурса (один раз) */
+function storyAnnOk(){const C=chData;return !!(S&&ONLINE&&C&&C.story&&C.phase==="on"&&!C.me&&S.nick&&!termsNeed())}
+function storyAnnWaiting(){if(!storyAnnOk())return false;try{return !localStorage.getItem("we-story-"+chData.id)}catch(e){return false}}
+function storyAnn(){if(!storyAnnWaiting()||popShown||!$("modal").hidden||document.querySelector(".wsheet,.wrev,.terms,#onb,.onb-hl,.cqbt"))return;const C=chData;
+  try{localStorage.setItem("we-story-"+C.id,"1")}catch(e){return}popShown=true;const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box nickbox newsb"><h3>📸 Конкурс историй — сегодня!</h3><img src="'+C.img.replace("story-contest","post-story")+'" alt="" style="width:100%;border-radius:14px;border:3px solid var(--ink);margin:4px 0 8px" onerror="this.remove()"><ul><li>🥇 <b>'+esc(C.prizes[0])+'</b></li><li>🥈 <b>'+esc(C.prizes[1])+'</b> на игровой баланс</li><li>🥉 <b>'+esc(C.prizes[2])+'</b> на игровой баланс</li></ul><p>Выложи историю с игрой в Telegram или Instagram до 22:00 — фото и твою ссылку на бота уже приготовили. История должна провисеть 24 часа, итоги завтра в 22:00.</p><button type="button" class="craftbtn" id="sa-go">📸 Участвовать</button><button type="button" class="ghost" id="sa-x">Позже</button></div>';
+  $("sa-go").onclick=()=>{closeModal();setTab("spin");setTimeout(()=>{const b=$("chal");if(b)b.scrollIntoView({block:"start",behavior:"smooth"})},150)};$("sa-x").onclick=closeModal}
+setInterval(()=>{try{storyAnn()}catch(e){}},3000);
+/* кнопка чата никогда не закрывает другие кнопки: если под ней кнопка или поле — она прячется */
+function fabCovers(f){if(f.classList.contains("off")||f.classList.contains("hide"))return false;const r=f.getBoundingClientRect();if(!r.width)return false;
+  const cx=r.left+r.width/2,cy=r.top+r.height/2,pts=[[cx,cy],[cx,r.top-4],[r.left-4,cy],[cx,r.bottom+2],[r.right+2,cy],[r.left+8,r.top+8],[r.right-8,r.top+8],[r.left+8,r.bottom-8]];
+  for(const [x,y] of pts){for(const el of document.elementsFromPoint(x,y)){if(el===f||f.contains(el))continue;const bt=el.closest("button,input,textarea,select,a,label,.craftbtn,.mini2,[data-id]");if(bt){const q=bt.getBoundingClientRect();if(/INPUT|TEXTAREA|SELECT/.test(bt.tagName)||q.width<200&&q.height<110)return true}break}}return false}
+let fabCovT=0;function fabCover(){const f=$("chatfab");if(!f)return;f.classList.remove("cover");f.classList.toggle("cover",fabCovers(f))}
+addEventListener("scroll",()=>{clearTimeout(fabCovT);fabCovT=setTimeout(fabCover,140)},{passive:true});
+{const _fu=fabUpdate;fabUpdate=function(){_fu();try{fabCover()}catch(e){}}}

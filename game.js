@@ -624,13 +624,13 @@ function miniSlot(c){if(MINI.size>3000)MINI.clear();const k="m"+(++miniN);MINI.s
 const miniRO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(e=>{const w=e.contentRect.width;if(w)e.target.style.setProperty("--z",w/300)})):null;
 /* мини-карточки рисуются, только когда подъезжают к экрану: список из 40 карт открывается сразу, без подвисания */
 const miniIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){miniIO.unobserve(e.target);fillMini(e.target)}}),{rootMargin:"500px 0px"}):null;
-function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;el.style.setProperty("--sd",(Math.random()*6.5).toFixed(2)+"s");const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
+function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;{const w=el._w||el.clientWidth;el._w=0;if(w)el.style.setProperty("--z",w/300)}/* масштаб сразу, иначе один кадр карточка огромная */el.style.setProperty("--sd",(Math.random()*6.5).toFixed(2)+"s");const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
   if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)}
 function hydrate(root){if(!root||!root.querySelectorAll)return;const list=root.matches&&root.matches(".minic[data-k]")?[root]:root.querySelectorAll(".minic[data-k]");
   const els=[];list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;el._mc=c;els.push(el)});
   if(!miniIO){els.forEach(fillMini);return}
   // то, что уже на экране (или рядом), рисуем сразу — без мигания; остальное по мере прокрутки
-  const H=innerHeight+600,near=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return true;const r=el.getBoundingClientRect();return r.width>0&&r.bottom>-600&&r.top<H});
+  const H=innerHeight+600,near=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return true;const r=el.getBoundingClientRect();el._w=r.width;return r.width>0&&r.bottom>-600&&r.top<H});
   els.forEach((el,i)=>{if(near[i])fillMini(el);else miniIO.observe(el)})}
 new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)hydrate(n)}).observe(document.body,{childList:true,subtree:true});
 function showCard(c){fillFace(front,c);$("p-val").textContent=isCollab(c)?"БЕСЦЕННАЯ":fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
@@ -1616,7 +1616,7 @@ const canPmAsk=()=>ONLINE&&!S.pm&&tg&&tg.requestWriteAccess&&(!tg.isVersionAtLea
 function renderPm(){const row=$("pm-row");if(row)row.hidden=!canPmAsk()}
 function enablePm(){if(!canPmAsk())return;try{tg.requestWriteAccess(ok=>{if(ok){act("pm_on").then(r=>{S.pm=1;renderAll();renderPm();if(r&&r.bonus){sfx.reveal(2);burst(3);hapN("success");toast("🔔 Напоминания включены! +"+r.bonus+" прокрутки в подарок 🎁")}else toast("🔔 Напоминания включены! Бот напишет, когда прокрутки будут готовы")})}else toast("Без разрешения бот не сможет напомнить о прокрутках")})}catch(e){}}
 $("pm-go").onclick=enablePm;
-function askPm(){if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{asked=localStorage.getItem("we-pm-ask")}catch(e){}if(asked)return;try{localStorage.setItem("we-pm-ask","1")}catch(e){}
+function askPm(){return;if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{asked=localStorage.getItem("we-pm-ask")}catch(e){}if(asked)return;try{localStorage.setItem("we-pm-ask","1")}catch(e){}
   const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   sh.innerHTML='<div class="box nickbox"><h3>🔔 Напомнить о прокрутках?</h3><p>Новые '+SPINS_MAX+' прокруток будут через 4 часа. Бот напишет, когда они будут готовы, а ещё если кто-то нападёт на твоих воинов или купит твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pm-yes">Да, напоминать</button><button type="button" class="ghost" id="pm-no">Не надо</button></div>';
   $("pm-yes").onclick=()=>{closeModal();enablePm()};$("pm-no").onclick=closeModal}
