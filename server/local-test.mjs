@@ -827,5 +827,33 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await call(N, "open"); ok(q.ok && q.res.wel === 1 && q.res.card.f === 1, "новичок: на 2-й прокрутке легендарный воин с блеском");
   q = await call(N, "open"); ok(q.ok && !q.res.wel, "подарок новичку только один раз");
   q = await call(1, "open"); ok(q.ok && !q.res.wel, "старым игрокам подарок новичка не выпадает"); }
+// подарок карточки и обмен
+{ const X = 7801, Y = 7802; for (const u of [X, Y]) { await call(u, "sync"); for (let k = 0; k < 3; k++) await call(u, "open"); }
+  db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Игрок_X", "игрок_x", X); db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Игрок_Y", "игрок_y", Y);
+  let sx = (await call(X, "sync")).S, sy = (await call(Y, "sync")).S; const cx = sx.cards[0], cy = sy.cards[0], cx2 = sx.cards[1];
+  let q = await call(X, "tr_gift", { id: cx.id, nick: "игрок_y" }); ok(q.ok && !q.S.cards.some(c => c.id === cx.id), "подарил карточку другу по нику");
+  ok((await call(Y, "sync")).S.cards.some(c => c.id === cx.id), "карточка у друга");
+  q = await call(X, "tr_gift", { id: cx.id, nick: "Игрок_Y" }); ok(!q.ok, "чужую карточку не подарить");
+  q = await call(X, "tr_cards", { nick: "Игрок Y" }); ok(q.ok && q.res.cards.length === 4, "видно карточки друга для обмена");
+  q = await call(X, "tr_offer", { nick: "игрок_y", my: cx2.id, their: cy.id }); ok(q.ok, "предложил обмен");
+  q = await call(Y, "sync"); ok(q.S.trIn === 1, "у друга входящий обмен");
+  q = await call(Y, "tr_list"); const T = q.res.items[0]; ok(T && !T.mine && T.give.id === cy.id && T.get.id === cx2.id, "в списке обменов видно, что отдаёшь и что получаешь");
+  q = await call(X, "tr_accept", { id: T.id }); ok(!q.ok, "принять может только получатель");
+  q = await call(Y, "tr_accept", { id: T.id }); ok(q.ok && q.S.cards.some(c => c.id === cx2.id) && !q.S.cards.some(c => c.id === cy.id), "обмен состоялся");
+  ok((await call(X, "sync")).S.cards.some(c => c.id === cy.id), "у второго тоже");
+  q = await call(Y, "tr_accept", { id: T.id }); ok(!q.ok, "дважды не принять"); }
+// управление кланом
+{ const H = 7901, M = 7902, N = 7903; for (const u of [H, M, N]) { await call(u, "sync"); db.prepare("UPDATE users SET cash=50000 WHERE id=?").run(u); }
+  db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Новичок_Клана", "новичок_клана", N);
+  let q = await call(H, "clan_create", { name: "Орда" }); const cid = q.res.id; await call(M, "clan_join", { id: cid });
+  q = await call(M, "clan_kick", { uid: H }); ok(!q.ok, "участник не может выгонять");
+  q = await call(H, "clan_deputy", { uid: M }); ok(q.ok, "глава назначил правую руку");
+  q = await call(M, "clan_invite", { nick: "новичок клана" }); ok(q.ok, "правая рука позвала игрока по нику");
+  q = await call(N, "clan_info"); ok(q.res.inv && q.res.inv[0] && q.res.inv[0].id === cid, "у игрока приглашение в клан");
+  await call(N, "clan_join", { id: cid }); q = await call(H, "clan_info"); ok(q.res.clan.members.length === 3 && q.res.clan.deputy === M, "в клане 3, правая рука отмечена");
+  q = await call(M, "clan_reward", { uid: N, amount: 500 }); ok(!q.ok, "награждать может только глава");
+  q = await call(H, "clan_reward", { uid: N, amount: 500 }); ok(q.ok && db.prepare("SELECT cash FROM users WHERE id=?").get(N).cash === 50500 && db.prepare("SELECT cash FROM users WHERE id=?").get(H).cash < 45500 - 100, "глава наградил монетами");
+  q = await call(M, "clan_kick", { uid: N }); ok(q.ok && db.prepare("SELECT clan FROM users WHERE id=?").get(N).clan === 0, "правая рука выгнала участника");
+  q = await call(H, "clan_leave"); ok(q.ok && db.prepare("SELECT owner FROM clans WHERE id=?").get(cid).owner === M, "глава ушёл — главой стала правая рука"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

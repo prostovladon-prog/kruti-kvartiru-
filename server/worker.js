@@ -156,7 +156,7 @@ const BOSS={name:"Змей Горыныч",hp:25000};
 const ERAS=[{k:"mid",n:"Средневековье",ic:"⚔️",h:[0,1,2,3,6,8,12,13,24,27],sp:15,cash:1000},{k:"ant",n:"Античность",ic:"🏛",h:[4,5,7,10,15,17,19,22],sp:20,cash:2000},
  {k:"jap",n:"Япония",ic:"🏯",h:[9,18,20,21,30],sp:40,cash:10000},{k:"nor",n:"Север и Степь",ic:"🪓",h:[11,14,16,26],sp:15,cash:1500},{k:"myth",n:"Мифы и легенды",ic:"🐉",h:[23,25,28,29,31],sp:40,cash:10000}];
 /* кланы: до 10 человек, общий босс недели (3 удара в день на игрока), таблица кланов */
-const CLAN={max:10,cost:5000,hits:3,hp:30000,grow:1.5,chest:{sp:10,cash:500},week:[20,12,6],boss:[["Змей Горыныч",32],["Кракен",34],["Цербер",35],["Левиафан",37],["Химера",36]]};
+const CLAN={max:12,rewardMin:10,rewardDay:100000,cost:5000,hits:3,hp:30000,grow:1.5,chest:{sp:10,cash:500},week:[20,12,6],boss:[["Змей Горыныч",32],["Кракен",34],["Цербер",35],["Левиафан",37],["Химера",36]]};
 const clanHp=(n,lvl)=>Math.round(CLAN.hp*Math.max(2,n)*Math.pow(CLAN.grow,lvl-1));
 function clanDmg(cards){const top=(cards||[]).filter(c=>!away(c)&&!c.part&&!FIN[c.f].excl).map(c=>eff(c,0)).sort((a,b)=>b-a).slice(0,3);
   let d=top.reduce((a,v)=>a+v*(1.6+Math.random()*.8),0);const crit=Math.random()<.18;if(crit)d*=2.5;return {dmg:Math.max(10,Math.round(d)),crit}}
@@ -837,7 +837,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=28;
+const SCHEMA_V=29;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -901,7 +901,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN pm_bonus INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN vip_t INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN clan INTEGER NOT NULL DEFAULT 0",
     "CREATE TABLE IF NOT EXISTS clans (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, name_key TEXT NOT NULL, owner INTEGER NOT NULL, h INTEGER NOT NULL DEFAULT 0, created INTEGER)","CREATE UNIQUE INDEX IF NOT EXISTS clans_nk ON clans(name_key)",
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
-    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1007,7 +1007,7 @@ async function stateFor(env,me){
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
-  S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
+  S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
   Object.assign(S,await nickFx(env));S.shopOn=1;   // переливающиеся ники и «Король Эпох» месяца
   if(u.founder&&!u.founder_seen){await env.DB.prepare("UPDATE users SET founder_seen=1 WHERE id=?").bind(me.id).run();delete topCache.founders}
@@ -2045,18 +2045,55 @@ function blastText(C,rows){const P=lotIn(C,rows),T=P.reduce((a,r)=>a+r.n,0),left
 let blastBusy=false;
 /* ---------- кланы ---------- */
 const clanBossOf=week=>CLAN.boss[Math.abs(Math.floor(Date.parse(week)/6048e5))%CLAN.boss.length];
+/* ---------- подарить карточку и обмен карточками между игроками ---------- */
+const TR={giftDay:5,offerDay:20,ttl:24*3600e3};
+const TR_OK="list_price IS NULL AND away=0 AND room_id IS NULL AND f<>5 AND f<>6";   // не на рынке, не в походе/бою; «Основатель» и «Бесценная» не передаются
+async function trUser(env,p){if(p.uid)return await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(Math.floor(+p.uid)).first();
+  const key=nickKey(String(p.nick||"").trim().replace(/^@/,"").replace(/\s+/g,"_"));if(!key)fail("Напиши ник игрока");return await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE nick_key=?").bind(key).first()}
+async function tradeApi(env,me,a,p){const now=Date.now(),d0=(dayNum(now))*864e5-TZ,one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
+  const card=async(id,owner)=>await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=? AND "+TR_OK).bind(Math.floor(+id||0),owner).first();
+  const cnt=async uid=>(await one("SELECT COUNT(*) AS n FROM cards WHERE owner=?",uid)).n||0;
+  const myName=await nameOf(env,me.id),cname=c=>HEROES[c.h][0]+" ("+FIN[c.f].k.toLowerCase()+(c.stars?" ★"+c.stars:"")+")";
+  if(a==="tr_cards"){const T=await trUser(env,p);if(!T)fail("Игрока с таким ником нет");if(T.id===me.id)fail("Это ты 🙂");
+    const cs=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND "+TR_OK+" ORDER BY v DESC LIMIT 60").bind(T.id).all()).results.map(rowToCard);return {uid:T.id,name:T.name,cards:cs.map(pub)}}
+  if(a==="tr_gift"){const T=await trUser(env,p);if(!T)fail("Игрока с таким ником нет");if(T.id===me.id)fail("Себе подарить нельзя 🙂");
+    if((await one("SELECT COUNT(*) AS n FROM trades WHERE a=? AND kind='gift' AND t>=?",me.id,d0)).n>=TR.giftDay)fail("Дарить можно до "+TR.giftDay+" карточек в день");
+    const c=await card(p.id,me.id);if(!c)fail("Эту карточку сейчас нельзя подарить: она на рынке, в походе или бою");if(await cnt(T.id)>=CAP)fail("У "+T.name+" коллекция заполнена ("+CAP+")");
+    const r=await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND "+TR_OK).bind(T.id,c.id,me.id).run();if(r.meta.changes!==1)fail("Не получилось, попробуй ещё раз");
+    await env.DB.prepare("INSERT INTO trades(kind,a,b,ac,status,t,done) VALUES('gift',?,?,?,'done',?,?)").bind(me.id,T.id,c.id,now,now).run();
+    await env.DB.prepare("UPDATE trades SET status='gone' WHERE status='new' AND (ac=? OR bc=?)").bind(c.id,c.id).run();
+    await notify(env,T.id,"🎁 "+myName+" подарил тебе карточку: "+cname(c)+"! Она уже в твоей коллекции.","🗂 Открыть",PAGE+"?cards=1");return {to:T.name}}
+  if(a==="tr_offer"){const T=await trUser(env,p);if(!T)fail("Игрока с таким ником нет");if(T.id===me.id)fail("Это ты 🙂");
+    if((await one("SELECT COUNT(*) AS n FROM trades WHERE a=? AND kind='swap' AND t>=?",me.id,d0)).n>=TR.offerDay)fail("Не больше "+TR.offerDay+" предложений обмена в день");
+    const mc=await card(p.my,me.id),tc=await card(p.their,T.id);if(!mc)fail("Твою карточку сейчас нельзя обменять");if(!tc)fail("Эту карточку игрока сейчас нельзя обменять");
+    if(await one("SELECT id FROM trades WHERE status='new' AND a=? AND ac=? AND bc=?",me.id,mc.id,tc.id).id)fail("Такое предложение уже отправлено");
+    const r=await env.DB.prepare("INSERT INTO trades(kind,a,b,ac,bc,status,t) VALUES('swap',?,?,?,?,'new',?) RETURNING id").bind(me.id,T.id,mc.id,tc.id,now).first();
+    await notify(env,T.id,"🔄 "+myName+" предлагает обмен:\n\nОтдаёт: "+cname(mc)+"\nХочет: твою "+cname(tc)+"\n\nОткрой игру, чтобы принять или отказаться. Предложение действует 24 часа.","🔄 Посмотреть обмен",PAGE+"?trades=1");return {id:r.id,to:T.name}}
+  if(a==="tr_list"){const rows=(await env.DB.prepare("SELECT t.*,COALESCE(ua.nick,ua.name) AS an,COALESCE(ub.nick,ub.name) AS bn FROM trades t LEFT JOIN users ua ON ua.id=t.a LEFT JOIN users ub ON ub.id=t.b WHERE t.kind='swap' AND t.status='new' AND t.t>? AND (t.a=? OR t.b=?) ORDER BY t.id DESC LIMIT 30").bind(now-TR.ttl,me.id,me.id).all()).results;
+    const ids=[...new Set(rows.flatMap(r=>[r.ac,r.bc]))],cs=ids.length?(await env.DB.prepare("SELECT * FROM cards WHERE id IN ("+ids.map(()=>"?").join(",")+")").bind(...ids).all()).results:[],cm=new Map(cs.map(c=>[c.id,pub(rowToCard(c))]));
+    return {items:rows.map(r=>({id:r.id,mine:r.a===me.id?1:0,who:r.a===me.id?r.bn:r.an,give:cm.get(r.a===me.id?r.ac:r.bc)||null,get:cm.get(r.a===me.id?r.bc:r.ac)||null,t:r.t}))}}
+  if(a==="tr_accept"||a==="tr_decline"){const T=await env.DB.prepare("SELECT * FROM trades WHERE id=? AND kind='swap' AND status='new'").bind(p.id|0).first();if(!T)fail("Предложение уже неактуально");
+    if(a==="tr_decline"){if(T.a!==me.id&&T.b!==me.id)fail("Это не твой обмен");await env.DB.prepare("UPDATE trades SET status=? WHERE id=?").bind(T.a===me.id?"cancel":"no",T.id).run();
+      if(T.b===me.id)await notify(env,T.a,"🔄 "+myName+" отказался от обмена.","🗂 Карточки",PAGE+"?cards=1");return {}}
+    if(T.b!==me.id)fail("Принять может только тот, кому предложили");if(now-T.t>TR.ttl){await env.DB.prepare("UPDATE trades SET status='old' WHERE id=?").bind(T.id).run();fail("Предложение истекло")}
+    const r=await env.DB.prepare("UPDATE cards SET owner=CASE id WHEN ? THEN ? ELSE ? END WHERE id IN (?,?) AND (SELECT COUNT(*) FROM cards WHERE ((id=? AND owner=?) OR (id=? AND owner=?)) AND "+TR_OK+")=2").bind(T.ac,T.b,T.a,T.ac,T.bc,T.ac,T.a,T.bc,T.b).run();
+    if(r.meta.changes!==2){await env.DB.prepare("UPDATE trades SET status='gone' WHERE id=?").bind(T.id).run();fail("Одна из карточек уже недоступна (продана, на рынке или в бою). Обмен отменён")}
+    await env.DB.prepare("UPDATE trades SET status='done',done=? WHERE id=?").bind(now,T.id).run();
+    await env.DB.prepare("UPDATE trades SET status='gone' WHERE status='new' AND id<>? AND (ac IN (?,?) OR bc IN (?,?))").bind(T.id,T.ac,T.bc,T.ac,T.bc).run();
+    const c=await env.DB.prepare("SELECT * FROM cards WHERE id=?").bind(T.bc).first();await notify(env,T.a,"✅ "+myName+" принял обмен! Теперь у тебя "+(c?cname(c):"новая карточка")+".","🗂 Открыть",PAGE+"?cards=1");return {}}
+  fail("Неизвестное действие")}
 async function clanMembers(env,cid){return (await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,vip_until FROM users WHERE clan=? ORDER BY id").bind(cid).all()).results}
 async function clanBoss(env,cid,week,n){let B=await env.DB.prepare("SELECT * FROM clan_boss WHERE clan=? AND week=?").bind(cid,week).first();
   if(!B){await env.DB.prepare("INSERT OR IGNORE INTO clan_boss(clan,week,lvl,hp) VALUES(?,?,1,?)").bind(cid,week,clanHp(n,1)).run();B=await env.DB.prepare("SELECT * FROM clan_boss WHERE clan=? AND week=?").bind(cid,week).first()}return B}
 async function clanTop(env,week){return cached("clantop"+week,10e3,async()=>(await env.DB.prepare("SELECT c.id,c.name,c.h,COALESCE(b.total,0) AS total,COALESCE(b.kills,0) AS kills,(SELECT COUNT(*) FROM users u WHERE u.clan=c.id) AS n FROM clans c LEFT JOIN clan_boss b ON b.clan=c.id AND b.week=? ORDER BY total DESC,c.id LIMIT 30").bind(week).all()).results)}
 async function clanApi(env,me,a,p){const now=Date.now(),week=mskWeek(now),day=mskDay(now);
   const u=await env.DB.prepare("SELECT clan,cash FROM users WHERE id=?").bind(me.id).first()||{clan:0,cash:0};
-  if(a==="clan_info"){const top=await clanTop(env,week);if(!u.clan)return {clan:null,top,week};
+  if(a==="clan_info"){const top=await clanTop(env,week);if(!u.clan){const inv=(await env.DB.prepare("SELECT i.clan AS id,c.name,COALESCE(f.nick,f.name) AS from_name FROM clan_inv i JOIN clans c ON c.id=i.clan LEFT JOIN users f ON f.id=i.from_uid WHERE i.uid=? AND i.t>? ORDER BY i.t DESC LIMIT 5").bind(me.id,now-3*864e5).all()).results;return {clan:null,top,week,inv}}
     const C=await env.DB.prepare("SELECT * FROM clans WHERE id=?").bind(u.clan).first();if(!C){await env.DB.prepare("UPDATE users SET clan=0 WHERE id=?").bind(me.id).run();return {clan:null,top,week}}
     const mem=await clanMembers(env,C.id),B=await clanBoss(env,C.id,week,mem.length);
     const hits=(await env.DB.prepare("SELECT uid,dmg,day,n FROM clan_hits WHERE clan=? AND week=?").bind(C.id,week).all()).results,hm=new Map(hits.map(h=>[h.uid,h]));
     const mine=hm.get(me.id),left=CLAN.hits-(mine&&mine.day===day?mine.n:0);const [bn,bh]=clanBossOf(week);
-    return {clan:{id:C.id,name:C.name,h:C.h,owner:C.owner,place:top.findIndex(r=>r.id===C.id)+1,members:mem.map(m=>({uid:m.id,name:m.name,vip:(m.vip_until||0)>now?1:0,dmg:(hm.get(m.id)||{}).dmg||0})).sort((x,y)=>y.dmg-x.dmg)},
+    return {clan:{id:C.id,name:C.name,h:C.h,owner:C.owner,deputy:C.deputy||0,place:top.findIndex(r=>r.id===C.id)+1,members:mem.map(m=>({uid:m.id,name:m.name,vip:(m.vip_until||0)>now?1:0,dmg:(hm.get(m.id)||{}).dmg||0})).sort((x,y)=>y.dmg-x.dmg)},
       boss:{name:bn,h:bh,lvl:B.lvl,hp:B.hp,dmg:B.dmg,total:B.total,kills:B.kills},left,top,week,weekEnd:Date.parse(week+"T00:00:00Z")-TZ+7*864e5}}
   if(a==="clan_create"){if(u.clan)fail("Ты уже в клане");const name=checkNick(p.name).replace(/_/g," ");const key=name.toLowerCase().replace(/ё/g,"е");
     if((u.cash||0)<CLAN.cost)fail("Создание клана стоит "+CLAN.cost.toLocaleString("ru")+" 🪙");
@@ -2067,11 +2104,36 @@ async function clanApi(env,me,a,p){const now=Date.now(),week=mskWeek(now),day=ms
   if(a==="clan_join"){if(u.clan)fail("Сначала выйди из своего клана");const cid=p.id|0,C=await env.DB.prepare("SELECT id,name FROM clans WHERE id=?").bind(cid).first();if(!C)fail("Клан не найден");
     const r=await env.DB.prepare("UPDATE users SET clan=? WHERE id=? AND clan=0 AND (SELECT COUNT(*) FROM users WHERE clan=?)<?").bind(cid,me.id,cid,CLAN.max).run();if(r.meta.changes!==1)fail("В клане уже "+CLAN.max+" человек");
     const nm=await nameOf(env,me.id);for(const m of await clanMembers(env,cid))if(m.id!==me.id)await notify(env,m.id,"⚔️ В клан «"+C.name+"» вступил "+nm+"! Вместе босса бить веселее.","⚔️ Клан",PAGE+"?clan=1");
-    delete topCache["clantop"+week];return {id:cid}}
+    await env.DB.prepare("DELETE FROM clan_inv WHERE uid=?").bind(me.id).run();delete topCache["clantop"+week];return {id:cid}}
   if(a==="clan_leave"){if(!u.clan)fail("Ты не в клане");await env.DB.prepare("UPDATE users SET clan=0 WHERE id=?").bind(me.id).run();
     const C=await env.DB.prepare("SELECT * FROM clans WHERE id=?").bind(u.clan).first();const rest=await clanMembers(env,u.clan);
-    if(!rest.length)await env.DB.prepare("DELETE FROM clans WHERE id=?").bind(u.clan).run();else if(C&&C.owner===me.id)await env.DB.prepare("UPDATE clans SET owner=? WHERE id=?").bind(rest[0].id,u.clan).run();
+    if(!rest.length)await env.DB.prepare("DELETE FROM clans WHERE id=?").bind(u.clan).run();else if(C&&C.owner===me.id){const nx=rest.find(m=>m.id===C.deputy)||rest[0];await env.DB.prepare("UPDATE clans SET owner=?,deputy=0 WHERE id=?").bind(nx.id,u.clan).run();await notify(env,nx.id,"👑 Ты теперь глава клана «"+C.name+"»! Прежний глава вышел.","⚔️ Клан",PAGE+"?clan=1")}
+    else if(C&&C.deputy===me.id)await env.DB.prepare("UPDATE clans SET deputy=0 WHERE id=?").bind(u.clan).run();
     delete topCache["clantop"+week];return {}}
+  /* управление кланом: глава и правая рука зовут и выгоняют, глава назначает правую руку и награждает монетами */
+  if(a==="clan_kick"||a==="clan_invite"||a==="clan_deputy"||a==="clan_reward"){if(!u.clan)fail("Ты не в клане");const C=await env.DB.prepare("SELECT * FROM clans WHERE id=?").bind(u.clan).first();if(!C)fail("Клан не найден");
+    const boss=C.owner===me.id,dep=C.deputy===me.id;if(!boss&&!(dep&&(a==="clan_kick"||a==="clan_invite")))fail(a==="clan_reward"||a==="clan_deputy"?"Это может только глава клана":"Это могут глава и правая рука");
+    const myName=await nameOf(env,me.id);
+    if(a==="clan_invite"){const key=nickKey(String(p.nick||"").trim().replace(/^@/,"").replace(/\s+/g,"_"));if(!key)fail("Напиши ник игрока");const t=await env.DB.prepare("SELECT id,clan,COALESCE(nick,name) AS name FROM users WHERE nick_key=?").bind(key).first();
+      if(!t)fail("Игрока с таким ником нет");if(t.id===me.id)fail("Это ты 🙂");if(t.clan===C.id)fail(t.name+" уже в твоём клане");
+      if(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE clan=?").bind(C.id).first())||{}).n>=CLAN.max)fail("В клане уже "+CLAN.max+" человек");
+      await env.DB.prepare("INSERT INTO clan_inv(clan,uid,from_uid,t) VALUES(?,?,?,?) ON CONFLICT(clan,uid) DO UPDATE SET from_uid=excluded.from_uid,t=excluded.t").bind(C.id,t.id,me.id,now).run();
+      await notify(env,t.id,"🛡 "+myName+" зовёт тебя в клан «"+C.name+"»!\n\nВместе бейте общего босса недели: за победу каждому сундук с прокрутками и монетами, а топ-3 клана недели получают ещё больше."+(t.clan?"\n\nЧтобы вступить, сначала выйди из своего клана.":""),"🛡 Открыть приглашение",PAGE+"?clan=1");
+      return {name:t.name}}
+    const uid=Math.floor(+p.uid||0),T=uid?await env.DB.prepare("SELECT id,clan,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(uid).first():null;
+    if(a==="clan_deputy"){if(uid&&(!T||T.clan!==C.id))fail("Этого игрока нет в клане");if(uid===me.id)fail("Глава и так главный 🙂");
+      await env.DB.prepare("UPDATE clans SET deputy=? WHERE id=?").bind(uid||0,C.id).run();if(uid)await notify(env,uid,"⭐ "+myName+" назначил тебя правой рукой клана «"+C.name+"»! Теперь ты можешь звать и выгонять участников.","⚔️ Клан",PAGE+"?clan=1");return {deputy:uid||0}}
+    if(!T||T.clan!==C.id)fail("Этого игрока нет в клане");if(uid===me.id)fail("Это ты 🙂");
+    if(a==="clan_kick"){if(uid===C.owner)fail("Главу выгнать нельзя");if(dep&&uid===C.deputy)fail("Правую руку может убрать только глава");
+      await env.DB.prepare("UPDATE users SET clan=0 WHERE id=? AND clan=?").bind(uid,C.id).run();if(C.deputy===uid)await env.DB.prepare("UPDATE clans SET deputy=0 WHERE id=?").bind(C.id).run();
+      await notify(env,uid,"🛡 Тебя исключили из клана «"+C.name+"». Можно вступить в другой клан или создать свой.","⚔️ Кланы",PAGE+"?clan=1");delete topCache["clantop"+week];return {}}
+    if(a==="clan_reward"){const amt=Math.floor(+p.amount||0);if(amt<CLAN.rewardMin)fail("Минимум "+CLAN.rewardMin+" 🪙");
+      const k="crw:"+day+":"+me.id,given=(await kvGet(env,k))||0;if(given+amt>CLAN.rewardDay)fail("За день можно раздать не больше "+CLAN.rewardDay.toLocaleString("ru")+" 🪙. Осталось "+(CLAN.rewardDay-given).toLocaleString("ru"));
+      const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(amt,me.id,amt).run();if(pay.meta.changes!==1)fail("Не хватает монет");
+      const got=await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=? AND clan=?").bind(amt,uid,C.id).run();if(got.meta.changes!==1){await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(amt,me.id).run();fail("Игрок только что вышел из клана")}
+      await kvSet(env,k,given+amt);
+      await notify(env,uid,"🎖 Глава клана «"+C.name+"» "+myName+" наградил тебя: +"+amt.toLocaleString("ru")+" 🪙! Спасибо за вклад в клан.","⚔️ Клан",PAGE+"?clan=1");return {amount:amt}}}
+  if(a==="clan_decline"){await env.DB.prepare("DELETE FROM clan_inv WHERE uid=? AND clan=?").bind(me.id,p.id|0).run();return {}}
   if(a==="clan_hit"){if(!u.clan)fail("Сначала вступи в клан");const cid=u.clan,mem=await clanMembers(env,cid),B=await clanBoss(env,cid,week,mem.length);
     await env.DB.prepare("INSERT OR IGNORE INTO clan_hits(clan,week,uid,dmg,day,n) VALUES(?,?,?,0,?,0)").bind(cid,week,me.id,day).run();
     const H=await env.DB.prepare("SELECT * FROM clan_hits WHERE clan=? AND week=? AND uid=?").bind(cid,week,me.id).first();const n=H.day===day?H.n:0;if(n>=CLAN.hits)fail("Удары на сегодня закончились. Завтра снова "+CLAN.hits);
@@ -2218,6 +2280,7 @@ async function handle(req,env){{
       if(a==="trader_buy"||a==="trader_sell"){const r=await (a==="trader_buy"?traderBuy:traderSell)(env,me,p);return J({ok:true,...r})}
       if(/^rk_/.test(a)){const res=await rkApi(env,me,a,p);return J({ok:true,res,S:(a==="rk_get"&&res.phase==="done")||a==="rk_find"?await stateFor(env,me):undefined})}
       if(a==="terms_ok"){const v=Math.max(1,Math.min(TERMS_V,p.v|0));await env.DB.prepare("UPDATE users SET terms_v=MAX(terms_v,?),terms_at=? WHERE id=?").bind(v,Date.now(),me.id).run();return J({ok:true,res:{v},S:await stateFor(env,me)})}
+      if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});

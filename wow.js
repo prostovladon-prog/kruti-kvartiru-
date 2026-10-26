@@ -751,3 +751,68 @@ function balBadge(){if(!S)return;const n=S.starBal||0;let b=$("starbal");const h
 {const _bi=buyItem;buyItem=async function(p){const n=(S&&S.starBal)||0;if(!n||!ONLINE||p&&p._tg)return _bi(p);
   wSheet('<h3 style="margin:0 0 6px">Как оплатить?</h3><p class="cln">На игровом балансе <b>⭐ '+fmtN(n)+'</b>. Если звёзд на балансе не хватит, игра скажет — тогда оплати через Telegram.</p><button type="button" class="craftbtn" data-bal="1">⭐ Оплатить с баланса</button><button type="button" class="ghost" data-tg="1" style="width:100%;margin-top:8px">Оплатить через Telegram</button>',
    btn=>{if(btn.dataset.tg){_bi(Object.assign({},p,{_tg:1}));return}if(btn.dataset.bal){(async()=>{if(goldBusy)return;goldBusy=true;try{const r=await act("pay_bal",p);if(r)payShow(r)}finally{goldBusy=false}})();return}})}}
+
+/* ===================== КЛАН: роли, приглашения по нику, награды, исключение ===================== */
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+{const _dcl=drawClan;drawClan=function(){_dcl();try{clanExtra()}catch(e){console.error(e)}}}
+function clanExtra(){const b=$("clan-body"),D=clData;if(!b||!D)return;
+  if(!D.clan){if(D.inv&&D.inv.length){const box=document.createElement("div");box.className="box clinv";box.innerHTML='<h3>📩 Тебя зовут в клан</h3>'+D.inv.map((v,i)=>'<div class="clir"><span><b data-n="'+i+'"></b><small data-f="'+i+'"></small></span><button type="button" class="craftbtn" data-acc="'+v.id+'">Вступить</button><button type="button" class="mini2" data-dec="'+v.id+'">✕</button></div>').join("");
+      b.prepend(box);box.querySelectorAll("[data-n]").forEach(e=>e.textContent="🛡 "+D.inv[+e.dataset.n].name);box.querySelectorAll("[data-f]").forEach(e=>e.textContent="зовёт "+(D.inv[+e.dataset.f].from_name||"игрок"));
+      box.onclick=async e=>{const a=e.target.closest("[data-acc]"),d=e.target.closest("[data-dec]");if(a){const r=await act("clan_join",{id:+a.dataset.acc});if(r){sfx.fanfare();toast("🛡 Ты в клане!");await loadClan()}}else if(d){await act("clan_decline",{id:+d.dataset.dec});await loadClan()}}}
+    return}
+  const C=D.clan,meBoss=C.owner===S.uid,meDep=C.deputy===S.uid,mgr=meBoss||meDep;
+  const rows=b.querySelectorAll(".clmem .clr");rows.forEach((r,i)=>{const m=C.members[i];if(!m)return;r.dataset.uid=m.uid;r.classList.add("tap");const nm=r.querySelector(".clnm");
+    nm.textContent=(m.uid===C.owner?"👑 ":m.uid===C.deputy?"⭐ ":"")+(m.vip?"💎 ":"")+m.name+(m.uid===S.uid?" (ты)":"");if(m.uid!==S.uid){const g=document.createElement("em");g.className="clgo";g.textContent="›";r.append(g)}});
+  const head=b.querySelector(".clmem .rowb");if(head&&mgr&&!$("cl-invn")){const bt=document.createElement("button");bt.type="button";bt.className="mini2";bt.id="cl-invn";bt.textContent="+ По нику";head.append(bt)}
+  const sub=b.querySelector(".clhead small");if(sub)sub.textContent=C.members.length+"/"+CLAN.max+" участников"+(C.place?" · "+C.place+" место за неделю":"")+(meBoss?" · ты глава 👑":meDep?" · ты правая рука ⭐":"");
+  const legend=b.querySelector(".clmem .cln.lg");if(!legend){const p=document.createElement("p");p.className="cln lg";p.textContent="👑 глава · ⭐ правая рука. Нажми на участника: подарить карточку, обменяться"+(meBoss?", наградить монетами, назначить правой рукой или исключить":mgr?" или исключить":"");b.querySelector(".clmem").insertBefore(p,b.querySelector("#cl-leave"))}
+  const mem=b.querySelector(".clmem");mem.onclick=e=>{if(e.target.closest("#cl-invn")){clInviteSheet();return}const r=e.target.closest(".clr[data-uid]");if(!r)return;const m=C.members.find(x=>String(x.uid)===r.dataset.uid);if(m&&m.uid!==S.uid)clMemberSheet(C,m)}}
+function clInviteSheet(){wSheet('<h3 style="margin:0 0 6px">📩 Позвать в клан по нику</h3><p class="cln">Игроку придёт приглашение в бота и в игре. В клане может быть до '+CLAN.max+' человек.</p><input id="cl-nk" class="trin" maxlength="20" placeholder="Ник игрока"><button type="button" class="craftbtn" data-go="1">Отправить приглашение</button>',
+  btn=>{if(!btn.dataset.go)return;(async()=>{const r=await act("clan_invite",{nick:$("cl-nk").value});if(r){sfx.coin();toast("📩 Приглашение отправлено: "+r.name);document.querySelectorAll(".wsheet").forEach(x=>x.remove())}})();return false})}
+function clMemberSheet(C,m){const meBoss=C.owner===S.uid,meDep=C.deputy===S.uid,canKick=m.uid!==C.owner&&(meBoss||(meDep&&m.uid!==C.deputy));
+  wSheet('<h3 style="margin:0 0 2px"><span id="clm-n"></span></h3><p class="cln">'+(m.uid===C.owner?"👑 Глава клана":m.uid===C.deputy?"⭐ Правая рука":"Участник")+' · урон за неделю '+fmtN(m.dmg)+'</p>'+
+   '<div class="clacts"><button type="button" class="ghost" data-a="gift">🎁 Подарить карточку</button><button type="button" class="ghost" data-a="swap">🔄 Предложить обмен</button>'+
+   (meBoss?'<button type="button" class="ghost" data-a="reward">🎖 Наградить монетами</button><button type="button" class="ghost" data-a="dep">'+(m.uid===C.deputy?"⭐ Снять с правой руки":"⭐ Сделать правой рукой")+'</button>':"")+
+   (canKick?'<button type="button" class="ghost bad" data-a="kick">🚫 Исключить из клана</button>':"")+'</div>',
+   btn=>{const a=btn.dataset.a;if(!a)return;
+     if(a==="gift"){trPickMine("gift",{uid:m.uid,name:m.name});return}
+     if(a==="swap"){trTheirCards({uid:m.uid});return}
+     if(a==="reward"){clRewardSheet(m);return}
+     if(a==="dep"){(async()=>{const r=await act("clan_deputy",{uid:m.uid===C.deputy?0:m.uid});if(r){toast(r.deputy?"⭐ "+m.name+" — правая рука":"Правая рука снята");loadClan()}})();return}
+     if(a==="kick"){if(NOW()-(clMemberSheet.k||0)>4000||clMemberSheet.u!==m.uid){clMemberSheet.k=NOW();clMemberSheet.u=m.uid;toast("Нажми ещё раз, чтобы исключить "+m.name);return false}
+       (async()=>{const r=await act("clan_kick",{uid:m.uid});if(r){toast("🚫 "+m.name+" исключён");loadClan()}})();return}});
+  $("clm-n").textContent=m.name}
+function clRewardSheet(m){wSheet('<h3 style="margin:0 0 6px">🎖 Наградить <span id="clr-n"></span></h3><p class="cln">Монеты списываются с твоего счёта и сразу приходят участнику. У тебя: <b>'+fmt(S.cash)+'</b></p><div class="clrw">'+[1000,5000,10000,50000].map(v=>'<button type="button" class="mini2" data-v="'+v+'">'+fmtN(v)+'</button>').join("")+'</div><input id="clr-in" class="trin" type="number" inputmode="numeric" placeholder="Своя сумма"><button type="button" class="craftbtn" data-go="1">Наградить</button>',
+  btn=>{if(btn.dataset.v){$("clr-in").value=btn.dataset.v;return false}if(!btn.dataset.go)return;(async()=>{const r=await act("clan_reward",{uid:m.uid,amount:+$("clr-in").value});if(r){sfx.coin();hapN("success");toast("🎖 "+m.name+" получил "+fmtN(r.amount)+" 🪙");renderAll();document.querySelectorAll(".wsheet").forEach(x=>x.remove())}})();return false});$("clr-n").textContent=m.name}
+
+/* ===================== ПОДАРИТЬ КАРТОЧКУ И ОБМЕН ===================== */
+const trOk=c=>c&&!c.part&&!away(c)&&!FIN[c.f].excl&&!FIN[c.f].collab;
+const trOk2=c=>c&&!away(c)&&!FIN[c.f].excl&&!FIN[c.f].collab;   // половинки тоже можно
+function trTarget(cb,title){wSheet('<h3 style="margin:0 0 6px">'+title+'</h3><p class="cln">Напиши ник друга (как в топе и чате)'+((clData&&clData.clan)?" или выбери из клана":"")+'</p><input id="tr-nk" class="trin" maxlength="20" placeholder="Ник друга">'+
+  ((clData&&clData.clan)?'<div class="trcl">'+clData.clan.members.filter(m=>m.uid!==S.uid).map(m=>'<button type="button" class="mini2" data-uid="'+m.uid+'" data-nm="'+esc(m.name)+'"></button>').join("")+'</div>':"")+'<button type="button" class="craftbtn" data-go="1">Дальше</button>',
+  btn=>{if(btn.dataset.uid){cb({uid:+btn.dataset.uid,name:btn.dataset.nm});return}if(btn.dataset.go){const v=$("tr-nk").value.trim();if(!v){toast("Напиши ник");return false}cb({nick:v,name:v});return}return false});
+  document.querySelectorAll(".trcl [data-uid]").forEach(b=>b.textContent=b.dataset.nm)}
+function trPickMine(mode,to,their){const L=S.cards.filter(trOk2).sort((a,b)=>b.v-a.v);if(!L.length){toast("Нет карточек, которые можно передать");return}
+  wSheet('<h3 style="margin:0 0 4px">'+(mode==="gift"?"🎁 Какую карточку подарить?":"🔄 Что отдашь взамен?")+'</h3><p class="cln">'+(mode==="gift"?"Получатель: ":"Обмен с ")+'<b id="trp-n"></b>. Нельзя: на рынке, в походе, «Основатель» и «Бесценная»</p><div class="cqpk">'+L.slice(0,60).map(c=>'<button type="button" class="cqpi" data-id="'+c.id+'">'+miniSlot(c)+'<span>'+HEROES[c.h][0]+'</span><b>'+fmt(c.v)+'</b></button>').join("")+'</div>',
+   btn=>{const id=btn.dataset.id;if(!id)return;const c=S.cards.find(x=>String(x.id)===id);if(mode==="gift")trConfirmGift(c,to);else trConfirmSwap(c,their,to);return});$("trp-n").textContent=to.name}
+function trConfirmGift(c,to){wSheet('<h3 style="margin:0 0 6px;text-align:center">🎁 Подарить?</h3><div style="width:150px;margin:0 auto">'+miniSlot(c)+'</div><p class="cln" style="text-align:center"><b>'+HEROES[c.h][0]+'</b> ('+FIN[c.f].k.toLowerCase()+', '+fmt(c.v)+') уйдёт к <b id="trc-n"></b> навсегда. Можно дарить до 5 карточек в день.</p><button type="button" class="craftbtn" data-go="1">🎁 Подарить</button>',
+  btn=>{if(!btn.dataset.go)return;(async()=>{const r=await act("tr_gift",Object.assign({id:c.id},to.uid?{uid:to.uid}:{nick:to.nick}));if(r){sfx.fanfare();burst(2);hapN("success");toast("🎁 Карточка подарена: "+r.to);closeModal();renderAll()}})();return});$("trc-n").textContent=to.name}
+async function trTheirCards(to,myCard){const r=await act("tr_cards",to.uid?{uid:to.uid}:{nick:to.nick});if(!r)return;const who={uid:r.uid,name:r.name};if(!r.cards.length){toast("У "+r.name+" нет карточек для обмена");return}
+  wSheet('<h3 style="margin:0 0 4px">🔄 Что хочешь у <span id="trt-n"></span>?</h3><p class="cln">Выбери карточку — потом предложишь свою взамен</p><div class="cqpk">'+r.cards.map(c=>'<button type="button" class="cqpi" data-id="'+c.id+'">'+miniSlot(c)+'<span>'+HEROES[c.h][0]+'</span><b>'+fmt(c.v)+'</b></button>').join("")+'</div>',
+   btn=>{const id=btn.dataset.id;if(!id)return;const tc=r.cards.find(x=>String(x.id)===id);if(myCard)trConfirmSwap(myCard,tc,who);else trPickMine("swap",who,tc);return});$("trt-n").textContent=r.name}
+function trConfirmSwap(mine,their,to){wSheet('<h3 style="margin:0 0 6px;text-align:center">🔄 Предложить обмен</h3><div class="trsw"><div>'+miniSlot(mine)+'<small>отдаёшь<br><b>'+fmt(mine.v)+'</b></small></div><i>⇄</i><div>'+miniSlot(their)+'<small>получаешь<br><b>'+fmt(their.v)+'</b></small></div></div><p class="cln" style="text-align:center"><b id="trs-n"></b> получит предложение в бота и сможет принять его в течение 24 часов.</p><button type="button" class="craftbtn" data-go="1">Отправить предложение</button>',
+  btn=>{if(!btn.dataset.go)return;(async()=>{const r=await act("tr_offer",Object.assign({my:mine.id,their:their.id},to.uid?{uid:to.uid}:{nick:to.nick}));if(r){sfx.coin();toast("🔄 Предложение отправлено: "+r.to);closeModal()}})();return});$("trs-n").textContent=to.name}
+async function trInbox(){const r=await act("tr_list");if(!r)return;const I=r.items;
+  wSheet('<h3 style="margin:0 0 6px">🔄 Обмены</h3>'+(I.length?I.map((t,i)=>'<div class="trrow"><p><b data-w="'+i+'"></b> '+(t.mine?"— ждём ответа":"предлагает обмен")+'</p><div class="trsw sm"><div>'+(t.give?miniSlot(t.give):"—")+'<small>'+(t.mine?"ты отдаёшь":"ты отдаёшь")+'</small></div><i>⇄</i><div>'+(t.get?miniSlot(t.get):"—")+'<small>ты получаешь</small></div></div>'+
+    (t.mine?'<button type="button" class="ghost" data-no="'+t.id+'">Отменить</button>':'<div class="trbt"><button type="button" class="craftbtn" data-ok="'+t.id+'">✅ Принять</button><button type="button" class="ghost" data-no="'+t.id+'">Отказаться</button></div>')+'</div>').join(""):'<p class="cln">Обменов пока нет. Открой свою карточку и нажми «🔄 Обменять» или выбери игрока в клане.</p>'),
+   btn=>{const ok=btn.dataset.ok,no=btn.dataset.no;if(!ok&&!no)return;(async()=>{const r2=await act(ok?"tr_accept":"tr_decline",{id:+(ok||no)});if(r2){if(ok){sfx.fanfare();burst(3);hapN("success");toast("✅ Обмен состоялся!")}else toast("Готово");renderAll()}trInbox()})();return});
+  document.querySelectorAll(".trrow [data-w]").forEach(e=>e.textContent=I[+e.dataset.w].who||"Игрок")}
+/* кнопки в карточке */
+{const _ocv=openCardView;openCardView=function(c,o){_ocv(c,o);try{if(!o||!o.mine||!ONLINE||!trOk2(c))return;const sh=$("msheet"),info=sh.querySelector(".cv-info");if(!info||sh.querySelector(".trbox"))return;
+  const d=document.createElement("div");d.className="trbox";d.innerHTML='<button type="button" class="mini2" data-t="g">🎁 Подарить</button><button type="button" class="mini2" data-t="s">🔄 Обменять</button>';info.after(d);
+  d.onclick=e=>{const b=e.target.closest("[data-t]");if(!b)return;const cur=S.cards.find(x=>x.id===c.id)||c;if(b.dataset.t==="g")trTarget(to=>trConfirmGift(cur,to),"🎁 Кому подарить?");else trTarget(to=>trTheirCards(to,cur),"🔄 С кем обменяться?")}}catch(e){console.error(e)}}}
+/* значок входящих обменов во вкладке «Мои» */
+function trBadge(){if(!S||!ONLINE)return;const sec=$("sec-col");if(!sec||sec.hidden)return;let b=$("tr-in");if(!b){b=document.createElement("button");b.type="button";b.id="tr-in";b.className="trin-b";b.onclick=trInbox;const sub=sec.querySelector(".subnav");if(sub)sub.after(b);else sec.prepend(b)}
+  const n=S.trIn||0;b.innerHTML='🔄 Обмены'+(n?' <em>'+n+'</em>':'');b.classList.toggle("hot",n>0)}
+{const _ra3=renderAll;renderAll=function(){_ra3();try{trBadge()}catch(e){}}}
+{const q=new URLSearchParams(location.search);if(q.get("trades")||q.get("cards")){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{setTab("col");if(q.get("trades"))trInbox()},700)},300)}}
