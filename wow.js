@@ -442,8 +442,18 @@ const _renderCas2=renderCas;renderCas=function(){_renderCas2();const a=$("cs-adm
   async function check(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const v=(await r.json()).v;if(!v||v===cur)return;
     let tried=null;try{tried=sessionStorage.getItem("we-upd")}catch(e){}if(tried===v)return;try{sessionStorage.setItem("we-upd",v)}catch(e){}
     try{if(typeof campFlush==="function")await campFlush()}catch(e){}
-    const u=new URL(location.href);u.searchParams.set("u",v);location.replace(u.toString())}catch(e){}}
-  setTimeout(check,1500);setInterval(()=>{if(!document.hidden)check()},5*60e3);document.addEventListener("visibilitychange",()=>{if(!document.hidden)check()})})();
+    updSave();const u=new URL(location.href);u.searchParams.set("u",v);location.replace(u.toString())}catch(e){}}
+  /* новая версия: при открытии и при возвращении в приложение — сразу; во время игры — только когда игрок ничего не делает 90 секунд и нет окон/боя */
+  let pend=false,lastIn=Date.now();["pointerdown","keydown","scroll","touchstart"].forEach(t=>addEventListener(t,()=>{lastIn=Date.now()},{passive:true,capture:true}));
+  async function has(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return false;const v=(await r.json()).v;return !!v&&v!==cur}catch(e){return false}}
+  const busy=()=>!$("modal").hidden||document.querySelector(".wsheet,.cqbt,.wrev,.terms,#onb")||(typeof csBusy!=="undefined"&&csBusy)||(typeof chatOpen!=="undefined"&&chatOpen)||($("sec-camp")&&!$("sec-camp").hidden);
+  setTimeout(check,1500);
+  setInterval(async()=>{if(document.hidden)return;if(!pend)pend=await has();if(pend&&Date.now()-lastIn>90e3&&!busy())check()},60e3);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!busy())check()})})();
+/* после автообновления возвращаем игрока на тот же экран */
+function updSave(){try{const sec=[...document.querySelectorAll("section[id^='sec-']")].find(x=>!x.hidden);if(sec)sessionStorage.setItem("we-upd-tab",JSON.stringify({t:sec.id.slice(4),y:scrollY,at:Date.now()}))}catch(e){}}
+{let st=null;try{st=JSON.parse(sessionStorage.getItem("we-upd-tab")||"null");sessionStorage.removeItem("we-upd-tab")}catch(e){}
+ if(st&&Date.now()-st.at<60e3&&st.t&&st.t!=="spin"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{try{const k=st.t;if(k==="cas"&&typeof openCas==="function")openCas();else if(k==="gold")openGold();else goSub(k);setTimeout(()=>scrollTo(0,st.y||0),1200)}catch(e){}},500)},200)}}
 
 /* ---------- удержание: сундук возвращения на завтра и +3 прокрутки за напоминания ---------- */
 function drawCb(){const b=$("cb-box");if(!b)return;if(!S||!ONLINE||!S.cb||S.cb.c||(S.cards||[]).length<1){b.hidden=true;return}b.hidden=false;const left=S.cb.at-NOW(),ready=left<=0;
