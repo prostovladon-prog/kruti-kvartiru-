@@ -837,7 +837,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=30;
+const SCHEMA_V=31;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -901,7 +901,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN pm_bonus INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN vip_t INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN clan INTEGER NOT NULL DEFAULT 0",
     "CREATE TABLE IF NOT EXISTS clans (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, name_key TEXT NOT NULL, owner INTEGER NOT NULL, h INTEGER NOT NULL DEFAULT 0, created INTEGER)","CREATE UNIQUE INDEX IF NOT EXISTS clans_nk ON clans(name_key)",
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
-    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1867,7 +1867,7 @@ async function onUpdate(env,upd){
    Рассылка ботом в слоты (минское время), итоги — в конце. Настройки можно переопределить в kv "chal". */
 const CHAL_OPEN=3,CHAL_LATE=50*60e3;
 /* розыгрыш (lot): от C.min друзей — участник, каждый друг = билет, победитель один, выбирается случайно по билетам */
-const CHAL_DEFAULT={id:"2026-10-26",lot:1,multi:1,min:2,start:Date.UTC(2026,9,26,5,30),end:Date.UTC(2026,9,26,19),prizes:["300 ⭐","200 ⭐","100 ⭐"],bal:[300,200,100],img:"assets/post-stars.jpg?v=1",slots:[8.5,11.5,14.5,17.5,19,20,21],chanSlots:[8.5,10,14,17.5,21],chan:"@voinyepoh"};
+const CHAL_DEFAULT={id:"2026-10-27",story:1,start:Date.UTC(2026,9,27,5,30),end:Date.UTC(2026,9,27,19),resAt:Date.UTC(2026,9,28,19),prizes:["NFT-подарок Telegram (~$10)","200 ⭐","100 ⭐"],bal:[0,200,100],img:"assets/post-story.jpg?v=1",storyImg:"assets/story-contest.jpg?v=1",slots:[8.5,11.5,14.5,17.5,19,20,21],chanSlots:[8.5,10,14,17.5,21],chan:"@voinyepoh"};
 /* секретный приз 25.10: бесценная карточка-коллаборация «Воины Эпох × Номерок» А777МР 77. До финала не раскрываем */
 const SEC_LINE="🎁 Главный приз — СЕКРЕТ 🤫\n💰 Суммарно он стоит больше, чем все наши прошлые конкурсы — в районе $100\n🤝 Это подарок лично от игры «Номерок»";
 const PZ=C=>C.secret?"СЕКРЕТНОГО ПРИЗА":C.multi?"600 ⭐":C.prizes[0], PZl=C=>C.secret?"секретного приза":C.multi?"600 ⭐":C.prizes[0];
@@ -1895,7 +1895,7 @@ async function chalBoard(env,C){return await cached("chalb",20e3,async()=>{
     rows=rows.map(r=>{const u=nm.get(r.uid)||{};return {...r,name:u.name||"Игрок",vip:(u.vip_until||0)>Date.now()?1:0,last:u.last||0}})}
   rows.sort((a,b)=>b.n-a.n||b.d-a.d||a.last-b.last);return rows})}
 const chalPhase=(C,now)=>now<C.start?"soon":now<C.end?"on":"done";
-async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(!C||now>=C.end)return null;   // конкурс закончился — блок с таблицей убираем
+async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(C&&C.story)return storyGet(env,me,C,now);if(!C||now>=C.end)return null;   // конкурс закончился — блок с таблицей убираем
   const fin=now>=C.end?await kvGet(env,"chal_res:"+C.id):null,rows=fin?fin.rows:(now<C.start?[]:await chalBoard(env,C));
   const i=rows.findIndex(r=>r.uid===me.id),mine=i>=0?{...rows[i],place:i+1}:{d:0,l2:0,n:0,place:0};
   return {id:C.id,start:C.start,end:C.end,left:Math.max(0,(now<C.start?C.start:C.end)-now),phase:chalPhase(C,now),prizes:C.prizes,need:CHAL_OPEN,x2:now>=C.start&&now<C.end?1:0,
@@ -1913,7 +1913,15 @@ function lotText(C,slot,rows,now){const last=slot===C.slots.length-1,hook=lotHoo
   if(slot===0&&C.multi)return "⭐ СТАРТ! РОЗЫГРЫШ 600 ЗВЁЗД — ТРИ ПОБЕДИТЕЛЯ\n\n"+ML(C)+"\n\nСегодня до "+hmM(C.end)+" зови друзей в «Воины Эпох»:\n👥 "+frA(C.min)+" — и ты участник\n🎟 Каждый друг = 1 билет. Чем больше друзей — тем больше шанс\n✅ Считаются только живые друзья, которые играют\n\n"+MNOTE+"\n\n"+LOT_PAID+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
   if(slot===0)return "🎟 СТАРТ! РОЗЫГРЫШ "+C.prizes[0]+" — ВЫИГРАТЬ МОЖЕТ ЛЮБОЙ\n\nСегодня до "+hmM(C.end)+" зови друзей в «Воины Эпох»:\n\n👥 "+frA(C.min)+" — и ты участник розыгрыша\n🎟 Каждый друг = 1 билет. Больше друзей — больше шанс\n🏆 Победитель один: подарок Telegram на "+C.prizes[0]+" или звёзды\n\nМы учли ваши пожелания: теперь не нужно обгонять лидера — повезти может каждому!\n\n"+LOT_PAID+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
   return (last?"⏰ ПОСЛЕДНИЙ ЧАС! До розыгрыша "+fmtLeft(C.end-now):"🎟 РОЗЫГРЫШ "+PZ(C)+" ИДЁТ — до конца "+fmtLeft(C.end-now))+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+hook+"\n\n🎟 Каждый друг = +1 билет. Друг твоего друга тоже считается!\n\n"+CHAL_X2+(C.multi?"\n\n"+ML(C):"")+"\n\nВ "+hmM(C.end)+" бот выберет "+W1(C)+" случайно по билетам 👇"}
-function chalText(C,slot,rows,now){if(C.lot)return lotText(C,slot,rows,now);const last=slot===C.slots.length-1,pr=chalPrizes(C);
+/* ---------- конкурс историй: выложи историю с игрой в Telegram/Instagram, она должна провисеть 24 часа ---------- */
+const STP=C=>"🥇 "+C.prizes[0]+"\n🥈 "+C.prizes[1]+" на игровой баланс\n🥉 "+C.prizes[2]+" на игровой баланс";
+const ST_HOW=C=>"1️⃣ Открой игру → блок «📸 Конкурс историй» на главной\n2️⃣ Возьми фото и свою ссылку на бота\n3️⃣ Выложи историю в Telegram или Instagram со ссылкой\n4️⃣ Нажми «Я выложил» и укажи свой ник\n\n⏳ История должна провисеть 24 часа — выложить можно до "+hmM(C.end)+", итоги завтра в "+hmM(C.resAt)+". Победителей выберем случайно среди тех, у кого история висела сутки";
+function storyText(C,slot,now){const last=slot===C.slots.length-1;
+  if(slot===0)return "📸 СТАРТ! КОНКУРС ИСТОРИЙ — ПРИЗЫ ТРЁМ ПОБЕДИТЕЛЯМ\n\n"+STP(C)+"\n\nЧто нужно сделать:\n"+ST_HOW(C)+"\n\nЧем раньше выложишь — тем больше друзей придёт по твоей ссылке, а за каждого ты ещё и получаешь прокрутки 🔥";
+  return (last?"⏰ ПОСЛЕДНИЙ ЧАС, чтобы выложить историю! До "+hmM(C.end)+" — "+fmtLeft(C.end-now):"📸 Конкурс историй идёт — выложить можно до "+hmM(C.end))+"\n\n"+STP(C)+"\n\n"+ST_HOW(C)}
+function storyChan(C,k,now){const bot="\n\n👉 @VoinyEpohBot";if(k===0)return {photo:1,text:"📸 КОНКУРС ИСТОРИЙ «ВОИНОВ ЭПОХ»!\n\n"+STP(C)+"\n\nКак участвовать:\n"+ST_HOW(C)+"\n\n"+LOT_PAID+bot};
+  return {text:(k===C.chanSlots.length-1?"⏰ Последний час конкурса историй — успей выложить до "+hmM(C.end)+"!":"📸 Конкурс историй идёт до "+hmM(C.end)+"!")+"\n\n"+STP(C)+"\n\nФото и ссылка для истории — в игре, блок «📸 Конкурс историй». История должна провисеть 24 часа, итоги завтра в "+hmM(C.resAt)+" 🍀"+bot}}
+function chalText(C,slot,rows,now){if(C.story)return storyText(C,slot,now);if(C.lot)return lotText(C,slot,rows,now);const last=slot===C.slots.length-1,pr=chalPrizes(C);
   const top=rows.slice(0,3).map((r,k)=>MEDAL[k]+" "+r.name+" — "+r.n).join("\n");
   if(C.ext&&C.slots[slot]===C.ext)return "⏰ ВЫ ПРОСИЛИ — МЫ ПРОДЛИЛИ!\n\nМногие были на работе, в школе и по делам и не успели позвать друзей. Поэтому челлендж продлён до "+hmM(C.end)+"! 🔥\n\n"+chalHook(C,rows)+"\n\n"+(top?"Сейчас в топе:\n"+top+"\n\n":"")+"Призы:\n"+pr+"\n\n"+CHAL_X2+"\n\nЖми «Пригласить» и отправляй ссылку 👇";
   if(slot===0)return "🔥 СТАРТ! ЧЕЛЛЕНДЖ ДНЯ: КТО ПРИГЛАСИТ БОЛЬШЕ ДРУЗЕЙ\n\nПрямо сейчас и до "+hmM(C.end)+" зови друзей в «Воины Эпох». Топ-3 получают призы:\n"+pr+"\n\n👥 Считаются только друзья, пришедшие сегодня по твоей ссылке. Позовёт твой друг своего друга — он засчитается и тебе!\n✅ Друг засчитывается, когда откроет "+CHAL_OPEN+" карточки.\n\n📊 Таблица лидеров — в игре на вкладке «Крутить». Жми «Пригласить» и отправляй ссылку!";
@@ -1925,12 +1933,12 @@ function chalHook(C,rows){const L=rows[0];if(!L)return "🤯 В таблице �
   return "🏆 У лидера "+frN(L.n)+". Обгони его — и подарок на "+C.prizes[0]+" твой!"}
 /* посты в канал: бот должен быть админом канала с правом публикации */
 /* посты в канал по своему расписанию (C.chanSlots), если оно задано */
-function lotChan(C,k,now,rows){const bot="\n\n👉 @VoinyEpohBot",S=C.chanSlots,h=lotHook(C,rows||[]);
+function lotChan(C,k,now,rows){if(C.story)return storyChan(C,k,now);const bot="\n\n👉 @VoinyEpohBot",S=C.chanSlots,h=lotHook(C,rows||[]);
   if(k===0)return chanPost(C,0,now,rows);
   if(k===S.length-1)return {text:"⏰ ПОСЛЕДНИЙ ЧАС! До розыгрыша "+PZl(C)+" — "+fmtLeft(C.end-now)+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+h+(C.multi?"\n\n"+ML(C):"")+"\n\nВ "+hmM(C.end)+" бот случайно выберет "+W1(C)+" по билетам. Ещё можно успеть 🔥"+bot};
   const T=[null,"☕ Доброе утро, воины! Розыгрыш "+PZl(C)+" уже идёт","⚡ Розыгрыш "+PZl(C)+" в самом разгаре","🔥 До розыгрыша "+PZl(C)+" осталось "+fmtLeft(C.end-now)][k]||"🎟 Розыгрыш "+PZl(C)+" идёт";
   return {text:T+"\n\n"+(C.secret?SEC_LINE+"\n\n":"")+h+"\n\n👥 Пригласи "+frA(C.min)+" — и ты участник\n🎟 Каждый друг = +1 билет, друг твоего друга тоже считается\n"+(C.multi?"🏆 Три победителя: "+C.prizes.join(", ")+" — выбираем в ":"🏆 Победитель один — выбираем в ")+hmM(C.end)+"\n\n"+CHAL_X2+bot}}
-function chanPost(C,slot,now,rows){rows=rows||[];if(C.lot){const bot="\n\n👉 @VoinyEpohBot";
+function chanPost(C,slot,now,rows){rows=rows||[];if(C.story)return slot===0?storyChan(C,0,now):null;if(C.lot){const bot="\n\n👉 @VoinyEpohBot";
   if(slot===0&&C.secret)return {photo:1,text:"🔥 САМЫЙ КРУПНЫЙ РОЗЫГРЫШ В ИСТОРИИ «ВОИНОВ ЭПОХ»!\n\n"+SEC_LINE+"\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+":\n👥 Пригласи "+frA(C.min)+" — и ты в розыгрыше\n🎟 Каждый друг = 1 билет: больше друзей — больше шанс\n🏆 Победитель один — повезти может каждому 🍀\n\n"+LOT_PAID+"\n\n"+CHAL_X2+bot};
   if(slot===0&&C.multi)return {photo:1,text:"⭐ РОЗЫГРЫШ 600 ЗВЁЗД — ТРИ ПОБЕДИТЕЛЯ!\n\n"+ML(C)+"\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+":\n👥 Пригласи "+frA(C.min)+" в «Воины Эпох» — и ты в розыгрыше\n🎟 Каждый друг = 1 билет: чем больше друзей — тем больше шанс\n✅ Считаются только живые друзья, которые играют\n\n"+MNOTE+"\n\n"+LOT_PAID+"\n\n"+CHAL_X2+bot};
   if(slot===0)return {photo:1,text:"🎟 РОЗЫГРЫШ "+C.prizes[0]+" — ВЫИГРАТЬ МОЖЕТ ЛЮБОЙ!\n\nСегодня с "+hmM(C.start)+" до "+hmM(C.end)+":\n👥 Пригласи "+frA(C.min)+" в «Воины Эпох» — и ты в розыгрыше\n🎟 Каждый друг = 1 билет: больше друзей — больше шанс\n🏆 Победитель один — подарок Telegram на "+C.prizes[0]+" или звёзды\n\nВы просили — мы сделали: теперь не нужно быть первым, повезти может каждому 🍀\n\n"+LOT_PAID+"\n\n"+CHAL_X2+bot};
@@ -1966,12 +1974,13 @@ async function collabGrant(env,uid){if(await env.DB.prepare("SELECT 1 FROM cards
   const r=await env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,how) VALUES(?,?,6,1,'А777МР77',0,190,0,?,0,0,0,?,'prize') RETURNING id").bind(uid,COLLAB,JSON.stringify([700,700,700,700,700]),Date.now()).first();
   return r?r.id:null}
 let chalBusy=null;
-async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{const C=await chalCfg(env),now=Date.now();if(!C||now>C.end+36e5)return;
+async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{const C=await chalCfg(env),now=Date.now();if(!C||now>(C.resAt||C.end)+36e5)return;
+  if(C.story&&now>=C.end){const st0=(await kvGet(env,"chal_st:"+C.id))||{};if(now>=C.resAt&&!st0.sfin){st0.sfin=1;await kvSet(env,"chal_st:"+C.id,st0);await storyDraw(env,C)}if(now>=C.end+36e5)return}
   if(now<C.end)await chanCheck(env,C);
   if(now<C.start-3600e3)return;
   const st=(await kvGet(env,"chal_st:"+C.id))||{slot:-1,after:0,fin:0,ch:{}};st.ch=st.ch||{};
   // итоги: фиксируем таблицу и пишем победителям, админу и в канал
-  if(now>=C.end&&!st.fin){delete topCache.chalb;const rows=(await chalBoard(env,C)).slice(0,50);await kvSet(env,"chal_res:"+C.id,{rows,at:now});st.fin=1;st.res=0;await kvSet(env,"chal_st:"+C.id,st)}
+  if(now>=C.end&&!st.fin&&!C.story){delete topCache.chalb;const rows=(await chalBoard(env,C)).slice(0,50);await kvSet(env,"chal_res:"+C.id,{rows,at:now});st.fin=1;st.res=0;await kvSet(env,"chal_st:"+C.id,st)}
   if(st.fin===1&&!st.res&&C.lot){st.res=1;await kvSet(env,"chal_st:"+C.id,st);const R=(await kvGet(env,"chal_res:"+C.id))||{},rows=R.rows||[];
     const all=await chalBoard(env,C),P=lotIn(C,all),T=P.reduce((a,r)=>a+r.n,0),W=lotDraw(C,all);R.winner=W||null;R.players=P.length;R.tickets=T;await kvSet(env,"chal_res:"+C.id,R);
     if(C.multi){const Ws=lotDrawN(C,all,3);R.winners=Ws;await kvSet(env,"chal_res:"+C.id,R);
@@ -2004,9 +2013,33 @@ async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{con
   if(st.slot!==s){st.slot=s;st.after=0;st.done=0;st.n=0}
   const rows=now>=C.start?await chalBoard(env,C):[],text=chalText(C,s,rows,now);
   const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-  for(const u of us){if(await notify(env,u.id,text,C.lot?"🎟 Мои билеты":"👥 Открыть таблицу",null,s===0?PAGE+(C.img||(C.lot?"assets/post-lottery.jpg?v=1":"assets/post-challenge.jpg?v=2")):C.ext&&C.slots[s]===C.ext?PAGE+"assets/post-extend.jpg?v=1":null))st.n++;st.after=u.id}
+  for(const u of us){if(await notify(env,u.id,text,C.story?"📸 Участвовать":C.lot?"🎟 Мои билеты":"👥 Открыть таблицу",null,s===0?PAGE+(C.img||(C.lot?"assets/post-lottery.jpg?v=1":"assets/post-challenge.jpg?v=2")):C.ext&&C.slots[s]===C.ext?PAGE+"assets/post-extend.jpg?v=1":null))st.n++;st.after=u.id}
   if(us.length<25)st.done=1;await kvSet(env,"chal_st:"+C.id,st)})().finally(()=>{chalBusy=null});return chalBusy}
 
+async function storyGet(env,me,C,now){if(now>=C.resAt+864e5)return null;const E=await env.DB.prepare("SELECT tg,ig,t FROM story_entries WHERE contest=? AND uid=?").bind(C.id,me.id).first();
+  const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM story_entries WHERE contest=?").bind(C.id).first())||{}).n||0;
+  const came=((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND created>=?").bind(me.id,C.start).first())||{}).n||0;
+  const res=now>=C.resAt?await kvGet(env,"story_res:"+C.id):null;
+  return {id:C.id,story:1,start:C.start,end:C.end,resAt:C.resAt,phase:now<C.start?"soon":now<C.end?"on":now<C.resAt?"wait":"done",left:Math.max(0,(now<C.start?C.start:now<C.end?C.end:C.resAt)-now),prizes:C.prizes,
+    img:C.storyImg,link:"https://t.me/"+(env.BOT_USERNAME||"VoinyEpohBot")+"?startapp=r_"+me.id,me:E?{tg:E.tg||"",ig:E.ig||"",t:E.t}:null,players:n,came,
+    winners:res&&res.conf?res.win.filter(w=>w.ok).map(w=>({place:w.place,name:w.name})):null,top:[],me2:{}}}
+const stHandle=v=>{v=String(v||"").trim().replace(/^https?:\/\/(www\.)?(instagram\.com|t\.me)\//i,"").replace(/^@/,"").replace(/[/?#].*$/,"");return /^[A-Za-z0-9_.]{3,40}$/.test(v)?v:""};
+async function storyJoin(env,me,p){const C=await chalCfg(env),now=Date.now();if(!C||!C.story)fail("Сейчас нет конкурса историй");if(now<C.start)fail("Конкурс ещё не начался");if(now>=C.end)fail("Выложить историю можно было до "+hmM(C.end));
+  const tg=stHandle(p.tg),ig=stHandle(p.ig);if(!tg&&!ig)fail("Укажи свой ник в Telegram или Instagram — по нему мы проверим историю");
+  await env.DB.prepare("INSERT INTO story_entries(contest,uid,tg,ig,t) VALUES(?,?,?,?,?) ON CONFLICT(contest,uid) DO UPDATE SET tg=excluded.tg,ig=excluded.ig").bind(C.id,me.id,tg,ig,now).run();return {tg,ig}}
+/* итоги: 3 победителя + 3 запасных случайно. Админ проверяет, что история висела сутки, и подтверждает (или заменяет запасным) */
+async function storyDraw(env,C){const E=(await env.DB.prepare("SELECT s.uid,s.tg,s.ig,COALESCE(u.nick,u.name) AS name FROM story_entries s JOIN users u ON u.id=s.uid WHERE s.contest=?").bind(C.id).all()).results;
+  const pick=[];const P=E.slice();while(pick.length<6&&P.length){const b=new Uint32Array(1);crypto.getRandomValues(b);pick.push(P.splice(b[0]%P.length,1)[0])}
+  const R={win:pick.slice(0,3).map((w,k)=>({...w,place:k+1,ok:0})),res:pick.slice(3),total:E.length,conf:0};await kvSet(env,"story_res:"+C.id,R);
+  for(const a of ADMINS)await notify(env,a,"📸 Итоги конкурса историй: участников "+E.length+".\n\nПобедители (проверь, что история висела сутки):\n"+(R.win.map(w=>MEDAL[w.place-1]+" "+w.name+" (id "+w.uid+")"+(w.tg?" · TG @"+w.tg:"")+(w.ig?" · IG @"+w.ig:"")).join("\n")||"никого")+(R.res.length?"\n\nЗапасные:\n"+R.res.map(w=>w.name+" (id "+w.uid+")"+(w.tg?" · TG @"+w.tg:"")+(w.ig?" · IG @"+w.ig:"")).join("\n"):"")+"\n\nПодтверди или замени в игре: Профиль → Топ → статистика → «📸 Итоги конкурса историй».","⚔️ Открыть")}
+async function storyAdmin(env,me,a,p){if(!isAdmin(env,me.id))fail("Нет доступа");const C=await chalCfg(env);if(!C||!C.story)fail("Нет конкурса историй");const R=await kvGet(env,"story_res:"+C.id);
+  if(a==="story_res")return {id:C.id,resAt:C.resAt,prizes:C.prizes,R};if(!R)fail("Итогов ещё нет");const w=R.win.find(x=>x.place===(p.place|0));if(!w)fail("Нет такого места");if(w.ok)fail("Уже подтверждён");
+  if(a==="story_no"){const nx=R.res.shift();if(!nx){R.win=R.win.filter(x=>x!==w)}else Object.assign(w,{uid:nx.uid,tg:nx.tg,ig:nx.ig,name:nx.name,ok:0});await kvSet(env,"story_res:"+C.id,R);return {R}}
+  if(a==="story_ok"){w.ok=1;const k=w.place-1,amt=C.bal[k]||0;if(amt)await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(amt,w.uid).run();
+    await notify(env,w.uid,MEDAL[k]+" ТЫ ПОБЕДИЛ В КОНКУРСЕ ИСТОРИЙ — "+(k+1)+" МЕСТО!\n\n"+(amt?"⭐ "+amt+" звёзд уже на твоём игровом балансе — трать на любые покупки в игре.":"🎁 Твой приз — "+C.prizes[0]+". Напиши @voinovadmin, чтобы получить подарок, и пришли свой ID: "+w.uid),amt?"⭐ Потратить":"⚔️ Играть",amt?PAGE+"?shop=1":null);
+    if(R.win.every(x=>x.ok)&&!R.conf){R.conf=1;await chanSend(env,C,{text:"🎉 ИТОГИ КОНКУРСА ИСТОРИЙ\n\nУчастников: "+R.total+"\n\n"+R.win.map(x=>MEDAL[x.place-1]+" "+x.name+" — "+C.prizes[x.place-1]).join("\n")+"\n\nСпасибо всем, кто рассказал о нас! Победителям уже написал бот 🎁\n\n👉 @VoinyEpohBot"})}
+    await kvSet(env,"story_res:"+C.id,R);return {R}}
+  fail("Неизвестное действие")}
 /* ---------- топ лагеря: кто больше всех заработал рун за день и за неделю ---------- */
 async function campTop(env,me,per){const w=per==="w",now=Date.now(),key=w?mskWeek(now):mskDay(now),kc=w?"camp_wk":"camp_dk",sc=w?"camp_wr":"camp_dr";
   const items=await cached("ctop"+per+key,6e3,async()=>(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${sc} AS score FROM users WHERE ${kc}=? AND ${sc}>0 ORDER BY ${sc} DESC LIMIT 30`).bind(key).all()).results
@@ -2309,6 +2342,8 @@ async function handle(req,env){{
       if(a==="cas_stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await casStats(env)})}
       if(a==="camp_top")return J({ok:true,res:await campTop(env,me,p.per==="w"?"w":"d")});
       if(a==="chal_get")return J({ok:true,res:await chalGet(env,me)});
+      if(a==="story_join")return J({ok:true,res:await storyJoin(env,me,p)});
+      if(/^story_(res|ok|no)$/.test(a))return J({ok:true,res:await storyAdmin(env,me,a,p)});
       if(a==="chal_set"){if(!isAdmin(env,me.id))fail("Нет доступа");await kvSet(env,"chal",p.cfg||null);delete topCache.chalcfg;delete topCache.chalb;return J({ok:true,res:{}})}
       if(/^tour_/.test(a)){const res=await tourApi(env,me,a,p);return J({ok:true,res,S:a==="tour_get"?undefined:await stateFor(env,me)})}
       if(/^(arena_list|room_)/.test(a)){const res=await arena(env,me,a,p);const S=/^room_(create|join|cancel)$/.test(a)||(res&&res.phase==="done")?await stateFor(env,me):undefined;return J({ok:true,res,S})}

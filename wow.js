@@ -828,3 +828,38 @@ async function drawTrStats(){const b=$("st-body");if(!b||!S||!S.admin)return;let
     wSheet('<h3 style="margin:0 0 4px"><span id="tpa"></span> ⇄ <span id="tpb"></span></h3><p class="cln">id '+p.a+' → id '+p.b+'. Если похоже на твинка — сохрани эти id: по ним можно вернуть карточки и наказать вручную.</p><div class="lnk-list">'+r.rows.map((x,i)=>'<div class="trpr"><small>'+dt(x.t)+'</small><span data-r="'+i+'"></span><b>'+(x.kind==="gift"?fmt(x.av):fmt(x.av)+" ⇄ "+fmt(x.bv))+'</b></div>').join("")+'</div>');
     $("tpa").textContent=p.an;$("tpb").textContent=p.bn;document.querySelectorAll(".trpr [data-r]").forEach(e=>{const x=r.rows[+e.dataset.r],who=x.dir?"→":"←";e.textContent=x.kind==="gift"?"🎁 "+who+" "+x.a:"🔄 "+x.a+" ⇄ "+(x.b||"?")})}}
 {const _ds3=drawStats;drawStats=function(){_ds3();try{drawTrStats()}catch(e){console.error(e)}}}
+
+/* ===================== КОНКУРС ИСТОРИЙ ===================== */
+{const _dc2=drawChal;drawChal=function(){const C=chData;if(C&&C.story){try{drawStory(C)}catch(e){console.error(e)}return}_dc2()}}
+function drawStory(C){const box=$("chal");if(!box)return;box.hidden=false;box.classList.add("story");const hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16),dd=t=>{const d=new Date(t+3*3600e3).toISOString();return d.slice(8,10)+"."+d.slice(5,7)};
+  box.querySelector(".chal-h span").textContent="📸 КОНКУРС ИСТОРИЙ";
+  if(box.contains(document.activeElement)&&document.activeElement.tagName==="INPUT")return;   // не мешаем печатать
+  const key=JSON.stringify([C.phase,C.me,C.players,C.came,C.winners]);if(box.dataset.sk===key)return;box.dataset.sk=key;
+  $("chal-t").textContent=C.phase==="soon"?"Завтра с "+hm(C.start)+" до "+hm(C.end)+": выложи историю с нашей игрой в Telegram или Instagram — и участвуй в розыгрыше!":C.phase==="on"?"Выложи историю с игрой в Telegram или Instagram до "+hm(C.end)+". История должна провисеть 24 часа — итоги "+dd(C.resAt)+" в "+hm(C.resAt)+". Победителей выберем случайно среди честных участников.":C.phase==="wait"?"Приём историй закрыт. Не удаляй свою историю — она должна провисеть сутки! Итоги "+dd(C.resAt)+" в "+hm(C.resAt)+".":"Итоги подведены!";
+  $("chal-p").innerHTML=C.prizes.map((p,k)=>'<div>'+["🥇","🥈","🥉"][k]+'<b>'+(k?p:"NFT 🎁")+'</b>'+(k?"на баланс":"~$10 подарок")+'</div>').join("");
+  const me=$("chal-me");const joined=!!C.me;
+  me.innerHTML=(C.phase==="on"||C.phase==="soon")?'<div class="sty"><div class="sty-s"><b>1</b><span>Возьми фото для истории</span></div><div class="sty-b">'+(tg&&tg.shareToStory?'<button type="button" class="craftbtn" id="st-share">📲 Выложить в Telegram</button>':'')+'<button type="button" class="mini2" id="st-dl">⬇️ Скачать фото</button></div>'+
+     '<div class="sty-s"><b>2</b><span>Добавь в историю свою ссылку на бота (стикер «Ссылка»)</span></div><div class="sty-l"><code id="st-link"></code><button type="button" class="mini2" id="st-cp">Копировать</button></div>'+
+     '<div class="sty-s"><b>3</b><span>'+(joined?"✅ Ты участвуешь! Не удаляй историю 24 часа":"Укажи, где выложил — по нику проверим историю")+'</span></div>'+
+     (joined?'<p class="sty-ok">'+(C.me.tg?"Telegram: @"+esc(C.me.tg)+" ":"")+(C.me.ig?"Instagram: @"+esc(C.me.ig):"")+' · <a href="#" id="st-edit">изменить</a></p>':"")+
+     '<div class="sty-f"'+(joined?' hidden':'')+'><input id="st-tg" placeholder="Ник в Telegram (если там)" maxlength="40"><input id="st-ig" placeholder="Ник в Instagram (если там)" maxlength="60"><button type="button" class="craftbtn" id="st-join"'+(C.phase==="soon"?" disabled":"")+'>'+(C.phase==="soon"?"Можно с "+hm(C.start):"✅ Я выложил историю")+'</button></div></div>':
+    (joined?'<div class="sty-ok">✅ Ты участвуешь'+(C.phase==="wait"?" — не удаляй историю до итогов!":"")+'</div>':'<div class="sty-ok">Ты не участвовал в этот раз</div>');
+  $("chal-top").innerHTML='<div class="sty-n">👥 Участников: <b>'+C.players+'</b> · по твоей ссылке пришли: <b>'+C.came+'</b></div>'+(C.winners?'<div class="sty-w">'+C.winners.map(w=>["🥇","🥈","🥉"][w.place-1]+' <span data-wn="'+w.place+'"></span>').join("<br>")+'</div>':"");
+  if(C.winners)C.winners.forEach(w=>{const e=box.querySelector('[data-wn="'+w.place+'"]');if(e)e.textContent=w.name});
+  $("chal-go").hidden=true;
+  $("chal-rules").textContent="Выложи историю в Telegram или Instagram с фото из игры и ссылкой на бота с "+hm(C.start)+" до "+hm(C.end)+" и нажми «Я выложил». История должна провисеть не меньше 24 часов — до итогов "+dd(C.resAt)+" в "+hm(C.resAt)+". Победителей бот выбирает случайно, затем администратор проверяет, что история висела сутки; если нет — приз уходит запасному участнику. Призы: 🥇 "+C.prizes[0]+", 🥈 "+C.prizes[1]+" и 🥉 "+C.prizes[2]+" на игровой баланс (тратятся на покупки в игре). Профиль в Instagram должен быть открытым, а история в Telegram — видна всем. Время — минское.";
+  const L=$("st-link");if(L)L.textContent=C.link;
+  const url=stPageUrl()+C.img;
+  if($("st-cp"))$("st-cp").onclick=()=>{try{navigator.clipboard.writeText(C.link);toast("Ссылка скопирована — вставь её в стикер «Ссылка»")}catch(e){toast(C.link)}};
+  if($("st-dl"))$("st-dl").onclick=()=>{try{if(tg&&tg.downloadFile){tg.downloadFile({url,file_name:"voiny-epoh-story.jpg"});return}}catch(e){}try{tg&&tg.openLink?tg.openLink(url):open(url)}catch(e){open(url)}};
+  if($("st-share"))$("st-share").onclick=()=>{const p={text:"Играю в «Воины Эпох» ⚔️ Залетай: @VoinyEpohBot"};try{tg.shareToStory(url,Object.assign({},p,{widget_link:{url:C.link,name:"Играть"}}))}catch(e){try{tg.shareToStory(url,p)}catch(x){toast("Не получилось — скачай фото и выложи вручную")}}};
+  if($("st-edit"))$("st-edit").onclick=e=>{e.preventDefault();box.querySelector(".sty-f").hidden=false;$("st-tg").value=C.me.tg||"";$("st-ig").value=C.me.ig||""};
+  if($("st-join"))$("st-join").onclick=async()=>{const r=await act("story_join",{tg:$("st-tg").value,ig:$("st-ig").value});if(r){sfx.fanfare();burst(2);hapN("success");toast("✅ Ты участвуешь! Не удаляй историю 24 часа");await loadChal()}}}
+function stPageUrl(){return location.origin+location.pathname.replace(/[^/]*$/,"")}
+/* админ: подтверждение победителей конкурса историй */
+let stRes=null;
+async function drawStoryAdmin(){const b=$("st-body");if(!b||!S||!S.admin)return;const r=await act("story_res").catch(()=>null);if(!r||!r.R){const o=$("stadm");if(o)o.remove();return}stRes=r;let box=$("stadm");if(!box){box=document.createElement("div");box.id="stadm";box.className="srcbox"}b.prepend(box);
+  const R=r.R;box.innerHTML='<h4>📸 Итоги конкурса историй</h4><p class="cln">Участников: '+R.total+'. Проверь, что история висела сутки, и подтверди. «Заменить» — приз уйдёт запасному ('+R.res.length+' в запасе).</p>'+R.win.map(w=>'<div class="stw"><b>'+["🥇","🥈","🥉"][w.place-1]+' <span data-n="'+w.place+'"></span></b><small>id '+w.uid+(w.tg?' · TG <a href="https://t.me/'+esc(w.tg)+'" target="_blank">@'+esc(w.tg)+'</a>':'')+(w.ig?' · IG <a href="https://instagram.com/'+esc(w.ig)+'" target="_blank">@'+esc(w.ig)+'</a>':'')+'</small>'+(w.ok?'<i>✅ подтверждён</i>':'<div><button type="button" class="craftbtn" data-ok="'+w.place+'">✅ Подтвердить</button><button type="button" class="ghost" data-no="'+w.place+'">Заменить</button></div>')+'</div>').join("");
+  R.win.forEach(w=>{const e=box.querySelector('[data-n="'+w.place+'"]');if(e)e.textContent=w.name});
+  box.onclick=async e=>{const ok=e.target.closest("[data-ok]"),no=e.target.closest("[data-no]");if(!ok&&!no)return;const x=await act(ok?"story_ok":"story_no",{place:+(ok?ok.dataset.ok:no.dataset.no)});if(x){toast(ok?"✅ Подтверждено, победителю написал бот":"Заменён запасным");drawStoryAdmin()}}}
+{const _ds4=drawStats;drawStats=function(){_ds4();try{drawStoryAdmin()}catch(e){}}}

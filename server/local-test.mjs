@@ -544,6 +544,21 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     const before = b(6200); let q = await cc(6200, "pay_bal", { item: "golem" }); ok(q.ok && q.res.status === "done" && q.S.starBal === before - 99 && q.S.golemUntil > Date.now(), "покупка с игрового баланса: голем за 99 ⭐");
     db.prepare("UPDATE users SET star_bal=10 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "golem" }); ok(!q.ok && /балансе 10/.test(q.err), "не хватает звёзд на балансе — покупки нет");
     q = await cc(8, "stats"); ok(q.ok && q.res.x.bal.spent >= 99, "в статистике видно траты с баланса, они не считаются донатом"); }
+  // конкурс историй
+  { const n1 = Date.now(); const cfg = { id: "st1", story: 1, start: n1 - 36e5, end: n1 + 36e5, resAt: n1 + 72e5, prizes: ["NFT", "200 ⭐", "100 ⭐"], bal: [0, 200, 100], slots: [] };
+    await cc(8, "chal_set", { cfg }); let q = await cc(6200, "chal_get"); ok(q.ok && q.res.story === 1 && q.res.phase === "on" && /startapp=r_6200/.test(q.res.link), "конкурс историй: личная ссылка на бота");
+    q = await cc(6200, "story_join", {}); ok(!q.ok, "без ника не участвуешь");
+    q = await cc(6200, "story_join", { ig: "https://instagram.com/voin_6200/" }); ok(q.ok && q.res.ig === "voin_6200", "указал Instagram — участвует");
+    for (const u of [6210, 6201, 6202]) await cc(u, "story_join", { tg: "@user" + u });
+    q = await cc(6200, "chal_get"); ok(q.res.me && q.res.players === 4, "4 участника, я в их числе");
+    await cc(8, "chal_set", { cfg: { ...cfg, end: Date.now() - 1, resAt: Date.now() + 36e5 } }); q = await cc(6200, "chal_get"); ok(q.res.phase === "wait", "после 22:00 — ждём, пока истории повисят сутки");
+    q = await cc(6201, "story_join", { tg: "late_guy" }); ok(!q.ok, "после конца выложить нельзя");
+    await cc(8, "chal_set", { cfg: { ...cfg, end: Date.now() - 1, resAt: Date.now() - 1 } }); await worker.tick(envC); await worker.tick(envC);
+    q = await cc(8, "story_res"); ok(q.ok && q.res.R && q.res.R.win.length === 3 && q.res.R.res.length === 1, "итоги: 3 победителя и запасной");
+    const w2 = q.res.R.win[1], b0 = db.prepare("SELECT star_bal s FROM users WHERE id=?").get(w2.uid).s;
+    q = await cc(8, "story_no", { place: 3 }); ok(q.ok && q.res.R.res.length === 0, "заменил 3 место запасным");
+    q = await cc(8, "story_ok", { place: 2 }); ok(q.ok && db.prepare("SELECT star_bal s FROM users WHERE id=?").get(w2.uid).s === b0 + 200, "подтвердил 2 место — 200 ⭐ на баланс");
+    q = await cc(6200, "story_ok", { place: 1 }); ok(!q.ok, "подтверждать может только админ"); }
   await cc(8, "chal_set", { cfg: { id: "off", start: 0, end: 0, prizes: ["$20", "$10", "$7"], slots: [] } });
 }
 
