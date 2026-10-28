@@ -577,7 +577,7 @@ const conqPow=(c,weak)=>Math.round(cpow(c)*(ERA_OF[c.h]===weak?CONQ.bonus:1));
    Тайное яйцо открывается, когда 3 приглашённых друга сделали хотя бы по 5 прокруток.
    Дракон растёт 60 уровней (7 стадий), его надо кормить и гладить. Снаряжение 5 слотов, 6 редкостей, комплекты дают бонус.
    Сила дракона помогает в боях, завоевании и клановом боссе, а взрослый дракон каждый день приносит прокрутки. */
-const DG={fr:3,frSpins:5,max:60,satH:4,tapCap:200,feedMax:6,winXp:10,winSh:2,winCap:15,spinXp:2,taskXp:50,conqXp:40,conqSh:10,nestTaps:50,invMax:60,upMax:10,nameMax:16,hungry:20};
+const DG={fr:3,frSpins:5,since:Date.UTC(2026,9,28,17,0),max:60,satH:4,tapCap:200,feedMax:6,winXp:10,winSh:2,winCap:15,spinXp:2,taskXp:50,conqXp:40,conqSh:10,nestTaps:50,invMax:60,upMax:10,nameMax:16,hungry:20};
 const DG_STAGE=[{n:"Детёныш",lv:1,gift:0},{n:"Юный дракон",lv:10,gift:1},{n:"Взрослый дракон",lv:20,gift:2},{n:"Старший дракон",lv:30,gift:3},{n:"Древний дракон",lv:40,gift:4},{n:"Владыка эпох",lv:50,gift:5},{n:"Легенда эпох",lv:60,gift:7}];
 const dgStage=lv=>{let i=0;DG_STAGE.forEach((S,k)=>{if(lv>=S.lv)i=k});return i};
 const dgCum=L=>Math.round(250000*Math.pow(Math.max(0,L-1)/59,2.1));   // сколько опыта нужно всего, чтобы дойти до уровня L

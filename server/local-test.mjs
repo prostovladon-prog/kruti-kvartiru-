@@ -812,8 +812,8 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     ok(q.S.spins === sp0 + 1, "★★★ даёт +1 прокрутку");
     q = await call(A, "conq_fight", { n: 0, ids: cs.slice(0, 3).map(c => c.id) }); ok(q.ok && q.res.win && !q.res.first && !q.res.reward, "повтор точки: награды нет, но бой засчитан");
     ok(q.S.pass.c.conq === 2, "бои в Покорении идут в задания пропуска");
-    for (let i = 0; i < 3; i++) q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) });
-    q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); ok(!q.ok && /Факелы/.test(q.err), "факелы кончились"); 
+    for (let i = 0; i < 12; i++) { q = await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) }); if (!q.ok) break; }   // задания пропуска в некоторые дни дают +1 факел
+    ok(!q.ok && /Факелы/.test(q.err), "факелы кончились"); 
     { const u0 = db.prepare("SELECT state FROM users WHERE id=?").get(A), st0 = JSON.parse(u0.state); st0.pass.c.open = 9; st0.pass.q = []; db.prepare("UPDATE users SET state=?,gift_spins=gift_spins+3 WHERE id=?").run(JSON.stringify(st0), A); }
     const so = await call(A, "open"); const SS = (await call(A, "sync")).S, sx = SS.conq.x || 0; ok(sx >= 1 && (so.res.events || []).some(e => e.t === "pq" && e.torch), "за выполненное задание дня +1 факел (" + sx + ")" + (so.ok ? "" : so.err));
     for (let i = 0; i < sx; i++) await call(A, "conq_fight", { n: 1, ids: cs.slice(0, 3).map(c => c.id) });
@@ -895,6 +895,8 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   db.prepare("UPDATE users SET state=json_set(state,'$.nOp',6) WHERE id IN (7961,7962)").run();
   q = await call(U, "dg_hatch"); ok(!q.ok, "два живых друга — ещё рано (третий без прокруток не считается)");
   db.prepare("UPDATE users SET state=json_set(state,'$.nOp',5) WHERE id=7963").run();
+  db.prepare("UPDATE users SET created=? WHERE id=7963").run(Date.UTC(2026, 9, 1)); q = await call(U, "dg_hatch"); ok(!q.ok, "друг, пришедший до выхода дракона, не считается");
+  db.prepare("UPDATE users SET created=? WHERE id=7963").run(Date.now());
   q = await call(U, "dg_hatch"); ok(q.ok && q.S.dg && q.S.dg.lv === 1 && q.S.dg.inv.length === 1, "3 живых друга — дракон вылупился, у него стартовый шлем");
   q = await call(U, "dg_hatch"); ok(!q.ok, "второй раз не вылупляется");
   q = await call(U, "dg_name", { name: "Искра<script>" }); ok(q.ok && q.res.name === "Искраscript", "имя дракона очищается");

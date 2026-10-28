@@ -134,7 +134,7 @@ function dgEggHTML(){const fr=dgFr(),ready=fr>=DG.fr||(S&&S.admin);
   return `<div class="dge${ready?" ready":""}"><div class="dge-st"><div class="dge-glow"></div><div class="dge-egg">${dgEggSVG(ready?3:fr)}</div><i class="dge-q q1">?</i><i class="dge-q q2">?</i><i class="dge-q q3">?</i></div>
    <h2>Тайное яйцо</h2><p class="dge-lore">${ready?"Оно треснуло и дрожит… Внутри кто-то ждёт тебя. Разбей скорлупу!":"Его нашли в руинах древнего храма. Внутри что-то дышит и греется… Говорят, тот, кто разбудит яйцо, получит силу, которая <b>перевернёт всю игру</b>."}</p>
    <div class="dge-prog"><div class="dge-ph"><b>Тепло друзей</b><span>${fr} из ${DG.fr}</span></div><div class="dge-sl">${[0,1,2].map(i=>`<div class="${i<fr?"on":""}"><i>${i<fr?"🔥":"❔"}</i><small>${i<fr?"друг согрел":"ждёт друга"}</small></div>`).join("")}</div>
-    <small>Яйцо просыпается только от тепла друзей. Пригласи ${DG.fr} друзей по своей ссылке — друг считается, когда сделает ${DG.frSpins} прокруток.</small></div>
+    <small>Яйцо просыпается только от тепла друзей. Пригласи ${DG.fr} новых друзей по своей ссылке — друг считается, если пришёл после появления яйца (с 28 октября) и сделал ${DG.frSpins} прокруток.</small></div>
    <button type="button" class="craftbtn dge-go" id="dge-go">${ready?"🔨 Разбить скорлупу!":"👥 Позвать друзей"}</button>
    <div class="dge-tz"><div><i>⚔️</i><b>???</b><small>изменит твои бои</small></div><div><i>🎴</i><b>???</b><small>каждый день</small></div><div><i>👑</i><b>???</b><small>чем будут хвастаться</small></div><div><i>🌱</i><b>???</b><small>растёт вместе с тобой</small></div></div></div>`}
 /* ---------- главный экран дракона ---------- */

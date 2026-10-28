@@ -579,7 +579,7 @@ const conqPow=(c,weak)=>Math.round(cpow(c)*(ERA_OF[c.h]===weak?CONQ.bonus:1));
    Тайное яйцо открывается, когда 3 приглашённых друга сделали хотя бы по 5 прокруток.
    Дракон растёт 60 уровней (7 стадий), его надо кормить и гладить. Снаряжение 5 слотов, 6 редкостей, комплекты дают бонус.
    Сила дракона помогает в боях, завоевании и клановом боссе, а взрослый дракон каждый день приносит прокрутки. */
-const DG={fr:3,frSpins:5,max:60,satH:4,tapCap:200,feedMax:6,winXp:10,winSh:2,winCap:15,spinXp:2,taskXp:50,conqXp:40,conqSh:10,nestTaps:50,invMax:60,upMax:10,nameMax:16,hungry:20};
+const DG={fr:3,frSpins:5,since:Date.UTC(2026,9,28,17,0),max:60,satH:4,tapCap:200,feedMax:6,winXp:10,winSh:2,winCap:15,spinXp:2,taskXp:50,conqXp:40,conqSh:10,nestTaps:50,invMax:60,upMax:10,nameMax:16,hungry:20};
 const DG_STAGE=[{n:"Детёныш",lv:1,gift:0},{n:"Юный дракон",lv:10,gift:1},{n:"Взрослый дракон",lv:20,gift:2},{n:"Старший дракон",lv:30,gift:3},{n:"Древний дракон",lv:40,gift:4},{n:"Владыка эпох",lv:50,gift:5},{n:"Легенда эпох",lv:60,gift:7}];
 const dgStage=lv=>{let i=0;DG_STAGE.forEach((S,k)=>{if(lv>=S.lv)i=k});return i};
 const dgCum=L=>Math.round(250000*Math.pow(Math.max(0,L-1)/59,2.1));   // сколько опыта нужно всего, чтобы дойти до уровня L
@@ -1139,8 +1139,8 @@ const isAdmin=(env,id)=>ADMINS.includes(id)||String(env.ADMINS||"").split(",").m
 /* первопроходцы: первые 100 игроков, открывших игру, получают номер, +20 прокруток и рамку «Первопроходец» */
 let pioneersFull=false;   // когда все 100 мест заняты, базу больше не спрашиваем
 async function pioneersCount(env){if(pioneersFull)return PIONEERS;const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE pioneer>0").first())||{}).n||0;if(n>=PIONEERS)pioneersFull=true;return n}
-/* дракон: «живые» друзья — пришли по моей ссылке и сделали хотя бы 5 прокруток */
-async function dgFriends(env,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND COALESCE(json_extract(state,'$.nOp'),0)>=?").bind(uid,DG.frSpins).first())||{}).n||0}
+/* дракон: «живые» друзья — пришли по моей ссылке ПОСЛЕ выхода дракона и сделали хотя бы 5 прокруток. Старые приглашения не считаются */
+async function dgFriends(env,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND created>=? AND COALESCE(json_extract(state,'$.nOp'),0)>=?").bind(uid,DG.since,DG.frSpins).first())||{}).n||0}
 async function dgTop(env,me){const rows=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dg_pow AS pow,state FROM users WHERE dg_pow>0 ORDER BY dg_pow DESC LIMIT 50").all()).results;
   const list=rows.map((r,i)=>{let D=null;try{D=JSON.parse(r.state||"{}").dg}catch(e){}return {uid:r.id,name:r.name||"Игрок",pow:r.pow,lv:D?D.lv:1,b:D?D.b:0,dn:D?D.name||"":"",me:r.id===me.id?1:0,eq:D?dgEq(D).map(it=>({s:it.s,r:it.r,t:it.t})):[]}});
   const mine=await env.DB.prepare("SELECT dg_pow AS pow FROM users WHERE id=?").bind(me.id).first();let place=0;
@@ -1377,7 +1377,7 @@ async function adminStatsX(env,now,t0,D,days,by){const one=async(q,...a)=>(await
     dg.n++;if((D.t||0)>=t0)dg.today++;if((D.t||0)>=t0-6*864e5)dg.week++;dg.br[D.b]=(dg.br[D.b]||0)+1;dg.stg[dgStage(D.lv)]++;dg.lv+=D.lv;dg.maxLv=Math.max(dg.maxLv,D.lv);
     const p=dgPower(D);dg.pow+=p;dg.maxPow=Math.max(dg.maxPow,p);(D.inv||[]).forEach(it=>{dg.items[it.r]++;if(it.c==="cas")dg.casItems++;dg.up+=it.lv||0});dg.eq+=dgEq(D).length;
     const sb=dgSetBonus(dgEq(D));if(sb.n>=5)dg.set5++;else if(sb.n>=3)dg.set3++;if(D.name)dg.named++;if(dgSat(D,now)<DG.hungry)dg.hungry++;dg.sh+=D.sh||0;dg.ap+=D.ap||0;dg.casG+=D.cg||0;dg.casA+=D.ca||0}
-  const fr=await all("SELECT ref,COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND ref>0 AND COALESCE(json_extract(state,'$.nOp'),0)>=? GROUP BY ref",DG.frSpins);
+  const fr=await all("SELECT ref,COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND ref>0 AND created>=? AND COALESCE(json_extract(state,'$.nOp'),0)>=? GROUP BY ref",DG.since,DG.frSpins);
   const hatchedIds=new Set((await all("SELECT id FROM users WHERE dg_pow>0")).map(x=>x.id));
   const egg={f1:fr.filter(x=>x.n===1).length,f2:fr.filter(x=>x.n===2).length,f3:fr.filter(x=>x.n>=3).length,ready:fr.filter(x=>x.n>=3&&!hatchedIds.has(x.ref)).length};
   const dgPay=await all(`SELECT json_extract(p,'$.k') AS k,COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,SUM(COALESCE(paid,created)>=?) AS t FROM payments WHERE item='dg' AND status IN ('paid','done') GROUP BY k`,t0);
