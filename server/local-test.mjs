@@ -542,6 +542,8 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     ok(fin.winners.map((w, k) => b(w.uid) === [300, 200, 100][k]).every(Boolean), "звёзды зачислены на игровой баланс: 300, 200, 100");
     db.prepare("UPDATE users SET star_bal=200 WHERE id=6200").run();
     const before = b(6200); let q = await cc(6200, "pay_bal", { item: "golem" }); ok(q.ok && q.res.status === "done" && q.S.starBal === before - 99 && q.S.golemUntil > Date.now(), "покупка с игрового баланса: голем за 99 ⭐");
+    db.prepare("UPDATE users SET star_bal=500 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "slots" }); ok(q.ok && q.res.status === "done" && q.S.capS === 1 && q.S.starBal === 401, "хранилище: +50 мест за 99 ⭐");
+    for (let i = 0; i < 3; i++) await cc(6200, "pay_bal", { item: "slots" }); q = await cc(6200, "pay_bal", { item: "slots" }); ok(!q.ok && q.S === undefined, "звёздное расширение не больше 4 раз");
     db.prepare("UPDATE users SET star_bal=10 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "golem" }); ok(!q.ok && /балансе 10/.test(q.err), "не хватает звёзд на балансе — покупки нет");
     q = await cc(8, "stats"); ok(q.ok && q.res.x.bal.spent >= 99, "в статистике видно траты с баланса, они не считаются донатом"); }
   // конкурс историй
@@ -879,5 +881,11 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await call(H, "clan_reward", { uid: N, amount: 500 }); ok(q.ok && db.prepare("SELECT cash FROM users WHERE id=?").get(N).cash === 50500 && db.prepare("SELECT cash FROM users WHERE id=?").get(H).cash < 45500 - 100, "глава наградил монетами");
   q = await call(M, "clan_kick", { uid: N }); ok(q.ok && db.prepare("SELECT clan FROM users WHERE id=?").get(N).clan === 0, "правая рука выгнала участника");
   q = await call(H, "clan_leave"); ok(q.ok && db.prepare("SELECT owner FROM clans WHERE id=?").get(cid).owner === M, "глава ушёл — главой стала правая рука"); }
+// хранилище: расширение места за монеты
+{ const U = 7950; await call(U, "sync"); db.prepare("UPDATE users SET cash=100 WHERE id=?").run(U);
+  let q = await call(U, "cap_buy", {}); ok(!q.ok, "без монет место не расширить");
+  db.prepare("UPDATE users SET cash=50000 WHERE id=?").run(U); q = await call(U, "cap_buy", { price: 300 }); ok(q.ok && q.res.cap === 50 && q.S.cash === 49700, "+10 мест за 300 🪙 — теперь 50");
+  q = await call(U, "cap_buy", { price: 300 }); ok(!q.ok, "вторая покупка дороже — старая цена не проходит");
+  q = await call(U, "cap_buy", { price: 700 }); ok(q.ok && q.res.cap === 60, "второе расширение за 700 🪙"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

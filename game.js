@@ -54,7 +54,8 @@ async function act(name,p){
     (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!"+(STAR_LVL.includes(e.lv)?" Его можно закалить ★"+(STAR_LVL.indexOf(e.lv)+1)+" во вкладке «Мои»":""))});
     if(name==="open")setTimeout(()=>{if(S&&S.spins<=0)askPm()},4500);
     news();fightNews();chatDot();showNotice();return out;
-  }catch(e){if(!(e instanceof GameError))console.error(e);toast(e instanceof GameError?e.message:"Нет связи с сервером. Попробуй ещё раз");return null}
+  }catch(e){if(!(e instanceof GameError))console.error(e);toast(e instanceof GameError?e.message:"Нет связи с сервером. Попробуй ещё раз");
+    if(e instanceof GameError&&/^Коллекция заполнена|^У тебя полная коллекция/.test(e.message)&&typeof openCap==="function")setTimeout(()=>{if($("modal").hidden)openCap()},700);return null}
 }
 /* новости: кто купил твои карточки на рынке */
 let noticeShown="";
@@ -759,9 +760,9 @@ function renderCol(){
   // шапка коллекции
   const tot=S.cards.reduce((a,c)=>a+c.v,0),best=[...S.cards].sort((a,b)=>b.v-a.v)[0],cnt=[0,0,0,0,0];S.cards.forEach(c=>cnt[HEROES[c.h][2]]++);
   $("col-head").innerHTML='<div class="t">🗂 МОЯ КОЛЛЕКЦИЯ <span></span></div><div class="v"></div><div class="s"></div><div class="bar"><i></i></div><div class="rc">'+HT.map((t,i)=>'<div style="--c:'+t.c+'"><b>'+cnt[i]+'</b>'+RK[i]+'</div>').join("")+'</div>';
-  const H=$("col-head");H.querySelector(".t span").textContent=S.cards.length+" / "+CAP;H.querySelector(".v").textContent=fmt(tot);
+  const H=$("col-head");H.querySelector(".t span").innerHTML=S.cards.length+" / "+capOf(S)+' <button type="button" class="capbtn'+(S.cards.length>=capOf(S)-3?" full":"")+'" id="cap-open">📦 место</button>';H.querySelector(".v").textContent=fmt(tot);
   H.querySelector(".s").textContent=best?"стоимость коллекции · лучшая: "+HEROES[best.h][0]+", "+FIN[best.f].k.toLowerCase():"открой первую карточку на вкладке «Крутить»";
-  H.querySelector(".bar i").style.width=Math.min(100,S.cards.length/CAP*100)+"%";
+  H.querySelector(".bar i").style.width=Math.min(100,S.cards.length/capOf(S)*100)+"%";
   ["cards","beauty","merge"].forEach(k=>{$("colp-"+k).hidden=k!==colView});
   $("col-seg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===colView));
   if(colView==="beauty"){renderBeauty();return}
@@ -1707,7 +1708,7 @@ const LOCAL={
     for(let i=0;i<8;i++){let c;try{c=rollCard(ctx,false)}catch(e){continue}c.id="m"+NOW()+"_"+i;c.xp=Math.random()<.4?Math.floor(Math.random()*900):0;items.push({id:c.id,card:c,price:Math.max(1,Math.round(c.v*(.75+Math.random()*.9))),seller:SELLERS[Math.floor(Math.random()*SELLERS.length)]})}
     items.sort((a,b)=>b.card.v-a.card.v);S.market={at:NOW(),items}}return {items:S.market.items,next:S.market.at+MK_REFRESH}},
   buy(p){const M=S.market||{items:[]},i=M.items.findIndex(x=>x.id===p.id);if(i<0)throw new GameError("Этот лот уже купили");const it=M.items[i];
-    if(S.cards.length>=CAP)throw new GameError("Коллекция заполнена");if(S.cash<it.price)throw new GameError("Не хватает "+fmt(it.price-S.cash));
+    if(S.cards.length>=capOf(S))throw new GameError("Коллекция заполнена");if(S.cash<it.price)throw new GameError("Не хватает "+fmt(it.price-S.cash));
     S.cash=Math.round((S.cash-it.price)*100)/100;it.card.id=S.seq=(S.seq||0)+1;S.cards.push(it.card);M.items.splice(i,1);return {card:it.card,seller:it.seller}},
   list(p){const c=S.cards.find(x=>x.id===p.id);if(!c||away(c))throw new GameError("Эту карточку нельзя выставить");if(S.cards.filter(x=>x.listed).length>=MAX_LOTS)throw new GameError("Можно выставить максимум "+MAX_LOTS+" карточек");
     const pr=Math.max(1,Math.round(+p.price||0));c.listed=1;c.listPrice=pr;c.nextTry=NOW()+SELL_TICK;return {price:pr}},
@@ -2008,7 +2009,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     v+=offer("small")+offer("royal","ВЫГОДНО ×2");
     v+='<div class="ghd">🃏 Сундуки с карточками</div><p class="gnote">Только обычные 32 воина. Половинки составных воинов здесь не выпадают.</p>';
     v+=offer("warrior")+offer("legend")+offer("mythic","ЛИМИТ");
-    v+='<details class="godds"><summary>Шансы и состав — всё открыто</summary><p><b>Половинка:</b> левая 85%, правая 15%. Правых у каждого составного воина всего '+HALF_RUN+' на весь мир — когда закончатся, выпадают только левые. «Ошибка печати» 0,4% — одна левая и одна правая на каждого воина.</p><p><b>Карточки в сундуках</b> выпадают с теми же шансами, что в прокрутке: отделка '+FIN.slice(0,5).map(F=>F.k.toLowerCase()+" "+String(F.w).replace(".",",")+"%").join(", ")+'. Номера и отделки не подкручены.</p><p><b>В обычной прокрутке:</b> половинка — 0,35%, богатырь — 0,01% на каждого, легенда 1 из 1 — 0,001%.</p><p>Лимита покупок на человека нет. Купленное кладётся в коллекцию даже сверх лимита в '+CAP+' карточек.</p></details>'}
+    v+='<details class="godds"><summary>Шансы и состав — всё открыто</summary><p><b>Половинка:</b> левая 85%, правая 15%. Правых у каждого составного воина всего '+HALF_RUN+' на весь мир — когда закончатся, выпадают только левые. «Ошибка печати» 0,4% — одна левая и одна правая на каждого воина.</p><p><b>Карточки в сундуках</b> выпадают с теми же шансами, что в прокрутке: отделка '+FIN.slice(0,5).map(F=>F.k.toLowerCase()+" "+String(F.w).replace(".",",")+"%").join(", ")+'. Номера и отделки не подкручены.</p><p><b>В обычной прокрутке:</b> половинка — 0,35%, богатырь — 0,01% на каждого, легенда 1 из 1 — 0,001%.</p><p>Лимита покупок на человека нет. Купленное кладётся в коллекцию даже сверх лимита места (у тебя сейчас '+capOf(S)+').</p></details>'}
   if(goldTab==="comp"){
     v+='<div class="cmphow"><div class="cmpx">'+miniSlot(demoComp(32,{part:1}))+'</div><b>+</b><div class="cmpx">'+miniSlot(demoComp(32,{part:2}))+'</div><b>=</b><div class="cmpx full">'+miniSlot(demoComp(32))+'</div></div><p class="gnote">Собери левую и правую половинку одного воина — и соедини в целую карточку. Левые выпадают часто, правые в 5 раз реже и их всего '+HALF_RUN+' на воина. Лишние половинки продавай на рынке.</p>';
     COMP.forEach(h=>{const H=compHave(h),x=(D.comp||{})[h]||{l:0,r:0,full:0,e:[0,0,0]},left=Math.max(0,HALF_RUN-x.r-x.full);

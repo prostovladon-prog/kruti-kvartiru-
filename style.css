@@ -1826,3 +1826,28 @@ body.lite .chatfab.ping{animation:none}
 .chatstrip em{font-style:normal;flex:none;min-width:26px;height:26px;padding:0 6px;border-radius:13px;background:#ff3b30;color:#fff;border:2px solid var(--ink);font-weight:900;font-size:12px;display:grid;place-items:center;box-sizing:border-box}
 .chatstrip .cs-on{flex:none;font-size:12px;font-weight:900;color:#0a8a3a}
 .chatfab.cover{transform:scale(.4);opacity:0;pointer-events:none}
+
+/* 📦 хранилище */
+.capbtn{font:800 11px/1 var(--display,inherit);padding:5px 8px;margin-left:6px;border-radius:10px;border:2px solid var(--ink);background:var(--yellow);color:var(--ink);box-shadow:2px 2px 0 var(--ink);vertical-align:middle}
+.capbtn.full{animation:capPulse 1.4s ease-in-out infinite}
+@keyframes capPulse{50%{transform:scale(1.08)}}
+.capx h3{margin:0}.caphero{display:flex;align-items:center;gap:12px;margin-bottom:10px}.capt span{font-size:13px;font-weight:700;opacity:.85}.capt em{color:#ff3b6b;font-style:normal;font-weight:900}
+.capchest{position:relative;width:66px;height:58px;flex:none}
+.capchest .bx{position:absolute;left:4px;right:4px;bottom:0;height:36px;border-radius:8px;border:3px solid var(--ink);background:linear-gradient(180deg,#ffb84d,#d9771a);box-shadow:3px 3px 0 var(--ink)}
+.capchest .bx:after{content:"";position:absolute;left:50%;top:3px;width:10px;height:9px;margin-left:-5px;border-radius:3px;background:var(--yellow);border:2px solid var(--ink)}
+.capchest .lid{position:absolute;left:0;right:0;top:4px;height:20px;border-radius:10px 10px 4px 4px;border:3px solid var(--ink);background:linear-gradient(180deg,#ffd27a,#f09a2a);transform-origin:12% 100%;animation:capLid 2.6s ease-in-out infinite;z-index:2}
+.capchest b{position:absolute;left:0;right:0;bottom:1px;text-align:center;font:900 13px var(--display,inherit);color:#fff;text-shadow:1px 1px 0 var(--ink);z-index:3}
+@keyframes capLid{0%,70%,100%{transform:rotate(0)}80%{transform:rotate(-16deg)}90%{transform:rotate(-8deg)}}
+.capx.grow .capchest{animation:capPop .5s ease-out}@keyframes capPop{40%{transform:scale(1.2) rotate(-4deg)}}
+.capbar{height:12px;border-radius:7px;background:rgba(0,0,0,.12);border:2px solid var(--ink);overflow:hidden;margin:4px 0 8px}
+.capbar i{display:block;height:100%;width:100%;transform-origin:0 50%;background:linear-gradient(90deg,#ffd60a,#ff9f0a);transition:transform .6s}
+.capparts{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}.capparts span{font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:9px;background:rgba(0,0,0,.07)}
+.capparts .c{background:#fff1c2}.capparts .s{background:#ffe0f0}.capparts .v{background:#e8dcff}
+.capopt{border:3px solid var(--ink);border-radius:16px;padding:10px 12px;margin-bottom:9px;box-shadow:3px 3px 0 var(--ink)}
+.capopt.coin{background:linear-gradient(160deg,#fff8dc,#ffe28a)}.capopt.star{background:linear-gradient(160deg,#ffeefa,#ffc2e4)}.capopt.vip{background:linear-gradient(160deg,#f1eaff,#d3bdff)}
+.capopt .ch{display:flex;justify-content:space-between;align-items:center;gap:8px}.capopt .ch b{font-size:16px}.capopt p{margin:4px 0 8px;font-size:12.5px;font-weight:600;color:#3a3150}
+.capopt small{display:block;text-align:center;font-size:11.5px;font-weight:700;opacity:.7;margin-top:4px}.capopt .craftbtn{width:100%}
+.cpips{display:flex;gap:3px}.cpips i{width:12px;height:12px;border-radius:4px;border:2px solid var(--ink);background:#fff}.cpips i.on.c{background:#ffb800}.cpips i.on.s{background:#ff4fa8}
+.vtag{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:9px;background:#fff;border:2px solid var(--ink)}
+.capx .row2{display:flex;gap:8px}.capx .row2 button{flex:1}.capx .craftbtn.ghost{background:#fff;color:var(--ink)}
+.capx .gnote{font-size:11.5px;line-height:1.35;opacity:.75;margin:4px 2px 10px}
