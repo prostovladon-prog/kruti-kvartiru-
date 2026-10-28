@@ -264,3 +264,5 @@ setInterval(()=>{try{const D=dgOf();if(D&&!$("sec-dragon").hidden&&$("dg-stage")
 /* моргание: раз в несколько секунд, без постоянной анимации */
 setInterval(()=>{const e=document.querySelector("#dg-stage .dghd");if(!e||document.hidden)return;e.classList.add("blink");setTimeout(()=>e.classList.remove("blink"),180)},4200);
 try{dgNav()}catch(e){}
+/* ссылка из бота: ?dragon=1 — сразу к яйцу или дракону */
+{const q=new URLSearchParams(location.search);if(q.get("dragon")){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{try{closeModal()}catch(e){}setTab("dragon")},700)},300)}}
