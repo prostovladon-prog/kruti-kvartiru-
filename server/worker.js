@@ -57,9 +57,45 @@ const HEROES=[
  ["Зевс","Мифы Греции",4,"Царь богов Олимпа. Одна молния — и спор окончен.",{don:1,one:1,sn:"999999",hue:270,p:[8,6,6,7,9]}],
  ["Геракл","Древняя Греция",4,"Совершил двенадцать подвигов. Задушил немейского льва голыми руками.",{don:1,one:1,sn:"121212",hue:30,p:[9,7,5,8,7]}],
  /* коллаборация: одна карточка на весь мир, только приз розыгрыша. Продаётся только на рынке, цену ставит владелец */
- ["А777МР 77","Воины Эпох × Номерок",4,"Половина — из «Воинов Эпох», половина — из «Номерка». Единственный такой номер в мире.",{collab:1,plate:["А","777","МР","77"],sn:"777777",hue:190,p:[9,9,9,9,9]}]];
+ ["А777МР 77","Воины Эпох × Номерок",4,"Половина — из «Воинов Эпох», половина — из «Номерка». Единственный такой номер в мире.",{collab:1,plate:["А","777","МР","77"],sn:"777777",hue:190,p:[9,9,9,9,9]}],
+ /* ===== Герои древности (обычные воины альбома, выпадают в прокрутках, бывают всех отделок и «Ошибкой печати») ===== */
+ ["Пелтаст","Фракия",0,"Налетел, метнул дротик — и уже далеко. Ловить его бесполезно.",{base:1,helm:"phrygcap",weapon:"javelin",shield:"pelta",hue:25,skin:1,p:[3,1,5,2,3]}],
+ ["Колесничий","Древний Египет",1,"Мчится на колеснице быстрее ветра, а лук всегда наготове.",{base:1,helm:"nemes",weapon:"bow",armor:"linen",hue:200,skin:2,p:[4,2,6,3,3]}],
+ ["Бессмертный","Персия",1,"Персидская гвардия. Их всегда ровно десять тысяч — павшего сразу заменяют.",{base:1,helm:"tiara",weapon:"spear",shield:"wicker",armor:"scale",hue:275,skin:2,beard:"#1a1008",p:[4,4,3,4,4]}],
+ ["Гектор","Троянская война",2,"Защитник Трои. Сражался за свой город до последнего вздоха.",{base:1,helm:"attic",crest:"#2f5fd0",bronze:1,weapon:"spear",shield:"troy",armor:"plate",cape:"#1f3fae",hue:220,skin:1,beard:"#2a1a10",p:[5,6,3,5,6]}],
+ ["Аякс","Троянская война",2,"Великан с щитом размером с дверь — живая стена ахейского войска.",{base:1,helm:"corinth",crest:"#2a8a3a",bronze:1,weapon:"spear",shield:"tower",armor:"plate",hue:120,fierce:1,p:[5,7,2,6,4]}],
+ ["Тесей","Мифы Греции",2,"Победил Минотавра и вышел из Лабиринта по нити Ариадны.",{base:1,hair:"curls",hairc:"#5a3a1a",weapon:"club",armor:"pelt",cape:"#c0392b",x:["thread"],hue:10,skin:1,p:[6,4,5,4,5]}],
+ ["Ясон","Мифы Греции",2,"Капитан «Арго». Уплыл на край света за Золотым руном — и добыл его.",{base:1,hair:"curls",hairc:"#c98a2a",weapon:"sword",armor:"plate",bronze:1,cape:"#1f6fd0",x:["fleece"],hue:210,p:[5,4,5,5,6]}],
+ ["Спартак","Древний Рим",2,"Гладиатор, который поднял восстание и заставил дрожать весь Рим.",{base:1,helm:"thraex",weapon:"sica",shield:"parma",armor:"cloth",hue:0,skin:1,fierce:1,p:[6,4,5,5,5]}],
+ ["Ипполита","Древняя Греция",2,"Царица амазонок. Её волшебный пояс искал сам Геракл.",{base:1,female:1,hair:"braids",hairc:"#2a1a10",helm:"diadem",weapon:"labrys",shield:"pelta",cape:"#7a1fa8",x:["belt"],hue:300,p:[5,4,6,4,5]}],
+ ["Клеопатра","Древний Египет",2,"Последняя царица Египта. Умна, хитра и опаснее любой армии.",{base:1,female:1,hair:"bob",hairc:"#0d0d14",helm:"vulture",weapon:"ankh",armor:"linen",x:["collar"],hue:45,skin:1,glow:"#3fe0d0",p:[4,3,4,5,7]}],
+ ["Ахиллес","Троянская война",3,"Неуязвимый герой. Кроме пятки — но об этом лучше не напоминать.",{base:1,helm:"attic",crest:"#ffd60a",gold:1,weapon:"spear",shield:"achilles",armor:"lorica",cape:"#a3262a",x:["aura"],hue:0,p:[8,5,7,5,7]}],
+ ["Одиссей","Троянская война",3,"Самый хитрый из героев. Это он придумал троянского коня.",{base:1,helm:"pileus",beard:"#5a3a1a",weapon:"bow",armor:"cloth",cape:"#1f3f6b",x:["horse"],hue:200,p:[5,4,7,5,8]}],
+ ["Персей","Мифы Греции",3,"Отрубил голову Медузе, глядя на неё лишь в отражение щита.",{base:1,helm:"winged",weapon:"harpe",shield:"medusa",armor:"plate",cape:"#3a8fd0",hue:190,p:[7,5,7,4,6]}],
+ ["Леонид","Спарта",3,"Царь Спарты. Триста воинов против целой армии — и ни шагу назад.",{base:1,helm:"corinth",crest:"#ffd60a",gold:1,weapon:"spear",shield:"hoplon",armor:"lorica",cape:"#7d1410",beard:"#2a1a10",fierce:1,x:["laurelk"],hue:0,p:[7,8,3,7,8]}],
+ ["Ганнибал","Карфаген",3,"Перевёл боевых слонов через Альпы. Рим до сих пор не может прийти в себя.",{base:1,helm:"carth",bronze:1,weapon:"sword",armor:"lorica",cape:"#6a1fa8",x:["elephant"],hue:270,skin:2,beard:"#1a1008",p:[7,6,5,6,7]}],
+ ["Рамзес II","Древний Египет",3,"Великий фараон. Строил храмы размером с горы и правил 66 лет.",{base:1,helm:"khepresh",weapon:"khopesh",armor:"linen",gold:1,cape:"#1f6fd0",x:["collar","aura"],hue:45,skin:2,glow:"#ffd60a",p:[7,6,5,7,7]}],
+ ["Аттила","Степь",3,"Бич Божий. От топота его конницы дрожала вся Европа.",{base:1,helm:"hun",weapon:"saber",shield:"round",shc:"#5a3a1a",armor:"pelt",stache:"#1a1008",fierce:1,cape:"#4a2a12",hue:30,skin:1,p:[8,5,7,5,6]}],
+ ["Александр Македонский","Македония",4,"Покорил полмира к тридцати годам и плакал, что завоёвывать больше нечего.",{base:1,helm:"phrygian",gold:1,weapon:"sarissa",shield:"vergina",armor:"lorica",cape:"#7a1fa8",x:["aura"],glow:"#ffd60a",hue:270,p:[8,7,7,7,9]}],
+ ["Юлий Цезарь","Древний Рим",4,"Пришёл, увидел, победил. Три слова — и полмира у его ног.",{base:1,helm:"laurel",hairc:"#3a2a1a",weapon:"aquila",armor:"lorica",gold:1,cape:"#a3262a",x:["aura"],hue:0,p:[7,7,6,8,9]}],
+ ["Гильгамеш","Месопотамия",4,"Царь Урука, на две трети бог. Дошёл до края света в поисках бессмертия.",{base:1,helm:"sumer",gold:1,weapon:"axe",armor:"scale",cape:"#1f7a6a",beardL:"#1a1008",x:["aura"],glow:"#ffb84d",hue:160,skin:2,p:[9,7,5,8,7]}],
+ /* ещё две легенды 1 из 1 */
+ ["Посейдон","Мифы Греции",4,"Владыка морей. Ударит трезубцем — и поднимется шторм на полмира.",{don:1,one:1,sn:"888888",hair:"long",hairc:"#e9f6ff",helm:"crownsea",weapon:"trident",armor:"scale",cape:"#0a5ab8",beard:"#e9f6ff",x:["waves","aura"],glow:"#5ac8fa",hue:195,skinc:"#9fd6e8",p:[9,8,6,8,9]}],
+ ["Аид","Подземное царство",4,"Владыка мёртвых. Из его царства ещё никто не уходил.",{don:1,one:1,sn:"666666",hair:"long",hairc:"#14101c",helm:"crownhell",weapon:"bident",armor:"plate",cape:"#1a0a24",beard:"#14101c",x:["flames"],glow:"#9f6bff",fierce:1,hue:270,skinc:"#b9b2c9",p:[9,9,5,8,9]}],
+ /* Близнецы: каждой карточки ровно 2 на весь мир (отделка «Близнец»). Выпадают в прокрутках и в Сундуке Близнецов */
+ ["Ромул","Древний Рим",4,"Основал Рим. Его вместе с братом вскормила волчица.",{duo:1,pair:"Ромул и Рем",helm:"wolfhood",weapon:"sword",armor:"lorica",bronze:1,cape:"#a3262a",x:["wolf"],hue:0,p:[8,7,6,7,8]}],
+ ["Рем","Древний Рим",4,"Брат-близнец Ромула. Перепрыгнул через стену — и поссорился навсегда.",{duo:1,pair:"Ромул и Рем",helm:"wolfhood",weapon:"spear",shield:"scutum",armor:"lorica",bronze:1,cape:"#7d1410",x:["wolf"],hue:20,p:[7,8,7,7,7]}],
+ ["Кастор","Мифы Греции",4,"Укротитель коней, один из Диоскуров. Над ним горит звезда.",{duo:1,pair:"Диоскуры",helm:"pilos",weapon:"spear",armor:"plate",cape:"#1f6fd0",x:["star"],hue:215,p:[7,6,8,7,8]}],
+ ["Поллукс","Мифы Греции",4,"Бессмертный кулачный боец, брат Кастора. Отдал полжизни ради брата.",{duo:1,pair:"Диоскуры",helm:"pilos",weapon:"none",armor:"lorica",bronze:1,cape:"#c0392b",x:["star","cestus"],fierce:1,hue:5,p:[9,7,6,8,7]}],
+ ["Аполлон","Мифы Греции",4,"Бог солнца и музыки. Его стрелы не знают промаха.",{duo:1,pair:"Аполлон и Артемида",hair:"curls",hairc:"#f0c35a",helm:"suncrown",weapon:"bow",gold:1,armor:"lorica",cape:"#ff9f0a",x:["aura"],glow:"#ffd60a",hue:45,p:[8,6,7,7,9]}],
+ ["Артемида","Мифы Греции",4,"Богиня охоты и луны, сестра-близнец Аполлона.",{duo:1,pair:"Аполлон и Артемида",female:1,hair:"pony",hairc:"#2a1a10",helm:"moondiadem",weapon:"bow",armor:"cloth",cape:"#2a4fb0",x:["moon"],glow:"#bfe3ff",hue:230,p:[8,6,9,6,8]}],
+ ["Гипнос","Подземное царство",4,"Бог сна. Взмахнёт крыльями — и целая армия уснёт.",{duo:1,pair:"Гипнос и Танатос",hair:"curls",hairc:"#e9edf5",helm:"headwings",weapon:"staff",armor:"cloth",cape:"#4b3a8f",x:["wings"],glow:"#bf9bff",hue:255,skinc:"#e8dcf0",p:[7,6,7,8,9]}],
+ ["Танатос","Подземное царство",4,"Бог смерти, брат-близнец Гипноса. Приходит тихо и не опаздывает.",{duo:1,pair:"Гипнос и Танатос",hair:"long",hairc:"#14101c",weapon:"scythe",armor:"cloth",cape:"#14101c",x:["wings"],glow:"#ff2e63",fierce:1,hue:300,skinc:"#c9c2d6",p:[9,6,7,7,8]}]];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
-const NBASE=32, NHEROES=NBASE;          // в альбоме и прокрутках только 32 обычных воина
+const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
+const isBase=h=>h<NBASE||!!(HEROES[h]&&HEROES[h][4].base), BASE=HEROES.map((H,i)=>i).filter(isBase), NHEROES=BASE.length, baseNo=h=>BASE.indexOf(h)+1;
+const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h]&&HEROES[h][4].duo), DUO_F=7, DUO_RUN=2;
+const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
 const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
 /* половинки: part 1 — левая (частая), part 2 — правая (в 5 раз реже, 300 на воина на весь мир).
@@ -73,7 +109,8 @@ const FIN=[
  {k:"Золотая",cls:"gold",w:.65,m:80,run:10,col:"#ffcc33"},
  {k:"Ошибка печати",cls:"error",w:.07,m:600,run:1,col:"#ff2e63"},
  {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1},
- {k:"Бесценная",cls:"collab",w:0,m:0,run:1,col:"#00e5ff",excl:1,collab:1}];   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
+ {k:"Бесценная",cls:"collab",w:0,m:0,run:1,col:"#00e5ff",excl:1,collab:1},
+ {k:"Близнец",cls:"duo",w:0,m:250,run:2,col:"#7cf7ff",duo:1}];   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
 const HW=[10,4.5,1.15,.25,.045];   // при 10 прокрутках раз в 4 часа редкие выпадают чуть реже          // вес выпадения воина по его редкости
@@ -144,8 +181,8 @@ const ACH=[
  {id:"w10",t:"Боец",d:"Выиграй 10 боёв",r:3,ok:(st)=>(st.totalWins||0)>=10},
  {id:"cr",t:"Алхимик",d:"Сделай удачный крафт",r:2,ok:(st)=>(st.crafted||0)>=1},
  {id:"jp",t:"Вся Япония",d:"Собери всех воинов Японии",r:3,ok:(st,cards)=>{const h=haveSet(cards);return HEROES.every((H,i)=>H[1]!=="Япония"||h.has(i))}},
- {id:"half",t:"Полальбома",d:"Собери 16 разных воинов",r:3,ok:(st,cards)=>[...haveSet(cards)].filter(h=>h<NBASE).length>=16},
- {id:"all",t:"Коллекционер",d:"Собери весь альбом",r:10,ok:(st,cards)=>[...haveSet(cards)].filter(h=>h<NBASE).length>=NHEROES}];
+ {id:"half",t:"Полальбома",d:"Собери 16 разных воинов",r:3,ok:(st,cards)=>[...haveSet(cards)].filter(isBase).length>=16},
+ {id:"all",t:"Коллекционер",d:"Собери весь альбом",r:10,ok:(st,cards)=>[...haveSet(cards)].filter(isBase).length>=NHEROES}];
 const DEST=[
  {k:"Разведка у реки",t:"1 минута",ms:60e3,xp:20,m:[5,15],sp:.1,card:0},
  {k:"Набег на побережье",t:"1 час",ms:3600e3,xp:60,m:[20,60],sp:.35,card:.03},
@@ -154,7 +191,8 @@ const DEST=[
 const BOSS={name:"Змей Горыныч",hp:25000};
 /* эпохи альбома: собери всех воинов эпохи — получи награду и значок */
 const ERAS=[{k:"mid",n:"Средневековье",ic:"⚔️",h:[0,1,2,3,6,8,12,13,24,27],sp:15,cash:1000},{k:"ant",n:"Античность",ic:"🏛",h:[4,5,7,10,15,17,19,22],sp:20,cash:2000},
- {k:"jap",n:"Япония",ic:"🏯",h:[9,18,20,21,30],sp:40,cash:10000},{k:"nor",n:"Север и Степь",ic:"🪓",h:[11,14,16,26],sp:15,cash:1500},{k:"myth",n:"Мифы и легенды",ic:"🐉",h:[23,25,28,29,31],sp:40,cash:10000}];
+ {k:"jap",n:"Япония",ic:"🏯",h:[9,18,20,21,30],sp:40,cash:10000},{k:"nor",n:"Север и Степь",ic:"🪓",h:[11,14,16,26],sp:15,cash:1500},{k:"myth",n:"Мифы и легенды",ic:"🐉",h:[23,25,28,29,31],sp:40,cash:10000},
+ {k:"troy",n:"Троя и Эллада",ic:"🐴",h:[46,49,50,51,52,54,56,57,58,59],sp:40,cash:12000},{k:"emp",n:"Великие империи",ic:"👑",h:[47,48,53,55,60,61,62,63,64,65],sp:50,cash:15000}];
 /* кланы: до 10 человек, общий босс недели (3 удара в день на игрока), таблица кланов */
 const CLAN={max:12,rewardMin:10,rewardDay:100000,cost:5000,hits:3,hp:30000,grow:1.5,chest:{sp:10,cash:500},week:[20,12,6],boss:[["Змей Горыныч",32],["Кракен",34],["Цербер",35],["Левиафан",37],["Химера",36]]};
 const clanHp=(n,lvl)=>Math.round(CLAN.hp*Math.max(2,n)*Math.pow(CLAN.grow,lvl-1));
@@ -381,12 +419,15 @@ function rollHalf(ctx,rightP){let part=Math.random()<rightP?2:1,pool=COMP;
   const h=pool[Math.floor(Math.random()*pool.length)],f=Math.random()<HALF_P.err&&!ctx.compErr(h,part)?4:0;
   return makeHalf(ctx,h,part,f)}
 /* воин нужной редкости (только обычные 32), отделка выпадает как обычно */
-function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]===tier).concat(extra||[]),h=pool[Math.floor(Math.random()*pool.length)];
+function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tier).concat(extra||[]),h=pool[Math.floor(Math.random()*pool.length)];
   let f=pick(FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;return makeCard(ctx,h,f)}
 /* легенда 1 из 1 (Тор и др.): только «Ошибка печати», свой номер. null — если все уже у игроков */
 function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1);if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
   const c=makeCard(ctx,h,4),want=HEROES[h][4].sn;if(want&&ctx.snFree(want)){ctx.takeSn(want);c.sn=want;c.v=priceOf(h,4,1,want,false)}return c}
-const ONE_P={legend:.005,mythic:.02}, DON_P={legend:.04}, SPIN_P={don:.0002,one:.000007};   // в прокрутке: богатырь 0,03% (каждый 0,01%), легенда 1 из 1 — 0,001%
+/* Близнец: свободная карточка из 2 на весь мир. null — если все уже разобраны */
+function rollDuo(ctx,want){const free=DUO.filter(h=>ctx.issuedOf(h,DUO_F)<DUO_RUN);if(!free.length)return null;const h=want!=null?want:free[Math.floor(Math.random()*free.length)];
+  if(!free.includes(h))fail("Оба Близнеца «"+HEROES[h][0]+"» уже у игроков");return makeCard(ctx,h,DUO_F)}
+const ONE_P={legend:.005,mythic:.02}, DON_P={legend:.04}, SPIN_P={don:.0002,one:.000007,duo:.00025};   // в прокрутке: богатырь 0,03% (каждый 0,01%), легенда 1 из 1 — 0,001%
 /* ---------- Сокровищница: покупки за Telegram Stars ----------
    Лимита на человека нет: редкость держится общим тиражом (300 правых половинок на воина, 30 мифических сундуков в месяц на всю игру).
    Отделки и номера в сундуках выпадают с обычными шансами, ничего не подкручено. */
@@ -401,9 +442,12 @@ const CHESTS=["newbie","small","royal","warrior","legend","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
   if(W.one){if(f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");return rollOne(ctx,h)}
+  if(W.duo){if(f!==DUO_F)fail("Близнецы бывают только с отделкой «Близнец»");return rollDuo(ctx,h)}
+  if(f===DUO_F)fail("Отделка «Близнец» есть только у воинов-Близнецов");
   if(W.comp){if(f!==0)fail("Составного воина можно взять только обычной отделки");const no=ctx.compSlot(h);if(!no)fail("Тираж воина «"+HEROES[h][0]+"» закончился");
     const sn=genNumber(ctx,0),B=cardBody(h,0);return {id:ctx.newId(),h,f:0,no,sn,part:0,hue:B.hue,stats:B.stats,v:priceOf(h,0,no,sn,B.top,0),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0}}
   return makeCard(ctx,h,f)}
+SHOP.twins={n:"Сундук Близнецов",stars:1500,twins:1,cards:3,d:["♊ <b>Близнец</b> — карточка, которой всего <b>2</b> на весь мир","+ <b>3</b> обычные карточки","собери пару близнецов — их знает вся игра"]};
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Тора 1 из 1, если он ещё свободен"]};
 SHOP.custom={n:"Карточка твоей мечты",stars:5000,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
 /* свой номер: 100 ⭐ + 100 ⭐ за каждый «икс» красивого номера (777 777 ×15 = 1600 ⭐) */
@@ -416,7 +460,7 @@ function phantom(h,f){const B=cardBody(h,f);const [a,b]=HT[HEROES[h][2]].b;retur
 /* режим удачи (только для аккаунта администратора, включается на сервере): редкие воины, дорогие отделки, красивые номера */
 const HW_LUCK=[0,0,1,3,3], FW_LUCK=[0,2,3,3,2];
 function rollCard(ctx,epic){
-  const pool=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&(!epic||HEROES[i][2]>=2));
+  const pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&(!epic||HEROES[i][2]>=2));
   const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
   let f=pick(ctx.luck?FW_LUCK:FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
   return makeCard(ctx,h,f);
@@ -513,8 +557,10 @@ const CONQ_CH=[
  {k:"ant",n:"Берега Эллады",weak:"mid",bg:["#1e3f6b","#d9b45a"],st:["Оливковая роща","Порт Пирей","Колизей","Храм Афины","Лабиринт","Марафонская равнина","Спарта","Вершина Олимпа"]},
  {k:"nor",n:"Северные фьорды",weak:"ant",bg:["#1d3550","#9fc4d8"],st:["Ледяной брод","Деревня ярла","Курганы","Степной лагерь","Драккары","Волчья тропа","Великая степь","Чертог ярла"]},
  {k:"jap",n:"Острова сёгунов",weak:"myth",bg:["#4a1630","#ff9fb8"],st:["Бамбуковая роща","Рисовые поля","Чайный домик","Додзё","Мост над ущельем","Замок Химэдзи","Сад сакуры","Ставка сёгуна"]},
- {k:"myth",n:"Царство мифов",weak:"nor",bg:["#26104a","#bf5af2"],st:["Туманный лес","Логово Горыныча","Остров Буян","Огненная река","Кощеево царство","Бездна","Врата богов","Престол Хаоса"]}];
-const CONQ={per:8,torch:5,vip:2,buy:1000,buyMax:5,bonus:1.3,base:450,grow:1.058,boss:1.15,cards:[1,2,2,3,3]};
+ {k:"myth",n:"Царство мифов",weak:"nor",bg:["#26104a","#bf5af2"],st:["Туманный лес","Логово Горыныча","Остров Буян","Огненная река","Кощеево царство","Бездна","Врата богов","Престол Хаоса"]},
+ {k:"troy",n:"Стены Трои",weak:"emp",bg:["#4a2a10","#e0a84a"],st:["Берег ахейцев","Лагерь кораблей","Шатёр Ахиллеса","Скейские ворота","Поле битвы","Троянский конь","Пылающий город","Дворец Приама"]},
+ {k:"emp",n:"Великие империи",weak:"troy",bg:["#3a1a06","#ffcf5a"],st:["Персидская застава","Висячие сады","Долина Нила","Пирамиды Гизы","Альпийский перевал","Карфаген","Форум Рима","Трон Вавилона"]}];
+const CONQ={per:8,torch:5,vip:2,buy:1000,buyMax:5,bonus:1.3,base:450,grow:1.058,boss:1.15,cards:[1,2,2,3,3,3,4]};
 const conqN=()=>CONQ_CH.length*CONQ.per;
 const cpow=c=>[0,1,2,3,4].reduce((a,i)=>a+eff(c,i),0);
 function conqStage(n){const ch=Math.floor(n/CONQ.per),i=n%CONQ.per,C=CONQ_CH[ch],E=ERAS.find(x=>x.k===C.k),P=Math.round(CONQ.base*Math.pow(CONQ.grow,n)),boss=i===CONQ.per-1;
@@ -564,9 +610,10 @@ const ACTIONS={
     const rr=ctx.noRare?1:Math.random();   // noRare — только для автотестов
     if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
     else if(rr<SPIN_P.one+SPIN_P.don)c=rollTier(ctx,-1,DON);   // богатырь
+    else if(rr<SPIN_P.one+SPIN_P.don+SPIN_P.duo)c=rollDuo(ctx);   // Близнец: 2 на весь мир
     if(!c&&!epic&&!ctx.noRare&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
     st.nOp=(st.nOp||0)+1;let wel=0;
-    if(st.wel===0&&st.nOp>=2&&!c){wel=1;st.wel=1;const pl=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]===3),h=pl[Math.floor(Math.random()*pl.length)];c=makeCard(ctx,h,ctx.issuedOf(h,1)<FIN[1].run?1:0)}   // подарок новичку: на 2-й прокрутке легендарный воин с блеском
+    if(st.wel===0&&st.nOp>=2&&!c){wel=1;st.wel=1;const pl=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===3),h=pl[Math.floor(Math.random()*pl.length)];c=makeCard(ctx,h,ctx.issuedOf(h,1)<FIN[1].run?1:0)}   // подарок новичку: на 2-й прокрутке легендарный воин с блеском
     if(!c)c=rollCard(ctx,epic);if(epic&&!wel&&(st.guar||0)>0)st.guar--;
     st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;
     addCard(G,c);day(st,ctx.now).opened++;return wel?{card:c,wel:1}:{card:c}},
@@ -596,7 +643,7 @@ const ACTIONS={
 
   duel(G){const {st,ctx,p}=G;const me=battleCard(G,p.id),stat=p.stat|0;if(stat<0||stat>4)fail("Неверная характеристика");
     const t=HEROES[me.h][2],tt=Math.max(0,Math.min(4,t+[-1,0,0,0,1][Math.floor(Math.random()*5)]));
-    const cand=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
+    const cand=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
     // соперник: карточка настоящего игрока (сервер подбирает её сам), иначе бот
     const real=G.ctx.oppCard||null;
     if(real&&p.mode&&G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Освободи место, чтобы драться на карточку");
@@ -734,6 +781,7 @@ const ACTIONS={
     if(I.sp)st.spins+=I.sp;if(I.guar)st.guar=(st.guar||0)+I.guar;if(I.once)st.newbie=1;
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
+    if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;
       if(I.myth){add(rollTier(ctx,4,DON));n--}
       if(I.leg){add(!I.myth&&Math.random()<DON_P.legend?rollTier(ctx,-1,DON):rollTier(ctx,3));n--}
@@ -813,7 +861,7 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -1724,6 +1772,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
+    if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
     if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||H[4].collab)fail("Такой карточки нет");
       if(H[4].one&&f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");if(H[4].comp&&f!==0)fail("Составного воина можно взять только обычной отделки");
@@ -1832,7 +1881,8 @@ async function shopInfo(env,me){
   const u=await env.DB.prepare("SELECT fx,fx_until FROM users WHERE id=?").bind(me.id).first()||{};
   const ones=await cached("shopones",10e3,async()=>{const o={};for(const h of ONE)o[h]=null;
     for(const r of (await env.DB.prepare("SELECT c.h,COALESCE(u.nick,u.name) AS name,c.owner FROM cards c LEFT JOIN users u ON u.id=c.owner WHERE c.f=4 AND c.h>=?").bind(NBASE).all()).results)if(ONE.includes(r.h))o[r.h]={name:r.name||"Игрок",uid:r.owner};return o});
-  return {comp,ones,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:await donors(env),mine,fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
+  const duos=await cached("shopduos",10e3,async()=>{const o={};for(const h of DUO)o[h]=0;for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DUO_F).all()).results)if(o[r.h]!=null)o[r.h]=r.n;return o});
+  return {comp,ones,duos,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:await donors(env),mine,fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
 async function tgApi(env,method,body){let r;try{r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})}catch(e){return {ok:false,description:"network"}}return r.json().catch(()=>({ok:false}))}
 /* ---------- переезд на свой сервер: выгрузка базы и режим «технические работы» ----------
    Ключ выгрузки считается из токена бота, поэтому его знает только тот, у кого есть токен. */

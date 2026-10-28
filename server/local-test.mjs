@@ -34,7 +34,7 @@ async function call(uid, a, p = {}, start = "") {
   const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), env);
   return r.json();
 }
-const { classify, capOf } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify, capOf };").toString("base64"));
+const { classify, capOf, HEROES, isBase } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify, capOf, HEROES, isBase };").toString("base64"));
 let fails = 0;
 /* свободная карточка игрока; если всё проиграно в боях, тестовый игрок открывает новую */
 async function anyCard(uid, callf) { callf = callf || call; let s = await callf(uid, "sync"); let c = s.S.cards.find(c => !c.listed && !c.away && c.f !== 5 && !c.part);
@@ -544,6 +544,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     const before = b(6200); let q = await cc(6200, "pay_bal", { item: "golem" }); ok(q.ok && q.res.status === "done" && q.S.starBal === before - 99 && q.S.golemUntil > Date.now(), "покупка с игрового баланса: голем за 99 ⭐");
     db.prepare("UPDATE users SET star_bal=500 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "slots" }); ok(q.ok && q.res.status === "done" && q.S.capS === 1 && q.S.starBal === 401, "хранилище: +10 мест за 99 ⭐");
     q = await cc(6200, "pay_bal", { item: "slots" }); ok(q.ok && q.S.capS === 2, "за звёзды можно расширять повторно");
+    db.prepare("UPDATE users SET star_bal=star_bal+1500 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "twins" }); { const d = q.ok && q.res.res.cards.find(c => c.f === 7); ok(q.ok && d && HEROES[d.h][4].duo && d.no >= 1 && d.no <= 2 && q.res.res.cards.length === 4, "Сундук Близнецов: Близнец (1 из 2) + 3 карточки"); }
     db.prepare("UPDATE users SET star_bal=10 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "golem" }); ok(!q.ok && /балансе 10/.test(q.err), "не хватает звёзд на балансе — покупки нет");
     q = await cc(8, "stats"); ok(q.ok && q.res.x.bal.spent >= 99, "в статистике видно траты с баланса, они не считаются донатом"); }
   // конкурс историй
@@ -582,10 +583,10 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   ok(hv.filter(c => c.part === 2 && c.f === 0).every(c => c.no >= 1 && c.no <= 300), "правые половинки получают место тиража 1..300");
   r = await buy(U, { item: "newbie" }); ok(r.ok && r.res.status === "done" && r.S.guar >= 1, "подарок новичку: гарантия эпика");
   r = await cp(U, "invoice", { item: "newbie" }); ok(!r.ok && /уже получен/.test(r.err), "подарок новичку только один раз");
-  r = await buy(U, { item: "warrior" }); ok(r.ok && r.res.res.cards.length === 5 && r.res.res.cards.some(c => c.h < 32 && [19,20,21,22,23,24,25,26,27,28,29,30,31].includes(c.h)), "сундук воина: 5 карточек, есть эпик+");
-  r = await buy(U, { item: "legend" }); ok(r.ok && r.res.res.cards.length === 10 && r.res.res.cards.some(c => (c.h >= 26 && c.h <= 29) || (c.h >= 38 && c.h <= 40)), "легендарный: 10 карточек, есть легендарная (или богатырь)");
+  r = await buy(U, { item: "warrior" }); ok(r.ok && r.res.res.cards.length === 5 && r.res.res.cards.some(c => isBase(c.h) && HEROES[c.h][2] >= 2), "сундук воина: 5 карточек, есть эпик+");
+  r = await buy(U, { item: "legend" }); ok(r.ok && r.res.res.cards.length === 10 && r.res.res.cards.some(c => (isBase(c.h) && HEROES[c.h][2] === 3) || (c.h >= 38 && c.h <= 40)), "легендарный: 10 карточек, есть легендарная (или богатырь)");
   let sh = await cp(U, "shop"); const m0 = sh.res.mythLeft;
-  r = await buy(U, { item: "mythic" }); ok(r.ok && r.res.res.cards.some(c => [30, 31, 38, 39, 40].includes(c.h)) && r.res.res.cards.every(c => !c.part && (c.h < 32 || c.h >= 38)), "мифический: Сёгун, Мерлин или богатырь, без половинок");
+  r = await buy(U, { item: "mythic" }); ok(r.ok && r.res.res.cards.some(c => (isBase(c.h) && HEROES[c.h][2] === 4) || [38, 39, 40].includes(c.h)) && r.res.res.cards.every(c => !c.part && (isBase(c.h) || c.h >= 38)), "мифический: Сёгун, Мерлин или богатырь, без половинок");
   sh = await cp(U, "shop"); ok(m0 === 30 && sh.res.mythLeft === 29, "мифических сундуков в месяц 30 на всех (осталось " + sh.res.mythLeft + ")");
   r = await buy(U, { item: "legend" }); ok(r.ok && r.S.cards.length === 42, "купленное кладётся сверх лимита коллекции (" + r.S.cards.length + ")");
   // повторная выдача того же платежа ничего не даёт
