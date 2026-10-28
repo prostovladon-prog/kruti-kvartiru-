@@ -429,7 +429,7 @@ async function pickOpponent(env,me,p,stake){
   const mine=await row("SELECT h,v FROM cards WHERE id=? AND owner=?",p.id|0,me.id);if(!mine)return null;
   let SEL="SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND c.owner<>? AND c.list_price IS NULL AND c.away=0 AND c.room_id IS NULL AND c.f<>5 AND c.part=0";   // «Основатель» в боях не участвует
   const args=[me.id];
-  if(stake){SEL+=" AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<?+"+SLOT_STEP+"*MIN("+SLOT_COIN.length+",COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(mine.v*.5,mine.v*2,CAP)}
+  if(stake){SEL+=" AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<?+"+SLOT_STEP+"*MIN(1,COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(mine.v*.5,mine.v*2,CAP)}
   let r=null;
   if(p.rematch)r=await row(SEL+" AND c.id=?",...args,p.rematch|0);
   if(!r){if(!stake&&Math.random()<.2)return null;   // иногда всё равно бот, чтобы соперники были разными
@@ -920,13 +920,13 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
   if(item==="gift"){const k=String(p.k||""),G=GIFTS[k];if(!G||!G.stars)fail("Этот подарок не продаётся за звёзды");
     if(((await giftLeft(env))[k]||0)<=0)fail("Тираж «"+G.n+"» закончился");
     return {item,stars:G.stars,title:"Подарок «"+G.n+"»",desc:"Подарок «"+G.n+"» ("+GR[G.r].toLowerCase()+", тираж "+G.run+"). Поставь на витрину или подари другу",data:{k}}}
-  if(item==="vip"){const t=Math.max(1,Math.min(3,p.t|0)),V=VIP_T[t];return {item,stars:V.stars,title:V.n+" · "+V.days+" дн.",desc:V.ic+" "+V.n+" на "+V.days+" дней: "+V.sp+" прокруток каждые 4 часа вместо "+SPINS_MAX+", +"+V.ex+" пакетов обмена рун в день, +"+VIP_SLOTS[t]+" мест в коллекции, корона у ника",data:{t}}}
+  if(item==="vip"){const t=Math.max(1,Math.min(3,p.t|0)),V=VIP_T[t];return {item,stars:V.stars,title:V.n+" · "+V.days+" дн.",desc:V.ic+" "+V.n+" на "+V.days+" дней: "+V.sp+" прокруток каждые 4 часа вместо "+SPINS_MAX+", +"+V.ex+" пакетов обмена рун в день, "+VIP_CAP+" мест в коллекции, корона у ника",data:{t}}}
   if(item==="pass"){const now=Date.now(),sn=passSeason(now),u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
     if(st.pass&&st.pass.s===sn&&st.pass.prem===sn)fail("Пропуск этого сезона уже твой");if(passEnd(sn)-now<36e5)fail("Сезон вот-вот закончится — купи пропуск следующего");
     const T=passTheme(sn);return {item,stars:PASS.stars,title:"Пропуск: "+T.n,desc:T.ic+" Боевой пропуск «"+T.n+"»: награды всех 30 уровней — прокрутки, руны, монеты, эпическая и 2 легендарные карточки, титул и рамка сезона",data:{s:sn}}}
   if(item==="slots"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
-    if((st.capS||0)>=SLOT_STAR.max)fail("Звёздное расширение уже куплено максимальное число раз");
-    return {item,stars:SLOT_STAR.stars,title:"+"+SLOT_STAR.n+" мест в коллекции",desc:"📦 +"+SLOT_STAR.n+" мест для карточек в коллекции «Воинов Эпох» навсегда",data:{}}}
+    if((st.capS||0)>=SLOT_STAR.max)fail("Больше расширять нельзя: у тебя уже максимум места");
+    return {item,stars:SLOT_STAR.stars,title:"+"+SLOT_STAR.n+" мест в коллекции",desc:"📦 +"+SLOT_STAR.n+" мест для карточек в коллекции «Воинов Эпох» навсегда. Покупать можно сколько угодно раз",data:{}}}
   if(item==="golem"){const f=p.forever?1:0;return {item,stars:f?GOLEM.f:GOLEM.w,title:"Каменный голем",desc:"Голем в лагере "+(f?"навсегда":"на "+GOLEM.days+" дней")+": энергии в 2 раза больше и она восстанавливается в 2 раза быстрее",data:{forever:f}}}
   if(item==="fx"){const k=String(p.fx||"");if(!NFX[k])fail("Нет такого эффекта");const f=p.forever?1:0;
     return {item,stars:f?NFX_PRICE.f:NFX_PRICE.m,title:"Ник «"+NFX[k]+"»",desc:"Переливающийся ник «"+NFX[k]+"» "+(f?"навсегда":"на "+NFX_DAYS+" дней")+": в топах, чате, лагере и на арене",data:{fx:k,forever:f}}}

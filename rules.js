@@ -330,9 +330,10 @@ function boss(st,now){if(!st.boss||st.boss.w!==weekKey(now))st.boss={w:weekKey(n
 /* сколько прокруток даётся раз в 4 часа: VIP получает 5 (сервер ставит st.vipUntil) */
 /* VIP-статусы за звёзды: больше прокруток каждые 4 часа и больше пакетов обмена рун. Обычный VIP из акций = Серебро */
 const VIP_T=[null,{k:"silver",n:"VIP Серебро",ic:"🥈",sp:13,ex:1,stars:99,days:7},{k:"gold",n:"VIP Золото",ic:"👑",sp:16,ex:3,stars:299,days:30},{k:"diamond",n:"VIP Алмаз",ic:"💎",sp:20,ex:6,stars:699,days:30}];
-/* ---------- место в коллекции: база 40, +10 за монеты (6 раз), +50 за звёзды (4 раза), VIP +20/+40/+60 ---------- */
-const SLOT_STEP=10, SLOT_COIN=[300,700,1500,3000,5000,8000], SLOT_STAR={stars:99,n:50,max:4}, VIP_SLOTS=[0,20,40,60];
-function capParts(st){const c=Math.min(SLOT_COIN.length,st.capC||0),s=Math.min(SLOT_STAR.max,st.capS||0),v=VIP_SLOTS[vipTier(st)]||0;return {base:CAP,coin:c*SLOT_STEP,c,star:s*SLOT_STAR.n,s,vip:v,all:CAP+c*SLOT_STEP+s*SLOT_STAR.n+v}}
+/* ---------- место в коллекции: база 40; один раз +10 за 30% баланса монет; дальше +10 за 99 ⭐ сколько угодно; с VIP — 360 мест ---------- */
+const SLOT_STEP=10, SLOT_COIN={pct:.3,min:100}, SLOT_STAR={stars:99,n:10,max:200}, VIP_CAP=360, VIP_SLOTS=[0,VIP_CAP,VIP_CAP,VIP_CAP];
+const capCoinPrice=st=>Math.max(SLOT_COIN.min,Math.ceil((st.cash||0)*SLOT_COIN.pct));
+function capParts(st){const c=st.capC?1:0,s=Math.min(SLOT_STAR.max,st.capS||0),own=CAP+c*SLOT_STEP+s*SLOT_STAR.n,v=vipTier(st)?Math.max(0,VIP_CAP-own):0;return {base:CAP,coin:c*SLOT_STEP,c,star:s*SLOT_STAR.n,s,vip:v,own,all:own+v}}
 function capOf(st){return capParts(st).all}
 const VIP_SPINS=13, vipOn=st=>(st.vipUntil||0)>Date.now(), vipTier=st=>vipOn(st)?Math.max(1,Math.min(3,st.vipT||1)):0;
 const spinCap=st=>vipOn(st)?VIP_T[vipTier(st)].sp:SPINS_MAX;
@@ -789,8 +790,8 @@ const ACTIONS={
     if(r.frame){st.frames=st.frames||[];if(!st.frames.includes("season"))st.frames.push("season");out.frame=1}
     return out},
   /* расширение коллекции: +10 мест за монеты (цена растёт) и +50 за звёзды (выдаёт сервер после оплаты) */
-  cap_buy(G){const {st}=G,k=st.capC||0;if(k>=SLOT_COIN.length)fail("За монеты коллекция уже расширена до максимума");const n=SLOT_COIN[k];
-    if(G.p.price!=null&&+G.p.price!==n)fail("Цена изменилась — посмотри ещё раз");pay(st,n);st.capC=k+1;return {n,cap:capOf(st)}},
+  cap_buy(G){const {st}=G;if(st.capC)fail("За монеты место расширяется только один раз. Дальше — за звёзды или VIP");const n=capCoinPrice(st);
+    if(G.p.max!=null&&n>+G.p.max)fail("Цена изменилась — посмотри ещё раз");pay(st,n);st.capC=1;return {n,cap:capOf(st)}},
   slots_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,p}=G;st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     st.capS=Math.min(SLOT_STAR.max,(st.capS||0)+1);st.pays.push(p.pid);if(st.pays.length>40)st.pays=st.pays.slice(-40);return {cap:capOf(st),n:SLOT_STAR.n}},
   pass_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const P=passState(G.st,G.ctx.now);if((G.p.s|0)!==P.s)fail("Сезон уже сменился");P.prem=P.s;return {s:P.s}},
@@ -810,4 +811,4 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

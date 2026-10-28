@@ -34,7 +34,7 @@ async function call(uid, a, p = {}, start = "") {
   const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), env);
   return r.json();
 }
-const { classify } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify };").toString("base64"));
+const { classify, capOf } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify, capOf };").toString("base64"));
 let fails = 0;
 /* свободная карточка игрока; если всё проиграно в боях, тестовый игрок открывает новую */
 async function anyCard(uid, callf) { callf = callf || call; let s = await callf(uid, "sync"); let c = s.S.cards.find(c => !c.listed && !c.away && c.f !== 5 && !c.part);
@@ -542,8 +542,8 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     ok(fin.winners.map((w, k) => b(w.uid) === [300, 200, 100][k]).every(Boolean), "звёзды зачислены на игровой баланс: 300, 200, 100");
     db.prepare("UPDATE users SET star_bal=200 WHERE id=6200").run();
     const before = b(6200); let q = await cc(6200, "pay_bal", { item: "golem" }); ok(q.ok && q.res.status === "done" && q.S.starBal === before - 99 && q.S.golemUntil > Date.now(), "покупка с игрового баланса: голем за 99 ⭐");
-    db.prepare("UPDATE users SET star_bal=500 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "slots" }); ok(q.ok && q.res.status === "done" && q.S.capS === 1 && q.S.starBal === 401, "хранилище: +50 мест за 99 ⭐");
-    for (let i = 0; i < 3; i++) await cc(6200, "pay_bal", { item: "slots" }); q = await cc(6200, "pay_bal", { item: "slots" }); ok(!q.ok && q.S === undefined, "звёздное расширение не больше 4 раз");
+    db.prepare("UPDATE users SET star_bal=500 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "slots" }); ok(q.ok && q.res.status === "done" && q.S.capS === 1 && q.S.starBal === 401, "хранилище: +10 мест за 99 ⭐");
+    q = await cc(6200, "pay_bal", { item: "slots" }); ok(q.ok && q.S.capS === 2, "за звёзды можно расширять повторно");
     db.prepare("UPDATE users SET star_bal=10 WHERE id=?").run(6200); q = await cc(6200, "pay_bal", { item: "golem" }); ok(!q.ok && /балансе 10/.test(q.err), "не хватает звёзд на балансе — покупки нет");
     q = await cc(8, "stats"); ok(q.ok && q.res.x.bal.spent >= 99, "в статистике видно траты с баланса, они не считаются донатом"); }
   // конкурс историй
@@ -882,10 +882,10 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await call(M, "clan_kick", { uid: N }); ok(q.ok && db.prepare("SELECT clan FROM users WHERE id=?").get(N).clan === 0, "правая рука выгнала участника");
   q = await call(H, "clan_leave"); ok(q.ok && db.prepare("SELECT owner FROM clans WHERE id=?").get(cid).owner === M, "глава ушёл — главой стала правая рука"); }
 // хранилище: расширение места за монеты
-{ const U = 7950; await call(U, "sync"); db.prepare("UPDATE users SET cash=100 WHERE id=?").run(U);
-  let q = await call(U, "cap_buy", {}); ok(!q.ok, "без монет место не расширить");
-  db.prepare("UPDATE users SET cash=50000 WHERE id=?").run(U); q = await call(U, "cap_buy", { price: 300 }); ok(q.ok && q.res.cap === 50 && q.S.cash === 49700, "+10 мест за 300 🪙 — теперь 50");
-  q = await call(U, "cap_buy", { price: 300 }); ok(!q.ok, "вторая покупка дороже — старая цена не проходит");
-  q = await call(U, "cap_buy", { price: 700 }); ok(q.ok && q.res.cap === 60, "второе расширение за 700 🪙"); }
+{ const U = 7950; await call(U, "sync"); db.prepare("UPDATE users SET cash=50 WHERE id=?").run(U);
+  let q = await call(U, "cap_buy", {}); ok(!q.ok, "без монет (меньше 100) место не расширить");
+  db.prepare("UPDATE users SET cash=50000 WHERE id=?").run(U); q = await call(U, "cap_buy", { max: 15000 }); ok(q.ok && q.res.cap === 50 && q.S.cash === 35000, "+10 мест за 30% баланса (15 000 из 50 000) — теперь 50");
+  q = await call(U, "cap_buy", { max: 20000 }); ok(!q.ok, "за монеты — только один раз");
+  db.prepare("UPDATE users SET vip_until=?,vip_t=1 WHERE id=?").run(Date.now() + 864e5, U); q = await call(U, "sync"); ok(capOf(q.S) === 360, "с VIP — 360 мест"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
