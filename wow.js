@@ -543,7 +543,7 @@ let csHide=0;
 /* ===================== ПОКОРЕНИЕ ЭПОХ (карта мира) =====================
    Анимации только transform/opacity, тяжёлые фильтры статичные. Карта перерисовывается, только когда что-то изменилось. */
 let cqCh=null,cqKey="",cqSel=null,cqBusy=false;
-const CQ_DECO={mid:["🌲","🏰","🌾","🌳","⛪","🐎"],ant:["🏛","🫒","🌊","🏺","⛵","🦉"],nor:["🏔","🌲","❄️","🛶","🐺","⛺"],jap:["🌸","⛩","🎋","🗻","🏯","🍵"],myth:["🌋","🐉","🌫","💀","🔮","🦅"]};
+const CQ_DECO={mid:["🌲","🏰","🌾","🌳","⛪","🐎"],ant:["🏛","🫒","🌊","🏺","⛵","🦉"],nor:["🏔","🌲","❄️","🛶","🐺","⛺"],jap:["🌸","⛩","🎋","🗻","🏯","🍵"],myth:["🌋","🐉","🌫","💀","🔮","🦅"],troy:["🐴","🏺","⛵","🏛","🔥","🛡"],emp:["🐘","🌴","🏜","👑","🗿","⛰"]};
 const CQ_X=[22,64,80,44,18,52,82,50],CQ_GAP=104;
 const cqOk=c=>!c.part&&!away(c)&&!FIN[c.f].excl;
 function cqView(){const Q0=S.conq||{c:0,s:{},d:"",t:0},same=Q0.d===mskDay(NOW()),Q={t:same?Q0.t||0:0,x:same?Q0.x||0:0,b:same?Q0.b||0:0};
@@ -887,8 +887,8 @@ function fabUpdate(){if(!S)return;const f=chatFab(),n=chatUnread();const e=f.que
   if(fabLastN>=0&&n>fabLastN){f.classList.remove("ping");void f.offsetWidth;f.classList.add("ping")}fabLastN=n}
 addEventListener("scroll",()=>{const y=scrollY,d=y-fabY;if(Math.abs(d)<8)return;const h=d>0&&y>120;if(h!==fabHide){fabHide=h;const f=$("chatfab");if(f)f.classList.toggle("hide",h&&!f.classList.contains("off"))}fabY=y},{passive:true});
 /* строка последнего сообщения на главной */
-function chatStrip(){if(!S||!ONLINE)return;const T=S.chatTop;let el=$("chatstrip");const host=$("free-box");if(!host)return;
-  if(!el){el=document.createElement("button");el.type="button";el.id="chatstrip";el.className="chatstrip";const ps=$("ps-strip");(ps||host).before(el);el.onclick=()=>{hap("light");openChat()}}
+function chatStrip(){if(!S||!ONLINE)return;const T=S.chatTop;let el=$("chatstrip");const host=$("qhost");if(!host)return;
+  if(!el){el=document.createElement("button");el.type="button";el.id="chatstrip";el.className="chatstrip";host.appendChild(el);el.onclick=()=>{hap("light");openChat()}}
   const n=chatUnread(),on=S.chatOn||0;
   const k=JSON.stringify([T&&T.id,n,on,T&&chatAgo(T.t)]);if(el.dataset.k===k)return;el.dataset.k=k;
   el.innerHTML='<i>💬</i><span class="cs-t"><b>Чат игроков</b><small class="cs-m"></small></span>'+(n?'<em>'+(n>99?"99+":n)+'</em>':'<span class="cs-on">🟢 '+on+'</span>');

@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="ru">
-<head><meta name="app-ver" content="536b1611ed">
+<head><meta name="app-ver" content="74afc2bc70">
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=04c03aa2">
+<link rel="stylesheet" href="style.css?v=d42d1dd1">
 </head>
 <body>
 <canvas id="fx"></canvas>
@@ -61,9 +61,12 @@
     <div class="promo" id="promo" hidden><div class="promo-h">⏳ АКЦИЯ <b id="promo-left">3:00:00</b></div><div class="promo-t" id="promo-t"></div><div class="bar"><i id="promo-bar"></i></div><button type="button" class="craftbtn" id="promo-go">Пригласить друзей</button></div>
     <div class="vipbox" id="vipbox" hidden>👑 <b>VIP</b> <span id="vip-t"></span></div>
     <div class="box cbbox" id="cb-box" hidden></div>
+    <div id="qhost"></div><div class="qtiles" id="qtiles"></div>
+  </section>
+  <section id="sec-quest" hidden>
+    <div class="pghead"><h2>🎯 Задания и бонусы</h2><p>Всё, что каждый день даёт прокрутки и награды</p></div>
     <div class="box free" id="free-box"><div class="free-row"><div><h3>Прокрутки</h3><p id="free-t">Каждые 4 часа даётся 10 бесплатных прокруток</p></div><b class="num" id="free-n" style="font-family:var(--display);font-size:22px">3/3</b></div>
     <button type="button" class="freecamp" id="free-camp"><span>🎯</span><span><b>Нужно больше прокруток?</b><small id="free-camp-t">Купи до 5 в день за руны в Тренировочном лагере</small></span><i>→</i></button></div>
-    <div class="box rarebox" id="rare-box"><div class="rowb"><h3>💎 Самые редкие воины</h3><button type="button" class="mini2" id="rare-all">Все шансы</button></div><p class="rare-n">Шанс выпасть на одну прокрутку. Отделка и номер выпадают отдельно — золотая или «ошибка печати» на мифическом воине бывает раз в жизни.</p><div class="rare-g" id="rare-g"></div></div>
     <div class="box wheelf" id="wf-box"><div class="rowb"><h3>🎡 Колесо фортуны</h3><b id="wf-t" class="num"></b></div>
       <div class="wfw"><svg viewBox="-200 -200 400 400" id="wf-svg" aria-hidden="true"></svg></div>
       <button type="button" class="craftbtn" id="wf-go">Крутить бесплатно</button>
@@ -79,6 +82,10 @@
       <div class="shopi"><b>Приглашай друзей</b><button type="button" class="mini2" id="ref-go">Пригласить</button><small id="ref-t">+10 прокруток за каждого друга, который зайдёт по твоей ссылке</small></div>
     </div>
     <div class="box"><h3>Задания дня</h3><div id="tasks" style="display:flex;flex-direction:column;gap:10px"></div></div>
+  </section>
+  <section id="sec-odds" hidden>
+    <div class="pghead"><h2>🎲 Шансы и редкие воины</h2><p>Все шансы открыты — ничего не подкручено</p></div>
+    <div class="box rarebox" id="rare-box"><div class="rowb"><h3>💎 Самые редкие воины</h3><button type="button" class="mini2" id="rare-all">Все шансы</button></div><p class="rare-n">Шанс выпасть на одну прокрутку. Отделка и номер выпадают отдельно — золотая или «ошибка печати» на мифическом воине бывает раз в жизни.</p><div class="rare-g" id="rare-g"></div></div>
     <div class="box">
       <h3>Шансы</h3>
       <div class="odds" id="odds"></div>
@@ -88,6 +95,7 @@
       <div class="nums" id="nums"></div>
     </div>
   </section>
+  <section id="sec-dragon" hidden><div id="dg-root"></div></section>
 
   <section id="sec-album" hidden>
     <div class="box">
@@ -323,19 +331,23 @@
     <div id="colp-merge" hidden><div class="box merge"><h3>Слияние</h3><p>Три одинаковых воина с одной отделкой превращаются в одного с отделкой выше.</p><div id="merge"></div></div></div>
   </section>
 </div>
-<nav class="tabs nav7" role="tablist"><div>
+<nav class="tabs nav7 nav6" role="tablist"><div>
   <button type="button" role="tab" id="tab-spin" aria-selected="true"><b>🎴</b>Крутить</button>
   <button type="button" role="tab" id="tab-cards" aria-selected="false"><b>🗂</b>Карты</button>
   <button type="button" role="tab" id="tab-fight" aria-selected="false"><b>⚔️</b>Бой<i class="tdot" id="camp-dot" hidden></i></button>
-  <button type="button" role="tab" id="tab-cas" aria-selected="false"><b>🎰</b>Казино</button>
-  <button type="button" role="tab" id="tab-gold" aria-selected="false" hidden><b>🎁</b><span class="t2">Подарки<br>и донат</span><i>−50%</i></button>
+  <button type="button" role="tab" id="tab-dragon" aria-selected="false"><b id="tab-dragon-i">🥚</b><span id="tab-dragon-t">Тайна</span><i class="tdot" id="dg-dot" hidden></i></button>
   <button type="button" role="tab" id="tab-shop" aria-selected="false"><b>🛒</b>Рынок</button>
-  <button type="button" role="tab" id="tab-prof" aria-selected="false"><b>👤</b>Профиль</button>
+  <button type="button" role="tab" id="tab-more" aria-selected="false"><b>☰</b>Ещё<i class="tdot" id="more-dot" hidden></i></button>
+  <button type="button" role="tab" id="tab-cas" aria-selected="false" hidden><b>🎰</b>Казино</button>
+  <button type="button" role="tab" id="tab-gold" aria-selected="false" hidden><b>🎁</b><span class="t2">Подарки<br>и донат</span><i>−50%</i></button>
+  <button type="button" role="tab" id="tab-prof" aria-selected="false" hidden><b>👤</b>Профиль</button>
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=3de30b6a"></script>
-<script src="game.js?v=412863fa"></script>
-<script src="wow.js?v=cdb0ac67"></script>
+<script src="rules.js?v=5b916493"></script>
+<script src="game.js?v=b53d682e"></script>
+<script src="wow.js?v=4afe7790"></script>
+<script src="menu.js?v=79bda520"></script>
+<script src="dragon.js?v=54ecd1b7"></script>
 </body>
 </html>

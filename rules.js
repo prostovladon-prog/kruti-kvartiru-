@@ -480,7 +480,7 @@ function pay(st,n){if(st.cash<n)fail("Не хватает "+Math.ceil(n-st.cash)
 function earn(st,n){st.cash=Math.round((st.cash+n)*100)/100}
 function aiPick(card,ex){let best=-1,bv=-1;for(let i=0;i<5;i++){if(ex.includes(i))continue;const v=eff(card,i)*(.85+Math.random()*.3);if(v>bv){bv=v;best=i}}return best}
 function rndPick(ex){const r=[0,1,2,3,4].filter(i=>!ex.includes(i));return r[Math.floor(Math.random()*r.length)]}
-function fight3(me,opp,picks){const rounds=picks.map(s=>({a:eff(me,s),b:eff(opp,s)}));const w=rounds.filter(r=>r.a>r.b).length,l=rounds.filter(r=>r.a<r.b).length;return {rounds,w,l}}
+function fight3(me,opp,picks,k){const rounds=picks.map(s=>({a:Math.round(eff(me,s)*(1+(k||0))),b:eff(opp,s)}));const w=rounds.filter(r=>r.a>r.b).length,l=rounds.filter(r=>r.a<r.b).length;return {rounds,w,l}}
 const snap=c=>JSON.parse(JSON.stringify(c));
 
 /* ---------- действия ----------
@@ -572,6 +572,44 @@ const conqLeft=(st,Q)=>Math.max(0,conqTorch(st)+(Q.x||0)-Q.t), conqBuyPrice=Q=>C
 const conqTorch=st=>CONQ.torch+(vipTier(st)?CONQ.vip:0);
 const conqPow=(c,weak)=>Math.round(cpow(c)*(ERA_OF[c.h]===weak?CONQ.bonus:1));
 
+
+/* ===================== ДРАКОН =====================
+   Тайное яйцо открывается, когда 3 приглашённых друга сделали хотя бы по 5 прокруток.
+   Дракон растёт 60 уровней (7 стадий), его надо кормить и гладить. Снаряжение 5 слотов, 6 редкостей, комплекты дают бонус.
+   Сила дракона помогает в боях, завоевании и клановом боссе, а взрослый дракон каждый день приносит прокрутки. */
+const DG={fr:3,frSpins:5,max:60,satH:4,tapCap:200,feedMax:6,winXp:10,winSh:2,winCap:15,spinXp:2,taskXp:50,conqXp:40,conqSh:10,nestTaps:50,invMax:60,upMax:10,nameMax:16,hungry:20};
+const DG_STAGE=[{n:"Детёныш",lv:1,gift:0},{n:"Юный дракон",lv:10,gift:1},{n:"Взрослый дракон",lv:20,gift:2},{n:"Старший дракон",lv:30,gift:3},{n:"Древний дракон",lv:40,gift:4},{n:"Владыка эпох",lv:50,gift:5},{n:"Легенда эпох",lv:60,gift:7}];
+const dgStage=lv=>{let i=0;DG_STAGE.forEach((S,k)=>{if(lv>=S.lv)i=k});return i};
+const dgCum=L=>Math.round(250000*Math.pow(Math.max(0,L-1)/59,2.1));   // сколько опыта нужно всего, чтобы дойти до уровня L
+const DG_BREED=[
+ {k:"fire",n:"Огненный",r:0,c:["#ff6a1a","#ffd27a","#a3260a"],m:1},{k:"ice",n:"Ледяной",r:0,c:["#4fb8f0","#e9f6ff","#1f5fa8"],m:1},{k:"swamp",n:"Болотный",r:0,c:["#4fb84a","#d6f5a0","#1f5a2a"],m:1},
+ {k:"storm",n:"Грозовой",r:1,c:["#7a5aff","#cfc2ff","#2a1a8a"],m:1.12},{k:"shadow",n:"Теневой",r:2,c:["#4a3a5e","#c9a0ff","#140a1e"],m:1.25},
+ {k:"gold",n:"Золотой",r:3,c:["#ffc21a","#fff6c8","#a3700a"],m:1.4},{k:"star",n:"Звёздный",r:4,c:["#2a2a8a","#7cf7ff","#ff7ad9"],m:1.6}];
+const DG_BR_R=["Обычная","Редкая","Эпическая","Легендарная","Мифическая"], DG_BR_P=[70,20,8,1.8,.2], DG_REB_P=[0,60,28,10,2];
+const DG_FOOD={meat:{n:"Мясо",ic:"🍖",runes:2000,sat:30,xp:60},fish:{n:"Рыба",ic:"🐟",cash:200,sat:40,xp:60},apple:{n:"Золотое яблоко",ic:"🍏",sat:100,xp:2500}};
+const DG_SLOT=[{k:"head",n:"Шлем",ic:"⛑"},{k:"body",n:"Броня",ic:"🛡"},{k:"wings",n:"Накрылья",ic:"🪽"},{k:"claws",n:"Когти",ic:"🗡"},{k:"amul",n:"Амулет",ic:"🔮"}];
+const DG_R=[{n:"Обычное",c:"#9aa6bf",p:40,dis:5},{n:"Редкое",c:"#34c759",p:90,dis:15},{n:"Эпическое",c:"#0a84ff",p:180,dis:40},{n:"Легендарное",c:"#bf5af2",p:350,dis:100},{n:"Мифическое",c:"#ff9f0a",p:650,dis:250},{n:"Божественное",c:"#ff2e63",p:1200,dis:600}];
+const DG_SET=[{k:"fire",n:"Пламени",ic:"🔥",c:"#ff6a1a"},{k:"ice",n:"Льда",ic:"❄️",c:"#5ac8fa"},{k:"storm",n:"Бури",ic:"🌩",c:"#7a5aff"},{k:"shadow",n:"Тени",ic:"🌑",c:"#8a5ab8"},{k:"gold",n:"Золота Эпох",ic:"👑",c:"#ffcf33"},{k:"olymp",n:"Олимпа",ic:"⚜️",c:"#ff2e63",div:1}];
+const DG_CHEST={nest:{n:"Сундук гнезда",sh:120,p:[62,28,8.5,1.4,.1,0]},royal:{n:"Королевский сундук",sh:600,p:[0,55,33,10,2,0]},
+ star:{n:"Звёздный сундук",stars:99,p:[0,0,70,25,5,0],bonus:100},div:{n:"Божественный сундук",stars:499,p:[0,0,0,60,30,10],bonus:500}};
+const DG_SHOP={apple:{n:"3 золотых яблока",stars:49,ap:3},reborn:{n:"Ритуал перерождения",stars:299}};
+const dgSetOf=k=>DG_SET.find(x=>x.k===k)||DG_SET[0], dgSlotOf=k=>DG_SLOT.find(x=>x.k===k)||DG_SLOT[0];
+const dgItemName=it=>dgSlotOf(it.s).n+" "+dgSetOf(it.t).n;
+const dgItemPow=it=>Math.round(DG_R[it.r].p*(1+.12*(it.lv||0))*(it.s==="amul"?1.2:1));
+const dgUpCost=it=>20*(it.r+1)*((it.lv||0)+1);
+function dgEq(D){return DG_SLOT.map(S=>(D.inv||[]).find(it=>it.id===(D.eq||{})[S.k])).filter(Boolean)}
+function dgSetBonus(eq){const n={};eq.forEach(it=>n[it.t]=(n[it.t]||0)+1);let best=null;for(const k in n)if(!best||n[k]>n[best])best=k;const c=best?n[best]:0;return {k:best,n:c,b:c>=5?.25:c>=3?.1:0}}
+function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b))}
+const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH));
+function dgBonus(st,now){const D=st&&st.dg;if(!D)return 0;let b=Math.min(.2,.02+dgPower(D)/40000);if(dgSat(D,now)<DG.hungry)b/=2;return Math.round(b*1000)/1000}
+function dgDay(D,now){const d=mskDay(now);if(D.d!==d){D.d=d;D.tp=0;D.fd=0;D.wx=0;D.nest=0;D.gift=0}return D}
+function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
+  if(D.lv>lv0&&ctx.events)ctx.events.push({t:"dglv",lv:D.lv,stage:dgStage(D.lv)>dgStage(lv0)?dgStage(D.lv):0});return x}
+function dgWin(st,ctx){const D=st.dg;if(!D)return null;dgDay(D,ctx.now);if((D.wx||0)>=DG.winCap)return null;D.wx=(D.wx||0)+1;D.sh=(D.sh||0)+DG.winSh;return {xp:dgAddXp(st,ctx,DG.winXp),sh:DG.winSh}}
+function dgNewItem(D,r,t,s){D.nid=(D.nid||0)+1;const sets=DG_SET.filter(x=>r===5?x.div:!x.div);return {id:D.nid,s:s||DG_SLOT[Math.floor(Math.random()*DG_SLOT.length)].k,r,t:r===5?"olymp":t||sets[Math.floor(Math.random()*sets.length)].k,lv:0}}
+function dgBreedRoll(P){return (()=>{const r=pick(P),L=DG_BREED.map((B,i)=>i).filter(i=>DG_BREED[i].r===r);return L[Math.floor(Math.random()*L.length)]})()}
+const dgView=(D,now)=>D?{b:D.b,name:D.name||"",lv:D.lv,xp:D.xp,pow:dgPower(D),stage:dgStage(D.lv),eq:dgEq(D).map(it=>({s:it.s,r:it.r,t:it.t,lv:it.lv})),set:dgSetBonus(dgEq(D)),sat:Math.round(dgSat(D,now||Date.now()))}:null;
+
 /* ===================== СЕЗОН И БОЕВОЙ ПРОПУСК =====================
    Сезон — 4 недели, у каждого своя эпоха. Опыт за задания дня и за игру. 30 уровней, у каждого бесплатная награда и награда пропуска (за звёзды). */
 const PASS={start:Date.UTC(2026,9,25,21),len:28*864e5,lv:30,xp:300,stars:199,
@@ -603,7 +641,7 @@ const ACTIONS={
   open(G){const {st,ctx}=G;refill(st,ctx.now);
     if(st.spins<=0)fail("Прокрутки закончились");
     if(G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
-    st.spins--;if(st.spins<spinCap(st)&&!st.refillAt)st.refillAt=ctx.now+REFILL_MS;
+    st.spins--;if(st.spins<spinCap(st)&&!st.refillAt)st.refillAt=ctx.now+REFILL_MS;if(st.dg)dgAddXp(st,ctx,DG.spinXp);
     const epic=(st.guar||0)>0||(st.pity||0)>=PITY-1;let c=null;
     const rr=ctx.noRare?1:Math.random();   // noRare — только для автотестов
     if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
@@ -646,19 +684,19 @@ const ACTIONS={
     const real=G.ctx.oppCard||null;
     if(real&&p.mode&&G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Освободи место, чтобы драться на карточку");
     const opp=real||phantom(oh,Math.random()<.2?1:0),before=snap(me);
-    const p2=aiPick(opp,[stat]),p3=rndPick([stat,p2]),picks=[stat,p2,p3],R=fight3(me,opp,picks);
-    let reward=0,gotCard=null,lostCard=false;
+    const dk=dgBonus(st,ctx.now),p2=aiPick(opp,[stat]),p3=rndPick([stat,p2]),picks=[stat,p2,p3],R=fight3(me,opp,picks,dk);
+    let reward=0,gotCard=null,lostCard=false,dg=null;
     if(R.w===R.l)addXp(ctx,me,15);
-    else if(R.w>R.l){me.wins=(me.wins||0)+1;st.totalWins=(st.totalWins||0)+1;addXp(ctx,me,30);day(st,ctx.now).wins++;
+    else if(R.w>R.l){me.wins=(me.wins||0)+1;st.totalWins=(st.totalWins||0)+1;addXp(ctx,me,30);day(st,ctx.now).wins++;dg=dgWin(st,ctx);
       if(p.mode&&real){ctx.takeCard=real.id;gotCard=snap(real);addCard(G,gotCard)}   // забираем карточку игрока
       else if(p.mode&&G.cards.length<capOf(st)){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
       else{reward=Math.round(opp.v*.3+5);earn(st,reward)}}
     else{addXp(ctx,me,10);if(p.mode){if(real)ctx.giveAway=me.id;burn(G,[me.id]);lostCard=true}}   // с игроком карточка уходит к нему
-    return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null}},
+    return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null,dk,dg}},
 
   fduel(G){const {st,ctx,p}=G;const me=battleCard(G,p.myId),opp=p.opp,myStat=p.myStat|0;if(!opp)fail("Соперник не найден");if(FIN[opp.f]&&FIN[opp.f].excl)fail("С карточкой «Основатель» драться нельзя: это трофей");if(opp.part)fail("С половинкой драться нельзя");
     const p2=p.oppStat!=null?p.oppStat|0:aiPick(opp,[myStat]);if(p2===myStat)fail("Эту характеристику уже выбрал соперник");
-    const picks=[myStat,p2,rndPick([myStat,p2])],before=snap(me),R=fight3(me,opp,picks);
+    const dk=dgBonus(st,ctx.now),picks=[myStat,p2,rndPick([myStat,p2])],before=snap(me),R=fight3(me,opp,picks,dk);
     const key=String(p.key||"x")+"_"+me.h,first=!st.doneCh[key];let reward=0;
     if(R.w>R.l&&first){reward=Math.round(opp.v*.3+5);earn(st,reward);addXp(ctx,me,30);st.totalWins=(st.totalWins||0)+1;me.wins=(me.wins||0)+1;day(st,ctx.now).wins++;st.doneCh[key]=1}
     else if(R.w<R.l&&first){addXp(ctx,me,10);st.doneCh[key]=1}
@@ -695,7 +733,7 @@ const ACTIONS={
   map(G){if(G.st.mapDay===today(G.ctx.now))fail("Карта уже куплена");pay(G.st,120);G.st.mapDay=today(G.ctx.now);return {}},
   frame(G){const c=notHalf(own(G,G.p.id)),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(F.only==="season"){if(!(G.st.frames||[]).includes("season"))fail("Рамка сезона — награда боевого пропуска")}else if(F.only&&!G.ctx.pioneer)fail("Эта рамка только для первых "+PIONEERS+" игроков");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
 
-  task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;return {r:T.r}},
+  task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;const dgx=st.dg?dgAddXp(st,ctx,DG.taskXp):0;return {r:T.r,dgx}},
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
   ach(G){const A=ACH.find(a=>a.id===G.p.id);if(!A)fail("Нет такого достижения");if(G.st.ach[A.id])fail("Уже получено");if(!A.ok(G.st,G.cards))fail("Достижение ещё не выполнено");G.st.ach[A.id]=1;G.st.spins+=A.r;return {r:A.r,t:A.t}},
 
@@ -807,16 +845,17 @@ const ACTIONS={
   conq_fight(G){const {st,ctx,p}=G;const Q=conqDay(st,ctx.now),n=p.n|0;if(n<0||n>=conqN())fail("Нет такой точки");if(n>Q.c)fail("Сначала пройди предыдущие точки");
     if(conqLeft(st,Q)<=0)fail("Факелы закончились. Купи ещё за руны или выполни задание дня — за каждое +1 🔥");
     const ids=[...new Set(p.ids||[])].slice(0,3);if(ids.length!==3)fail("Выбери 3 воинов в отряд");const me=ids.map(id=>notHalf(battleCard(G,id),"Половинки не воюют"));
-    const S=conqStage(n);Q.t++;
-    const rounds=S.foes.map((F,j)=>{const a=Math.round(conqPow(me[j],S.weak)*(.88+Math.random()*.24)),b=Math.round(F.p*(.88+Math.random()*.24));return {a,b,w:a>b?1:0,h:F.h,id:me[j].id,bonus:ERA_OF[me[j].h]===S.weak?1:0}});
+    const S=conqStage(n),dk=dgBonus(st,ctx.now);Q.t++;
+    const rounds=S.foes.map((F,j)=>{const a=Math.round(conqPow(me[j],S.weak)*(1+dk)*(.88+Math.random()*.24)),b=Math.round(F.p*(.88+Math.random()*.24));return {a,b,w:a>b?1:0,h:F.h,id:me[j].id,bonus:ERA_OF[me[j].h]===S.weak?1:0}});
     const w=rounds.filter(r=>r.w).length,win=w>=2,stars=win?w:0;let reward=null,first=false,perfect=false;
     me.forEach((c,j)=>addXp(ctx,c,rounds[j].w?25:10));
     if(win){passAdd(st,ctx,"conq",1);const old=Q.s[n]||0;
       if(n===Q.c){first=true;Q.c=n+1;const r=S.r,C=camp(st,ctx.now);reward={cash:r.cash,runes:r.runes,sp:r.sp};earn(st,r.cash);C.runes+=r.runes;st.spins+=r.sp;
+        if(st.dg){reward.dgxp=dgAddXp(st,ctx,DG.conqXp);st.dg.sh=(st.dg.sh||0)+DG.conqSh;reward.dgsh=DG.conqSh}
         if(r.card!=null){const c=rollTier(ctx,r.card);c.how="conq";G.cards.push(c);noteCard(st,c);reward.card=c}}
       if(stars===3&&old<3){perfect=true;st.spins+=1;reward=reward||{};reward.sp3=1}
       Q.s[n]=Math.max(old,stars)}
-    return {rounds,win,stars,reward,first,perfect,n,left:conqLeft(st,Q)}},
+    return {rounds,win,stars,reward,first,perfect,n,left:conqLeft(st,Q),dk}},
   conq_buy(G){const {st,ctx}=G;const Q=conqDay(st,ctx.now);if(Q.b>=CONQ.buyMax)fail("Сегодня уже куплено "+CONQ.buyMax+" факелов. Завтра снова");const pr=conqBuyPrice(Q),C=camp(st,ctx.now);
     if(C.runes<pr)fail("Нужно "+pr.toLocaleString("ru")+" рун — потренируйся в лагере");C.runes-=pr;Q.b++;Q.x++;return {price:pr,left:conqLeft(st,Q),bought:Q.b}},
 
@@ -837,6 +876,42 @@ const ACTIONS={
     if(r.title){st.titles=st.titles||[];if(!st.titles.includes("season"))st.titles.push("season");out.title=1}
     if(r.frame){st.frames=st.frames||[];if(!st.frames.includes("season"))st.frames.push("season");out.frame=1}
     return out},
+
+  /* ---------- дракон ---------- */
+  dg_hatch(G){const {st,ctx}=G;if(st.dg)fail("Яйцо уже раскололось");if(!ctx.admin&&(ctx.dgFr||0)<DG.fr)fail("Яйцо ещё не готово. Позови друзей: "+(ctx.dgFr||0)+" из "+DG.fr);
+    const b=dgBreedRoll(DG_BR_P),D={b,name:"",lv:1,xp:0,sat:80,satAt:ctx.now,inv:[],eq:{},sh:60,nid:0,t:ctx.now,ap:1};const it=dgNewItem(D,0,DG_BREED[b].k==="fire"?"fire":DG_BREED[b].k==="ice"?"ice":null,"head");D.inv.push(it);D.eq.head=it.id;
+    dgDay(D,ctx.now);st.dg=D;return {b}},
+  dg_name(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const n=String(G.p.name||"").replace(/[^0-9A-Za-zА-Яа-яЁё _\-]/g,"").replace(/\s+/g," ").trim().slice(0,DG.nameMax);if(n.length<2)fail("Имя — от 2 до "+DG.nameMax+" букв");D.name=n;return {name:n}},
+  dg_tap(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");dgDay(D,ctx.now);const n=Math.max(0,Math.min(60,G.p.n|0,DG.tapCap-(D.tp||0)));if(!n)return {n:0,xp:0,cap:1};
+    D.tp=(D.tp||0)+n;return {n,xp:dgAddXp(st,ctx,n),tp:D.tp}},
+  dg_feed(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");dgDay(D,ctx.now);const F=DG_FOOD[G.p.k];if(!F)fail("Такой еды нет");const sat=dgSat(D,ctx.now);
+    if(G.p.k==="apple"){if(!(D.ap>0))fail("Золотых яблок нет. Их можно купить за ⭐");D.ap--}
+    else{if((D.fd||0)>=DG.feedMax)fail("Дракон сыт на сегодня: можно кормить "+DG.feedMax+" раз в день");if(sat>=99)fail("Дракон не голоден");
+      if(F.runes){const C=camp(st,ctx.now);if(C.runes<F.runes)fail("Не хватает рун: нужно "+F.runes.toLocaleString("ru")+" 💠");C.runes-=F.runes}if(F.cash)pay(st,F.cash);D.fd=(D.fd||0)+1}
+    D.sat=Math.min(100,sat+F.sat);D.satAt=ctx.now;return {xp:dgAddXp(st,ctx,F.xp),sat:Math.round(D.sat),fd:D.fd}},
+  dg_nest(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");dgDay(D,ctx.now);if(D.nest)fail("Гнездо уже собрано сегодня");
+    if(!(D.fd>=1)||(D.tp||0)<DG.nestTaps)fail("Покорми дракона и погладь его "+DG.nestTaps+" раз — тогда в гнезде появится чешуя");
+    const n=20+dgStage(D.lv)*6+(DG_BREED[D.b].r)*5;D.nest=1;D.sh=(D.sh||0)+n;return {sh:n}},
+  dg_gift(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");dgDay(D,ctx.now);const g=DG_STAGE[dgStage(D.lv)].gift;
+    if(!g)fail("Дракон начнёт приносить прокрутки, когда станет юным (10 уровень)");if(D.gift)fail("Дар уже получен сегодня");if(dgSat(D,ctx.now)<DG.hungry)fail("Голодный дракон ничего не приносит. Покорми его");
+    D.gift=1;st.spins+=g;return {sp:g}},
+  dg_open(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");const K=DG_CHEST[G.p.k];if(!K||!K.sh)fail("Такого сундука нет");
+    if((D.inv||[]).length>=DG.invMax)fail("Сумка дракона полная ("+DG.invMax+"). Разбери лишнее на чешую");if((D.sh||0)<K.sh)fail("Не хватает чешуи: нужно "+K.sh+" 🔹");
+    D.sh-=K.sh;const it=dgNewItem(D,pick(K.p));D.inv.push(it);return {item:it}},
+  dg_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
+    let out={k:p.k};const K=DG_CHEST[p.k];
+    if(K&&K.stars){const it=dgNewItem(D,pick(K.p));D.inv.push(it);D.sh=(D.sh||0)+K.bonus;out.item=it;out.sh=K.bonus}
+    else if(p.k==="apple"){D.ap=(D.ap||0)+DG_SHOP.apple.ap;out.ap=D.ap}
+    else if(p.k==="reborn"){const old=D.b;let b=old;for(let t=0;t<20&&b===old;t++)b=dgBreedRoll(DG_REB_P);D.b=b;out.b=b;out.old=old}
+    else fail("Нет такого товара");
+    st.pays.push(p.pid);if(st.pays.length>40)st.pays=st.pays.slice(-40);return out},
+  dg_equip(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const it=(D.inv||[]).find(x=>x.id===(G.p.id|0));if(!it)fail("Предмет не найден");D.eq=D.eq||{};
+    if(D.eq[it.s]===it.id)delete D.eq[it.s];else D.eq[it.s]=it.id;return {pow:dgPower(D)}},
+  dg_up(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const it=(D.inv||[]).find(x=>x.id===(G.p.id|0));if(!it)fail("Предмет не найден");if((it.lv||0)>=DG.upMax)fail("Предмет уже улучшен до +"+DG.upMax);
+    const c=dgUpCost(it);if((D.sh||0)<c)fail("Не хватает чешуи: нужно "+c+" 🔹");D.sh-=c;it.lv=(it.lv||0)+1;return {lv:it.lv,pow:dgPower(D)}},
+  dg_dis(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const ids=new Set((G.p.ids||[]).map(x=>x|0));const eqIds=new Set(Object.values(D.eq||{}));let got=0,n=0;
+    D.inv=(D.inv||[]).filter(it=>{if(!ids.has(it.id)||eqIds.has(it.id))return true;got+=Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0)));n++;return false});if(!n)fail("Выбери предметы (надетые разбирать нельзя)");
+    D.sh=(D.sh||0)+got;return {sh:got,n}},
   /* расширение коллекции: +10 мест за монеты (цена растёт) и +50 за звёзды (выдаёт сервер после оплаты) */
   cap_buy(G){const {st}=G;if(st.capC)fail("За монеты место расширяется только один раз. Дальше — за звёзды или VIP");const n=capCoinPrice(st);
     if(G.p.max!=null&&n>+G.p.max)fail("Цена изменилась — посмотри ещё раз");pay(st,n);st.capC=1;return {n,cap:capOf(st)}},
@@ -859,4 +934,4 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

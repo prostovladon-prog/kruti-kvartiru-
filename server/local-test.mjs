@@ -888,5 +888,34 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   db.prepare("UPDATE users SET cash=50000 WHERE id=?").run(U); q = await call(U, "cap_buy", { max: 15000 }); ok(q.ok && q.res.cap === 50 && q.S.cash === 35000, "+10 мест за 30% баланса (15 000 из 50 000) — теперь 50");
   q = await call(U, "cap_buy", { max: 20000 }); ok(!q.ok, "за монеты — только один раз");
   db.prepare("UPDATE users SET vip_until=?,vip_t=1 WHERE id=?").run(Date.now() + 864e5, U); q = await call(U, "sync"); ok(capOf(q.S) === 360, "с VIP — 360 мест"); }
+// 🐉 дракон: тайное яйцо, 3 живых друга, уход, гнездо, сундуки, снаряжение
+{ const U = 7960; await call(U, "sync"); let q = await call(U, "dg_hatch"); ok(!q.ok && /друзей/.test(q.err), "без друзей яйцо не разбить");
+  q = await call(U, "sync"); ok(q.S.dgFr === 0 && !q.S.dg, "видно, сколько друзей согрели яйцо (0)");
+  for (const f of [7961, 7962, 7963]) await call(f, "sync", {}, "r_" + U);
+  db.prepare("UPDATE users SET state=json_set(state,'$.nOp',6) WHERE id IN (7961,7962)").run();
+  q = await call(U, "dg_hatch"); ok(!q.ok, "два живых друга — ещё рано (третий без прокруток не считается)");
+  db.prepare("UPDATE users SET state=json_set(state,'$.nOp',5) WHERE id=7963").run();
+  q = await call(U, "dg_hatch"); ok(q.ok && q.S.dg && q.S.dg.lv === 1 && q.S.dg.inv.length === 1, "3 живых друга — дракон вылупился, у него стартовый шлем");
+  q = await call(U, "dg_hatch"); ok(!q.ok, "второй раз не вылупляется");
+  q = await call(U, "dg_name", { name: "Искра<script>" }); ok(q.ok && q.res.name === "Искраscript", "имя дракона очищается");
+  q = await call(U, "dg_tap", { n: 60 }); ok(q.ok && q.res.n === 60 && q.S.dg.tp === 60, "ласка: 60 касаний");
+  for (let i = 0; i < 4; i++) q = await call(U, "dg_tap", { n: 60 }); ok(q.S.dg.tp === 200 && q.res.n === 0, "ласка не больше 200 в день");
+  q = await call(U, "dg_nest"); ok(!q.ok, "без кормления гнездо пустое");
+  db.prepare("UPDATE users SET cash=5000 WHERE id=?").run(U); q = await call(U, "dg_feed", { k: "fish" }); ok(q.ok && q.S.cash === 4800 && q.S.dg.fd === 1, "покормил рыбой за 200 🪙");
+  q = await call(U, "dg_nest"); ok(q.ok && q.res.sh > 0, "гнездо даёт чешую"); q = await call(U, "dg_nest"); ok(!q.ok, "гнездо раз в день");
+  q = await call(U, "dg_gift"); ok(!q.ok, "детёныш ещё не приносит прокрутки");
+  db.prepare("UPDATE users SET state=json_set(state,'$.dg.sh',1000) WHERE id=?").run(U);
+  q = await call(U, "dg_open", { k: "royal" }); const it = q.ok && q.res.item; ok(it && it.r >= 1 && q.S.dg.sh === 400, "королевский сундук за 600 🔹: редкое или выше");
+  q = await call(U, "dg_equip", { id: it.id }); ok(q.ok && q.S.dg.eq[it.s] === it.id && q.res.pow > 0, "снаряжение надето, мощь выросла");
+  q = await call(U, "dg_up", { id: it.id }); ok(q.ok && q.res.lv === 1, "улучшение +1 за чешую");
+  q = await call(U, "dg_dis", { ids: [it.id] }); ok(!q.ok, "надетое не разбирается");
+  q = await call(U, "dg_top"); ok(q.ok && q.res.list.some(r => r.uid === U && r.pow > 0), "дракон в топе драконов");
+  q = await call(7961, "dg_view", { uid: U }); ok(q.ok && q.res.dg.name === "Искраscript", "чужого дракона можно посмотреть");
+  db.prepare("UPDATE users SET state=json_set(state,'$.dg.xp',5000,'$.dg.lv',10) WHERE id=?").run(U); q = await call(U, "dg_gift"); ok(q.ok && q.res.sp === 1, "юный дракон приносит 1 прокрутку в день");
+  const c = await anyCard(U); q = await call(U, "duel", { id: c.id, stat: 0 }); ok(q.ok && q.res.dk > 0, "дракон даёт бонус в бою");
+  db.prepare("UPDATE users SET star_bal=1000 WHERE id=?").run(U); q = await call(U, "pay_bal", { item: "dg", k: "star" }); ok(q.ok && q.res.status === "done" && q.res.res.item && q.res.res.item.r >= 2, "звёздный сундук: эпическое или выше");
+  q = await call(U, "pay_bal", { item: "dg", k: "apple" }); ok(q.ok && q.S.dg.ap >= 3, "золотые яблоки куплены");
+  const lv0 = q.S.dg.lv; q = await call(U, "dg_feed", { k: "apple" }); ok(q.ok && q.res.xp >= 2500 && q.S.dg.lv > lv0, "золотое яблоко: +2 500 опыта");
+  const b0 = q.S.dg.b; q = await call(U, "pay_bal", { item: "dg", k: "reborn" }); ok(q.ok && q.S.dg.b !== b0 && [3,4,5,6].includes(q.S.dg.b), "перерождение: новая порода, редкая или выше"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

@@ -2,7 +2,7 @@
 import hashlib, re, pathlib
 root = pathlib.Path(__file__).resolve().parent.parent
 idx = root / "index.html"; s = idx.read_text(encoding="utf-8")
-for f in ["style.css", "rules.js", "game.js", "wow.js"]:
+for f in ["style.css", "rules.js", "game.js", "wow.js", "menu.js", "dragon.js"]:
     h = hashlib.md5((root / f).read_bytes()).hexdigest()[:8]
     s = re.sub(re.escape(f) + r'(\?v=[0-9a-f]+)?"', f + "?v=" + h + '"', s)
 ver = hashlib.md5("".join(re.findall(r'\?v=[0-9a-f]+', s)).encode()).hexdigest()[:10]

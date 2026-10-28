@@ -2031,8 +2031,8 @@ function drawSub(t){document.querySelectorAll(".subnav").forEach(e=>e.remove());
   d.innerHTML=SUBS[g].map(([k,n])=>'<button type="button" data-sub="'+k+'" aria-pressed="'+(k===t)+'">'+n+'</button>').join("");$("sec-"+t).prepend(d);
   d.onclick=e=>{const b=e.target.closest("[data-sub]");if(!b||b.dataset.sub===t)return;goSub(b.dataset.sub)}}
 function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else if(k==="clan")openClan();else if(k==="conq")openConq();else if(k==="pass")openPass();else setTab(k)}
-function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof","clan","conq","pass"].forEach(k=>{$("sec-"+k).hidden=k!==t});
-  const grp=GRP[t]||t;["spin","cards","fight","cas","gold","shop","prof"].forEach(n=>{const b=$("tab-"+n);if(b)b.setAttribute("aria-selected",n===grp)});if(GRP[t])lastSub[grp]=t;drawSub(t);renderAll();scrollTo(0,0)}
+function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof","clan","conq","pass","quest","odds","dragon"].forEach(k=>{const e=$("sec-"+k);if(e)e.hidden=k!==t});
+  const grp=GRP[t]||t,nv=["cas","gold","prof","quest","odds"].includes(grp)?"more":grp;["spin","cards","fight","dragon","shop","more"].forEach(n=>{const b=$("tab-"+n);if(b)b.setAttribute("aria-selected",n===nv)});if(GRP[t])lastSub[grp]=t;drawSub(t);renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold("gifts");$("fchest").onclick=()=>openGold("chest");$("tab-cards").onclick=()=>setTab(lastSub.cards||"col");$("tab-fight").onclick=()=>goSub(lastSub.fight||"duel");$("tab-cas").onclick=()=>{if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas")};$("tab-shop").onclick=()=>setTab("shop");$("tab-prof").onclick=()=>goSub(lastSub.prof||"prof");
 let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/ 🪙$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtN(V.runes);if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
@@ -2359,17 +2359,17 @@ $("help-go").onclick=openHelp;
 const ONB=[
   {el:"open",t:"Привет, воин! ⚔️ Жми «Открыть» или тапни по карточке — выпадет случайный воин. На старте у тебя 5 бесплатных прокруток.",wait:true},
   {el:"stage",t:"Цена карточки зависит от редкости воина, отделки (блестящая, голограмма, золото, ошибка печати) и номера. Красивые номера вроде 777 777 стоят в разы дороже."},
-  {el:"free-box",t:"Каждые 4 часа — 10 бесплатных прокруток. Ещё: +10 за подписку на канал и +10 за каждого друга."},
+  {el:"qtiles",t:"Каждые 4 часа — 10 бесплатных прокруток. Задания, бонусы и колесо фортуны дают ещё — загляни в эти плитки."},
   {el:"tab-fight",t:"⚔️ Бой и 🎯 Лагерь — тапай по мишени, копи руны 💠, прокачивайся и покупай за руны прокрутки."},
   {el:"cash-box",t:"Сверху твои деньги 🪙 и руны 💠."},
-  {el:"rare-box",t:"💎 А вот за кем охотиться: самые редкие воины и шанс их выбить."},
-  {el:"tabs",t:"Внизу остальное: карты и альбом, бои, казино, подарки, рынок и твой профиль с витриной. Удачи! 🍀"}];
+  {el:"tab-dragon",t:"🥚 А это Тайное яйцо. Что внутри — узнаешь, когда позовёшь друзей…"},
+  {el:"tab-more",t:"А в «Ещё» — все остальные разделы: казино, сокровищница, профиль, пропуск, клан, топ и шансы. Удачи! 🍀"}];
 /* «Что нового» для тех, кто уже играл: коротко про новые функции, один раз */
 const ONB_NEW=[
   {el:"tab-fight",t:"Новое! 🎯 Лагерь — тапай по мишени, копи руны 💠 и прокачивайся. Чем реже твой лучший воин, тем больше рун."},
-  {el:"free-camp",t:"Прокрутки теперь покупаются за руны в Лагере — до 5 в день."},
+  {el:"tab-fight",t:"Прокрутки покупаются за руны в Лагере (вкладка «Бой») — до 5 в день."},
   {el:"cash-box",t:"Руны 💠 видны сверху рядом с деньгами. Нажми на них — откроется Лагерь."},
-  {el:"rare-box",t:"💎 Здесь самые редкие воины игры и шанс их выбить. Сёгун и Мерлин — 1 на ~2500 прокруток!"},
+  {el:"tab-more",t:"💎 Все шансы и самые редкие воины — в «Ещё» → «Шансы»."},
   {el:"tab-cards",t:"В «Карты» — сортировка, витрина всех видов карточек и слияние. Удачи! 🍀"}];
 let onbStep=-1,ONBS=ONB,ONBK="we-onb";
 function startOnb(){let done=null;try{done=localStorage.getItem("we-onb")}catch(e){}if(done||!S||S.cards.length)return false;ONBS=ONB;ONBK="we-onb";onbStep=0;showOnb();return true}
