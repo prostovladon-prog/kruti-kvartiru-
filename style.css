@@ -1952,10 +1952,11 @@ body.drw-on{overflow:hidden}
 @keyframes dghop{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-14px) scale(1.04,.97)}70%{transform:translateY(1px) scale(.98,1.02)}100%{transform:translateY(0) scale(1)}}
 .dgl{position:absolute;inset:0}.dgl svg{width:100%;height:100%;display:block}
 .dga{animation:dgglow 3s ease-in-out infinite;will-change:opacity}
-.dgt{transform-origin:36% 70%;animation:dgtail 2.6s ease-in-out infinite;will-change:transform}
-.dgwb{transform-origin:45% 50%;animation:dgflap 1.9s ease-in-out infinite;will-change:transform}
-.dgwf{transform-origin:50% 48%;animation:dgflap 1.9s ease-in-out infinite -.15s;will-change:transform}
-@keyframes dgflap{0%,100%{transform:rotate(0)}50%{transform:rotate(-10deg)}}
+.dgt{transform-origin:62% 81%;animation:dgtail 2.6s ease-in-out infinite;will-change:transform}
+.dgwl{transform-origin:40.5% 58.5%;animation:dgflapl 2s ease-in-out infinite;will-change:transform}
+.dgwr{transform-origin:59.5% 58.5%;animation:dgflapr 2s ease-in-out infinite;will-change:transform}
+@keyframes dgflapl{0%,100%{transform:rotate(0)}50%{transform:rotate(11deg)}}
+@keyframes dgflapr{0%,100%{transform:rotate(0)}50%{transform:rotate(-11deg)}}
 @keyframes dgtail{0%,100%{transform:rotate(0)}50%{transform:rotate(7deg)}}
 .dgb .dg-eyes{transform-box:fill-box;transform-origin:50% 50%;transition:transform .08s}.dgb.blink .dg-eyes{transform:scaleY(.12)}
 .dghs{position:absolute;inset:0;pointer-events:none}
@@ -2015,7 +2016,7 @@ body.drw-on{overflow:hidden}
 .dghatch-l{text-align:left;margin:4px 0;padding-left:18px;font-size:13px;line-height:1.5}
 .dgview{align-items:center;text-align:center}.dgview-a{width:min(280px,76vw);aspect-ratio:300/260;border-radius:18px;border:3px solid var(--ink);background:radial-gradient(ellipse at 50% 40%,var(--c1),var(--c0) 55%,#14102e)}.dgview-a svg{width:100%;height:100%}
 .dgview-eq{display:flex;gap:6px;justify-content:center}.dgview-eq .dgi{width:46px;height:46px;padding:4px}
-@media (prefers-reduced-motion:reduce){.dgf,.dgt,.dgwb,.dgwf,.dga,.dge-egg,.dge-glow,.dge-q,.dgtip{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.dgf,.dgt,.dgwl,.dgwr,.dga,.dge-egg,.dge-glow,.dge-q,.dgtip{animation:none!important}}
 .cbbox:empty{display:none}
 #qhost .chatstrip{margin:2px 0 6px}
 .dgch .buy{width:100%;padding:10px;border-radius:12px;border:3px solid var(--ink);background:var(--yellow);color:var(--ink);font-weight:900;font-size:15px;box-shadow:3px 3px 0 var(--ink)}

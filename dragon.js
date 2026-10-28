@@ -7,63 +7,81 @@ const dgOf=()=>S&&S.dg||null;
 const dgFmt=n=>fmtN(n||0);
 const dgBr=D=>DG_BREED[D.b]||DG_BREED[0];
 /* ---------- рисунок дракона ---------- */
-function dgParts(D,o){o=o||{};const u="dg"+(++dgUid),s=dgStage(D.lv),B=dgBr(D),[c0,c1,c2]=B.c,st=`stroke="${DG_INK}" stroke-linejoin="round" stroke-linecap="round"`;
+/* цвет глаз у каждой породы */
+const DG_EYE={fire:["#fff3a0","#ff9f0a","#a34a00"],ice:["#d8f6ff","#3fb8ff","#0a4a9a"],swamp:["#eaffb0","#7fd23a","#2a6a10"],storm:["#f0e8ff","#b59bff","#4a2aa8"],shadow:["#ffd0ec","#ff4fa8","#7a0a4a"],gold:["#d8fbff","#2fc8ff","#0a5a9a"],star:["#fff0fa","#ff7ad9","#7a1a8a"]};
+function dgParts(D,o){o=o||{};const u="dg"+(++dgUid),s=dgStage(D.lv),B=dgBr(D),[c0,c1,c2]=B.c,EY=DG_EYE[B.k]||DG_EYE.fire;
+  const st=`stroke="${DG_INK}" stroke-linejoin="round" stroke-linecap="round"`;
   const E={};dgEq(D).forEach(it=>E[it.s]=it);const sb=dgSetBonus(dgEq(D));
-  const gc=it=>it?dgSetOf(it.t).c:null,rc=it=>it?DG_R[it.r].c:null;
-  const k=[.7,.77,.84,.9,.95,1,1.04][s],wS=[.62,.76,.88,1,1.08,1.15,1.2][s],hS=[1.16,1.1,1.05,1,1,1,1][s],hL=[.25,.5,.72,.9,1,1.08,1.14][s];
-  const wrap=(inner,defs)=>`<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs||""}</defs><g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.6">${inner}</g></svg>`;
-  const grad=(id,a,b)=>`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
-  const defs=grad("b"+u,c0,c2)+grad("l"+u,"#ffffff",c1)+(E.head?grad("h"+u,gc(E.head),shade(gc(E.head),-.45)):"")+(E.body?grad("a"+u,gc(E.body),shade(gc(E.body),-.45)):"");
-  /* сияние: Владыка эпох или полный комплект */
-  let aura="";if(s>=5||sb.n>=5){const ac=sb.n>=5?dgSetOf(sb.k).c:c1;let r="";for(let i=0;i<16;i++){const a=i/16*Math.PI*2;r+=`M${(150+Math.cos(a-.08)*70).toFixed(1)} ${(140+Math.sin(a-.08)*70).toFixed(1)} L${(150+Math.cos(a)*(i%2?112:128)).toFixed(1)} ${(140+Math.sin(a)*(i%2?112:128)).toFixed(1)} L${(150+Math.cos(a+.08)*70).toFixed(1)} ${(140+Math.sin(a+.08)*70).toFixed(1)}Z `}
-    aura=`<svg viewBox="0 0 300 260" aria-hidden="true"><defs><radialGradient id="g${u}"><stop offset="0" stop-color="${ac}" stop-opacity=".75"/><stop offset="1" stop-color="${ac}" stop-opacity="0"/></radialGradient></defs><circle cx="150" cy="140" r="118" fill="url(#g${u})"/><path d="${r}" fill="${ac}" opacity=".38"/></svg>`}
-  /* хвост */
-  let tail=`<path d="M106 184 C72 204 40 198 34 172 C30 154 42 146 32 130" fill="none" stroke="${DG_INK}" stroke-width="24"/><path d="M106 184 C72 204 40 198 34 172 C30 154 42 146 32 130" fill="none" stroke="url(#b${u})" stroke-width="16"/>`;
-  tail+=`<path d="M32 132 L10 120 L30 108 L48 122 Z" fill="${c2}" ${st}/>`+[[70,196],[48,186],[36,160]].map(([x,y])=>`<path d="M${x} ${y-9} l-5 -10 l10 4 Z" fill="${c2}" ${st} stroke-width="2.5"/>`).join("");
-  /* крыло: плечо, кости, перепонка */
-  const wing=(back)=>{const gw=E.wings,mem=gw?gc(gw):back?shade(c2,.15):c1,ox=back?-16:0,oy=back?6:0;
-    return `<g transform="translate(${150+ox} ${124+oy}) scale(${wS}) translate(-150 -124)"><path d="M150 124 L130 66 L98 24 Q96 48 72 52 Q84 70 64 86 Q86 96 80 118 Q104 118 118 140 Z" fill="${back?shade(c2,-.1):c0}" ${st}/>
-     <path d="M130 66 Q100 50 76 54 Q88 70 70 86 Q90 96 86 114 Q104 116 116 132 Z" fill="${mem}" opacity="${back?.55:.85}"/>
-     <path d="M150 124 L130 66 L98 24 M130 66 L74 53 M130 66 L66 86 M130 66 L82 117" fill="none" stroke="${shade(c2,-.2)}" stroke-width="3"/>`+
-     (gw?`<path d="M150 124 L130 66 L98 24" fill="none" stroke="${DG_INK}" stroke-width="9"/><path d="M150 124 L130 66 L98 24" fill="none" stroke="${gc(gw)}" stroke-width="5"/><path d="M98 24 l-6 -10 l12 4 Z M130 66 l-8 -8 l12 0 Z" fill="${rc(gw)}" ${st} stroke-width="2.4"/>`:"")+`</g>`};
-  /* тело, ноги, шея, голова */
-  const clawC=E.claws?gc(E.claws):"#fff4dc";
-  const claws=(x,y)=>[0,1,2].map(i=>`<path d="M${x+i*9} ${y} l3 9 l4 -9 Z" fill="${clawC}" ${st} stroke-width="2.2"/>`).join("");
-  let b="";
-  b+=`<path d="M90 184 Q76 214 94 228 L124 228 Q128 206 118 188 Z" fill="url(#b${u})" ${st}/>`+claws(94,226);
-  b+=`<ellipse cx="140" cy="170" rx="66" ry="47" fill="url(#b${u})" ${st}/>`;
-  b+=`<path d="M78 172 Q84 214 140 217 Q102 206 94 172 Z" fill="#000" opacity=".16"/>`;
-  b+=`<path d="M110 150 Q150 134 190 158 Q196 200 152 214 Q114 212 106 182 Z" fill="url(#l${u})" ${st} stroke-width="3"/><path d="M112 168 Q150 158 190 172 M112 184 Q150 176 192 186 M118 200 Q150 194 184 200" fill="none" stroke="${shade(c1,-.25)}" stroke-width="2.5"/>`;
-  const nsp=3+s;for(let i=0;i<nsp;i++){const x=86+i*(92/Math.max(1,nsp-1)),y=170-47*Math.sqrt(Math.max(0,1-Math.pow((x-140)/66,2)));b+=`<path d="M${(x-7).toFixed(1)} ${(y+3).toFixed(1)} L${(x-3).toFixed(1)} ${(y-11-s*1.2).toFixed(1)} L${(x+7).toFixed(1)} ${(y+2).toFixed(1)} Z" fill="${c2}" ${st} stroke-width="2.6"/>`}
-  b+=`<path d="M164 188 Q178 214 172 228 L200 228 Q204 206 192 186 Z" fill="url(#b${u})" ${st}/>`+claws(174,226);
-  if(E.claws)b+=`<path d="M94 210 h26 M172 210 h26" stroke="${DG_INK}" stroke-width="9"/><path d="M94 210 h26 M172 210 h26" stroke="${gc(E.claws)}" stroke-width="5"/>`;
-  if(E.body)b+=`<path d="M118 150 Q152 136 186 158 Q190 186 152 198 Q122 194 114 172 Z" fill="url(#a${u})" ${st}/><path d="M120 166 Q152 156 186 170 M122 182 Q152 174 184 184" fill="none" stroke="${rc(E.body)}" stroke-width="3"/>${[[132,160],[170,162],[150,190]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3" fill="${rc(E.body)}" ${st} stroke-width="1.5"/>`).join("")}<path d="M150 150 Q170 146 184 156" fill="none" stroke="#fff" stroke-width="3" opacity=".6"/>`;
-  b+=`<path d="M158 142 Q174 102 196 90 L224 104 Q198 120 188 158 Z" fill="url(#b${u})" ${st}/><path d="M178 152 Q190 122 212 104 L220 110 Q200 126 190 154 Z" fill="url(#l${u})" opacity=".9"/>`;
-  if(E.amul)b+=`<path d="M184 110 Q198 134 216 116" fill="none" stroke="${DG_INK}" stroke-width="5"/><path d="M184 110 Q198 134 216 116" fill="none" stroke="#e8b33a" stroke-width="2.5"/>`+(E.amul.r>=3?`<circle cx="199" cy="130" r="14" fill="${rc(E.amul)}" opacity=".35"/>`:"")+`<circle cx="199" cy="130" r="8" fill="${rc(E.amul)}" ${st} stroke-width="2.5"/><circle cx="196" cy="127" r="2.6" fill="#fff"/>`;
-  /* голова */
-  const hx=214,hy=84,R=34*hS;
-  b+=`<g transform="translate(${hx} ${hy}) scale(${hS}) translate(${-hx} ${-hy})">`;
-  const hc=B.k==="gold"?"#ffe08a":B.k==="shadow"?"#c9b8e8":"#fff1d0";
-  const horn=(x,y,dx,dy,w)=>`<path d="M${x} ${y} C${(x+dx*.1).toFixed(1)} ${(y+dy*.55).toFixed(1)} ${(x+dx*.55).toFixed(1)} ${(y+dy*.95).toFixed(1)} ${(x+dx).toFixed(1)} ${(y+dy).toFixed(1)} C${(x+dx*.45+w).toFixed(1)} ${(y+dy*.6).toFixed(1)} ${(x+w+3).toFixed(1)} ${(y+dy*.25).toFixed(1)} ${x+w} ${y+4} Z" fill="${hc}" ${st} stroke-width="3"/><path d="M${(x+w*.35).toFixed(1)} ${(y+dy*.2).toFixed(1)} l6 -2 M${(x+dx*.25+w*.4).toFixed(1)} ${(y+dy*.5).toFixed(1)} l5 -2" stroke="${shade(hc,-.3)}" stroke-width="2"/>`;
-  b+=horn(192,64,-30*hL-6,-34*hL-6,17)+horn(214,56,-14*hL-4,-44*hL-8,17);
-  b+=`<path d="M186 74 L162 62 L176 90 Z" fill="${c2}" ${st}/>`;
-  b+=`<circle cx="${hx}" cy="${hy}" r="34" fill="url(#b${u})" ${st}/><ellipse cx="244" cy="98" rx="25" ry="17" fill="url(#b${u})" ${st}/>`;
-  b+=`<ellipse cx="246" cy="104" rx="17" ry="8" fill="url(#l${u})" opacity=".8"/><ellipse cx="258" cy="92" rx="2.6" ry="2" fill="${DG_INK}"/><ellipse cx="249" cy="90" rx="2.2" ry="1.8" fill="${DG_INK}"/>`;
-  b+=`<path d="M230 108 Q246 116 264 104" fill="none" ${st} stroke-width="3"/>`+(s>=3?`<path d="M240 110 l3 6 l3 -5 M252 109 l2 6 l3 -6" fill="#fff" ${st} stroke-width="1.8"/>`:"");
-  if(s<=1)b+=`<circle cx="226" cy="100" r="5" fill="#ff8a8a" opacity=".45"/>`;
-  if(s>=4)b+=horn(234,70,10,-16,10);
-  if(E.head)b+=`<path d="M182 78 Q182 46 214 44 Q246 46 248 76 Q232 66 214 66 Q196 66 182 78 Z" fill="url(#h${u})" ${st}/><path d="M184 74 Q214 60 246 72" fill="none" stroke="${rc(E.head)}" stroke-width="3"/>`+(E.head.r>=3?`<path d="M206 46 L214 24 L222 46 Z" fill="${rc(E.head)}" ${st} stroke-width="2.6"/>`:"")+(E.head.r>=5?`<ellipse cx="214" cy="30" rx="22" ry="6" fill="none" stroke="#ffd60a" stroke-width="3.5"/>`:"")+`<path d="M196 52 Q210 46 226 50" fill="none" stroke="#fff" stroke-width="3" opacity=".6"/>`;
-  if(s>=5&&!E.head)b+=`<path d="M196 54 L198 36 L206 46 L214 30 L222 46 L230 36 L232 54 Q214 48 196 54 Z" fill="#ffd60a" ${st} stroke-width="2.6"/><circle cx="214" cy="44" r="3" fill="#ff2e63"/>`;
-  const fierce=s>=3;
-  b+=`<g class="dg-eyes"><ellipse cx="197" cy="82" rx="6" ry="9" fill="#fff" ${st} stroke-width="2.4"/><circle cx="199" cy="83" r="3.6" fill="${DG_INK}"/><ellipse cx="220" cy="79" rx="11" ry="13" fill="#fff" ${st} stroke-width="3"/>`+
-     (s>=4?`<ellipse cx="223" cy="81" rx="6.5" ry="7.5" fill="#ffcc1a"/><ellipse cx="223" cy="81" rx="2.4" ry="6.5" fill="${DG_INK}"/>`:`<circle cx="223" cy="82" r="6.5" fill="${DG_INK}"/>`)+`<circle cx="226" cy="77" r="2.6" fill="#fff"/></g>`;
-  if(fierce)b+=`<path d="M208 66 L232 70 M190 70 L203 72" ${st} stroke-width="3.6"/>`;
-  b+=`</g>`;
-  const tailS=wrap(tail,defs),wB=wrap(wing(true),defs),body=wrap(b,defs),wF=wrap(wing(false),defs);
-  if(o.mini)return `<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs}${aura?`<radialGradient id="g${u}"><stop offset="0" stop-color="${sb.n>=5?dgSetOf(sb.k).c:c1}" stop-opacity=".7"/><stop offset="1" stop-color="${c1}" stop-opacity="0"/></radialGradient>`:""}</defs>${aura?`<circle cx="150" cy="140" r="110" fill="url(#g${u})"/>`:""}<g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.6">${tail}${wing(true)}${b}${wing(false)}</g></svg>`;
-  return {aura,tail:tailS,wB,body,wF}}
+  const gc=it=>it?dgSetOf(it.t).c:null,rc=it=>it?DG_R[it.r].c:null,f=n=>(+n).toFixed(1);
+  /* пропорции по стадиям: малыш — огромная голова и короткие лапки, взрослый — шея, рога и большие крылья */
+  const k=[.82,.84,.87,.91,.95,.99,1.02][s],hS=[1.3,1.18,1.08,1,.95,.93,.93][s],lift=[0,6,11,15,18,20,21][s],wS=[.5,.66,.82,.95,1.05,1.12,1.18][s],hL=[0,.45,.65,.82,.95,1.05,1.12][s];
+  const wrap=(inner)=>`<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs}</defs><g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.4">${inner}</g></svg>`;
+  const rg=(id,a,b,c,cx,cy)=>`<radialGradient id="${id}" cx="${cx||.35}" cy="${cy||.3}" r=".85"><stop offset="0" stop-color="${a}"/><stop offset=".55" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></radialGradient>`;
+  const lg=(id,a,b)=>`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+  const defs=rg("b"+u,shade(c0,.35),c0,c2)+lg("l"+u,shade(c1,.45),c1)+lg("w"+u,shade(c1,.25),shade(c0,.05))+`<radialGradient id="e${u}" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="${EY[0]}"/><stop offset=".5" stop-color="${EY[1]}"/><stop offset="1" stop-color="${EY[2]}"/></radialGradient>`+
+    (E.head?lg("h"+u,shade(gc(E.head),.3),shade(gc(E.head),-.4)):"")+(E.body?lg("a"+u,shade(gc(E.body),.3),shade(gc(E.body),-.4)):"");
+  /* сияние */
+  let aura="";if(s>=5||sb.n>=5){const ac=sb.n>=5?dgSetOf(sb.k).c:c1;let r="";for(let i=0;i<18;i++){const a=i/18*Math.PI*2;r+=`M${f(150+Math.cos(a-.07)*72)} ${f(132+Math.sin(a-.07)*72)} L${f(150+Math.cos(a)*(i%2?110:128))} ${f(132+Math.sin(a)*(i%2?110:128))} L${f(150+Math.cos(a+.07)*72)} ${f(132+Math.sin(a+.07)*72)}Z `}
+    aura=`<svg viewBox="0 0 300 260" aria-hidden="true"><defs><radialGradient id="g${u}"><stop offset="0" stop-color="${ac}" stop-opacity=".8"/><stop offset="1" stop-color="${ac}" stop-opacity="0"/></radialGradient></defs><circle cx="150" cy="132" r="120" fill="url(#g${u})"/><path d="${r}" fill="${ac}" opacity=".35"/></svg>`}
+  /* хвост: выходит справа и завивается, на конце сердечко-пика */
+  const tl=`M184 214 C222 224 252 210 250 182 C248 160 266 148 280 156`;
+  let tail=`<path d="${tl}" fill="none" stroke="${DG_INK}" stroke-width="${s?22:20}"/><path d="${tl}" fill="none" stroke="url(#b${u})" stroke-width="${s?15:13}"/><path d="M196 222 C222 228 244 216 246 194" fill="none" stroke="${shade(c1,.2)}" stroke-width="3" opacity=".6"/>`;
+  tail+=`<path d="M281 157 C265 146 268 128 281 132 C283 120 302 119 301 134 C300 147 291 153 281 157 Z" fill="${c2}" ${st} stroke-width="3"/><path d="M276 136 Q279 130 284 133" fill="none" stroke="#fff" stroke-width="2.4" opacity=".5"/>`+(s>=2?[[226,214],[248,196],[256,168]].map(([x,y])=>`<path d="M${x} ${y-8} l-2 -10 l9 5 Z" fill="${c2}" ${st} stroke-width="2.3"/>`).join(""):"");
+  /* крыло (правое, левое — зеркально) */
+  const wing=(side)=>{const gw=E.wings,sx=150+side*30,mem=gw?gc(gw):null;
+    const P=`M0 0 C8 -30 30 -62 64 -84 C60 -66 70 -56 86 -58 C76 -44 82 -30 96 -28 C84 -14 84 2 90 12 C62 6 32 12 8 26 Z`;
+    return `<g transform="translate(${sx} 152) scale(${side*wS} ${wS})"><path d="${P}" fill="url(#w${u})" ${st}/>${mem?`<path d="${P}" fill="${mem}" opacity=".45"/>`:""}
+      <path d="M8 26 C30 4 40 -12 46 -40 M46 -40 C60 -46 72 -52 86 -58 M46 -40 C66 -36 82 -32 96 -28 M46 -40 C62 -18 76 -2 90 12" fill="none" stroke="${shade(c0,-.15)}" stroke-width="2.6"/>
+      <path d="M0 0 C8 -30 30 -62 64 -84" fill="none" stroke="${gw?gc(gw):c0}" stroke-width="${gw?7:6}" stroke-linecap="round"/><path d="M0 0 C8 -30 30 -62 64 -84" fill="none" ${st} stroke-width="1.6" opacity=".0"/>
+      <circle cx="64" cy="-84" r="${gw?5:4}" fill="${gw?rc(gw):"#fff4dc"}" ${st} stroke-width="2.4"/></g>`};
+  /* тело */
+  const clawC=E.claws?gc(E.claws):"#fff7e6",cl=(x,y,dir)=>[-1,0,1].map(i=>`<path d="M${x+i*7-3} ${y} q3 ${dir*7} 6 0 Z" fill="${clawC}" ${st} stroke-width="2"/>`).join("");
+  let b="";const by=124-lift*.4;
+  b+=[-1,1].map(sd=>`<ellipse cx="${150+sd*48}" cy="212" rx="28" ry="24" fill="url(#b${u})" ${st}/><path d="M${150+sd*30} 200 Q${150+sd*48} 192 ${150+sd*66} 202" fill="none" stroke="${shade(c1,.3)}" stroke-width="3" opacity=".55"/>`).join("");
+  b+=`<path d="M150 ${f(by)} C196 ${f(by)} 214 190 206 222 Q150 244 94 222 C86 190 104 ${f(by)} 150 ${f(by)} Z" fill="url(#b${u})" ${st}/>`;
+  b+=`<path d="M150 ${f(by+20)} C178 ${f(by+20)} 190 182 184 218 Q150 232 116 218 C110 182 122 ${f(by+20)} 150 ${f(by+20)} Z" fill="url(#l${u})" ${st} stroke-width="2.6"/>`;
+  b+=[0,1,2,3].map(i=>{const y=by+38+i*15,w=30-Math.abs(i-1.5)*3;return `<path d="M${f(150-w)} ${f(y)} Q150 ${f(y+7)} ${f(150+w)} ${f(y)}" fill="none" stroke="${shade(c1,-.28)}" stroke-width="2.4"/>`}).join("");
+  b+=`<path d="M112 ${f(by+24)} Q104 180 112 214" fill="none" stroke="#fff" stroke-width="4" opacity=".35"/>`;
+  b+=[-1,1].map(sd=>`<ellipse cx="${150+sd*44}" cy="232" rx="20" ry="10" fill="url(#b${u})" ${st}/>`+cl(150+sd*44,238,1)).join("");
+  if(E.body)b+=`<path d="M150 ${f(by+16)} C182 ${f(by+16)} 194 176 188 206 Q150 220 112 206 C106 176 118 ${f(by+16)} 150 ${f(by+16)} Z" fill="url(#a${u})" ${st}/><path d="M118 ${f(by+40)} Q150 ${f(by+50)} 182 ${f(by+40)} M114 ${f(by+60)} Q150 ${f(by+70)} 186 ${f(by+60)}" fill="none" stroke="${rc(E.body)}" stroke-width="3"/>${[-24,0,24].map(x=>`<circle cx="${150+x}" cy="${f(by+30+Math.abs(x)*.2)}" r="3.4" fill="${rc(E.body)}" ${st} stroke-width="1.6"/>`).join("")}<path d="M128 ${f(by+24)} Q150 ${f(by+18)} 170 ${f(by+24)}" fill="none" stroke="#fff" stroke-width="3" opacity=".55"/>`;
+  /* лапки сложены на животике */
+  b+=[-1,1].map(sd=>`<path d="M${150+sd*40} ${f(by+30)} C${150+sd*46} ${f(by+56)} ${150+sd*34} ${f(by+74)} ${150+sd*16} ${f(by+76)} C${150+sd*10} ${f(by+68)} ${150+sd*18} ${f(by+60)} ${150+sd*24} ${f(by+52)} Z" fill="url(#b${u})" ${st}/><ellipse cx="${150+sd*15}" cy="${f(by+76)}" rx="10" ry="8" fill="url(#b${u})" ${st}/>`+cl(150+sd*15,by+82,1)).join("");
+  if(E.claws)b+=[-1,1].map(sd=>`<path d="M${150+sd*30} ${f(by+60)} l${sd*14} 6" stroke="${DG_INK}" stroke-width="8" stroke-linecap="round"/><path d="M${150+sd*30} ${f(by+60)} l${sd*14} 6" stroke="${gc(E.claws)}" stroke-width="4.5" stroke-linecap="round"/>`).join("");
+  /* шея */
+  const hy=96-lift;b+=`<path d="M124 ${f(by+14)} Q128 ${f(hy+22)} 136 ${f(hy+26)} L164 ${f(hy+26)} Q172 ${f(hy+22)} 176 ${f(by+14)} Z" fill="url(#b${u})" ${st}/><path d="M138 ${f(by+14)} Q140 ${f(hy+32)} 146 ${f(hy+30)} L154 ${f(hy+30)} Q160 ${f(hy+32)} 162 ${f(by+14)} Z" fill="url(#l${u})" opacity=".9"/>`;
+  if(E.amul)b+=`<path d="M132 ${f(hy+40)} Q150 ${f(hy+58)} 168 ${f(hy+40)}" fill="none" stroke="${DG_INK}" stroke-width="5"/><path d="M132 ${f(hy+40)} Q150 ${f(hy+58)} 168 ${f(hy+40)}" fill="none" stroke="#e8b33a" stroke-width="2.6"/>`+(E.amul.r>=3?`<circle cx="150" cy="${f(hy+56)}" r="15" fill="${rc(E.amul)}" opacity=".35"/>`:"")+`<path d="M150 ${f(hy+46)} l9 10 l-9 12 l-9 -12 Z" fill="${rc(E.amul)}" ${st} stroke-width="2.4"/><circle cx="147" cy="${f(hy+54)}" r="2.4" fill="#fff"/>`;
+  /* голова: рисуется вокруг (0,0) и масштабируется — у малыша она огромная */
+  let h="";const hc=B.k==="gold"?"#ffe9a8":B.k==="shadow"?"#d9c8f0":"#fff3dc";
+  h+=[-1,1].map(sd=>`<g transform="scale(${sd} 1)"><path d="M40 -6 C62 -20 78 -16 88 -26 C84 -6 72 8 46 12 Z" fill="url(#w${u})" ${st} stroke-width="2.8"/><path d="M46 4 L76 -14 M46 -2 L70 -18" stroke="${shade(c0,-.1)}" stroke-width="2"/></g>`).join("");
+  if(s===0)h+=[-1,1].map(sd=>`<path d="M${sd*14} -40 Q${sd*22} -58 ${sd*31} -39 Z" fill="${hc}" ${st} stroke-width="2.6"/>`).join("");
+  else h+=[-1,1].map(sd=>`<g transform="scale(${sd} 1)"><path d="M14 -36 C${f(16+10*hL)} ${f(-52-10*hL)} ${f(36+16*hL)} ${f(-62-14*hL)} ${f(54+22*hL)} ${f(-62-18*hL)} C${f(44+12*hL)} ${f(-52-10*hL)} 40 -44 34 -32 Z" fill="${hc}" ${st} stroke-width="2.8"/><path d="M22 -42 l7 -3 M${f(30+8*hL)} ${f(-52-8*hL)} l6 -3" stroke="${shade(hc,-.3)}" stroke-width="2"/></g>`).join("");
+  if(s>=4)h+=[-1,1].map(sd=>`<path d="M${sd*42} -20 l${sd*16} -6 l${sd*-10} 12 Z" fill="${hc}" ${st} stroke-width="2.4"/>`).join("");
+  h+=`<path d="M0 -46 C34 -46 54 -22 52 4 C50 26 30 38 0 38 C-30 38 -50 26 -52 4 C-54 -22 -34 -46 0 -46 Z" fill="url(#b${u})" ${st}/>`;
+  if(s>=2&&!E.head)h+=[-14,0,14].map(x=>`<path d="M${x-5} ${-44+Math.abs(x)*.12} L${x} ${-56+Math.abs(x)*.25} L${x+5} ${-44+Math.abs(x)*.12} Z" fill="${c2}" ${st} stroke-width="2.2"/>`).join("");
+  h+=`<path d="M-34 -30 Q-20 -42 -2 -42" fill="none" stroke="#fff" stroke-width="4" opacity=".45"/>`;
+  h+=`<path d="M0 6 C28 6 42 16 40 30 C38 44 20 52 0 52 C-20 52 -38 44 -40 30 C-42 16 -28 6 0 6 Z" fill="url(#l${u})" ${st} stroke-width="3"/>`;
+  h+=`<path d="M-11 24 q4 -5 8 0 M3 24 q4 -5 8 0" fill="none" ${st} stroke-width="2.6"/>`;
+  h+=`<path d="M-13 38 Q-6 45 0 39 Q6 45 13 38" fill="none" ${st} stroke-width="2.8"/>`+(s<3?`<path d="M5 40.5 l2.5 6 l2.5 -5 Z" fill="#fff" ${st} stroke-width="1.6"/>`:`<path d="M-11 39 l2 7 l3 -6 M8 39 l3 6 l2 -7" fill="#fff" ${st} stroke-width="1.6"/>`);
+  if(s<=2)h+=`<ellipse cx="-33" cy="20" rx="9" ry="5.5" fill="#ff7a9a" opacity=".5"/><ellipse cx="33" cy="20" rx="9" ry="5.5" fill="#ff7a9a" opacity=".5"/>`;
+  if(E.head)h+=`<path d="M-48 -10 C-44 -44 -20 -54 0 -54 C20 -54 44 -44 48 -10 C30 -24 -30 -24 -48 -10 Z" fill="url(#h${u})" ${st}/><path d="M-46 -12 C-28 -26 28 -26 46 -12" fill="none" stroke="${rc(E.head)}" stroke-width="3"/>`+(E.head.r>=3?`<path d="M-7 -52 L0 -74 L7 -52 Z" fill="${rc(E.head)}" ${st} stroke-width="2.4"/>`:"")+(E.head.r>=5?`<ellipse cx="0" cy="-70" rx="26" ry="6" fill="none" stroke="#ffd60a" stroke-width="3.5"/>`:"")+`<path d="M-26 -42 Q-10 -50 8 -48" fill="none" stroke="#fff" stroke-width="3" opacity=".6"/>`;
+  else if(s>=5)h+=`<path d="M-20 -42 L-20 -62 L-10 -52 L0 -68 L10 -52 L20 -62 L20 -42 Q0 -48 -20 -42 Z" fill="#ffd60a" ${st} stroke-width="2.6"/><circle cx="0" cy="-50" r="3.4" fill="#ff2e63"/>`;
+  /* глаза: большая радужка, зрачок, два блика, веко с ресничкой */
+  const eye=(sd)=>{const x=sd*21,y=-6,adult=s>=3;
+    return `<ellipse cx="${x}" cy="${y}" rx="${adult?15.5:17}" ry="${adult?15:19}" fill="#fff" ${st} stroke-width="2.6"/>`+
+     `<circle cx="${x+sd*1.2}" cy="${y+(adult?2:1)}" r="${adult?12:14.5}" fill="url(#e${u})"/><circle cx="${x+sd*1.2}" cy="${y+(adult?2:1)}" r="${adult?12:14.5}" fill="none" stroke="${EY[2]}" stroke-width="1.6"/>`+
+     (adult?`<ellipse cx="${x+sd*1.5}" cy="${y+2}" rx="3" ry="9" fill="${DG_INK}"/>`:`<circle cx="${x+sd*1.2}" cy="${y+2}" r="7.4" fill="${DG_INK}"/>`)+
+     `<circle cx="${x+sd*1.5+4.5}" cy="${y-4.5}" r="${adult?3.6:4.8}" fill="#fff"/><circle cx="${x+sd*1.5-4.5}" cy="${y+7}" r="${adult?1.6:2.2}" fill="#fff" opacity=".9"/>`+
+     (adult?"":`<path d="M${x+sd*1.5-1} ${y+11} q4 2 7 -1" fill="none" stroke="${EY[0]}" stroke-width="1.6" opacity=".8"/>`)+
+     `<path d="M${x-sd*(adult?15:16.5)} ${y-(adult?5:7)} Q${x} ${y-(adult?21:27)} ${x+sd*(adult?15.5:17)} ${y-(adult?6:7)}" fill="none" ${st} stroke-width="3"/><path d="M${x+sd*15.5} ${y-8} q${sd*5} -1 ${sd*7} -6 M${x+sd*11} ${y-(adult?14:16)} q${sd*3} -2 ${sd*4} -7" fill="none" ${st} stroke-width="2.2"/>`+
+     (adult?"":`<path d="M${x+sd*1.5+5} ${y+6} l1 2.4 l2.4 1 l-2.4 1 l-1 2.4 l-1 -2.4 l-2.4 -1 l2.4 -1 Z" fill="#fff" opacity=".85"/>`)};
+  h+=`<g class="dg-eyes">${eye(-1)}${eye(1)}</g>`;
+  if(s>=3)h+=`<path d="M-36 -28 Q-22 -32 -8 -24 M36 -28 Q22 -32 8 -24" fill="none" ${st} stroke-width="3.4"/>`;
+  b+=`<g transform="translate(150 ${f(hy)}) scale(${hS})">${h}</g>`;
+  const tailS=wrap(tail),wL=wrap(wing(-1)),wR=wrap(wing(1)),body=wrap(b);
+  if(o.mini)return `<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs}${aura?`<radialGradient id="g${u}"><stop offset="0" stop-color="${sb.n>=5?dgSetOf(sb.k).c:c1}" stop-opacity=".7"/><stop offset="1" stop-color="${c1}" stop-opacity="0"/></radialGradient>`:""}</defs>${aura?`<circle cx="150" cy="132" r="110" fill="url(#g${u})"/>`:""}<g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.4">${tail}${wing(-1)}${wing(1)}${b}</g></svg>`;
+  return {aura,tail:tailS,wL,wR,body}}
 function dgMini(D){return dgParts(D,{mini:1})}
-function dgStageHTML(D){const P=dgParts(D);return `<div class="dgf">${P.aura?`<div class="dgl dga">${P.aura}</div>`:""}<div class="dgl dgt">${P.tail}</div><div class="dgl dgwb">${P.wB}</div><div class="dgl dgb">${P.body}</div><div class="dgl dgwf">${P.wF}</div></div>`}
+function dgStageHTML(D){const P=dgParts(D);return `<div class="dgf">${P.aura?`<div class="dgl dga">${P.aura}</div>`:""}<div class="dgl dgt">${P.tail}</div><div class="dgl dgwl">${P.wL}</div><div class="dgl dgwr">${P.wR}</div><div class="dgl dgb">${P.body}</div></div>`}
 /* ---------- иконки снаряжения ---------- */
 function dgItemSVG(it){const c=dgSetOf(it.t).c,r=DG_R[it.r].c,id="di"+(++dgUid),st=`stroke="${DG_INK}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;
   const sh={head:`<path d="M10 40 Q10 14 32 12 Q54 14 54 40 Q44 34 32 34 Q20 34 10 40 Z" fill="url(#${id})" ${st}/><path d="M24 14 L32 2 L40 14 Z" fill="${r}" ${st}/><path d="M12 38 Q32 28 52 38" fill="none" stroke="${r}" stroke-width="3"/>`,
