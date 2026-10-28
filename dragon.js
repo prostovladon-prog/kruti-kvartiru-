@@ -9,79 +9,108 @@ const dgBr=D=>DG_BREED[D.b]||DG_BREED[0];
 /* ---------- рисунок дракона ---------- */
 /* цвет глаз у каждой породы */
 const DG_EYE={fire:["#fff3a0","#ff9f0a","#a34a00"],ice:["#d8f6ff","#3fb8ff","#0a4a9a"],swamp:["#eaffb0","#7fd23a","#2a6a10"],storm:["#f0e8ff","#b59bff","#4a2aa8"],shadow:["#ffd0ec","#ff4fa8","#7a0a4a"],gold:["#d8fbff","#2fc8ff","#0a5a9a"],star:["#fff0fa","#ff7ad9","#7a1a8a"]};
-function dgParts(D,o){o=o||{};const u="dg"+(++dgUid),s=dgStage(D.lv),B=dgBr(D),[c0,c1,c2]=B.c,EY=DG_EYE[B.k]||DG_EYE.fire;
+/* рисунок дракона. Слои: сияние, хвост, крылья, тело, голова — каждый можно анимировать отдельно.
+   Стадии 0–2 милые (круглые глаза, щёчки), 3–4 серьёзные (брови, зрачки-щели, лапы упёрты в землю), 5–6 опасные (горящие глаза, оскал, шипы, шрам) */
+function dgParts(D,o){o=o||{};const u="dg"+(++dgUid),s=dgStage(D.lv),B=dgBr(D),[c0r,c1,c2r]=B.c,EY=DG_EYE[B.k]||DG_EYE.fire;
+  const c0=s<=2?c0r:shade(c0r,-.07*(s-2)),c2=s<=2?c2r:shade(c2r,-.08*(s-2)),cute=s<=2,fierce=s>=3,deadly=s>=5;
   const st=`stroke="${DG_INK}" stroke-linejoin="round" stroke-linecap="round"`;
   const E={};dgEq(D).forEach(it=>E[it.s]=it);const sb=dgSetBonus(dgEq(D));
   const gc=it=>it?dgSetOf(it.t).c:null,rc=it=>it?DG_R[it.r].c:null,f=n=>(+n).toFixed(1);
-  /* пропорции по стадиям: малыш — огромная голова и короткие лапки, взрослый — шея, рога и большие крылья */
-  const k=[.82,.84,.87,.91,.95,.99,1.02][s],hS=[1.3,1.18,1.08,1,.95,.93,.93][s],lift=[0,6,11,15,18,20,21][s],wS=[.5,.66,.82,.95,1.05,1.12,1.18][s],hL=[0,.45,.65,.82,.95,1.05,1.12][s];
-  const wrap=(inner)=>`<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs}</defs><g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.4">${inner}</g></svg>`;
-  const rg=(id,a,b,c,cx,cy)=>`<radialGradient id="${id}" cx="${cx||.35}" cy="${cy||.3}" r=".85"><stop offset="0" stop-color="${a}"/><stop offset=".55" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></radialGradient>`;
-  const lg=(id,a,b)=>`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
-  const defs=rg("b"+u,shade(c0,.35),c0,c2)+lg("l"+u,shade(c1,.45),c1)+lg("w"+u,shade(c1,.25),shade(c0,.05))+`<radialGradient id="e${u}" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="${EY[0]}"/><stop offset=".5" stop-color="${EY[1]}"/><stop offset="1" stop-color="${EY[2]}"/></radialGradient>`+
-    (E.head?lg("h"+u,shade(gc(E.head),.3),shade(gc(E.head),-.4)):"")+(E.body?lg("a"+u,shade(gc(E.body),.3),shade(gc(E.body),-.4)):"");
+  const k=[.82,.83,.84,.84,.83,.82,.82][s],hS=[1.3,1.18,1.06,.98,.93,.92,.92][s],lift=[0,4,8,10,11,11,11][s],wS=[.5,.66,.82,.96,1.06,1.14,1.2][s],hL=[0,.45,.65,.85,1,1.12,1.2][s];
+  const G=(x,y)=>[150+(x-150)*k,150+(y-150)*k],P=(x,y)=>{const [X,Y]=G(x,y);return [+(X/3).toFixed(2),+(Y/2.6).toFixed(2)]};
+  const by=124-lift*.4,hy=96-lift,HP=(lx,ly)=>P(150+lx*hS,hy+ly*hS);
+  const rg=(id,a,b,c,d,cx,cy)=>`<radialGradient id="${id}" cx="${cx||.32}" cy="${cy||.26}" r=".9"><stop offset="0" stop-color="${a}"/><stop offset=".35" stop-color="${b}"/><stop offset=".75" stop-color="${c}"/><stop offset="1" stop-color="${d}"/></radialGradient>`;
+  const defs=rg("b"+u,shade(c0,.5),shade(c0,.14),c0,shade(c0,-.5))+rg("l"+u,shade(c1,.65),shade(c1,.25),c1,shade(c1,-.3),.42,.25)+rg("w"+u,shade(c1,.35),shade(c0,.15),shade(c0,-.05),shade(c0,-.4),.3,.2)+
+    `<radialGradient id="e${u}" cx=".45" cy=".38" r=".7"><stop offset="0" stop-color="${deadly?"#fff":EY[0]}"/><stop offset=".45" stop-color="${EY[1]}"/><stop offset="1" stop-color="${EY[2]}"/></radialGradient>`+
+    `<radialGradient id="k${u}" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#fffaf0"/><stop offset=".6" stop-color="${B.k==="gold"?"#ffe08a":B.k==="shadow"?"#cdb8ec":"#f3e2c4"}"/><stop offset="1" stop-color="${B.k==="shadow"?"#6a5a8a":"#a8865a"}"/></radialGradient>`+
+    `<filter id="s${u}" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.2"/></filter><filter id="q${u}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>`+
+    (E.head?rg("h"+u,shade(gc(E.head),.55),shade(gc(E.head),.15),gc(E.head),shade(gc(E.head),-.5)):"")+(E.body?rg("a"+u,shade(gc(E.body),.55),shade(gc(E.body),.15),gc(E.body),shade(gc(E.body),-.5)):"");
+  const wrap=inner=>`<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs}</defs><g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.4">${inner}</g></svg>`;
+  const gloss=(x,y,rx,ry,op)=>`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${rx}" ry="${ry}" fill="#fff" opacity="${op||.5}" filter="url(#s${u})"/>`;
+  const ao=(d,op)=>`<path d="${d}" fill="#000" opacity="${op||.3}" filter="url(#s${u})"/>`;
   /* сияние */
-  let aura="";if(s>=5||sb.n>=5){const ac=sb.n>=5?dgSetOf(sb.k).c:c1;let r="";for(let i=0;i<18;i++){const a=i/18*Math.PI*2;r+=`M${f(150+Math.cos(a-.07)*72)} ${f(132+Math.sin(a-.07)*72)} L${f(150+Math.cos(a)*(i%2?110:128))} ${f(132+Math.sin(a)*(i%2?110:128))} L${f(150+Math.cos(a+.07)*72)} ${f(132+Math.sin(a+.07)*72)}Z `}
-    aura=`<svg viewBox="0 0 300 260" aria-hidden="true"><defs><radialGradient id="g${u}"><stop offset="0" stop-color="${ac}" stop-opacity=".8"/><stop offset="1" stop-color="${ac}" stop-opacity="0"/></radialGradient></defs><circle cx="150" cy="132" r="120" fill="url(#g${u})"/><path d="${r}" fill="${ac}" opacity=".35"/></svg>`}
-  /* хвост: выходит справа и завивается, на конце сердечко-пика */
+  let aura="";if(deadly||sb.n>=5){const ac=sb.n>=5?dgSetOf(sb.k).c:(s>=6?"#ff3b1a":c1);let r="";for(let i=0;i<18;i++){const a=i/18*Math.PI*2;r+=`M${f(150+Math.cos(a-.07)*72)} ${f(132+Math.sin(a-.07)*72)} L${f(150+Math.cos(a)*(i%2?110:130))} ${f(132+Math.sin(a)*(i%2?110:130))} L${f(150+Math.cos(a+.07)*72)} ${f(132+Math.sin(a+.07)*72)}Z `}
+    aura=`<svg viewBox="0 0 300 260" aria-hidden="true"><defs><radialGradient id="g${u}"><stop offset="0" stop-color="${ac}" stop-opacity=".85"/><stop offset="1" stop-color="${ac}" stop-opacity="0"/></radialGradient></defs><circle cx="150" cy="132" r="124" fill="url(#g${u})"/><path d="${r}" fill="${ac}" opacity=".32"/></svg>`}
+  /* хвост */
   const tl=`M184 214 C222 224 252 210 250 182 C248 160 266 148 280 156`;
-  let tail=`<path d="${tl}" fill="none" stroke="${DG_INK}" stroke-width="${s?22:20}"/><path d="${tl}" fill="none" stroke="url(#b${u})" stroke-width="${s?15:13}"/><path d="M196 222 C222 228 244 216 246 194" fill="none" stroke="${shade(c1,.2)}" stroke-width="3" opacity=".6"/>`;
-  tail+=`<path d="M281 157 C265 146 268 128 281 132 C283 120 302 119 301 134 C300 147 291 153 281 157 Z" fill="${c2}" ${st} stroke-width="3"/><path d="M276 136 Q279 130 284 133" fill="none" stroke="#fff" stroke-width="2.4" opacity=".5"/>`+(s>=2?[[226,214],[248,196],[256,168]].map(([x,y])=>`<path d="M${x} ${y-8} l-2 -10 l9 5 Z" fill="${c2}" ${st} stroke-width="2.3"/>`).join(""):"");
-  /* крыло (правое, левое — зеркально) */
-  const wing=(side)=>{const gw=E.wings,sx=150+side*30,mem=gw?gc(gw):null;
-    const P=`M0 0 C8 -30 30 -62 64 -84 C60 -66 70 -56 86 -58 C76 -44 82 -30 96 -28 C84 -14 84 2 90 12 C62 6 32 12 8 26 Z`;
-    return `<g transform="translate(${sx} 152) scale(${side*wS} ${wS})"><path d="${P}" fill="url(#w${u})" ${st}/>${mem?`<path d="${P}" fill="${mem}" opacity=".45"/>`:""}
-      <path d="M8 26 C30 4 40 -12 46 -40 M46 -40 C60 -46 72 -52 86 -58 M46 -40 C66 -36 82 -32 96 -28 M46 -40 C62 -18 76 -2 90 12" fill="none" stroke="${shade(c0,-.15)}" stroke-width="2.6"/>
-      <path d="M0 0 C8 -30 30 -62 64 -84" fill="none" stroke="${gw?gc(gw):c0}" stroke-width="${gw?7:6}" stroke-linecap="round"/><path d="M0 0 C8 -30 30 -62 64 -84" fill="none" ${st} stroke-width="1.6" opacity=".0"/>
-      <circle cx="64" cy="-84" r="${gw?5:4}" fill="${gw?rc(gw):"#fff4dc"}" ${st} stroke-width="2.4"/></g>`};
+  let tail=`<path d="${tl}" fill="none" stroke="${DG_INK}" stroke-width="${fierce?24:20}"/><path d="${tl}" fill="none" stroke="url(#b${u})" stroke-width="${fierce?17:13}"/><path d="M196 220 C222 226 242 214 244 192" fill="none" stroke="#fff" stroke-width="3" opacity=".4"/>`;
+  tail+=fierce?`<path d="M281 157 L262 140 L280 128 L288 112 L296 132 L312 140 Z" fill="${c2}" ${st} stroke-width="3"/><path d="M272 138 L282 130" stroke="#fff" stroke-width="2" opacity=".4"/>`:`<path d="M281 157 C265 146 268 128 281 132 C283 120 302 119 301 134 C300 147 291 153 281 157 Z" fill="${c2}" ${st} stroke-width="3"/><path d="M276 136 Q279 130 284 133" fill="none" stroke="#fff" stroke-width="2.4" opacity=".5"/>`;
+  if(s>=2)tail+=[[226,214],[248,196],[256,168]].map(([x,y])=>`<path d="M${x} ${y-8} l-2 -${fierce?14:10} l${fierce?11:9} ${fierce?7:5} Z" fill="${c2}" ${st} stroke-width="2.3"/>`).join("");
+  /* крыло */
+  const wing=sd=>{const gw=E.wings,sx=150+sd*30,mem=gw?gc(gw):null;
+    const Pw=fierce?`M0 0 C8 -30 30 -62 64 -86 L66 -70 C70 -62 78 -58 90 -60 L84 -48 C82 -38 88 -32 100 -30 L90 -18 C86 -6 88 4 96 14 L80 10 C58 6 32 12 8 26 Z`:`M0 0 C8 -30 30 -62 64 -84 C60 -66 70 -56 86 -58 C76 -44 82 -30 96 -28 C84 -14 84 2 90 12 C62 6 32 12 8 26 Z`;
+    return `<g transform="translate(${sx} 152) scale(${sd*wS} ${wS})"><path d="${Pw}" fill="url(#w${u})" ${st}/>${mem?`<path d="${Pw}" fill="${mem}" opacity=".42"/>`:""}<path d="M14 18 C34 2 42 -14 48 -40 C60 -30 74 -16 88 6 C60 2 34 8 14 18 Z" fill="#000" opacity=".12"/>
+      <path d="M8 26 C30 4 40 -12 46 -40 M46 -40 C60 -46 72 -52 86 -58 M46 -40 C66 -36 82 -32 96 -28 M46 -40 C62 -18 76 -2 90 12" fill="none" stroke="${shade(c0,-.3)}" stroke-width="${fierce?3.4:2.6}"/>
+      <path d="M0 0 C8 -30 30 -62 64 -84" fill="none" stroke="${DG_INK}" stroke-width="${gw?10:9}" stroke-linecap="round"/><path d="M0 0 C8 -30 30 -62 64 -84" fill="none" stroke="${gw?gc(gw):c0}" stroke-width="${gw?6:5}" stroke-linecap="round"/><path d="M4 -8 C12 -34 30 -58 58 -78" fill="none" stroke="#fff" stroke-width="1.8" opacity=".5"/>
+      ${fierce?`<path d="M46 -40 l-6 -12 l12 6 Z M64 -84 l2 -14 l8 10 Z" fill="${gw?rc(gw):"#fff3dc"}" ${st} stroke-width="2.2"/>`:`<circle cx="64" cy="-84" r="${gw?5:4}" fill="${gw?rc(gw):"#fff4dc"}" ${st} stroke-width="2.4"/>`}</g>`};
+  /* когти */
+  const clawC=E.claws?gc(E.claws):null,cl=(x,y,big)=>[-1,0,1].map(i=>big?`<path d="M${f(x+i*8-3)} ${f(y-2)} q1 9 -3 13 q8 -2 9 -13 Z" fill="${clawC||"url(#k"+u+")"}" ${st} stroke-width="2"/>`:`<path d="M${f(x+i*7-3)} ${f(y)} q3 7 6 0 Z" fill="${clawC||"#fff7e6"}" ${st} stroke-width="2"/>`).join("");
   /* тело */
-  const clawC=E.claws?gc(E.claws):"#fff7e6",cl=(x,y,dir)=>[-1,0,1].map(i=>`<path d="M${x+i*7-3} ${y} q3 ${dir*7} 6 0 Z" fill="${clawC}" ${st} stroke-width="2"/>`).join("");
-  let b="";const by=124-lift*.4;
-  b+=[-1,1].map(sd=>`<ellipse cx="${150+sd*48}" cy="212" rx="28" ry="24" fill="url(#b${u})" ${st}/><path d="M${150+sd*30} 200 Q${150+sd*48} 192 ${150+sd*66} 202" fill="none" stroke="${shade(c1,.3)}" stroke-width="3" opacity=".55"/>`).join("");
-  b+=`<path d="M150 ${f(by)} C196 ${f(by)} 214 190 206 222 Q150 244 94 222 C86 190 104 ${f(by)} 150 ${f(by)} Z" fill="url(#b${u})" ${st}/>`;
+  let b="";
+  b+=`<ellipse cx="150" cy="238" rx="${fierce?84:70}" ry="9" fill="#000" opacity=".3" filter="url(#s${u})"/>`;
+  b+=[-1,1].map(sd=>`<ellipse cx="${150+sd*(fierce?52:48)}" cy="212" rx="${fierce?31:28}" ry="${fierce?26:24}" fill="url(#b${u})" ${st}/>${gloss(150+sd*(fierce?52:48)-8,200,12,6,.45)}`).join("");
+  const bw=fierce?62:56;b+=`<path d="M150 ${f(by)} C${150+bw-10} ${f(by)} ${150+bw+8} 190 ${150+bw} 222 Q150 244 ${150-bw} 222 C${150-bw-8} 190 ${150-bw+10} ${f(by)} 150 ${f(by)} Z" fill="url(#b${u})" ${st}/>`;
+  b+=`<path d="M${150+bw-6} ${f(by+30)} C${150+bw+4} 180 ${150+bw+2} 206 ${150+bw-6} 220" fill="none" stroke="#fff" stroke-width="3" opacity=".3"/>`;
   b+=`<path d="M150 ${f(by+20)} C178 ${f(by+20)} 190 182 184 218 Q150 232 116 218 C110 182 122 ${f(by+20)} 150 ${f(by+20)} Z" fill="url(#l${u})" ${st} stroke-width="2.6"/>`;
-  b+=[0,1,2,3].map(i=>{const y=by+38+i*15,w=30-Math.abs(i-1.5)*3;return `<path d="M${f(150-w)} ${f(y)} Q150 ${f(y+7)} ${f(150+w)} ${f(y)}" fill="none" stroke="${shade(c1,-.28)}" stroke-width="2.4"/>`}).join("");
-  b+=`<path d="M112 ${f(by+24)} Q104 180 112 214" fill="none" stroke="#fff" stroke-width="4" opacity=".35"/>`;
-  b+=[-1,1].map(sd=>`<ellipse cx="${150+sd*44}" cy="232" rx="20" ry="10" fill="url(#b${u})" ${st}/>`+cl(150+sd*44,238,1)).join("");
-  if(E.body)b+=`<path d="M150 ${f(by+16)} C182 ${f(by+16)} 194 176 188 206 Q150 220 112 206 C106 176 118 ${f(by+16)} 150 ${f(by+16)} Z" fill="url(#a${u})" ${st}/><path d="M118 ${f(by+40)} Q150 ${f(by+50)} 182 ${f(by+40)} M114 ${f(by+60)} Q150 ${f(by+70)} 186 ${f(by+60)}" fill="none" stroke="${rc(E.body)}" stroke-width="3"/>${[-24,0,24].map(x=>`<circle cx="${150+x}" cy="${f(by+30+Math.abs(x)*.2)}" r="3.4" fill="${rc(E.body)}" ${st} stroke-width="1.6"/>`).join("")}<path d="M128 ${f(by+24)} Q150 ${f(by+18)} 170 ${f(by+24)}" fill="none" stroke="#fff" stroke-width="3" opacity=".55"/>`;
-  /* лапки сложены на животике */
-  b+=[-1,1].map(sd=>`<path d="M${150+sd*40} ${f(by+30)} C${150+sd*46} ${f(by+56)} ${150+sd*34} ${f(by+74)} ${150+sd*16} ${f(by+76)} C${150+sd*10} ${f(by+68)} ${150+sd*18} ${f(by+60)} ${150+sd*24} ${f(by+52)} Z" fill="url(#b${u})" ${st}/><ellipse cx="${150+sd*15}" cy="${f(by+76)}" rx="10" ry="8" fill="url(#b${u})" ${st}/>`+cl(150+sd*15,by+82,1)).join("");
-  if(E.claws)b+=[-1,1].map(sd=>`<path d="M${150+sd*30} ${f(by+60)} l${sd*14} 6" stroke="${DG_INK}" stroke-width="8" stroke-linecap="round"/><path d="M${150+sd*30} ${f(by+60)} l${sd*14} 6" stroke="${gc(E.claws)}" stroke-width="4.5" stroke-linecap="round"/>`).join("");
+  b+=[0,1,2,3].map(i=>{const y=by+38+i*15,w=30-Math.abs(i-1.5)*3;return `<path d="M${f(150-w)} ${f(y)} Q150 ${f(y+7)} ${f(150+w)} ${f(y)}" fill="none" stroke="${shade(c1,-.35)}" stroke-width="2.4"/>`}).join("");
+  b+=gloss(138,by+42,12,18,.45);
+  if(deadly)b+=`<path d="M128 ${f(by+48)} L146 ${f(by+70)} M134 ${f(by+46)} L150 ${f(by+66)}" stroke="${shade(c1,.6)}" stroke-width="3" opacity=".9"/>`;
+  b+=ao(`M110 ${f(by+14)} Q150 ${f(by+40)} 190 ${f(by+14)} Q150 ${f(by+26)} 110 ${f(by+14)} Z`,.4);
+  b+=[-1,1].map(sd=>`<ellipse cx="${150+sd*44}" cy="232" rx="${fierce?23:20}" ry="10" fill="url(#b${u})" ${st}/>`+cl(150+sd*44,238,fierce)).join("");
+  if(fierce)b+=[-1,1].map(sd=>`<path d="M${150+sd*(bw-8)} ${f(by+8)} l${sd*4} -16 l${sd*10} 12 Z M${150+sd*(bw-20)} ${f(by+2)} l${sd*2} -12 l${sd*8} 9 Z" fill="${c2}" ${st} stroke-width="2.4"/>`).join("");
+  if(E.body)b+=`<path d="M150 ${f(by+16)} C182 ${f(by+16)} 194 176 188 206 Q150 220 112 206 C106 176 118 ${f(by+16)} 150 ${f(by+16)} Z" fill="url(#a${u})" ${st}/><path d="M118 ${f(by+40)} Q150 ${f(by+50)} 182 ${f(by+40)} M114 ${f(by+60)} Q150 ${f(by+70)} 186 ${f(by+60)}" fill="none" stroke="${rc(E.body)}" stroke-width="3"/>${[-24,0,24].map(x=>`<circle cx="${150+x}" cy="${f(by+30+Math.abs(x)*.2)}" r="3.4" fill="${rc(E.body)}" ${st} stroke-width="1.6"/>`).join("")}${gloss(136,by+30,14,7,.55)}`;
+  /* передние лапы: малыш держит их на животике, взрослый упирается в землю */
+  if(!fierce)b+=[-1,1].map(sd=>`<path d="M${150+sd*40} ${f(by+30)} C${150+sd*46} ${f(by+56)} ${150+sd*34} ${f(by+74)} ${150+sd*16} ${f(by+76)} C${150+sd*10} ${f(by+68)} ${150+sd*18} ${f(by+60)} ${150+sd*24} ${f(by+52)} Z" fill="url(#b${u})" ${st}/><ellipse cx="${150+sd*15}" cy="${f(by+76)}" rx="10" ry="8" fill="url(#b${u})" ${st}/>${gloss(150+sd*15-3,by+73,4,2.5,.6)}`+cl(150+sd*15,by+82,0)).join("");
+  else b+=[-1,1].map(sd=>ao(`M${150+sd*22} ${f(by+40)} C${150+sd*20} 190 ${150+sd*18} 214 ${150+sd*18} 226 L${150+sd*30} 226 Z`,.35)+`<path d="M${150+sd*54} ${f(by+16)} C${150+sd*62} ${f(by+46)} ${150+sd*50} 196 ${150+sd*44} 226 L${150+sd*16} 226 C${150+sd*18} 204 ${150+sd*22} ${f(by+54)} ${150+sd*28} ${f(by+26)} Z" fill="url(#b${u})" ${st}/><path d="M${150+sd*30} ${f(by+60)} Q${150+sd*40} ${f(by+66)} ${150+sd*50} ${f(by+58)}" fill="none" stroke="${shade(c0,-.35)}" stroke-width="2.4"/><path d="M${150+sd*50} ${f(by+28)} C${150+sd*56} ${f(by+56)} ${150+sd*48} 196 ${150+sd*42} 220" fill="none" stroke="#fff" stroke-width="2.6" opacity=".35"/><ellipse cx="${150+sd*30}" cy="230" rx="19" ry="9.5" fill="url(#b${u})" ${st}/>${gloss(150+sd*30-6,226,7,3,.5)}`+cl(150+sd*30,236,1)).join("");
+  if(E.claws)b+=[-1,1].map(sd=>fierce?`<path d="M${150+sd*12} 212 h${sd*20}" stroke="${DG_INK}" stroke-width="9" stroke-linecap="round"/><path d="M${150+sd*12} 212 h${sd*20}" stroke="${gc(E.claws)}" stroke-width="5" stroke-linecap="round"/>`:`<path d="M${150+sd*30} ${f(by+60)} l${sd*14} 6" stroke="${DG_INK}" stroke-width="8" stroke-linecap="round"/><path d="M${150+sd*30} ${f(by+60)} l${sd*14} 6" stroke="${gc(E.claws)}" stroke-width="4.5" stroke-linecap="round"/>`).join("");
   /* шея */
-  const hy=96-lift;b+=`<path d="M124 ${f(by+14)} Q128 ${f(hy+22)} 136 ${f(hy+26)} L164 ${f(hy+26)} Q172 ${f(hy+22)} 176 ${f(by+14)} Z" fill="url(#b${u})" ${st}/><path d="M138 ${f(by+14)} Q140 ${f(hy+32)} 146 ${f(hy+30)} L154 ${f(hy+30)} Q160 ${f(hy+32)} 162 ${f(by+14)} Z" fill="url(#l${u})" opacity=".9"/>`;
-  if(E.amul)b+=`<path d="M132 ${f(hy+40)} Q150 ${f(hy+58)} 168 ${f(hy+40)}" fill="none" stroke="${DG_INK}" stroke-width="5"/><path d="M132 ${f(hy+40)} Q150 ${f(hy+58)} 168 ${f(hy+40)}" fill="none" stroke="#e8b33a" stroke-width="2.6"/>`+(E.amul.r>=3?`<circle cx="150" cy="${f(hy+56)}" r="15" fill="${rc(E.amul)}" opacity=".35"/>`:"")+`<path d="M150 ${f(hy+46)} l9 10 l-9 12 l-9 -12 Z" fill="${rc(E.amul)}" ${st} stroke-width="2.4"/><circle cx="147" cy="${f(hy+54)}" r="2.4" fill="#fff"/>`;
-  /* голова: рисуется вокруг (0,0) и масштабируется — у малыша она огромная */
-  let h="";const hc=B.k==="gold"?"#ffe9a8":B.k==="shadow"?"#d9c8f0":"#fff3dc";
-  h+=[-1,1].map(sd=>`<g transform="scale(${sd} 1)"><path d="M40 -6 C62 -20 78 -16 88 -26 C84 -6 72 8 46 12 Z" fill="url(#w${u})" ${st} stroke-width="2.8"/><path d="M46 4 L76 -14 M46 -2 L70 -18" stroke="${shade(c0,-.1)}" stroke-width="2"/></g>`).join("");
-  if(s===0)h+=[-1,1].map(sd=>`<path d="M${sd*14} -40 Q${sd*22} -58 ${sd*31} -39 Z" fill="${hc}" ${st} stroke-width="2.6"/>`).join("");
-  else h+=[-1,1].map(sd=>`<g transform="scale(${sd} 1)"><path d="M14 -36 C${f(16+10*hL)} ${f(-52-10*hL)} ${f(36+16*hL)} ${f(-62-14*hL)} ${f(54+22*hL)} ${f(-62-18*hL)} C${f(44+12*hL)} ${f(-52-10*hL)} 40 -44 34 -32 Z" fill="${hc}" ${st} stroke-width="2.8"/><path d="M22 -42 l7 -3 M${f(30+8*hL)} ${f(-52-8*hL)} l6 -3" stroke="${shade(hc,-.3)}" stroke-width="2"/></g>`).join("");
-  if(s>=4)h+=[-1,1].map(sd=>`<path d="M${sd*42} -20 l${sd*16} -6 l${sd*-10} 12 Z" fill="${hc}" ${st} stroke-width="2.4"/>`).join("");
-  h+=`<path d="M0 -46 C34 -46 54 -22 52 4 C50 26 30 38 0 38 C-30 38 -50 26 -52 4 C-54 -22 -34 -46 0 -46 Z" fill="url(#b${u})" ${st}/>`;
-  if(s>=2&&!E.head)h+=[-14,0,14].map(x=>`<path d="M${x-5} ${-44+Math.abs(x)*.12} L${x} ${-56+Math.abs(x)*.25} L${x+5} ${-44+Math.abs(x)*.12} Z" fill="${c2}" ${st} stroke-width="2.2"/>`).join("");
-  h+=`<path d="M-34 -30 Q-20 -42 -2 -42" fill="none" stroke="#fff" stroke-width="4" opacity=".45"/>`;
-  h+=`<path d="M0 6 C28 6 42 16 40 30 C38 44 20 52 0 52 C-20 52 -38 44 -40 30 C-42 16 -28 6 0 6 Z" fill="url(#l${u})" ${st} stroke-width="3"/>`;
-  h+=`<path d="M-11 24 q4 -5 8 0 M3 24 q4 -5 8 0" fill="none" ${st} stroke-width="2.6"/>`;
-  h+=`<path d="M-13 38 Q-6 45 0 39 Q6 45 13 38" fill="none" ${st} stroke-width="2.8"/>`+(s<3?`<path d="M5 40.5 l2.5 6 l2.5 -5 Z" fill="#fff" ${st} stroke-width="1.6"/>`:`<path d="M-11 39 l2 7 l3 -6 M8 39 l3 6 l2 -7" fill="#fff" ${st} stroke-width="1.6"/>`);
-  if(s<=2)h+=`<ellipse cx="-33" cy="20" rx="9" ry="5.5" fill="#ff7a9a" opacity=".5"/><ellipse cx="33" cy="20" rx="9" ry="5.5" fill="#ff7a9a" opacity=".5"/>`;
-  if(E.head)h+=`<path d="M-48 -10 C-44 -44 -20 -54 0 -54 C20 -54 44 -44 48 -10 C30 -24 -30 -24 -48 -10 Z" fill="url(#h${u})" ${st}/><path d="M-46 -12 C-28 -26 28 -26 46 -12" fill="none" stroke="${rc(E.head)}" stroke-width="3"/>`+(E.head.r>=3?`<path d="M-7 -52 L0 -74 L7 -52 Z" fill="${rc(E.head)}" ${st} stroke-width="2.4"/>`:"")+(E.head.r>=5?`<ellipse cx="0" cy="-70" rx="26" ry="6" fill="none" stroke="#ffd60a" stroke-width="3.5"/>`:"")+`<path d="M-26 -42 Q-10 -50 8 -48" fill="none" stroke="#fff" stroke-width="3" opacity=".6"/>`;
-  else if(s>=5)h+=`<path d="M-20 -42 L-20 -62 L-10 -52 L0 -68 L10 -52 L20 -62 L20 -42 Q0 -48 -20 -42 Z" fill="#ffd60a" ${st} stroke-width="2.6"/><circle cx="0" cy="-50" r="3.4" fill="#ff2e63"/>`;
-  /* глаза: большая радужка, зрачок, два блика, веко с ресничкой */
-  const eye=(sd)=>{const x=sd*21,y=-6,adult=s>=3;
-    return `<ellipse cx="${x}" cy="${y}" rx="${adult?15.5:17}" ry="${adult?15:19}" fill="#fff" ${st} stroke-width="2.6"/>`+
-     `<circle cx="${x+sd*1.2}" cy="${y+(adult?2:1)}" r="${adult?12:14.5}" fill="url(#e${u})"/><circle cx="${x+sd*1.2}" cy="${y+(adult?2:1)}" r="${adult?12:14.5}" fill="none" stroke="${EY[2]}" stroke-width="1.6"/>`+
-     (adult?`<ellipse cx="${x+sd*1.5}" cy="${y+2}" rx="3" ry="9" fill="${DG_INK}"/>`:`<circle cx="${x+sd*1.2}" cy="${y+2}" r="7.4" fill="${DG_INK}"/>`)+
-     `<circle cx="${x+sd*1.5+4.5}" cy="${y-4.5}" r="${adult?3.6:4.8}" fill="#fff"/><circle cx="${x+sd*1.5-4.5}" cy="${y+7}" r="${adult?1.6:2.2}" fill="#fff" opacity=".9"/>`+
-     (adult?"":`<path d="M${x+sd*1.5-1} ${y+11} q4 2 7 -1" fill="none" stroke="${EY[0]}" stroke-width="1.6" opacity=".8"/>`)+
-     `<path d="M${x-sd*(adult?15:16.5)} ${y-(adult?5:7)} Q${x} ${y-(adult?21:27)} ${x+sd*(adult?15.5:17)} ${y-(adult?6:7)}" fill="none" ${st} stroke-width="3"/><path d="M${x+sd*15.5} ${y-8} q${sd*5} -1 ${sd*7} -6 M${x+sd*11} ${y-(adult?14:16)} q${sd*3} -2 ${sd*4} -7" fill="none" ${st} stroke-width="2.2"/>`+
-     (adult?"":`<path d="M${x+sd*1.5+5} ${y+6} l1 2.4 l2.4 1 l-2.4 1 l-1 2.4 l-1 -2.4 l-2.4 -1 l2.4 -1 Z" fill="#fff" opacity=".85"/>`)};
+  b+=`<path d="M124 ${f(by+14)} Q128 ${f(hy+22)} 136 ${f(hy+26)} L164 ${f(hy+26)} Q172 ${f(hy+22)} 176 ${f(by+14)} Z" fill="url(#b${u})" ${st}/><path d="M138 ${f(by+14)} Q140 ${f(hy+32)} 146 ${f(hy+30)} L154 ${f(hy+30)} Q160 ${f(hy+32)} 162 ${f(by+14)} Z" fill="url(#l${u})" opacity=".9"/>`;
+  if(E.amul)b+=`<path d="M132 ${f(hy+40)} Q150 ${f(hy+58)} 168 ${f(hy+40)}" fill="none" stroke="${DG_INK}" stroke-width="5"/><path d="M132 ${f(hy+40)} Q150 ${f(hy+58)} 168 ${f(hy+40)}" fill="none" stroke="#e8b33a" stroke-width="2.6"/>`+(E.amul.r>=3?`<circle cx="150" cy="${f(hy+56)}" r="15" fill="${rc(E.amul)}" opacity=".45" filter="url(#s${u})"/>`:"")+`<path d="M150 ${f(hy+46)} l9 10 l-9 12 l-9 -12 Z" fill="${rc(E.amul)}" ${st} stroke-width="2.4"/><circle cx="147" cy="${f(hy+54)}" r="2.4" fill="#fff"/>`;
+  /* голова (вокруг 0,0) */
+  let h="";const hornF=`url(#k${u})`;
+  h+=ao(`M-40 30 Q0 62 40 30 Q0 50 -40 30 Z`,.0);
+  h+=[-1,1].map(sd=>`<g transform="scale(${sd} 1)"><path d="${fierce?"M40 -6 L66 -22 L76 -14 L92 -30 L86 -6 L74 4 L46 12 Z":"M40 -6 C62 -20 78 -16 88 -26 C84 -6 72 8 46 12 Z"}" fill="url(#w${u})" ${st} stroke-width="2.8"/><path d="M46 4 L76 -14 M46 -2 L70 -18" stroke="${shade(c0,-.25)}" stroke-width="2"/></g>`).join("");
+  if(s===0)h+=[-1,1].map(sd=>`<path d="M${sd*14} -40 Q${sd*22} -58 ${sd*31} -39 Z" fill="${hornF}" ${st} stroke-width="2.6"/>`).join("");
+  else h+=[-1,1].map(sd=>`<g transform="scale(${sd} 1)"><path d="M14 -36 C${f(16+10*hL)} ${f(-52-10*hL)} ${f(36+16*hL)} ${f(-62-14*hL)} ${f(54+24*hL)} ${f(-62-20*hL)} C${f(44+12*hL)} ${f(-52-10*hL)} 40 -44 34 -32 Z" fill="${hornF}" ${st} stroke-width="2.8"/>${[.25,.45,.65].map(t=>`<path d="M${f(18+t*(36+20*hL))} ${f(-40-t*(22+16*hL))} l${f(5+t*3)} 3" stroke="#7a5a3a" stroke-width="1.8" opacity=".6"/>`).join("")}${deadly?`<path d="M30 -38 C40 -58 56 -70 70 -74" fill="none" stroke="#fff" stroke-width="2" opacity=".5"/>`:""}</g>`).join("");
+  if(s>=4)h+=[-1,1].map(sd=>`<path d="M${sd*42} -18 l${sd*20} -8 l${sd*-12} 15 Z M${sd*46} 4 l${sd*16} 2 l${sd*-14} 8 Z" fill="${hornF}" ${st} stroke-width="2.3"/>`).join("");
+  h+=`<path d="${fierce?"M0 -46 C36 -46 56 -24 54 2 C52 22 38 34 0 36 C-38 34 -52 22 -54 2 C-56 -24 -36 -46 0 -46 Z":"M0 -46 C34 -46 54 -22 52 4 C50 26 30 38 0 38 C-30 38 -50 26 -52 4 C-54 -22 -34 -46 0 -46 Z"}" fill="url(#b${u})" ${st}/>`;
+  h+=gloss(-22,-30,16,9,.55)+`<path d="M44 -12 C50 0 48 14 40 24" fill="none" stroke="#fff" stroke-width="2.6" opacity=".3"/>`;
+  if(s>=2&&!E.head)h+=(deadly?[-24,-12,0,12,24]:[-14,0,14]).map(x=>`<path d="M${x-5} ${-44+Math.abs(x)*.12} L${x} ${-(fierce?62:56)+Math.abs(x)*.3} L${x+5} ${-44+Math.abs(x)*.12} Z" fill="${c2}" ${st} stroke-width="2.2"/>`).join("");
+  /* морда */
+  const mz=fierce?`M0 4 C30 4 46 14 44 32 C42 50 22 60 0 60 C-22 60 -42 50 -44 32 C-46 14 -30 4 0 4 Z`:`M0 6 C28 6 42 16 40 30 C38 44 20 52 0 52 C-20 52 -38 44 -40 30 C-42 16 -28 6 0 6 Z`;
+  h+=ao(fierce?`M-34 8 Q0 -4 34 8 Q0 2 -34 8 Z`:`M-30 10 Q0 0 30 10 Q0 4 -30 10 Z`,.35)+`<path d="${mz}" fill="url(#l${u})" ${st} stroke-width="3"/>`+gloss(-12,14,12,5,.6);
+  h+=fierce?`<path d="M-14 22 q5 -6 10 0 M4 22 q5 -6 10 0" fill="none" ${st} stroke-width="3"/><ellipse cx="-9" cy="23" rx="2.6" ry="1.6" fill="${DG_INK}"/><ellipse cx="9" cy="23" rx="2.6" ry="1.6" fill="${DG_INK}"/>`:`<path d="M-11 24 q4 -5 8 0 M3 24 q4 -5 8 0" fill="none" ${st} stroke-width="2.6"/>`;
+  if(cute)h+=`<path d="M-13 38 Q-6 45 0 39 Q6 45 13 38" fill="none" ${st} stroke-width="2.8"/><path d="M5 40.5 l2.5 6 l2.5 -5 Z" fill="#fff" ${st} stroke-width="1.6"/>`;
+  else if(!deadly)h+=`<path d="M-24 40 Q0 50 24 40" fill="none" ${st} stroke-width="3"/><path d="M-16 42 l3 9 l4 -8 M12 42 l4 8 l3 -9" fill="#fff" ${st} stroke-width="1.8"/>`;
+  else h+=`<path d="M-28 38 Q0 32 28 38 Q22 54 0 56 Q-22 54 -28 38 Z" fill="#3a0610" ${st} stroke-width="3"/><path d="M-6 50 Q0 46 6 50" fill="none" stroke="#c8344a" stroke-width="4"/><path d="M-24 39 l4 10 l4 -8 M-12 37 l3 8 l3 -8 M6 37 l3 8 l3 -8 M18 38 l4 8 l3 -9" fill="#fff" ${st} stroke-width="1.6"/><path d="M-18 54 l3 -7 l3 6 M12 54 l3 -6 l3 7" fill="#fff" ${st} stroke-width="1.6"/>`;
+  if(s<=1)h+=`<ellipse cx="-33" cy="20" rx="9" ry="5.5" fill="#ff7a9a" opacity=".55" filter="url(#s${u})"/><ellipse cx="33" cy="20" rx="9" ry="5.5" fill="#ff7a9a" opacity=".55" filter="url(#s${u})"/>`;
+  if(E.head)h+=`<path d="M-48 -10 C-44 -44 -20 -54 0 -54 C20 -54 44 -44 48 -10 C30 -24 -30 -24 -48 -10 Z" fill="url(#h${u})" ${st}/><path d="M-46 -12 C-28 -26 28 -26 46 -12" fill="none" stroke="${rc(E.head)}" stroke-width="3"/>`+(E.head.r>=3?`<path d="M-7 -52 L0 -74 L7 -52 Z" fill="${rc(E.head)}" ${st} stroke-width="2.4"/>`:"")+(E.head.r>=5?`<ellipse cx="0" cy="-70" rx="26" ry="6" fill="none" stroke="#ffd60a" stroke-width="3.5"/>`:"")+gloss(-18,-40,14,5,.7);
+  else if(s>=5)h+=`<path d="M-20 -44 L-22 -66 L-10 -54 L0 -72 L10 -54 L22 -66 L20 -44 Q0 -50 -20 -44 Z" fill="#ffd60a" ${st} stroke-width="2.6"/><circle cx="0" cy="-52" r="3.6" fill="#ff2e63"/>${gloss(-8,-58,6,3,.8)}`;
+  /* глаза */
+  const glowC=s>=6?"#ff3b1a":EY[1];
+  const eye=sd=>{const x=sd*21,y=-6;
+    if(cute)return `<ellipse cx="${x}" cy="${y}" rx="17" ry="19" fill="#fff" ${st} stroke-width="2.6"/><circle cx="${x+sd*1.2}" cy="${y+1}" r="14.5" fill="url(#e${u})"/><circle cx="${x+sd*1.2}" cy="${y+1}" r="14.5" fill="none" stroke="${EY[2]}" stroke-width="1.6"/><circle cx="${x+sd*1.2}" cy="${y+2}" r="7.4" fill="${DG_INK}"/><circle cx="${x+sd*1.2+4.5}" cy="${y-4.5}" r="4.8" fill="#fff"/><circle cx="${x+sd*1.2-4.5}" cy="${y+7}" r="2.2" fill="#fff" opacity=".9"/><path d="M${x+sd*1.2+5} ${y+6} l1 2.4 l2.4 1 l-2.4 1 l-1 2.4 l-1 -2.4 l-2.4 -1 l2.4 -1 Z" fill="#fff" opacity=".85"/><path d="M${x-sd*16.5} ${y-7} Q${x} ${y-27} ${x+sd*17} ${y-7}" fill="none" ${st} stroke-width="3"/><path d="M${x+sd*15.5} ${y-8} q${sd*5} -1 ${sd*7} -6 M${x+sd*11} ${y-16} q${sd*3} -2 ${sd*4} -7" fill="none" ${st} stroke-width="2.2"/>`;
+    const ry=deadly?11:13,lidIn=deadly?2:-3;
+    return (s>=4?`<ellipse cx="${x}" cy="${y}" rx="18" ry="14" fill="${glowC}" opacity=".7" filter="url(#q${u})"/>`:"")+
+     `<path d="M${x-sd*15} ${y+lidIn} Q${x-sd*2} ${y-ry-2} ${x+sd*15} ${y-ry+3} Q${x+sd*16} ${y+8} ${x} ${y+ry-1} Q${x-sd*13} ${y+8} ${x-sd*15} ${y+lidIn} Z" fill="${deadly?"url(#e"+u+")":"#fff"}" ${st} stroke-width="2.6"/>`+
+     (deadly?"":`<circle cx="${x+sd*1}" cy="${y+1}" r="10.5" fill="url(#e${u})"/>`)+`<ellipse cx="${x+sd*1}" cy="${y+1}" rx="${s>=4?2.4:3.4}" ry="${deadly?9:8}" fill="${DG_INK}"/><circle cx="${x+sd*1+4}" cy="${y-3}" r="${deadly?2.2:3}" fill="#fff"/>`+
+     `<path d="M${x-sd*19} ${y+lidIn+(deadly?1:3)} L${x+sd*17} ${y-ry-(deadly?6:3)} L${x+sd*20} ${y-ry-(deadly?12:8)} L${x-sd*20} ${y+lidIn-(deadly?8:5)} Z" fill="${c2}" ${st} stroke-width="2.6"/>`+
+     (deadly&&sd<0?`<path d="M${x-8} ${y-20} L${x+6} ${y+16}" stroke="${shade(c1,.6)}" stroke-width="3" opacity=".9"/>`:"")};
   h+=`<g class="dg-eyes">${eye(-1)}${eye(1)}</g>`;
-  if(s>=3)h+=`<path d="M-36 -28 Q-22 -32 -8 -24 M36 -28 Q22 -32 8 -24" fill="none" ${st} stroke-width="3.4"/>`;
-  b+=`<g transform="translate(150 ${f(hy)}) scale(${hS})">${h}</g>`;
-  const tailS=wrap(tail),wL=wrap(wing(-1)),wR=wrap(wing(1)),body=wrap(b);
-  if(o.mini)return `<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs}${aura?`<radialGradient id="g${u}"><stop offset="0" stop-color="${sb.n>=5?dgSetOf(sb.k).c:c1}" stop-opacity=".7"/><stop offset="1" stop-color="${c1}" stop-opacity="0"/></radialGradient>`:""}</defs>${aura?`<circle cx="150" cy="132" r="110" fill="url(#g${u})"/>`:""}<g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.4">${tail}${wing(-1)}${wing(1)}${b}</g></svg>`;
-  return {aura,tail:tailS,wL,wR,body}}
+  const head=`<g transform="translate(150 ${f(hy)}) scale(${hS})">${h}</g>`;
+  const pts={nose:[HP(-9,22),HP(9,22)],mouth:HP(0,fierce?46:42),neck:P(150,hy+34*hS),eyes:[HP(-21,-6),HP(21,-6)],glow:s>=5?glowC:null,s};
+  if(o.mini)return `<svg viewBox="0 0 300 260" aria-hidden="true"><defs>${defs}${aura?`<radialGradient id="g${u}"><stop offset="0" stop-color="${sb.n>=5?dgSetOf(sb.k).c:(s>=6?"#ff3b1a":c1)}" stop-opacity=".75"/><stop offset="1" stop-color="${c1}" stop-opacity="0"/></radialGradient>`:""}</defs>${aura?`<circle cx="150" cy="132" r="112" fill="url(#g${u})"/>`:""}<g transform="translate(150 150) scale(${k}) translate(-150 -150)" stroke-width="3.4">${tail}${wing(-1)}${wing(1)}${b}${head}</g></svg>`;
+  return {aura,tail:wrap(tail),wL:wrap(wing(-1)),wR:wrap(wing(1)),body:wrap(b),head:wrap(head),pts}}
 function dgMini(D){return dgParts(D,{mini:1})}
-function dgStageHTML(D){const P=dgParts(D);return `<div class="dgf">${P.aura?`<div class="dgl dga">${P.aura}</div>`:""}<div class="dgl dgt">${P.tail}</div><div class="dgl dgwl">${P.wL}</div><div class="dgl dgwr">${P.wR}</div><div class="dgl dgb">${P.body}</div></div>`}
+/* сцена: слои + живые эффекты (дым из ноздрей, искры, горящие глаза) — только transform и opacity */
+function dgStageHTML(D){const P=dgParts(D),T=P.pts,pc=a=>`left:${a[0]}%;top:${a[1]}%`;let fx="";
+  if(T.s>=2)fx+=T.nose.map((n,i)=>`<i class="dgsm" style="${pc(n)};animation-delay:${i*1.3}s"></i>`).join("");
+  if(T.s>=5)for(let i=0;i<7;i++)fx+=`<i class="dgem" style="left:${12+i*12}%;animation-delay:${-(i*.7).toFixed(1)}s;--dx:${(i%2?1:-1)*(8+i*3)}px"></i>`;
+  if(T.glow)fx+=T.eyes.map(e=>`<i class="dgeg" style="${pc(e)};--gc:${T.glow}"></i>`).join("");
+  return `<div class="dgf s${T.s}" data-mouth="${T.mouth.join(",")}">${P.aura?`<div class="dgl dga">${P.aura}</div>`:""}<div class="dgl dgt">${P.tail}</div><div class="dgl dgwl">${P.wL}</div><div class="dgl dgwr">${P.wR}</div><div class="dgl dgb">${P.body}</div><div class="dgl dghd" style="transform-origin:${T.neck[0]}% ${T.neck[1]}%">${P.head}<div class="dgfx">${fx}</div></div></div>`}
+/* огонь по тапу: детёныш пыхтит облачком, взрослый выдыхает пламя */
+function dgBreath(){const f=document.querySelector("#dg-stage .dgf");if(!f)return;const m=(f.dataset.mouth||"50,50").split(",").map(Number),s=+(f.className.match(/s(\d)/)||[0,0])[1];
+  const e=document.createElement("i");e.className=s>=3?"dgfire":"dgpuff";e.style.left=m[0]+"%";e.style.top=m[1]+"%";f.querySelector(".dghd").appendChild(e);setTimeout(()=>e.remove(),s>=3?900:1100)}
 /* ---------- иконки снаряжения ---------- */
 function dgItemSVG(it){const c=dgSetOf(it.t).c,r=DG_R[it.r].c,id="di"+(++dgUid),st=`stroke="${DG_INK}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;
   const sh={head:`<path d="M10 40 Q10 14 32 12 Q54 14 54 40 Q44 34 32 34 Q20 34 10 40 Z" fill="url(#${id})" ${st}/><path d="M24 14 L32 2 L40 14 Z" fill="${r}" ${st}/><path d="M12 38 Q32 28 52 38" fill="none" stroke="${r}" stroke-width="3"/>`,
@@ -145,7 +174,7 @@ function dgUpd(D,I){I=I||dgInfo(D);const B=dgBr(D);
   document.querySelectorAll("#dg-seg [data-d]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d===dgSub))}
 /* ---------- ласка: тапы копятся и уходят на сервер пачкой ---------- */
 function dgPet(e){const D=dgOf();if(!D)return;if((D.tp||0)+dgPend>=DG.tapCap){toast("Дракон довольно мурчит — на сегодня ласки хватит 💜");return}
-  dgPend++;hap("light");const st=$("dg-stage"),f=st.querySelector(".dgf");if(f){f.classList.remove("hop");void f.offsetWidth;f.classList.add("hop")}
+  dgPend++;hap("light");const st=$("dg-stage"),f=st.querySelector(".dgf");if(f){f.classList.remove("hop");void f.offsetWidth;f.classList.add("hop")}if(dgPend%4===1)dgBreath();
   if(dgHearts<6){dgHearts++;const r=st.getBoundingClientRect(),h=document.createElement("span");h.className="dgh1";h.textContent=Math.random()<.3?"✨":"💜";h.style.left=((e&&e.clientX?e.clientX-r.left:r.width/2)-10)+"px";h.style.top=((e&&e.clientY?e.clientY-r.top:r.height/2)-14)+"px";h.style.setProperty("--dx",(Math.random()*40-20)+"px");$("dg-hs").appendChild(h);setTimeout(()=>{h.remove();dgHearts--},900)}
   try{sfx.tick(Math.random()<.5)}catch(x){}$("dg-tp").textContent=Math.min(DG.tapCap,(D.tp||0)+dgPend)+" / "+DG.tapCap;
   clearTimeout(dgFlushT);dgFlushT=setTimeout(dgFlush,1100)}
@@ -233,5 +262,5 @@ CHEST_COL.dg_nest=["#c9e86b","#3a5a14","#8fd03a"];CHEST_COL.dg_royal=["#ffd27a",
 {const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{renderDragon()}catch(e){console.error(e)}}}
 setInterval(()=>{try{const D=dgOf();if(D&&!$("sec-dragon").hidden&&$("dg-stage"))dgUpd(D);dgNav()}catch(e){}},15000);
 /* моргание: раз в несколько секунд, без постоянной анимации */
-setInterval(()=>{const e=document.querySelector("#dg-stage .dgb");if(!e||document.hidden)return;e.classList.add("blink");setTimeout(()=>e.classList.remove("blink"),180)},4200);
+setInterval(()=>{const e=document.querySelector("#dg-stage .dghd");if(!e||document.hidden)return;e.classList.add("blink");setTimeout(()=>e.classList.remove("blink"),180)},4200);
 try{dgNav()}catch(e){}
