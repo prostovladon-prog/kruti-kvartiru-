@@ -152,7 +152,7 @@ function renderDragon(){const R=$("dg-root");if(!R||!S)return;dgNav();if($("sec-
     <div class="dgsat"><div><span>🍖 Сытость</span><b id="dg-satn"></b></div><div class="dgbar sat"><i id="dg-sat"></i></div><div><span>💜 Ласка сегодня</span><b id="dg-tp"></b></div></div>
     <div class="dgact"><button type="button" id="dg-feed"><i>🍖</i><b>Покормить</b><small id="dg-feed-t"></small></button><button type="button" id="dg-gift"><i>🎁</i><b>Дар дракона</b><small id="dg-gift-t"></small></button><button type="button" id="dg-nest"><i>🪺</i><b>Гнездо</b><small id="dg-nest-t"></small></button></div>
     <div class="dgbuff" id="dg-buff"></div>
-    <div class="subnav dgseg" id="dg-seg"><button type="button" data-d="gear">🛡 Вещи</button><button type="button" data-d="chest">🎁 Сундуки</button><button type="button" data-d="top">🏆 Топ</button><button type="button" data-d="how">📜 Рост</button></div>
+    <div class="dgseg" id="dg-seg"><button type="button" data-d="gear">🛡 Вещи</button><button type="button" data-d="chest">🎁 Сундуки</button><button type="button" data-d="top">🏆 Топ</button><button type="button" data-d="how">📜 Рост</button></div>
     <div id="dg-sub"></div>
     <button type="button" class="craftbtn dgbrag" id="dg-brag">📣 Похвастаться драконом</button></div>`;
     $("dg-stage").onclick=dgPet;$("dg-name").onclick=dgRename;$("dg-feed").onclick=dgFeedSheet;$("dg-gift").onclick=dgGift;$("dg-nest").onclick=dgNest;$("dg-brag").onclick=dgBrag;
@@ -200,7 +200,7 @@ function dgSubDraw(){const el=$("dg-sub"),D=dgOf();if(!el||!D)return;document.qu
     el.innerHTML='<div class="dgslots">'+DG_SLOT.map(S2=>{const it=eq.find(x=>x.s===S2.k);return '<div class="dgsl">'+(it?dgItemTile(it):'<div class="dgi empty"><i>'+S2.ic+'</i></div>')+'<small>'+S2.n+'</small></div>'}).join("")+'</div>'+
      '<div class="dgset'+(sb.b?" on":"")+'">'+(sb.k?dgSetOf(sb.k).ic+' Комплект '+dgSetOf(sb.k).n+': <b>'+sb.n+'/5</b> · '+(sb.n>=5?'<b>+25% мощи и сияние!</b>':sb.n>=3?'<b>+10% мощи</b> (5/5 — +25% и сияние)':'3 предмета — +10%, 5 — +25% и сияние'):'Надень 3 предмета одного комплекта — +10% мощи, 5 — +25% и сияние')+'</div>'+
      '<div class="dginvh"><b>Сумка '+inv.length+'/'+DG.invMax+'</b><span>🔹 '+dgFmt(D.sh||0)+'</span><button type="button" class="mini2" data-sort="1">'+(dgInvSort==="r"?"по редкости":"по слоту")+'</button></div>'+
-     (inv.length?'<div class="dginv">'+inv.map(it=>dgItemTile(it)).join("")+'</div>':'<p class="cln">Сумка пуста. Открой сундук во вкладке «Сундуки».</p>')+
+     (inv.length?'<div class="dginv">'+inv.map(it=>dgItemTile(it)).join("")+'</div>':'')+'<button type="button" class="craftbtn dggo" data-goch="1">🎁 Где взять вещи? Открыть сундуки'+((D.sh||0)>=DG_CHEST.nest.sh?' · есть 🔹 на сундук!':'')+'</button>'+
      (low.length?'<button type="button" class="craftbtn ghost dgdis" data-disall="1">♻️ Разобрать обычные и редкие ('+low.length+') → 🔹 '+dgFmt(low.reduce((a,it)=>a+Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0))),0))+'</button>':'')}
   else if(dgSub==="chest"){const ch=k=>{const K=DG_CHEST[k];const can=K.sh?(D.sh||0)>=K.sh:1;return '<div class="dgch '+k+'"><div class="dgch-i">'+chestSVG("dg_"+k,78)+'</div><div><h4>'+K.n+'</h4><p>'+K.p.map((p,r)=>p?'<span style="color:'+DG_R[r].c+'">'+DG_R[r].n+' '+String(p).replace(".",",")+'%</span>':"").filter(Boolean).join(" · ")+(K.bonus?' · <b>+'+K.bonus+' 🔹</b>':'')+'</p><button type="button" class="buy" data-ch="'+k+'"'+(can?"":" disabled")+'>'+(K.sh?"🔹 "+K.sh:"⭐ "+K.stars)+'</button></div></div>'};
     el.innerHTML='<div class="dgshb">🔹 Чешуя: <b>'+dgFmt(D.sh||0)+'</b><small>гнездо каждый день, победы в боях (+'+DG.winSh+'), завоевание (+'+DG.conqSh+'), разбор снаряжения</small></div>'+ch("nest")+ch("royal")+'<div class="ghd">⭐ Сокровища за звёзды</div>'+ch("star")+ch("div")+
@@ -215,6 +215,7 @@ function dgTopHTML(){const T=dgTopD;if(!T||!T.list.length)return '<p class="cln"
 function hydrateDgTop(){const T=dgTopD;if(!T)return;document.querySelectorAll("#dg-top [data-mini]").forEach(e=>{const i=+e.dataset.mini;if(i>14){e.textContent="🐉";return}const r=T.list[i];const D={b:r.b,lv:r.lv,inv:(r.eq||[]).map((x,j)=>({id:j+1,s:x.s,r:x.r,t:x.t,lv:0})),eq:{}};D.inv.forEach(x=>D.eq[x.s]=x.id);e.innerHTML=dgMini(D)})}
 async function dgSubClick(e){const D=dgOf();if(!D)return;const t=e.target.closest("button");if(!t||t.disabled)return;
   if(t.dataset.sort){dgInvSort=dgInvSort==="r"?"s":"r";dgSubDraw();return}
+  if(t.dataset.goch){dgSub="chest";dgSubDraw();const g=$("dg-seg");if(g)g.scrollIntoView({behavior:"smooth",block:"start"});return}
   if(t.dataset.it)return dgItemSheet(+t.dataset.it);
   if(t.dataset.disall){const eqs=new Set(Object.values(D.eq||{})),ids=(D.inv||[]).filter(it=>it.r<=1&&!eqs.has(it.id)).map(it=>it.id);if(!ids.length)return;t.disabled=true;const r=await act("dg_dis",{ids});if(!r){t.disabled=false;return}sfx.coin();toast("♻️ Разобрано "+r.n+" → +"+r.sh+" 🔹");dgKey="";renderAll();return}
   if(t.dataset.ch){const k=t.dataset.ch,K=DG_CHEST[k];if(K.stars)return buyItem({item:"dg",k});t.disabled=true;const r=await act("dg_open",{k});if(!r){t.disabled=false;return}dgReveal(r.item,K.n,k);dgKey="";renderAll();return}
