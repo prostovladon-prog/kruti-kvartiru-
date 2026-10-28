@@ -534,6 +534,16 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await cc(6200, "sync"); { const c = r.S.cards.find(x => x.f === 6); ok(c && c.v === 0, "карточка в коллекции победителя");
     let q = await cc(6200, "sell", { id: c.id }); ok(!q.ok, "бесценную нельзя продать системе");
     q = await cc(6200, "list", { id: c.id, price: 5000000 }); ok(q.ok, "бесценную можно выставить на рынок за свою цену"); }
+  // розыгрыш 3 VIP: друзья друзей не считаются, VIP выдаётся автоматически
+  await cc(8, "chal_set", { cfg: { id: "vip1", lot: 1, multi: 1, vip: 2, vipDays: 30, noL2: 1, min: 1, start: n0 - 36e5, end: n0 + 36e5, prizes: ["VIP", "VIP", "VIP"], bal: [0, 0, 0], slots: [] } });
+  r = await cc(6200, "chal_get"); ok(r.ok && r.res.vip === 1 && r.res.me.n === 3 && r.res.me.l2 === 0, "VIP-розыгрыш: билеты только за своих друзей");
+  r = await cc(6210, "chal_get"); ok(r.res.me.n === 1, "у второго 1 друг (его друг-друг не считается первому)");
+  await cc(8, "chal_set", { cfg: { id: "vip1", lot: 1, multi: 1, vip: 2, vipDays: 30, noL2: 1, min: 1, start: n0 - 36e5, end: Date.now() - 1, prizes: ["VIP", "VIP", "VIP"], bal: [0, 0, 0], slots: [] } });
+  { const v0 = db.prepare("SELECT vip_until v FROM users WHERE id=6200").get().v || 0; await worker.tick(envC); await worker.tick(envC);
+    const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:vip1'").get().v); const W = (fin.winners || []).map(w => w.uid);
+    const u = db.prepare("SELECT vip_until v,vip_t t FROM users WHERE id=6200").get();
+    const allV = W.every(id => (db.prepare("SELECT vip_until v FROM users WHERE id=?").get(id).v || 0) >= Date.now() + 29 * 864e5);
+    ok(W.length === 3 && allV && (!W.includes(6200) || (u.t >= 2 && u.v >= Math.max(v0, Date.now()) + 29 * 864e5)), "итоги: VIP Золото на 30 дней выдан победителям сам"); }
   // розыгрыш на звёзды: три победителя, звёзды на игровой баланс
   await cc(8, "chal_set", { cfg: { id: "zz1", lot: 1, multi: 1, min: 1, start: n0 - 36e5, end: Date.now() - 1, prizes: ["300 ⭐", "200 ⭐", "100 ⭐"], bal: [300, 200, 100], slots: [] } });
   await worker.tick(envC); await worker.tick(envC);

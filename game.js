@@ -1460,7 +1460,7 @@ setInterval(()=>{if(arVisible()&&arRoom)arTimer()},250);
 let exDest=0,exPick=null;
 function exList(){return S.cards.filter(c=>c.away)}
 function exSlots(){return EX_SLOTS+(S.mapDay===todayL()?1:0)}
-function tleft(ms){const s=Math.max(0,Math.ceil(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":":"")+String(m).padStart(h?2:1,"0")+":"+String(x).padStart(2,"0")}
+function tleft(ms){const s=Math.max(0,Math.ceil(ms/1000)),d=Math.floor(s/86400),h=Math.floor(s%86400/3600)+(d?0:0),m=Math.floor(s%3600/60),x=s%60;if(d)return d+" д "+h+":"+String(m).padStart(2,"0")+":"+String(x).padStart(2,"0");const H=Math.floor(s/3600);return (H?H+":":"")+String(m).padStart(H?2:1,"0")+":"+String(x).padStart(2,"0")}
 function renderExp(){
   const sl=$("ex-slots");sl.innerHTML="";const list=exList();
   for(let i=0;i<Math.max(exSlots(),list.length);i++){const c=list[i],el=document.createElement("div");

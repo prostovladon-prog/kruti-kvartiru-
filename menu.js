@@ -101,3 +101,24 @@ function adDraw(){const sh=$("msheet");if(!sh||!adData)return;const L=adData.lin
   sh.querySelectorAll("[data-show]").forEach(b=>b.onclick=async()=>{await act("ad_hide",{code:b.dataset.show,hidden:0});adOpen()})}
 function adCopy(t){try{navigator.clipboard.writeText(t).then(()=>toast("📋 Скопировано: "+t),()=>adCopyOld(t))}catch(e){adCopyOld(t)}}
 function adCopyOld(t){const i=document.createElement("textarea");i.value=t;document.body.appendChild(i);i.select();try{document.execCommand("copy");toast("📋 Скопировано: "+t)}catch(e){toast(t)}i.remove()}
+/* ===================== 👑 Розыгрыш 3 VIP: блок, полоска на всех экранах и плитка на главной ===================== */
+const cDM=t=>{const d=new Date(t+3*3600e3);return String(d.getUTCDate()).padStart(2,"0")+"."+String(d.getUTCMonth()+1).padStart(2,"0")+" в "+d.toISOString().slice(11,16)};
+{const _dc2=drawChal;drawChal=function(){_dc2();try{const C=chData;if(!C||!C.vip)return;const T=C.tickets||0,M=C.me,inn=M.n>=C.min;
+  $("chal").querySelector(".chal-h span").textContent="👑 РОЗЫГРЫШ 3 VIP";$("chal").classList.add("vipc");
+  $("chal-t").textContent=C.phase==="soon"?"Скоро старт! Пригласи "+C.min+" друзей — и ты в розыгрыше трёх VIP на месяц.":"Пригласи "+C.min+" друзей — и ты участник. Каждый друг = 1 билет: чем больше друзей, тем больше шанс. "+cDM(C.end)+" бот выберет трёх победителей — каждому VIP на месяц, выдаётся автоматически.";
+  $("chal-p").innerHTML='<div>👑<b>3 VIP</b>на месяц</div><div>🎟<b>'+T+'</b>'+plural(T,"билет","билета","билетов")+'</div><div>👥<b>'+(C.players||0)+'</b>'+plural(C.players||0,"участник","участника","участников")+'</div>';
+  const sm=$("chal-me").querySelector("small");if(sm)sm.textContent="твои друзья: "+M.d+(inn?" · каждый новый друг = +1 билет":" · нужно "+C.min);
+  $("chal-rules").textContent="Считаются новые игроки, которые пришли по твоей ссылке с начала розыгрыша и до "+cDM(C.end)+" и открыли хотя бы "+C.need+" карточки. От "+C.min+" друзей ты участник, каждый друг — 1 билет. В конце бот случайно выбирает трёх разных победителей: чем больше билетов, тем выше шанс. Приз — VIP Золото на "+(C.vipDays||30)+" дней: 16 прокруток каждые 4 часа, +3 обмена рун, 360 мест для карточек и корона у ника. VIP включается победителям сам, сразу после итогов. Время — минское. Накрутка ботами и пустыми аккаунтами = снятие с розыгрыша."}catch(e){console.error(e)}}}
+function cOn(){return chData&&chData.lot&&chData.phase==="on"}
+function cLeft(){return chData?Math.max(0,chData.left-(NOW()-chData._t)):0}
+function cGo(){menuClose();setTab("spin");setTimeout(()=>{const e=$("chal");if(e&&!e.hidden)e.scrollIntoView({behavior:"smooth",block:"start"})},80)}
+/* полоска под шапкой — видна на любом экране, пока идёт розыгрыш */
+{const hd=document.querySelector("header");if(hd&&!$("cstrip")){const b=document.createElement("button");b.type="button";b.id="cstrip";b.className="cstrip";b.hidden=true;hd.after(b);b.onclick=()=>{hap("light");cGo()}}}
+function cStrip(){const b=$("cstrip");if(!b)return;const on=cOn();b.hidden=!on;if(!on)return;const C=chData,M=C.me,inn=M.n>=C.min;
+  b.innerHTML='<i>'+(C.vip?"👑":"🎟")+'</i><span><b>'+(C.vip?"Розыгрыш 3 VIP на месяц":"Розыгрыш "+C.prizes[0])+'</b><small>'+(inn?"🎟 у тебя "+M.n+" "+plural(M.n,"билет","билета","билетов"):"пригласи "+C.min+" друзей — и ты в игре ("+M.n+"/"+C.min+")")+'</small></span><em>'+tleft(cLeft())+'</em>'}
+setInterval(()=>{try{cStrip()}catch(e){}},1000);
+{const _dch=drawChal;drawChal=function(){_dch();try{cStrip();qTiles()}catch(e){}}}
+/* большая плитка розыгрыша на главной */
+{const _qt=qTiles;qTiles=function(){_qt();const el=$("qtiles");if(!el)return;let w=$("qt-c");if(!cOn()){if(w)w.remove();return}
+  if(!w){w=document.createElement("button");w.type="button";w.id="qt-c";w.className="qt qtc";w.onclick=cGo}
+  if(el.firstChild!==w)el.prepend(w);const C=chData,M=C.me;w.innerHTML='<i>'+(C.vip?"👑":"🎟")+'</i><span><b>'+(C.vip?"Разыгрываем 3 VIP на месяц!":"Розыгрыш "+C.prizes[0])+'</b><small>'+(M.n>=C.min?"ты участвуешь · билетов: "+M.n:"пригласи "+C.min+" друзей · у тебя "+M.n)+' · итоги '+cDM(C.end)+'</small></span><em></em>'}}
