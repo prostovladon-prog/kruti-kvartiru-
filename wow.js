@@ -710,9 +710,9 @@ function drawStatsX(){const R=stData&&stData.x,b=$("st-body");if(!R||!b||R.err&&
     <h4>🗺 Покорение Эпох</h4><div class="stgrid">
     ${tile(fmtN(C.n||0),"игроков прошли точки","в среднем "+(+(C.av||0)).toFixed(1)+" точек")}
     ${tile(fmtN(C.today),"боёв сегодня","за 7 дней "+C.week)}
-    ${tile((C.mx||0)+" / 40","лучший результат",(C.top||[]).length?"":"")}
+    ${tile((C.mx||0)+" / "+conqN(),"лучший результат",(C.top||[]).length?"":"")}
     ${tile(fmtN(C.ch1||0),"прошли 1-ю главу","2-ю: "+(C.ch2||0)+" · 3-ю: "+(C.ch3||0)+" · 4-ю: "+(C.ch4||0)+" · все: "+(C.ch5||0))}</div>
-    <div class="stl"><b>Дальше всех</b>${(C.top||[]).map((u,i)=>`<div class="str"><span>${i+1}. <q data-c="${i}"></q></span><i>глава ${Math.min(5,Math.floor(u.c/8)+1)}</i><b>${u.c} точек</b></div>`).join("")}</div>
+    <div class="stl"><b>Дальше всех</b>${(C.top||[]).map((u,i)=>`<div class="str"><span>${i+1}. <q data-c="${i}"></q></span><i>глава ${Math.min(CONQ_CH.length,Math.floor(u.c/8)+1)}</i><b>${u.c} точек</b></div>`).join("")}</div>
     <h4>🔥 Слияние, звёзды, новички</h4><div class="stgrid">
     ${tile(fmtN(F.today),"слияний душ сегодня","за 7 дней "+F.week+" · закалок сегодня "+F.forge)}
     ${tile(fmtN(F.starred),"карточек со звёздами",fmtN(F.stars)+" звёзд всего")}

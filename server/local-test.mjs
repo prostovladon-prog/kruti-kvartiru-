@@ -916,6 +916,11 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   db.prepare("UPDATE users SET star_bal=1000 WHERE id=?").run(U); q = await call(U, "pay_bal", { item: "dg", k: "star" }); ok(q.ok && q.res.status === "done" && q.res.res.item && q.res.res.item.r >= 2, "звёздный сундук: эпическое или выше");
   q = await call(U, "pay_bal", { item: "dg", k: "apple" }); ok(q.ok && q.S.dg.ap >= 3, "золотые яблоки куплены");
   const lv0 = q.S.dg.lv; q = await call(U, "dg_feed", { k: "apple" }); ok(q.ok && q.res.xp >= 2500 && q.S.dg.lv > lv0, "золотое яблоко: +2 500 опыта");
-  const b0 = q.S.dg.b; q = await call(U, "pay_bal", { item: "dg", k: "reborn" }); ok(q.ok && q.S.dg.b !== b0 && [3,4,5,6].includes(q.S.dg.b), "перерождение: новая порода, редкая или выше"); }
+  const b0 = q.S.dg.b; q = await call(U, "pay_bal", { item: "dg", k: "reborn" }); ok(q.ok && q.S.dg.b !== b0 && [3,4,5,6].includes(q.S.dg.b), "перерождение: новая порода, редкая или выше");
+  const envS = { ...env, ADMINS: "8" }; const st = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "stats", p: {} }) }), envS)).json();
+  const g = st.ok && st.res.x && st.res.x.dg; ok(g && g.n >= 1 && g.pay.some(x => x.k === "star") && g.act.dg_hatch && g.egg, "статистика: всё про дракона (вылупились, покупки, действия, яйца)");
+  { const R2 = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { dgCasDrop };").toString("base64")); const stt = { dg: { inv: [], sh: 0, ap: 0, nid: 0 } }; const mr = Math.random;
+    Math.random = () => 0.001; const d1 = R2.dgCasDrop(stt, { now: Date.now() }, "case"); Math.random = () => 0.015; const d2 = R2.dgCasDrop(stt, { now: Date.now() }, "case"); Math.random = () => 0.5; const d3 = R2.dgCasDrop(stt, { now: Date.now() }, "case"); Math.random = mr;
+    ok(d1 && d1.item && d2 && d2.ap && d3 === null && R2.dgCasDrop({}, { now: 0 }, "case") === null, "казино: редкая вещь или яблоко для дракона, без дракона — ничего"); } }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

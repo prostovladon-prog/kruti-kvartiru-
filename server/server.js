@@ -424,12 +424,25 @@ async function adminStatsX(env,now,t0,D,days,by){const one=async(q,...a)=>(await
   const gifts=await all("SELECT how,COUNT(*) AS n FROM gifts GROUP BY how"),giftSent=await one("SELECT COUNT(*) AS n FROM gifts WHERE from_uid IS NOT NULL AND from_uid>0");
   const vip=await one("SELECT SUM(vip_until>?) AS n,SUM(vip_until>? AND vip_t=3) AS d,SUM(vip_until>? AND vip_t=2) AS g FROM users",now,now,now),golem=await one("SELECT SUM(golem_until>?) AS n FROM users",now);
   const cnt=k=>T["a_"+k]||0,wk=k=>days.slice(-7).reduce((a,d)=>a+((by[d]||{})["a_"+k]||0),0);
+  /* дракон: яйца, вылупившиеся, породы, стадии, снаряжение, казино, звёзды */
+  const dg={n:0,today:0,week:0,br:DG_BREED.map(()=>0),stg:DG_STAGE.map(()=>0),lv:0,maxLv:0,pow:0,maxPow:0,items:DG_R.map(()=>0),eq:0,set5:0,set3:0,named:0,hungry:0,sh:0,ap:0,casG:0,casA:0,casItems:0,up:0};
+  for(const r of await all("SELECT state FROM users WHERE dg_pow>0")){let D=null;try{D=JSON.parse(r.state||"{}").dg}catch(e){}if(!D)continue;
+    dg.n++;if((D.t||0)>=t0)dg.today++;if((D.t||0)>=t0-6*864e5)dg.week++;dg.br[D.b]=(dg.br[D.b]||0)+1;dg.stg[dgStage(D.lv)]++;dg.lv+=D.lv;dg.maxLv=Math.max(dg.maxLv,D.lv);
+    const p=dgPower(D);dg.pow+=p;dg.maxPow=Math.max(dg.maxPow,p);(D.inv||[]).forEach(it=>{dg.items[it.r]++;if(it.c==="cas")dg.casItems++;dg.up+=it.lv||0});dg.eq+=dgEq(D).length;
+    const sb=dgSetBonus(dgEq(D));if(sb.n>=5)dg.set5++;else if(sb.n>=3)dg.set3++;if(D.name)dg.named++;if(dgSat(D,now)<DG.hungry)dg.hungry++;dg.sh+=D.sh||0;dg.ap+=D.ap||0;dg.casG+=D.cg||0;dg.casA+=D.ca||0}
+  const fr=await all("SELECT ref,COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND ref>0 AND COALESCE(json_extract(state,'$.nOp'),0)>=? GROUP BY ref",DG.frSpins);
+  const hatchedIds=new Set((await all("SELECT id FROM users WHERE dg_pow>0")).map(x=>x.id));
+  const egg={f1:fr.filter(x=>x.n===1).length,f2:fr.filter(x=>x.n===2).length,f3:fr.filter(x=>x.n>=3).length,ready:fr.filter(x=>x.n>=3&&!hatchedIds.has(x.ref)).length};
+  const dgPay=await all(`SELECT json_extract(p,'$.k') AS k,COALESCE(SUM(stars),0) AS s,COUNT(*) AS n,SUM(COALESCE(paid,created)>=?) AS t FROM payments WHERE item='dg' AND status IN ('paid','done') GROUP BY k`,t0);
+  const dgTop=(await all("SELECT COALESCE(nick,name) AS name,dg_pow AS pow,json_extract(state,'$.dg.lv') AS lv,json_extract(state,'$.dg.b') AS b,json_extract(state,'$.dg.name') AS dn FROM users WHERE dg_pow>0 ORDER BY dg_pow DESC LIMIT 7"));
+  const dgAct=Object.fromEntries(["dg_hatch","dg_tap","dg_feed","dg_nest","dg_gift","dg_open","dg_equip","dg_up","dg_dis","dg_name"].map(k=>[k,{t:cnt(k),w:wk(k)}]));
   const bal=await one("SELECT COALESCE(SUM(star_bal),0) AS s,SUM(star_bal>0) AS n FROM users"),balSpent=await one("SELECT COALESCE(SUM(stars),0) AS s,COUNT(*) AS n FROM payments WHERE charge='bal' AND status IN ('paid','done')");
   return {bal:{left:bal.s||0,users:bal.n||0,spent:balSpent.s||0,buys:balSpent.n||0},stars:st,starsDays:stD,season:{...pass,no:sn+1,name:passTheme(sn).n,end:passEnd(sn),quests:passQ.q||0,questDay:passQ.dn||0},
     conq:{...conq,top:conqTop,today:cnt("conq_fight"),week:wk("conq_fight")},fuse:{today:cnt("fuse"),week:wk("fuse"),starred:stars.n||0,stars:stars.s||0,forge:cnt("forge")},
     wel:{got:wel.got||0,wait:wel.wait||0},clans:{n:clans.n||0,members:inClan.n||0,dmg:clanHits.d||0,hitters:clanHits.u||0,hitsToday:clanToday.n||0},
     gifts:Object.fromEntries(gifts.map(g=>[g.how||"?",g.n])),giftSent:giftSent.n||0,vip:{n:vip.n||0,diamond:vip.d||0,gold:vip.g||0,golem:golem.n||0},
-    today:{case:cnt("cas_case"),slot:cnt("cas_slot"),hl:cnt("cas_hl_go"),ex:cnt("ex_runes"),passClaim:cnt("pass_claim"),era:cnt("era_claim")}};
+    today:{case:cnt("cas_case"),slot:cnt("cas_slot"),hl:cnt("cas_hl_go"),ex:cnt("ex_runes"),passClaim:cnt("pass_claim"),era:cnt("era_claim")},
+    dg:{...dg,egg,pay:dgPay,top:dgTop,act:dgAct,twins:(await one("SELECT COUNT(*) AS n FROM cards WHERE f=?",DUO_F)).n||0,newCards:(await one("SELECT COUNT(*) AS n FROM cards WHERE h>=46 AND h<66")).n||0,caps:await one(`SELECT SUM(${J}'$.capC')=1) AS c,SUM(COALESCE(${J}'$.capS'),0)) AS s FROM users`)}};
 }
 
 /* ---------- бои с настоящими игроками ---------- */
@@ -1565,7 +1578,7 @@ async function handle(req,env){{
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});
         if(r.res.gift){const g=await giftMint(env,me.id,r.res.gift,"case");
-          if(g)r.res.g=g;else{await doAction(env,me,"cas_comp",{},{grant:true});r.res={r:CASE.sold,sold:r.res.gift,i:r.res.i}}
+          if(g)r.res.g=g;else{await doAction(env,me,"cas_comp",{},{grant:true});r.res={r:CASE.sold,sold:r.res.gift,i:r.res.i,dg:r.res.dg}}
           r.S=await stateFor(env,me)}
         await casLog(env,me.id,"case",CASE.price,r.res.r||0,r.res.g||null);return J({ok:true,...r})}
       if(a==="cas_feed")return J({ok:true,res:await casFeed(env)});
