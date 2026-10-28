@@ -976,7 +976,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=32;
+const SCHEMA_V=33;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1040,7 +1040,9 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN pm_bonus INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN vip_t INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN clan INTEGER NOT NULL DEFAULT 0",
     "CREATE TABLE IF NOT EXISTS clans (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, name_key TEXT NOT NULL, owner INTEGER NOT NULL, h INTEGER NOT NULL DEFAULT 0, created INTEGER)","CREATE UNIQUE INDEX IF NOT EXISTS clans_nk ON clans(name_key)",
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
-    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))","ALTER TABLE users ADD COLUMN dg_pow INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS users_dgpow ON users(dg_pow)","CREATE INDEX IF NOT EXISTS users_ref ON users(ref)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+    "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))","ALTER TABLE users ADD COLUMN dg_pow INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS users_dgpow ON users(dg_pow)","CREATE INDEX IF NOT EXISTS users_ref ON users(ref)",
+ "CREATE TABLE IF NOT EXISTS ad_links (code TEXT PRIMARY KEY, name TEXT, created INTEGER, hidden INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS ad_clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, t INTEGER, ip TEXT)","CREATE INDEX IF NOT EXISTS ad_clicks_c ON ad_clicks(code,t)",
+ "CREATE TABLE IF NOT EXISTS ad_starts (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, new INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))","CREATE INDEX IF NOT EXISTS ad_starts_u ON ad_starts(uid)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1079,6 +1081,37 @@ const srcCode=start=>{const m=/^s_([A-Za-z0-9_-]{1,32})$/.exec(start||"");return
 const srcSeen=new Set();
 async function trackSrc(env,me){const code=srcCode(me.start);if(!code)return;const k=code+":"+me.id;if(srcSeen.has(k))return;srcSeen.add(k);
   try{await env.DB.prepare("INSERT OR IGNORE INTO src_visits(code,uid,t) VALUES(?,?,?)").bind(code,me.id,Date.now()).run()}catch(e){}}
+/* ---------- рекламные ссылки со счётчиком: <сервер>/go/<метка> → считаем переход → бот с ?start=a_<метка> → считаем «Старт» ---------- */
+const adCode=c=>{c=String(c||"").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,32);return c||null};
+const adHash=t=>{let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)};
+async function adGo(env,req,code){code=adCode(code);const bot="https://t.me/"+(env.BOT_USERNAME||"VoinyEpohBot");
+  if(!code)return new Response(null,{status:302,headers:{Location:bot}});
+  const ua=req.headers.get("user-agent")||"",robot=/bot|crawl|spider|preview|facebookexternalhit|whatsapp|vkshare|skype|slack|discord/i.test(ua);
+  try{const L=await env.DB.prepare("SELECT code FROM ad_links WHERE code=?").bind(code).first();
+    if(L&&!robot){const ip=(req.headers.get("cf-connecting-ip")||(req.headers.get("x-forwarded-for")||"").split(",")[0]||req.headers.get("x-real-ip")||"").trim();
+      await env.DB.prepare("INSERT INTO ad_clicks(code,t,ip) VALUES(?,?,?)").bind(code,Date.now(),adHash(ip+"|"+(ip?"":ua+(req.headers.get("accept-language")||"")))).run()}}catch(e){console.error("adGo",e)}
+  return new Response(null,{status:302,headers:{Location:bot+"?start=a_"+code,"Cache-Control":"no-store"}})}
+async function adStart(env,uid,code){code=adCode(code);if(!code)return;try{
+  const L=await env.DB.prepare("SELECT code FROM ad_links WHERE code=?").bind(code).first();if(!L)return;
+  const was=await env.DB.prepare("SELECT 1 FROM users WHERE id=?").bind(uid).first(),seen=await env.DB.prepare("SELECT 1 FROM ad_starts WHERE uid=?").bind(uid).first();
+  await env.DB.prepare("INSERT OR IGNORE INTO ad_starts(code,uid,t,new) VALUES(?,?,?,?)").bind(code,uid,Date.now(),(!was&&!seen)?1:0).run()}catch(e){console.error("adStart",e)}}
+async function adApi(env,me,a,p,origin){if(!isAdmin(env,me.id))fail("Нет доступа");const now=Date.now(),t0=dayNum(now)*864e5-TZ;
+  if(a==="ad_create"){const name=String(p.name||"").trim().slice(0,40);if(!name)fail("Напиши название рекламы");
+    let base=adCode(p.code)||adCode(name.replace(/[а-яё]/gi,ch=>({а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"c",ч:"ch",ш:"sh",щ:"sh",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"}[ch.toLowerCase()]||"")).replace(/\s+/g,"_"))||"ad";
+    let code=base;for(let i=2;await env.DB.prepare("SELECT 1 FROM ad_links WHERE code=?").bind(code).first();i++)code=(base.slice(0,28)+"_"+i);
+    await env.DB.prepare("INSERT INTO ad_links(code,name,created) VALUES(?,?,?)").bind(code,name,now).run();return {code}}
+  if(a==="ad_hide"){await env.DB.prepare("UPDATE ad_links SET hidden=? WHERE code=?").bind(p.hidden?1:0,adCode(p.code)).run();return {}}
+  const one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
+  const links=(await env.DB.prepare("SELECT * FROM ad_links ORDER BY created DESC LIMIT 60").all()).results,out=[];
+  for(const L of links){const c=L.code;
+    const cl=await one("SELECT COUNT(*) AS n,COUNT(DISTINCT ip) AS u,SUM(t>=?) AS d FROM ad_clicks WHERE code=?",t0,c);
+    const s0=await one("SELECT COUNT(*) AS n,SUM(new) AS nw,SUM(t>=?) AS d,SUM(t>=? AND new=1) AS dn FROM ad_starts WHERE code=?",t0,t0,c);
+    const pl=await one("SELECT COUNT(*) AS op,SUM(COALESCE(json_extract(u.state,'$.nOp'),0)>=5) AS sp5,SUM(COALESCE(json_extract(u.state,'$.nOp'),0)>=30) AS sp30,SUM((SELECT COUNT(*) FROM user_days d WHERE d.uid=u.id)>=2) AS back,SUM(u.seen>=?) AS today,SUM(u.ref IS NOT NULL) AS byref FROM ad_starts a JOIN users u ON u.id=a.uid WHERE a.code=? AND a.new=1",t0,c);
+    const st=await one("SELECT COALESCE(SUM(p.stars),0) AS s,COUNT(DISTINCT p.uid) AS u FROM payments p JOIN ad_starts a ON a.uid=p.uid AND a.code=? AND a.new=1 WHERE p.status IN ('paid','done') AND COALESCE(p.charge,'')<>'bal'",c);
+    const days=[];for(let i=6;i>=0;i--){const a1=t0-i*864e5,b1=a1+864e5;days.push({d:mskDay(a1+864e5/2),c:(await one("SELECT COUNT(*) AS n FROM ad_clicks WHERE code=? AND t>=? AND t<?",c,a1,b1)).n||0,s:(await one("SELECT COUNT(*) AS n FROM ad_starts WHERE code=? AND t>=? AND t<?",c,a1,b1)).n||0})}
+    out.push({code:c,name:L.name,created:L.created,hidden:L.hidden,link:origin+"/go/"+c,direct:"https://t.me/"+(env.BOT_USERNAME||"VoinyEpohBot")+"?start=a_"+c,
+      clicks:cl.n||0,uniq:cl.u||0,clicksToday:cl.d||0,starts:s0.n||0,startsNew:s0.nw||0,startsToday:s0.d||0,newToday:s0.dn||0,opened:pl.op||0,sp5:pl.sp5||0,sp30:pl.sp30||0,back:pl.back||0,seenToday:pl.today||0,stars:st.s||0,payers:st.u||0,days})}
+  return {links:out}}
 /* новый игрок. Приглашение (r_<id друга>) засчитывается только новому игроку и не самому себе */
 /* ---------- статистика для администратора. Дни считаются по минскому времени (UTC+3) ---------- */
 const TZ=3*3600e3,dayOf=t=>new Date(t+TZ).toISOString().slice(0,10),dayNum=t=>Math.floor((t+TZ)/864e5);
@@ -2028,7 +2061,8 @@ async function onUpdate(env,upd){
   const m=upd.message;if(!m||!m.chat||m.chat.type!=="private"||!m.from)return;
   const text=String(m.text||""),[cmd,arg]=text.split(/\s+/),name=String(m.from.first_name||"воин").slice(0,32);
   const play=(t,url)=>({inline_keyboard:[[{text:t,web_app:{url:url||PAGE}}],[{text:"📣 Канал игры",url:"https://t.me/"+CHANNEL.slice(1)}]]});
-  if(cmd==="/start"&&arg&&/^(r_\d+|s_[A-Za-z0-9_-]{1,32})$/.test(arg)){await createUser(env,{id:m.from.id,name,start:arg});await trackSrc(env,{id:m.from.id,start:arg})}   // приглашение по ссылке ?start=r_<id>
+  if(cmd==="/start"&&arg&&/^(r_\d+|s_[A-Za-z0-9_-]{1,32})$/.test(arg)){await createUser(env,{id:m.from.id,name,start:arg});await trackSrc(env,{id:m.from.id,start:arg})}
+  if(cmd==="/start"&&arg&&/^a_[A-Za-z0-9_-]{1,32}$/.test(arg))await adStart(env,m.from.id,arg.slice(2));   // рекламная ссылка: считаем «Старт»   // приглашение по ссылке ?start=r_<id>
   if(cmd==="/stop"){try{await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(m.from.id).run()}catch(e){}
     return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"🔕 Уведомления выключены. Чтобы включить их снова, напиши /start"})}
   if(cmd==="/terms")return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"📜 Пользовательское соглашение и политика конфиденциальности: "+PAGE+"terms.html"});
@@ -2457,6 +2491,7 @@ async function handle(req,env){{
     if(req.method==="OPTIONS")return new Response(null,{headers:CORS});
     const url=new URL(req.url);
     if(req.method==="GET"&&url.pathname==="/setup"){await ensureSchema(env);return setup(env,url.origin)}
+    if(req.method==="GET"&&url.pathname.startsWith("/go/")){await ensureSchema(env);return adGo(env,req,decodeURIComponent(url.pathname.slice(4)))}
     if(req.method==="GET"&&url.pathname==="/remind"&&env.DEV==="1")return J(await reminders(env));   // только для проверки
     if(req.method==="GET"&&url.pathname==="/export"){await ensureSchema(env);if(req.headers.get("X-Export-Key")!==await exportKey(env))return J({ok:false,err:"нет доступа"},403);return exportChunk(env,url)}
     if(req.method==="GET")return J({ok:true,game:"Воины Эпох",server:"работает"});
@@ -2512,6 +2547,7 @@ async function handle(req,env){{
         await paidUpdate(env,me.id,{currency:"XTR",total_amount:P.stars,invoice_payload:"p"+P.id,telegram_payment_charge_id:"sim"+P.id});return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)})}
       if(a==="dtop")return J({ok:true,res:await dtopGet(env,me)});
       if(a==="dg_top")return J({ok:true,res:await dgTop(env,me)});
+      if(/^ad_(list|create|hide)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
       if(a==="dg_view")return J({ok:true,res:await dgViewOf(env,Math.floor(+p.uid||0))});
       if(a==="dg_grant")fail("Неизвестное действие");
       if(a==="trader")return J({ok:true,res:await traderInfo(env,me)});

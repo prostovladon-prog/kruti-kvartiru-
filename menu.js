@@ -29,6 +29,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="trade"){setTab("col");if(typeof trInbox==="function")setTimeout(trInbox,50);return}
   if(k==="wheel"){setTab("quest");setTimeout(()=>{const e=$("wf-box");if(e)e.scrollIntoView({block:"start"})},60);return}
   if(k==="duel")return goSub("duel");
+  if(k==="ads")return adOpen();
   if(k==="contest"){setTab("spin");setTimeout(()=>{const e=$("chal");if(e&&!e.hidden)e.scrollIntoView({block:"start"})},60);return}
   setTab(k)}
 /* что ждёт игрока: красные точки на плитках и на кнопке «Ещё» */
@@ -48,6 +49,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
     sh.addEventListener("touchend",()=>{if(y0==null)return;y0=null;sh.style.transform="";if(dy>90)menuClose()})}
   const B=menuBadges(),on=!ONLINE||!!(S&&S.shopOn);let h="";
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
+  if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
   d.querySelector(".drw-b").innerHTML=h;d.hidden=false;document.body.classList.add("drw-on");requestAnimationFrame(()=>d.classList.add("on"));$("tab-more").setAttribute("aria-expanded","true")}
 function menuClose(){const d=$("drw");if(!d||!d.classList.contains("on"))return;d.classList.remove("on");document.body.classList.remove("drw-on");$("tab-more").setAttribute("aria-expanded","false");setTimeout(()=>{if(!d.classList.contains("on"))d.hidden=true},260)}
@@ -71,3 +73,31 @@ function moreDot(){const B=menuBadges(),n=Object.keys(B).filter(k=>k!=="chat").l
 setInterval(()=>{try{if(S&&!$("sec-spin").hidden)qTiles();moreDot()}catch(e){}},5000);
 setInterval(()=>{try{if(S&&!$("sec-quest").hidden)renderWheel()}catch(e){}},1000);
 try{qTiles();moreDot()}catch(e){}
+
+/* ===================== 📈 Реклама (только админ): свои ссылки и воронка ===================== */
+let adData=null,adBusy=false;
+const adPct=(a,b)=>b?Math.round(a/b*100)+"%":"—";
+async function adOpen(){if(!S||!S.admin)return;const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox adbox"><h3>📈 Рекламные ссылки</h3><p class="cln">Загружаю…</p></div>';
+  const r=await act("ad_list");if(!r){closeModal();return}adData=r;adDraw()}
+function adDraw(){const sh=$("msheet");if(!sh||!adData)return;const L=adData.links.filter(x=>!x.hidden),H=adData.links.filter(x=>x.hidden);
+  const link=x=>(API_URL||"").replace(/\/$/,"")+"/go/"+x.code;
+  const step=(v,l,base,cls)=>'<div class="adst'+(cls?" "+cls:"")+'"><b>'+fmtN(v)+'</b><span>'+l+'</span>'+(base!=null?'<em>'+adPct(v,base)+'</em>':'')+'</div>';
+  const card=x=>{const mx=Math.max(1,...x.days.map(d=>Math.max(d.c,d.s)));
+    return '<div class="adc"><div class="adh"><b>'+escH(x.name)+'</b><small>метка '+x.code+' · с '+new Date(x.created+3*3600e3).toISOString().slice(8,10)+'.'+new Date(x.created+3*3600e3).toISOString().slice(5,7)+'</small></div>'+
+     '<div class="adl"><input readonly value="'+link(x)+'"><button type="button" class="mini2" data-cp="'+link(x)+'">Копировать</button></div>'+
+     '<div class="adf">'+step(x.clicks,"перешли по ссылке",null)+step(x.starts,"нажали «Старт» в боте",x.clicks)+step(x.startsNew,"из них новые",x.starts)+step(x.opened,"зашли в игру",x.startsNew)+step(x.sp5,"сделали 5+ прокруток",x.opened)+step(x.back,"вернулись на 2-й день",x.opened)+step(x.stars,"⭐ потратили ("+x.payers+" чел.)",null,"gold")+'</div>'+
+     '<div class="adt">Сегодня: переходов <b>'+x.clicksToday+'</b> · «Старт» <b>'+x.startsToday+'</b> · новых <b>'+x.newToday+'</b> · уникальных переходов всего '+x.uniq+'</div>'+
+     '<div class="add">'+x.days.map(d=>'<div><i style="height:'+Math.round(d.c/mx*46)+'px" title="переходы"></i><u style="height:'+Math.round(d.s/mx*46)+'px" title="старт"></u><small>'+d.d.slice(8,10)+'</small></div>').join("")+'</div>'+
+     '<div class="adb"><button type="button" class="ghost" data-cp="'+x.direct+'">Прямая ссылка (без счёта переходов)</button><button type="button" class="ghost" data-hide="'+x.code+'">Скрыть</button></div></div>'};
+  sh.innerHTML='<div class="box nickbox adbox"><h3>📈 Рекламные ссылки</h3><p class="cln">Создай ссылку на каждую рекламу. Человек жмёт ссылку → она считает переход и открывает бота → бот считает «Старт» → дальше видно, кто зашёл в игру, играет и донатит.</p>'+
+   '<div class="adn"><input id="ad-name" maxlength="40" placeholder="Название, например: TikTok яйцо"><button type="button" class="craftbtn" id="ad-new">➕ Создать ссылку</button></div>'+
+   (L.length?L.map(card).join(""):'<p class="cln">Ссылок пока нет — создай первую.</p>')+
+   (H.length?'<details class="adhid"><summary>Скрытые ('+H.length+')</summary>'+H.map(x=>'<div class="adr"><span>'+escH(x.name)+' · переходов '+x.clicks+' · старт '+x.starts+' · в игре '+x.opened+'</span><button type="button" class="mini2" data-show="'+x.code+'">Вернуть</button></div>').join("")+'</details>':'')+
+   '<div class="adb"><button type="button" class="ghost" id="ad-re">🔄 Обновить</button><button type="button" class="ghost" id="ad-x">Закрыть</button></div></div>';
+  $("ad-x").onclick=closeModal;$("ad-re").onclick=adOpen;
+  $("ad-new").onclick=async()=>{if(adBusy)return;const n=$("ad-name").value.trim();if(!n){toast("Напиши название рекламы");return}adBusy=true;const r=await act("ad_create",{name:n});adBusy=false;if(!r)return;toast("✅ Ссылка создана");await adOpen();const x=adData.links.find(l=>l.code===r.code);if(x)adCopy(link(x))};
+  sh.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>adCopy(b.dataset.cp));
+  sh.querySelectorAll("[data-hide]").forEach(b=>b.onclick=async()=>{await act("ad_hide",{code:b.dataset.hide,hidden:1});adOpen()});
+  sh.querySelectorAll("[data-show]").forEach(b=>b.onclick=async()=>{await act("ad_hide",{code:b.dataset.show,hidden:0});adOpen()})}
+function adCopy(t){try{navigator.clipboard.writeText(t).then(()=>toast("📋 Скопировано: "+t),()=>adCopyOld(t))}catch(e){adCopyOld(t)}}
+function adCopyOld(t){const i=document.createElement("textarea");i.value=t;document.body.appendChild(i);i.select();try{document.execCommand("copy");toast("📋 Скопировано: "+t)}catch(e){toast(t)}i.remove()}

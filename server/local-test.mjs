@@ -924,5 +924,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   { const R2 = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { dgCasDrop };").toString("base64")); const stt = { dg: { inv: [], sh: 0, ap: 0, nid: 0 } }; const mr = Math.random;
     Math.random = () => 0.001; const d1 = R2.dgCasDrop(stt, { now: Date.now() }, "case"); Math.random = () => 0.015; const d2 = R2.dgCasDrop(stt, { now: Date.now() }, "case"); Math.random = () => 0.5; const d3 = R2.dgCasDrop(stt, { now: Date.now() }, "case"); Math.random = mr;
     ok(d1 && d1.item && d2 && d2.ap && d3 === null && R2.dgCasDrop({}, { now: 0 }, "case") === null, "казино: редкая вещь или яблоко для дракона, без дракона — ничего"); } }
+// 📈 рекламные ссылки: переход → «Старт» в боте → зашёл в игру
+{ const envAd = { ...env, ADMINS: "8" }, ca = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envAd)).json();
+  let q = await ca(7, "ad_create", { name: "TikTok яйцо" }); ok(!q.ok, "рекламные ссылки — только админу");
+  q = await ca(8, "ad_create", { name: "TikTok яйцо" }); const code = q.ok && q.res.code; ok(code === "tiktok_yayco", "ссылка создана, метка латиницей: " + code);
+  const go = async (ua, ip) => worker.fetch(new Request("https://x/go/" + code, { headers: { "user-agent": ua, "x-forwarded-for": ip } }), envAd);
+  let r = await go("Mozilla/5.0 iPhone", "1.1.1.1"); ok(r.status === 302 && r.headers.get("location").endsWith("?start=a_" + code), "переход ведёт в бота с меткой");
+  await go("Mozilla/5.0 iPhone", "1.1.1.1"); await go("Mozilla/5.0 Android", "2.2.2.2"); await go("TelegramBot (like TwitterBot)", "3.3.3.3");
+  const sec2 = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("hook:" + env.BOT_TOKEN))).toString("hex").slice(0, 48); const rf = globalThis.fetch; globalThis.fetch = async () => new Response('{"ok":true,"result":true}'); const tg = (text, id) => worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "X-Telegram-Bot-Api-Secret-Token": sec2 }, body: JSON.stringify({ message: { chat: { id, type: "private" }, from: { id, first_name: "Зритель" }, text } }) }), envAd);
+  await tg("/start a_" + code, 7980); await tg("/start a_" + code, 7980); await tg("/start a_" + code, 7); 
+  globalThis.fetch = rf; await call(7980, "sync"); db.prepare("UPDATE users SET state=json_set(state,'$.nOp',6) WHERE id=7980").run();
+  q = await ca(8, "ad_list"); const L = q.ok && q.res.links.find(x => x.code === code);
+  ok(L && L.clicks === 3 && L.uniq === 2, "переходы считаются (3, уникальных 2), превью Telegram не считается");
+  ok(L && L.starts === 2 && L.startsNew === 1, "«Старт» в боте: 2, из них новый 1 (старый игрок не новый)");
+  ok(L && L.opened === 1 && L.sp5 === 1, "новый зашёл в игру и сделал 5+ прокруток"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
