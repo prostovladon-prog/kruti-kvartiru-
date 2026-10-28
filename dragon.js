@@ -1,6 +1,7 @@
 /* ===================== 🐉 ДРАКОН: клиент =====================
    До вылупления игрок видит только «Тайное яйцо»: что внутри и зачем — не говорим.
    Дракон нарисован слоями (хвост, крылья, тело) — анимируются только transform у слоёв, поэтому телефон не греется. */
+const DG_SCI='<i class="ci ci-s" aria-label="чешуя"></i>';
 let dgSub="gear",dgPend=0,dgBusy=false,dgFlushT=0,dgTopD=null,dgKey="",dgHearts=0,dgUid=0;
 const DG_INK="#0d1030";
 const dgOf=()=>S&&S.dg||null;
@@ -168,7 +169,7 @@ function dgUpd(D,I){I=I||dgInfo(D);const B=dgBr(D);
   $("dg-tp").textContent=Math.min(DG.tapCap,(D.tp||0)+dgPend)+" / "+DG.tapCap;
   $("dg-feed-t").textContent=(D.fd||0)+" / "+DG.feedMax+" сегодня";$("dg-feed").classList.toggle("hot",I.hungry);
   $("dg-gift-t").textContent=I.g?(D.gift?"завтра снова":"+"+I.g+" 🎴"):"с 10 уровня";$("dg-gift").classList.toggle("hot",I.giftOk);$("dg-gift").classList.toggle("off",!I.g||!!D.gift);
-  $("dg-nest-t").textContent=D.nest?"завтра снова":I.nestOk?"чешуя ждёт 🔹":"корм + "+DG.nestTaps+" 💜";$("dg-nest").classList.toggle("hot",I.nestOk);$("dg-nest").classList.toggle("off",!!D.nest);
+  $("dg-nest-t").textContent=D.nest?"завтра снова":I.nestOk?"чешуя ждёт!":"корм + "+DG.nestTaps+" 💜";$("dg-nest").classList.toggle("hot",I.nestOk);$("dg-nest").classList.toggle("off",!!D.nest);
   $("dg-buff").innerHTML='<div><i>⚔️</i><span>+'+Math.round(I.bon*1000)/10+'%</span><small>сила в боях и завоевании</small></div><div><i>🛡</i><span>+'+dgFmt(Math.round(I.pw*.4*(I.hungry?.5:1)))+'</span><small>урона клан-боссу</small></div><div><i>🎴</i><span>+'+I.g+'</span><small>прокруток в день</small></div>'+(I.hungry?'<p class="dgwarn">Дракон голоден: вся сила в 2 раза меньше. Покорми его!</p>':'');
   const tip=$("dg-tip");if(tip)tip.hidden=(D.tp||0)+dgPend>=DG.tapCap;
   document.querySelectorAll("#dg-seg [data-d]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d===dgSub))}
@@ -190,8 +191,8 @@ function dgFeedSheet(){const D=dgOf();if(!D)return;const m=$("modal"),sh=$("mshe
 async function dgGift(){const D=dgOf();if(!D)return;const I=dgInfo(D);if(!I.g){toast("Дракон начнёт приносить прокрутки с 10 уровня (Юный дракон)");return}if(D.gift){toast("Дар уже получен. Завтра дракон принесёт снова");return}
   const r=await act("dg_gift");if(!r)return;sfx.fanfare();hapN("success");dgFly("🎴 +"+r.sp);toast("🐉 Дракон принёс "+r.sp+" прокрутк"+(r.sp===1?"у":r.sp<5?"и":"")+"!");renderAll()}
 async function dgNest(){const D=dgOf();if(!D)return;if(D.nest){toast("Гнездо уже собрано. Завтра там снова будет чешуя");return}
-  const r=await act("dg_nest");if(!r)return;sfx.coin();hapN("success");dgFly("🔹 +"+r.sh);toast("🪺 В гнезде "+r.sh+" чешуи! На неё открываются сундуки со снаряжением");renderAll()}
-function dgFly(t){const st=$("dg-stage");if(!st)return;const h=document.createElement("span");h.className="dgfly";h.textContent=t;st.appendChild(h);setTimeout(()=>h.remove(),1400)}
+  const r=await act("dg_nest");if(!r)return;sfx.coin();hapN("success");dgFly(DG_SCI+" +"+r.sh);toast("🪺 В гнезде "+r.sh+" чешуи! На неё открываются сундуки со снаряжением");renderAll()}
+function dgFly(t){const st=$("dg-stage");if(!st)return;const h=document.createElement("span");h.className="dgfly";h.innerHTML=t;st.appendChild(h);setTimeout(()=>h.remove(),1400)}
 /* ---------- вкладки: снаряжение, сундуки, топ, рост ---------- */
 let dgInvSort="r";
 function dgSubDraw(){const el=$("dg-sub"),D=dgOf();if(!el||!D)return;document.querySelectorAll("#dg-seg [data-d]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d===dgSub));
@@ -199,16 +200,16 @@ function dgSubDraw(){const el=$("dg-sub"),D=dgOf();if(!el||!D)return;document.qu
     const low=inv.filter(it=>it.r<=1&&!Object.values(D.eq||{}).includes(it.id));
     el.innerHTML='<div class="dgslots">'+DG_SLOT.map(S2=>{const it=eq.find(x=>x.s===S2.k);return '<div class="dgsl">'+(it?dgItemTile(it):'<div class="dgi empty"><i>'+S2.ic+'</i></div>')+'<small>'+S2.n+'</small></div>'}).join("")+'</div>'+
      '<div class="dgset'+(sb.b?" on":"")+'">'+(sb.k?dgSetOf(sb.k).ic+' Комплект '+dgSetOf(sb.k).n+': <b>'+sb.n+'/5</b> · '+(sb.n>=5?'<b>+25% мощи и сияние!</b>':sb.n>=3?'<b>+10% мощи</b> (5/5 — +25% и сияние)':'3 предмета — +10%, 5 — +25% и сияние'):'Надень 3 предмета одного комплекта — +10% мощи, 5 — +25% и сияние')+'</div>'+
-     '<div class="dginvh"><b>Сумка '+inv.length+'/'+DG.invMax+'</b><span>🔹 '+dgFmt(D.sh||0)+'</span><button type="button" class="mini2" data-sort="1">'+(dgInvSort==="r"?"по редкости":"по слоту")+'</button></div>'+
-     (inv.length?'<div class="dginv">'+inv.map(it=>dgItemTile(it)).join("")+'</div>':'')+'<button type="button" class="craftbtn dggo" data-goch="1">🎁 Где взять вещи? Открыть сундуки'+((D.sh||0)>=DG_CHEST.nest.sh?' · есть 🔹 на сундук!':'')+'</button>'+
-     (low.length?'<button type="button" class="craftbtn ghost dgdis" data-disall="1">♻️ Разобрать обычные и редкие ('+low.length+') → 🔹 '+dgFmt(low.reduce((a,it)=>a+Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0))),0))+'</button>':'')}
-  else if(dgSub==="chest"){const ch=k=>{const K=DG_CHEST[k];const can=K.sh?(D.sh||0)>=K.sh:1;return '<div class="dgch '+k+'"><div class="dgch-i">'+chestSVG("dg_"+k,78)+'</div><div><h4>'+K.n+'</h4><p>'+K.p.map((p,r)=>p?'<span style="color:'+DG_R[r].c+'">'+DG_R[r].n+' '+String(p).replace(".",",")+'%</span>':"").filter(Boolean).join(" · ")+(K.bonus?' · <b>+'+K.bonus+' 🔹</b>':'')+'</p><button type="button" class="buy" data-ch="'+k+'"'+(can?"":" disabled")+'>'+(K.sh?"🔹 "+K.sh:"⭐ "+K.stars)+'</button></div></div>'};
-    el.innerHTML='<div class="dgshb">🔹 Чешуя: <b>'+dgFmt(D.sh||0)+'</b><small>гнездо каждый день, победы в боях (+'+DG.winSh+'), завоевание (+'+DG.conqSh+'), разбор снаряжения. А в казино иногда выпадают вещи и яблоки 🍏</small></div>'+ch("nest")+ch("royal")+'<div class="ghd">⭐ Сокровища за звёзды</div>'+ch("star")+ch("div")+
+     '<div class="dginvh"><b>Сумка '+inv.length+'/'+DG.invMax+'</b><span>'+DG_SCI+' '+dgFmt(D.sh||0)+'</span><button type="button" class="mini2" data-sort="1">'+(dgInvSort==="r"?"по редкости":"по слоту")+'</button></div>'+
+     (inv.length?'<div class="dginv">'+inv.map(it=>dgItemTile(it)).join("")+'</div>':'')+'<button type="button" class="craftbtn dggo" data-goch="1">🎁 Где взять вещи? Открыть сундуки'+((D.sh||0)>=DG_CHEST.nest.sh?' · хватает '+DG_SCI+' на сундук!':'')+'</button>'+
+     (low.length?'<button type="button" class="craftbtn ghost dgdis" data-disall="1">♻️ Разобрать обычные и редкие ('+low.length+') → '+DG_SCI+' '+dgFmt(low.reduce((a,it)=>a+Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0))),0))+'</button>':'')}
+  else if(dgSub==="chest"){const ch=k=>{const K=DG_CHEST[k];const can=K.sh?(D.sh||0)>=K.sh:1;return '<div class="dgch '+k+'"><div class="dgch-i">'+chestSVG("dg_"+k,78)+'</div><div><h4>'+K.n+'</h4><p>'+K.p.map((p,r)=>p?'<span style="color:'+DG_R[r].c+'">'+DG_R[r].n+' '+String(p).replace(".",",")+'%</span>':"").filter(Boolean).join(" · ")+(K.bonus?' · <b>+'+K.bonus+' '+DG_SCI+'</b>':'')+'</p><button type="button" class="buy" data-ch="'+k+'"'+(can?"":" disabled")+'>'+(K.sh?DG_SCI+" "+K.sh:"⭐ "+K.stars)+'</button></div></div>'};
+    el.innerHTML='<div class="dgshb">'+DG_SCI+' Чешуя: <b>'+dgFmt(D.sh||0)+'</b><small>гнездо каждый день, победы в боях (+'+DG.winSh+'), завоевание (+'+DG.conqSh+'), разбор снаряжения. А в казино иногда выпадают вещи и яблоки 🍏</small></div>'+ch("nest")+ch("royal")+'<div class="ghd">⭐ Сокровища за звёзды</div>'+ch("star")+ch("div")+
      '<div class="dgch apple"><div class="dgch-i big">🍏</div><div><h4>'+DG_SHOP.apple.n+'</h4><p>Каждое: +2 500 опыта и полная сытость. У тебя: '+(D.ap||0)+'</p><button type="button" class="buy" data-shop="apple">⭐ '+DG_SHOP.apple.stars+'</button></div></div>'+
      '<div class="dgch reborn"><div class="dgch-i big">🔮</div><div><h4>'+DG_SHOP.reborn.n+'</h4><p>Дракон перерождается в новую породу — только редкая или выше: '+DG_REB_P.map((p,r)=>p?DG_BR_R[r].toLowerCase()+" "+p+"%":"").filter(Boolean).join(", ")+'. Уровень и снаряжение остаются.</p><button type="button" class="buy" data-shop="reborn">⭐ '+DG_SHOP.reborn.stars+'</button></div></div>'}
   else if(dgSub==="top"){el.innerHTML='<div class="dgtop" id="dg-top">'+(dgTopD?dgTopHTML():'<p class="cln">Загружаю…</p>')+'</div>';if(ONLINE)act("dg_top").then(r=>{if(!r)return;dgTopD=r;const t=$("dg-top");if(t&&dgSub==="top"){t.innerHTML=dgTopHTML();hydrateDgTop()}});else{dgTopD={list:[{uid:S.uid,name:S.name,pow:dgPower(D),lv:D.lv,b:D.b,dn:D.name,me:1,eq:[]}],place:1,total:1};el.querySelector("#dg-top").innerHTML=dgTopHTML()}}
   else{el.innerHTML='<div class="dghow"><h4>Стадии</h4>'+DG_STAGE.map((T,i)=>'<div class="dgstg'+(dgStage(D.lv)>=i?" on":"")+'"><b>'+T.n+'</b><span>с '+T.lv+' ур.</span><em>'+(T.gift?"🎴 +"+T.gift+" в день":"—")+'</em></div>').join("")+
-    '<h4>Откуда опыт</h4><ul><li>💜 Ласка: +1 за каждое касание (до '+DG.tapCap+' в день)</li><li>🍖 Кормление: +60 (до '+DG.feedMax+' раз в день), 🍏 золотое яблоко: +2 500</li><li>⚔️ Победа в бою: +'+DG.winXp+' и +'+DG.winSh+' 🔹 (до '+DG.winCap+' побед в день)</li><li>🗺 Новая точка завоевания: +'+DG.conqXp+' и +'+DG.conqSh+' 🔹</li><li>✅ Задание дня: +'+DG.taskXp+'</li><li>🎴 Каждая прокрутка: +'+DG.spinXp+'</li><li>🎰 Казино: с маленьким шансом выпадает вещь для дракона или золотое яблоко</li></ul>'+
+    '<h4>Откуда опыт</h4><ul><li>💜 Ласка: +1 за каждое касание (до '+DG.tapCap+' в день)</li><li>🍖 Кормление: +60 (до '+DG.feedMax+' раз в день), 🍏 золотое яблоко: +2 500</li><li>⚔️ Победа в бою: +'+DG.winXp+' и +'+DG.winSh+' '+DG_SCI+' (до '+DG.winCap+' побед в день)</li><li>🗺 Новая точка завоевания: +'+DG.conqXp+' и +'+DG.conqSh+' '+DG_SCI+'</li><li>✅ Задание дня: +'+DG.taskXp+'</li><li>🎴 Каждая прокрутка: +'+DG.spinXp+'</li><li>🎰 Казино: с маленьким шансом выпадает вещь для дракона или золотое яблоко</li></ul>'+
     '<h4>Что даёт дракон</h4><ul><li>⚔️ Сила в боях и завоевании: до +20% (растёт с мощью)</li><li>🛡 Бьёт кланового босса вместе с тобой</li><li>🎴 С 10 уровня каждый день приносит прокрутки</li><li>👑 Порода, снаряжение и сияние — видно в топе драконов</li></ul><p class="cln">Голодный дракон (сытость ниже '+DG.hungry+'%) отдаёт только половину силы и опыта. Сытость падает на '+DG.satH+'% в час.</p></div>'}}
 function dgTopHTML(){const T=dgTopD;if(!T||!T.list.length)return '<p class="cln">Пока ни у кого нет дракона. Ты можешь стать первым!</p>';
   return (T.place?'<div class="dgtme">Твоё место: <b>'+T.place+'</b> из '+T.total+'</div>':'')+T.list.map((r,i)=>'<button type="button" class="dgtr'+(r.me?" me":"")+'" data-view="'+r.uid+'"><b class="pl">'+(i<3?["🥇","🥈","🥉"][i]:i+1)+'</b><span class="dgtm" data-mini="'+i+'"></span><span class="nm"><b>'+escH(r.dn||DG_BREED[r.b].n+" дракон")+'</b><small>'+escH(r.name)+' · ур. '+r.lv+' · <i style="color:'+DG_R[DG_BREED[r.b].r].c+'">'+DG_BREED[r.b].n+'</i></small></span><em>'+dgFmt(r.pow)+'</em></button>').join("")}
@@ -217,17 +218,17 @@ async function dgSubClick(e){const D=dgOf();if(!D)return;const t=e.target.closes
   if(t.dataset.sort){dgInvSort=dgInvSort==="r"?"s":"r";dgSubDraw();return}
   if(t.dataset.goch){dgSub="chest";dgSubDraw();const g=$("dg-seg");if(g)g.scrollIntoView({behavior:"smooth",block:"start"});return}
   if(t.dataset.it)return dgItemSheet(+t.dataset.it);
-  if(t.dataset.disall){const eqs=new Set(Object.values(D.eq||{})),ids=(D.inv||[]).filter(it=>it.r<=1&&!eqs.has(it.id)).map(it=>it.id);if(!ids.length)return;t.disabled=true;const r=await act("dg_dis",{ids});if(!r){t.disabled=false;return}sfx.coin();toast("♻️ Разобрано "+r.n+" → +"+r.sh+" 🔹");dgKey="";renderAll();return}
+  if(t.dataset.disall){const eqs=new Set(Object.values(D.eq||{})),ids=(D.inv||[]).filter(it=>it.r<=1&&!eqs.has(it.id)).map(it=>it.id);if(!ids.length)return;t.disabled=true;const r=await act("dg_dis",{ids});if(!r){t.disabled=false;return}sfx.coin();toast("♻️ Разобрано "+r.n+" → +"+r.sh+" чешуи");dgKey="";renderAll();return}
   if(t.dataset.ch){const k=t.dataset.ch,K=DG_CHEST[k];if(K.stars)return buyItem({item:"dg",k});t.disabled=true;const r=await act("dg_open",{k});if(!r){t.disabled=false;return}dgReveal(r.item,K.n,k);dgKey="";renderAll();return}
   if(t.dataset.shop)return buyItem({item:"dg",k:t.dataset.shop});
   if(t.dataset.view)return dgViewSheet(+t.dataset.view)}
 function dgItemSheet(id){const D=dgOf(),it=D&&(D.inv||[]).find(x=>x.id===id);if(!it)return;const m=$("modal"),sh=$("msheet"),on=D.eq&&D.eq[it.s]===it.id,cost=dgUpCost(it);m.hidden=false;
   sh.innerHTML='<div class="box nickbox dgis" style="--rc:'+DG_R[it.r].c+'"><div class="dgis-i r'+it.r+'">'+dgItemSVG(it)+'</div><h3>'+dgItemName(it)+(it.lv?' +'+it.lv:'')+'</h3><p class="dgis-r"><b style="color:'+DG_R[it.r].c+'">'+DG_R[it.r].n+'</b> · '+dgSetOf(it.t).ic+' комплект '+dgSetOf(it.t).n+' · '+dgSlotOf(it.s).n+'</p><div class="dgis-p">Мощь <b>'+dgFmt(dgItemPow(it))+'</b>'+(it.lv<DG.upMax?' → '+dgFmt(dgItemPow(Object.assign({},it,{lv:it.lv+1}))):'')+'</div>'+
-   '<button type="button" class="craftbtn" id="dgis-eq">'+(on?"Снять":"Надеть")+'</button>'+(it.lv<DG.upMax?'<button type="button" class="craftbtn" id="dgis-up"'+((D.sh||0)<cost?" disabled":"")+'>⬆️ Улучшить до +'+(it.lv+1)+' · 🔹 '+dgFmt(cost)+'</button>':'<p class="cln">Улучшено до максимума</p>')+
-   (on?'':'<button type="button" class="craftbtn ghost" id="dgis-dis">♻️ Разобрать → 🔹 '+dgFmt(Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0))))+'</button>')+'<button type="button" class="ghost" id="dgis-x">Закрыть</button></div>';
+   '<button type="button" class="craftbtn" id="dgis-eq">'+(on?"Снять":"Надеть")+'</button>'+(it.lv<DG.upMax?'<button type="button" class="craftbtn" id="dgis-up"'+((D.sh||0)<cost?" disabled":"")+'>⬆️ Улучшить до +'+(it.lv+1)+' · '+DG_SCI+' '+dgFmt(cost)+'</button>':'<p class="cln">Улучшено до максимума</p>')+
+   (on?'':'<button type="button" class="craftbtn ghost" id="dgis-dis">♻️ Разобрать → '+DG_SCI+' '+dgFmt(Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0))))+'</button>')+'<button type="button" class="ghost" id="dgis-x">Закрыть</button></div>';
   $("dgis-eq").onclick=async()=>{const r=await act("dg_equip",{id});if(!r)return;hap("medium");closeModal();dgKey="";renderAll();toast((on?"Снято":"Надето")+" · мощь "+dgFmt(r.pow))};
   if($("dgis-up"))$("dgis-up").onclick=async()=>{const r=await act("dg_up",{id});if(!r)return;sfx.coin();hapN("success");dgKey="";renderAll();dgItemSheet(id)};
-  if($("dgis-dis"))$("dgis-dis").onclick=async()=>{const r=await act("dg_dis",{ids:[id]});if(!r)return;closeModal();sfx.coin();toast("♻️ +"+r.sh+" 🔹");dgKey="";renderAll()};
+  if($("dgis-dis"))$("dgis-dis").onclick=async()=>{const r=await act("dg_dis",{ids:[id]});if(!r)return;closeModal();sfx.coin();toast("♻️ +"+r.sh+" чешуи");dgKey="";renderAll()};
   $("dgis-x").onclick=closeModal}
 function dgReveal(it,title,k){const m=$("modal"),sh=$("msheet");m.hidden=false;
   sh.innerHTML='<div class="box nickbox dgrev"><small>'+escH(title)+'</small><div class="dgrev-ch">'+chestSVG("dg_"+(k||"nest"),150)+'</div><p class="cln">Открываем…</p></div>';hap("heavy");try{sfx.rumble(1);setTimeout(()=>sfx.rumble(3),300)}catch(e){}
@@ -256,8 +257,8 @@ function dgHatchReveal(){const D=dgOf();if(!D)return;const B=dgBr(D),m=$("modal"
 /* ---------- события: новый уровень, бой, покупки ---------- */
 function dgLvUp(e){if(e.stage){const T=DG_STAGE[e.stage];setTimeout(()=>{try{sfx.fanfare()}catch(x){}toast("🐉 Дракон вырос: теперь он «"+T.n+"»!"+(T.gift?" Каждый день приносит "+T.gift+" 🎴":""))},400)}else setTimeout(()=>toast("🐉 Дракон достиг "+e.lv+" уровня!"),300)}
 {const _act=act;act=async function(n,p){const r=await _act(n,p);try{if(r&&r.events)r.events.forEach(e=>{if(e.t==="dglv")dgLvUp(e)});
-  if(r&&n==="duel"&&r.dg)setTimeout(()=>toast("🐉 Дракон рад победе: +"+r.dg.xp+" опыта, +"+r.dg.sh+" 🔹"),2600);
-  if(r&&n==="conq_fight"&&r.reward&&r.reward.dgxp)setTimeout(()=>toast("🐉 +"+r.reward.dgxp+" опыта и +"+r.reward.dgsh+" 🔹 дракону"),2600)}catch(x){}return r}}
+  if(r&&n==="duel"&&r.dg)setTimeout(()=>toast("🐉 Дракон рад победе: +"+r.dg.xp+" опыта, +"+r.dg.sh+" чешуи"),2600);
+  if(r&&n==="conq_fight"&&r.reward&&r.reward.dgxp)setTimeout(()=>toast("🐉 +"+r.reward.dgxp+" опыта и +"+r.reward.dgsh+" чешуи дракону"),2600)}catch(x){}return r}}
 {const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&r.item==="dg"){renderAll();const R=r.res||{};if(R.item){dgKey="";dgReveal(R.item,DG_CHEST[R.k]?DG_CHEST[R.k].n:"Сокровище",R.k)}else if(R.k==="apple"){sfx.coin();toast("🍏 Золотые яблоки у дракона: "+R.ap+" шт.")}else if(R.k==="reborn"){dgKey="";sfx.fanfare();burst(3);toast("🔮 Дракон переродился: "+DG_BREED[R.b].n.toLowerCase()+" ("+DG_BR_R[DG_BREED[R.b].r].toLowerCase()+")!");renderAll()}return}return _ps(r)}}
 CHEST_COL.dg_nest=["#c9e86b","#3a5a14","#8fd03a"];CHEST_COL.dg_royal=["#ffd27a","#7a2a08","#ff9f0a"];CHEST_COL.dg_star=["#b9a2ff","#2a1a6a","#7a5aff"];CHEST_COL.dg_div=["#ffb0c8","#8a0a3a","#ff2e63"];
 {const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{renderDragon()}catch(e){console.error(e)}}}
@@ -269,7 +270,7 @@ try{dgNav()}catch(e){}
 {const q=new URLSearchParams(location.search);if(q.get("dragon")){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{try{closeModal()}catch(e){}setTab("dragon")},700)},300)}}
 /* ---------- казино: выпала вещь для дракона или яблоко ---------- */
 {const _a2=act;act=async function(n,p){const r=await _a2(n,p);try{if(r&&r.dg&&/^cas_/.test(n)){const g=r.dg,dl=n==="cas_case"?4200:n==="cas_slot"?2600:900;
-  setTimeout(()=>{try{sfx.fanfare()}catch(e){}hapN("success");if(g.item)toast("🐉 Удача в казино! Выпало "+DG_R[g.item.r].n.toLowerCase()+" «"+dgItemName(g.item)+"» — уже в сумке дракона");else if(g.ap)toast("🍏 Удача в казино! Золотое яблоко для дракона");else if(g.sh)toast("🐉 Выпала вещь для дракона, но сумка полная — +"+g.sh+" 🔹 чешуи");dgKey=""},dl)}}catch(e){}return r}}
+  setTimeout(()=>{try{sfx.fanfare()}catch(e){}hapN("success");if(g.item)toast("🐉 Удача в казино! Выпало "+DG_R[g.item.r].n.toLowerCase()+" «"+dgItemName(g.item)+"» — уже в сумке дракона");else if(g.ap)toast("🍏 Удача в казино! Золотое яблоко для дракона");else if(g.sh)toast("🐉 Выпала вещь для дракона, но сумка полная — +"+g.sh+" чешуи");dgKey=""},dl)}}catch(e){}return r}}
 /* ---------- статистика (только админ): всё про дракона ---------- */
 Object.assign(ITEM_N,{dg:"🐉 Дракон",twins:"♊ Сундук Близнецов",slots:"📦 Место для карточек"});
 {const _ds=drawStatsX;drawStatsX=function(){_ds.apply(this,arguments);try{const R=stData&&stData.x,b=$("st-body");if(!R||!R.dg||!b)return;const g=R.dg,old=$("st-dg");if(old)old.remove();
@@ -286,7 +287,7 @@ Object.assign(ITEM_N,{dg:"🐉 Дракон",twins:"♊ Сундук Близн�
    ${tile(fmtN(g.casG+g.casA),"выпало в казино","вещей "+g.casG+" · яблок "+g.casA)}
    ${tile(fmtN(g.items.reduce((a,b)=>a+b,0)),"вещей у драконов","надето "+g.eq+" · улучшений +"+g.up+" · из казино "+g.casItems)}
    ${tile(fmtN(g.set5),"полных комплектов 5/5","3–4 из комплекта: "+g.set3)}
-   ${tile(fmtN(g.sh)+" 🔹","чешуи на руках","яблок на руках "+g.ap)}</div>
+   ${tile(fmtN(g.sh)+" "+DG_SCI,"чешуи на руках","яблок на руках "+g.ap)}</div>
    <div class="stl"><b>Породы</b>${DG_BREED.map((B,i)=>row(B.n,DG_BR_R[B.r].toLowerCase(),g.br[i]||0)).join("")}</div>
    <div class="stl"><b>Стадии</b>${DG_STAGE.map((T,i)=>row(T.n,"с "+T.lv+" ур.",g.stg[i]||0)).join("")}</div>
    <div class="stl"><b>Снаряжение по редкости</b>${DG_R.map((Rr,i)=>row(Rr.n,"",g.items[i]||0)).join("")}</div>
@@ -297,3 +298,8 @@ Object.assign(ITEM_N,{dg:"🐉 Дракон",twins:"♊ Сундук Близн�
    ${tile(g.twins+" / 16","Близнецов разобрано","карточек по 2 на мир")}
    ${tile(fmtN((g.caps&&g.caps.c)||0),"расширили место за монеты","куплено +10 за ⭐: "+((g.caps&&g.caps.s)||0)+" раз")}</div>`;
   b.appendChild(el)}catch(e){console.error(e)}}}
+/* чешуя в шапке рядом с монетами и рунами — у кого есть дракон */
+function dgCash(){const w=$("cash-sw");if(!w||!S)return;const D=dgOf();w.hidden=!D;if(D){$("cash-s").textContent=fmtK(D.sh||0);w.title="Чешуя дракона: "+fmtN(D.sh||0)}}
+{const _uc=updCash;updCash=function(){_uc.apply(this,arguments);try{dgCash()}catch(e){}}}
+$("cash-sw").onclick=e=>{e.stopPropagation();dgSub="chest";dgKey="";setTab("dragon")};
+try{dgCash()}catch(e){}

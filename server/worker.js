@@ -904,7 +904,7 @@ const ACTIONS={
     if(!g)fail("Дракон начнёт приносить прокрутки, когда станет юным (10 уровень)");if(D.gift)fail("Дар уже получен сегодня");if(dgSat(D,ctx.now)<DG.hungry)fail("Голодный дракон ничего не приносит. Покорми его");
     D.gift=1;st.spins+=g;return {sp:g}},
   dg_open(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");const K=DG_CHEST[G.p.k];if(!K||!K.sh)fail("Такого сундука нет");
-    if((D.inv||[]).length>=DG.invMax)fail("Сумка дракона полная ("+DG.invMax+"). Разбери лишнее на чешую");if((D.sh||0)<K.sh)fail("Не хватает чешуи: нужно "+K.sh+" 🔹");
+    if((D.inv||[]).length>=DG.invMax)fail("Сумка дракона полная ("+DG.invMax+"). Разбери лишнее на чешую");if((D.sh||0)<K.sh)fail("Не хватает чешуи: нужно "+K.sh);
     D.sh-=K.sh;const it=dgNewItem(D,pick(K.p));D.inv.push(it);return {item:it}},
   dg_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     let out={k:p.k};const K=DG_CHEST[p.k];
@@ -916,7 +916,7 @@ const ACTIONS={
   dg_equip(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const it=(D.inv||[]).find(x=>x.id===(G.p.id|0));if(!it)fail("Предмет не найден");D.eq=D.eq||{};
     if(D.eq[it.s]===it.id)delete D.eq[it.s];else D.eq[it.s]=it.id;return {pow:dgPower(D)}},
   dg_up(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const it=(D.inv||[]).find(x=>x.id===(G.p.id|0));if(!it)fail("Предмет не найден");if((it.lv||0)>=DG.upMax)fail("Предмет уже улучшен до +"+DG.upMax);
-    const c=dgUpCost(it);if((D.sh||0)<c)fail("Не хватает чешуи: нужно "+c+" 🔹");D.sh-=c;it.lv=(it.lv||0)+1;return {lv:it.lv,pow:dgPower(D)}},
+    const c=dgUpCost(it);if((D.sh||0)<c)fail("Не хватает чешуи: нужно "+c);D.sh-=c;it.lv=(it.lv||0)+1;return {lv:it.lv,pow:dgPower(D)}},
   dg_dis(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const ids=new Set((G.p.ids||[]).map(x=>x|0));const eqIds=new Set(Object.values(D.eq||{}));let got=0,n=0;
     D.inv=(D.inv||[]).filter(it=>{if(!ids.has(it.id)||eqIds.has(it.id))return true;got+=Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0)));n++;return false});if(!n)fail("Выбери предметы (надетые разбирать нельзя)");
     D.sh=(D.sh||0)+got;return {sh:got,n}},
@@ -1955,7 +1955,7 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"pass_grant",{s:d.s},{grant:true})).res;delete res.events;msg="🎖 Боевой пропуск «"+passTheme(d.s).n+"» открыт! Забирай награды всех пройденных уровней во вкладке «Пропуск»."}
     else if(P.item==="dg"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"dg_grant",{k:d.k,pid:P.id},{grant:true})).res;delete res.events;
-      msg=res.item?"🐉 "+DG_CHEST[d.k].n+": "+DG_R[res.item.r].n.toLowerCase()+" «"+dgItemName(res.item)+"» + "+res.sh+" 🔹 чешуи!":d.k==="apple"?"🍏 Золотые яблоки уже у дракона!":"🔮 Ритуал совершён: твой дракон переродился — "+DG_BREED[res.b].n.toLowerCase()+"!"}
+      msg=res.item?"🐉 "+DG_CHEST[d.k].n+": "+DG_R[res.item.r].n.toLowerCase()+" «"+dgItemName(res.item)+"» + "+res.sh+" чешуи!":d.k==="apple"?"🍏 Золотые яблоки уже у дракона!":"🔮 Ритуал совершён: твой дракон переродился — "+DG_BREED[res.b].n.toLowerCase()+"!"}
     else if(P.item==="slots"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"slots_grant",{pid:P.id},{grant:true})).res;delete res.events;msg="📦 +"+SLOT_STAR.n+" мест в коллекции! Теперь влезает "+res.cap+" карточек."}
     else if(P.item==="golem"){const now=Date.now(),u=await env.DB.prepare("SELECT golem_until FROM users WHERE id=?").bind(P.uid).first()||{};
