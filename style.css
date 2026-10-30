@@ -2093,3 +2093,45 @@ body.drw-on{overflow:hidden}
 @keyframes spP{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
 .subpop .sp-t{min-height:18px;margin:8px 0 4px;font-size:13px;opacity:.8}
 .subpop .ghost{margin-top:2px}
+.dmbox{padding:14px}
+.dmtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dmtop b{font-size:20px}
+.dml{display:grid;gap:8px;max-height:62vh;overflow:auto}
+.dmc{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;border-radius:16px;background:rgba(127,127,160,.1);border:0;color:inherit;font:inherit}
+.dmc.un{background:linear-gradient(90deg,#ffd23f30,#ff7ad930)}
+.dmav{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:20px;color:#fff;background:linear-gradient(135deg,hsl(var(--h) 80% 62%),hsl(calc(var(--h) + 40) 70% 42%))}
+.dmav.adm{background:linear-gradient(135deg,#ffe066,#ff9f0a)}
+.dmc span{flex:1;min-width:0;display:grid}
+.dmc span b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dmc span small{opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dmc.un span small{opacity:1;font-weight:700}
+.dmc em{font-style:normal;font-size:12px;opacity:.75;display:grid;justify-items:end;gap:4px}
+.dmc em u{text-decoration:none;background:#ff3b5c;color:#fff;border-radius:10px;padding:1px 7px;font-weight:800;opacity:1}
+.dmhint{font-size:12px;opacity:.65;text-align:center;margin:12px 0 0}
+.dmw .chtop{gap:8px}
+.dmw .chtop b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dmback,.dmmore{border:0;background:rgba(127,127,160,.15);color:inherit;border-radius:12px;width:36px;height:36px;font-size:22px;font-weight:900;line-height:1}
+.dmw textarea{flex:1;resize:none;border-radius:14px;padding:10px 12px;font:inherit;border:2px solid rgba(127,127,160,.3);background:inherit;color:inherit;min-height:44px;max-height:110px}
+.dmm .chx{white-space:pre-wrap;word-break:break-word}
+.dmm .cht{display:block;font-size:11px;opacity:.6;margin-top:2px;text-align:right}
+.dmm.dmadm{background:linear-gradient(135deg,#fff3c4,#ffe08a);color:#3a2600}
+.dmmenu{display:grid;gap:6px;margin:0 0 8px}
+.dmmenu button{border:0;border-radius:12px;padding:11px;background:rgba(127,127,160,.15);color:inherit;font:inherit;font-weight:700;text-align:left}
+.dmrow{display:flex;gap:8px;justify-content:center;margin:6px 0 10px}
+.dmrow .mini2{flex:1;max-width:220px}
+.dmrow .stb{background:linear-gradient(180deg,#ffe066,#ff9f0a);color:#3a2600}
+.stbox input{width:100%;box-sizing:border-box;margin:6px 0}
+.stbox .x{float:right}
+.stu,.stl{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:12px;background:rgba(127,127,160,.1);border:0;color:inherit;font:inherit;margin-top:6px}
+.stu span,.stl span{flex:1;min-width:0;display:grid}
+.stu small,.stl small{opacity:.65;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stu em,.stl em{font-style:normal;font-weight:900;color:#e08c12}
+.stl em.neg{color:#d0302a}
+.stf{margin-top:10px;padding:12px;border-radius:16px;background:linear-gradient(135deg,#ffe06622,#ff9f0a22);border:2px solid #ffb84d}
+.stwho{display:grid;margin-bottom:8px}.stwho b{font-size:17px}.stwho small{opacity:.7}
+.stam{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.stam button{border:0;border-radius:10px;padding:9px 0;font-weight:800;background:rgba(127,127,160,.15);color:inherit}
+.stam button.on{background:linear-gradient(180deg,#ffe066,#ff9f0a);color:#3a2600}
+.stf .craftbtn{width:100%;margin-top:4px}.stf .ghost{width:100%;margin-top:6px}
+.stok{font-weight:800;color:#1e8a4a;text-align:center}
+.sth{margin:16px 0 4px}

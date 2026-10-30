@@ -948,5 +948,24 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   ok(L && L.clicks === 3 && L.uniq === 2, "переходы считаются (3, уникальных 2), превью Telegram не считается");
   ok(L && L.starts === 2 && L.startsNew === 1, "«Старт» в боте: 2, из них новый 1 (старый игрок не новый)");
   ok(L && L.opened === 1 && L.sp5 === 1, "новый зашёл в игру и сделал 5+ прокруток"); }
+// ✉️ личные сообщения и ⭐ звёзды от админа
+{ const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
+  await cd(8101, "sync"); await cd(8102, "sync"); await cd(8, "sync");
+  let q = await cd(8101, "dm_send", { uid: 8102, text: "привет" }); ok(!q.ok && /ник/.test(q.err), "писать игрокам — только с ником");
+  await cd(8101, "nick", { nick: "Почтальон" }); await cd(8102, "nick", { nick: "Адресат" });
+  q = await cd(8101, "dm_send", { uid: 8102, text: "привет, го обмен?" }); ok(q.ok, "игрок написал игроку");
+  q = await cd(8101, "dm_send", { uid: 8102, text: "смотри t.me/xxx" }); ok(!q.ok, "ссылки в личке запрещены");
+  q = await cd(8102, "sync"); ok(q.S.dmUn === 1, "у получателя 1 непрочитанное");
+  q = await cd(8102, "dm_list"); ok(q.ok && q.res.list[0].uid === 8101 && q.res.list[0].un === 1, "переписка в списке с непрочитанным");
+  q = await cd(8102, "dm_get", { uid: 8101 }); ok(q.ok && q.res.items.length === 1 && q.res.un === 0, "открыл переписку — прочитано");
+  await new Promise(z => setTimeout(z, 1600));
+  q = await cd(8102, "dm_block", { uid: 8101, on: 1 }); q = await cd(8101, "dm_send", { uid: 8102, text: "ау" }); ok(!q.ok && /ограничил/.test(q.err), "заблокированный не может писать");
+  q = await cd(8101, "st_give", { uid: 8102, amt: 100 }); ok(!q.ok, "звёзды начисляет только админ");
+  q = await cd(8, "st_find", { q: "Адрес" }); ok(q.ok && q.res.users.some(u => u.uid === 8102), "админ находит игрока по нику");
+  q = await cd(8, "st_give", { uid: 8102, amt: 250, note: "приз за конкурс" }); ok(q.ok && q.res.bal === 250, "админ начислил 250 ⭐ на игровой баланс");
+  q = await cd(8102, "sync"); ok(q.S.starBal === 250 && q.S.dmUn === 1, "звёзды на балансе и сообщение от администрации");
+  q = await cd(8, "dm_send", { uid: 8102, text: "Поздравляем!" }); ok(q.ok, "админ пишет игроку");
+  q = await cd(8, "st_give", { uid: 8102, amt: -1000 }); ok(!q.ok, "списать больше, чем есть, нельзя");
+  q = await cd(8, "st_log"); ok(q.ok && q.res.sum === 250 && q.res.log[0].uid === 8102, "история начислений"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

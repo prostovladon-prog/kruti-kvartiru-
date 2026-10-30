@@ -10,7 +10,8 @@ const MENU_GROUPS=[
   {k:"quest",ic:"🎯",n:"Задания",c:["#7ee89a","#1e8a4a"]},
   {k:"wheel",ic:"🎡",n:"Колесо",c:["#ffb84d","#d0302a"]},
   {k:"camp",ic:"🏕",n:"Лагерь",c:["#c9e86b","#4a7a1e"]},
-  {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]}]],
+  {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
+  {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]}]],
  ["Сражения",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
   {k:"clan",ic:"🛡",n:"Клан",c:["#b9a2ff","#4b2a9a"]},
@@ -49,6 +50,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
     sh.addEventListener("touchend",()=>{if(y0==null)return;y0=null;sh.style.transform="";if(dy>90)menuClose()})}
   const B=menuBadges(),on=!ONLINE||!!(S&&S.shopOn);let h="";
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
+  if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="stars"><i>⭐</i><span><b>Звёзды игрокам</b><small>Начислить звёзды на игровой баланс и написать игроку</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
   d.querySelector(".drw-b").innerHTML=h;d.hidden=false;document.body.classList.add("drw-on");requestAnimationFrame(()=>d.classList.add("on"));$("tab-more").setAttribute("aria-expanded","true")}
@@ -141,3 +143,67 @@ function openSubPop(){const m=$("modal"),sh=$("msheet");subpLS(Date.now());m.hid
     sfx.coin();hapN("success");burst(2);closeModal();renderAll();toast("Спасибо за подписку! +10 прокруток 🎰")};
 }
 setInterval(()=>{if(Date.now()-subpT0>SUBP_AFTER&&subpCan())openSubPop()},10e3);
+/* ===================== ✉️ Личные сообщения: игрок ↔ игрок, администрация → игрок ===================== */
+let dmPeerId=0,dmItems=[],dmTimer=0,dmInfo=null;
+function dmTime(t){const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}
+function dmStop(){dmPeerId=0;clearInterval(dmTimer)}
+async function dmOpen(){if(!ONLINE){toast("Сообщения работают в игре через бота");return}dmStop();const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box dmbox"><div class="dmtop"><b>✉️ Сообщения</b><button type="button" class="x" id="dm-x">Закрыть</button></div><div class="dml" id="dm-l"><p class="cln">Загружаю…</p></div><p class="dmhint">Чтобы написать игроку, нажми на его ник в чате или в топе и выбери «✉️ Написать»</p></div>';
+  $("dm-x").onclick=closeModal;const r=await act("dm_list");const L=$("dm-l");if(!r||!L)return;
+  if(!r.list.length){L.innerHTML='<p class="chempty">Пока нет сообщений</p>';return}
+  L.innerHTML=r.list.map(c=>{const adm=c.adm&&!S.admin;return '<button type="button" class="dmc'+(c.un?" un":"")+'" data-u="'+c.uid+'"><i class="dmav'+(adm?" adm":"")+'" style="--h:'+((c.uid*47)%360)+'">'+(adm?"👑":esc(String(c.name||"?").slice(0,1).toUpperCase()))+'</i><span><b>'+(adm?"Администрация":(c.vip?"👑 ":"")+esc(c.name))+'</b><small>'+(c.mine?"Ты: ":"")+esc(String(c.text).slice(0,70))+'</small></span><em>'+dmTime(c.t)+(c.un?'<u>'+c.un+'</u>':'')+'</em></button>'}).join("");
+  L.onclick=e=>{const b=e.target.closest("[data-u]");if(b)dmThread(+b.dataset.u)}}
+async function dmThread(uid){if(!ONLINE||!uid)return;if(S&&uid===S.uid){toast("Себе написать нельзя");return}dmStop();dmPeerId=uid;dmItems=[];dmInfo=null;const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="chwrap dmw"><div class="chtop"><button type="button" class="dmback" id="dm-b">‹</button><b id="dm-n">…</b><button type="button" class="dmmore" id="dm-m">⋯</button><button type="button" class="x" id="dm-x">Закрыть</button></div><div class="chlist" id="dm-list"><p class="chempty">Загружаю…</p></div><div class="chin"><textarea id="dm-in" maxlength="500" rows="1" placeholder="Сообщение…"></textarea><button type="button" class="mini2" id="dm-send">➤</button></div><small class="chrule">Без мата, ссылок и спама. Пишут гадости? ⋯ → «Пожаловаться»</small></div>';
+  $("dm-x").onclick=()=>{dmStop();closeModal()};$("dm-b").onclick=dmOpen;$("dm-m").onclick=dmMenu;
+  const send=async()=>{const i=$("dm-in"),t=i.value.trim();if(!t)return;$("dm-send").disabled=true;const r=await act("dm_send",{uid,text:t});if($("dm-send"))$("dm-send").disabled=false;if(!r)return;i.value="";hap("light");dmPull()};
+  $("dm-send").onclick=send;$("dm-in").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}};
+  await dmPull();if(dmPeerId===uid)dmTimer=setInterval(dmPull,4000)}
+async function dmPull(){const uid=dmPeerId;if(!uid||!$("dm-list")){dmStop();return}const last=dmItems.length?dmItems[dmItems.length-1].id:0;
+  const r=await act("dm_get",{uid,after:last});if(!r||uid!==dmPeerId||!$("dm-list"))return;dmInfo=r;
+  $("dm-n").textContent=r.peer.adm&&!S.admin?"👑 Администрация":(r.peer.vip?"👑 ":"")+r.peer.name;
+  if(r.items.length||!last){dmItems=dmItems.concat(r.items.filter(x=>x.id>last)).slice(-150);dmDraw()}
+  const inp=$("dm-in");if(inp){inp.disabled=!!(r.blocked||r.blockedMe);inp.placeholder=r.blocked?"Ты заблокировал этого игрока":r.blockedMe?"Игрок ограничил сообщения":"Сообщение…";
+    if(!S.nick&&!S.admin){inp.placeholder="Сначала выбери ник";inp.onfocus=()=>{dmStop();closeModal();openNick(false)}}}
+  S.dmUn=r.un||0;moreDot()}
+function dmDraw(){const box=$("dm-list");if(!box)return;const atEnd=!box.dataset.f||box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  if(!dmItems.length){box.innerHTML='<p class="chempty">Напиши первым 👋</p>';return}
+  box.innerHTML=dmItems.map(m=>'<div class="chm dmm'+(m.a===S.uid?" me":"")+(m.adm&&m.a!==S.uid?" dmadm":"")+'"><div class="chx"></div><span class="cht">'+dmTime(m.t)+'</span></div>').join("");
+  [...box.querySelectorAll(".chx")].forEach((e,i)=>e.textContent=dmItems[i].text);
+  if(atEnd){box.scrollTop=box.scrollHeight;box.dataset.f="1"}}
+function dmMenu(){const ex=$("dm-menu");if(ex){ex.remove();return}const r=dmInfo;if(!r)return;const d=document.createElement("div");d.id="dm-menu";d.className="dmmenu";
+  d.innerHTML='<button type="button" data-k="p">👤 Витрина игрока</button>'+(r.peer.adm?'':'<button type="button" data-k="b">'+(r.blocked?"✅ Разблокировать":"🚫 Заблокировать")+'</button><button type="button" data-k="r">🚩 Пожаловаться</button>')+(S.admin&&!r.peer.adm?'<button type="button" data-k="s">⭐ Начислить звёзды</button>':'');
+  d.onclick=async e=>{const b=e.target.closest("[data-k]");if(!b)return;const k=b.dataset.k,uid=dmPeerId;d.remove();
+    if(k==="p"){dmStop();closeModal();openParam("u_"+uid)}
+    if(k==="b"){const q=await act("dm_block",{uid,on:r.blocked?0:1});if(q){toast(q.blocked?"Игрок заблокирован: он больше не сможет тебе писать":"Игрок разблокирован");dmPull()}}
+    if(k==="r"){const q=await act("dm_report",{uid});if(q){toast("Жалоба отправлена администрации, игрок заблокирован");dmPull()}}
+    if(k==="s"){dmStop();stOpen({uid,name:r.peer.name})}};
+  $("dm-list").before(d)}
+/* кнопка «Написать» (и «Звёзды» для админа) на витрине игрока */
+{const _osm=openShowcase;openShowcase=function(F){_osm(F);if(!ONLINE||!F||!F.uid||!S||F.uid===S.uid)return;const sh=$("msheet"),who=sh.querySelector(".who");if(!who||sh.querySelector(".dmrow"))return;
+  const r=document.createElement("div");r.className="dmrow";r.innerHTML='<button type="button" class="mini2" data-k="dm">✉️ Написать</button>'+(S.admin?'<button type="button" class="mini2 stb" data-k="st">⭐ Звёзды</button>':'');
+  r.onclick=e=>{const b=e.target.closest("[data-k]");if(!b)return;if(b.dataset.k==="dm")dmThread(F.uid);else stOpen({uid:F.uid,name:F.name})};who.after(r)}}
+/* ===================== ⭐ Админ: звёзды на игровой баланс ===================== */
+async function stOpen(pre){if(!S||!S.admin)return;dmStop();const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box nickbox stbox" id="stbox"><button type="button" class="x" id="st-x">Закрыть</button><h3>⭐ Звёзды игрокам</h3><p class="cln">Звёзды падают на игровой баланс. Игрок тратит их в Сокровищнице как настоящие: сундуки, VIP, места, дракон. Ему придёт сообщение от бота.</p><input type="text" id="st-q" placeholder="🔎 ID, ник или имя игрока" autocomplete="off"><div id="st-res"></div><div id="st-form"></div><h3 class="sth">История начислений</h3><div id="st-log"><p class="cln">Загружаю…</p></div></div>';
+  $("st-x").onclick=closeModal;let tm=0;$("st-q").oninput=()=>{clearTimeout(tm);tm=setTimeout(stFind,350)};
+  if(pre)stForm(pre);stLog()}
+async function stFind(){const q=$("st-q")?$("st-q").value.trim():"",R=$("st-res");if(!R)return;if(!q){R.innerHTML="";return}const r=await act("st_find",{q});if(!r||!$("st-res"))return;
+  R.innerHTML=r.users.length?r.users.map(u=>'<button type="button" class="stu" data-u="'+u.uid+'"><span><b>'+(u.vip?"👑 ":"")+esc(u.name)+'</b><small>id '+u.uid+(u.tg&&u.tg!==u.name?" · "+esc(u.tg):"")+'</small></span><em>'+u.bal+' ⭐</em></button>').join(""):'<p class="cln">Никого не нашёл</p>';
+  R.onclick=e=>{const b=e.target.closest("[data-u]");if(b)stForm(r.users.find(x=>x.uid===+b.dataset.u))}}
+function stForm(u){const F=$("st-form");if(!F||!u)return;$("st-res").innerHTML="";let amt=50;
+  F.innerHTML='<div class="stf"><div class="stwho"><b>'+esc(u.name)+'</b><small>id '+u.uid+(u.bal!=null?' · на балансе '+u.bal+' ⭐':'')+'</small></div><div class="stam">'+[25,50,100,250,500,1000].map(n=>'<button type="button" data-a="'+n+'"'+(n===amt?' class="on"':'')+'>'+n+'</button>').join("")+'</div><input type="number" id="st-a" min="1" max="100000" value="'+amt+'" inputmode="numeric"><input type="text" id="st-n" maxlength="200" placeholder="Комментарий для игрока (необязательно)"><button type="button" class="craftbtn" id="st-go"></button><button type="button" class="ghost" id="st-dm">✉️ Написать игроку</button></div>';
+  const upd=()=>{amt=Math.round(+$("st-a").value||0);$("st-go").textContent="⭐ Начислить "+amt+" ⭐";[...F.querySelectorAll("[data-a]")].forEach(b=>b.classList.toggle("on",+b.dataset.a===amt))};upd();
+  F.querySelector(".stam").onclick=e=>{const b=e.target.closest("[data-a]");if(!b)return;$("st-a").value=b.dataset.a;upd()};$("st-a").oninput=upd;
+  $("st-dm").onclick=()=>dmThread(u.uid);
+  $("st-go").onclick=async()=>{if(amt<1){toast("Укажи сумму");return}const g=$("st-go");g.disabled=true;const r=await act("st_give",{uid:u.uid,amt,note:$("st-n").value});g.disabled=false;if(!r)return;
+    sfx.coin();hapN("success");toast("⭐ "+r.name+": +"+r.amt+" ⭐, теперь "+r.bal+" ⭐");F.innerHTML='<p class="stok">✅ '+esc(r.name)+' получил '+r.amt+' ⭐ · на балансе '+r.bal+' ⭐</p>';stLog()};
+  F.scrollIntoView({block:"nearest"})}
+async function stLog(){const r=await act("st_log");const L=$("st-log");if(!r||!L)return;
+  L.innerHTML='<p class="cln">Всего начислено: <b>'+r.sum+' ⭐</b> · '+r.n+' раз</p>'+r.log.map(x=>'<div class="stl"><span><b>'+esc(x.name||"id "+x.uid)+'</b><small>'+dmTime(x.t)+(x.note?" · "+esc(x.note):"")+'</small></span><em class="'+(x.amt<0?"neg":"")+'">'+(x.amt>0?"+":"")+x.amt+' ⭐</em></div>').join("")}
+{const _mg=menuGo;menuGo=function(k){if(k==="dm"){menuClose();return dmOpen()}if(k==="stars"){menuClose();return stOpen()}return _mg(k)}}
+{const _mb=menuBadges;menuBadges=function(){const b=_mb();if(S&&S.dmUn)b.dm=S.dmUn>99?"99+":S.dmUn;return b}}
+{const _cm=closeModal;closeModal=function(){dmStop();return _cm.apply(this,arguments)}}
+/* ссылка из бота: ?dm=<id> — сразу в переписку */
+{const q=+new URLSearchParams(location.search).get("dm");if(q){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{try{closeModal()}catch(e){}dmThread(q)},800)},300)}}
+setInterval(()=>{try{moreDot()}catch(e){}},15e3);

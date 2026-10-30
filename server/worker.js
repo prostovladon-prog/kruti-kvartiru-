@@ -976,7 +976,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=33;
+const SCHEMA_V=34;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1042,7 +1042,10 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
     "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))","ALTER TABLE users ADD COLUMN dg_pow INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS users_dgpow ON users(dg_pow)","CREATE INDEX IF NOT EXISTS users_ref ON users(ref)",
  "CREATE TABLE IF NOT EXISTS ad_links (code TEXT PRIMARY KEY, name TEXT, created INTEGER, hidden INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS ad_clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, t INTEGER, ip TEXT)","CREATE INDEX IF NOT EXISTS ad_clicks_c ON ad_clicks(code,t)",
- "CREATE TABLE IF NOT EXISTS ad_starts (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, new INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))","CREATE INDEX IF NOT EXISTS ad_starts_u ON ad_starts(uid)"];   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+ "CREATE TABLE IF NOT EXISTS ad_starts (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, new INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))","CREATE INDEX IF NOT EXISTS ad_starts_u ON ad_starts(uid)",   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
+ "CREATE TABLE IF NOT EXISTS dm (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, text TEXT, t INTEGER, rd INTEGER NOT NULL DEFAULT 0, adm INTEGER NOT NULL DEFAULT 0)","CREATE INDEX IF NOT EXISTS dm_b ON dm(b,rd)","CREATE INDEX IF NOT EXISTS dm_ab ON dm(a,b,id)",
+ "CREATE TABLE IF NOT EXISTS dm_block (uid INTEGER NOT NULL, who INTEGER NOT NULL, PRIMARY KEY(uid,who))",
+ "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1095,6 +1098,71 @@ async function adStart(env,uid,code){code=adCode(code);if(!code)return;try{
   const L=await env.DB.prepare("SELECT code FROM ad_links WHERE code=?").bind(code).first();if(!L)return;
   const was=await env.DB.prepare("SELECT 1 FROM users WHERE id=?").bind(uid).first(),seen=await env.DB.prepare("SELECT 1 FROM ad_starts WHERE uid=?").bind(uid).first();
   await env.DB.prepare("INSERT OR IGNORE INTO ad_starts(code,uid,t,new) VALUES(?,?,?,?)").bind(code,uid,Date.now(),(!was&&!seen)?1:0).run()}catch(e){console.error("adStart",e)}}
+/* ---------- личные сообщения: игрок ↔ игрок и администрация → игрок ---------- */
+const DM_MAX=500;
+async function dmPeer(env,uid){const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,vip_until,fx,fx_until FROM users WHERE id=?").bind(uid).first();if(!u)fail("Игрок не найден");
+  const now=Date.now();return {uid:u.id,name:u.name||"Игрок",vip:(u.vip_until||0)>now?1:0,fx:(u.fx_until||0)>now?u.fx:null,adm:isAdmin(env,u.id)?1:0}}
+async function dmApi(env,me,a,p){const now=Date.now(),adm=isAdmin(env,me.id);
+  if(a==="dm_list"){
+    const R=(await env.DB.prepare("SELECT CASE WHEN a=? THEN b ELSE a END AS peer,MAX(id) AS last FROM dm WHERE a=? OR b=? GROUP BY peer ORDER BY last DESC LIMIT 50").bind(me.id,me.id,me.id).all()).results;
+    if(!R.length)return {list:[]};
+    const ids=R.map(r=>r.last),peers=R.map(r=>r.peer);
+    const M=(await env.DB.prepare("SELECT id,a,text,t FROM dm WHERE id IN ("+ids.map(()=>"?").join(",")+")").bind(...ids).all()).results;
+    const U=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,vip_until FROM users WHERE id IN ("+peers.map(()=>"?").join(",")+")").bind(...peers).all()).results;
+    const N=(await env.DB.prepare("SELECT a,COUNT(*) AS n FROM dm WHERE b=? AND rd=0 GROUP BY a").bind(me.id).all()).results;
+    const list=R.map(r=>{const m=M.find(x=>x.id===r.last)||{},u=U.find(x=>x.id===r.peer)||{},n=N.find(x=>x.a===r.peer);
+      return {uid:r.peer,name:u.name||"Игрок",vip:(u.vip_until||0)>now?1:0,adm:isAdmin(env,r.peer)?1:0,text:m.text||"",t:m.t||0,mine:m.a===me.id?1:0,un:n?n.n:0}});
+    return {list}}
+  const peer=Math.floor(+p.uid||0);if(!peer||peer===me.id)fail("Нельзя писать самому себе");
+  if(a==="dm_get"){const P=await dmPeer(env,peer),after=Math.floor(+p.after||0);
+    const items=(await env.DB.prepare("SELECT id,a,text,t,adm FROM dm WHERE ((a=? AND b=?) OR (a=? AND b=?)) AND id>? ORDER BY id DESC LIMIT 80").bind(me.id,peer,peer,me.id,after).all()).results.reverse();
+    await env.DB.prepare("UPDATE dm SET rd=1 WHERE a=? AND b=? AND rd=0").bind(peer,me.id).run();
+    const bl=await env.DB.prepare("SELECT (SELECT 1 FROM dm_block WHERE uid=? AND who=?) AS mine,(SELECT 1 FROM dm_block WHERE uid=? AND who=?) AS his").bind(me.id,peer,peer,me.id).first()||{};
+    const un=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0;
+    return {peer:P,items,blocked:bl.mine?1:0,blockedMe:bl.his?1:0,un}}
+  if(a==="dm_send"){const P=await dmPeer(env,peer),{u}=await loadUser(env,me);
+    let t=String(p.text||"").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim();if(!t)fail("Пустое сообщение");if(t.length>DM_MAX)fail("Не длиннее "+DM_MAX+" символов");
+    if(!adm){if(!u.nick)fail("Чтобы писать игрокам, выбери ник во вкладке «Топ»");
+      if((u.muted||0)>now)fail("Тебе запрещено писать ещё "+Math.ceil((u.muted-now)/36e5)+" ч");
+      if(CHAT_LINK.test(t))fail("Ссылки в сообщениях запрещены");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
+      if(await env.DB.prepare("SELECT 1 FROM dm_block WHERE uid=? AND who=?").bind(peer,me.id).first())fail("Игрок ограничил тебе сообщения");
+      if(await env.DB.prepare("SELECT 1 FROM dm_block WHERE uid=? AND who=?").bind(me.id,peer).first())fail("Ты заблокировал этого игрока. Разблокируй, чтобы написать");
+      const last=await env.DB.prepare("SELECT t FROM dm WHERE a=? ORDER BY id DESC LIMIT 1").bind(me.id).first();if(last&&now-last.t<1500)fail("Не так быстро");
+      const day=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE a=? AND t>?").bind(me.id,now-864e5).first())||{}).n||0;if(day>=300)fail("На сегодня лимит сообщений исчерпан")}
+    const r=await env.DB.prepare("INSERT INTO dm(a,b,text,t,adm) VALUES(?,?,?,?,?) RETURNING id").bind(me.id,peer,t,now,adm?1:0).first();
+    const un=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE a=? AND b=? AND rd=0").bind(me.id,peer).first())||{}).n||0;
+    const from=adm?"👑 Администрация «Воинов Эпох»":(u.nick||"Игрок");
+    if(adm)await notify(env,peer,"✉️ Сообщение от администрации «Воинов Эпох»:\n\n"+t,"✉️ Ответить",PAGE+"?dm="+me.id);
+    else if(un===1)await notify(env,peer,"✉️ "+from+" написал тебе в игре:\n\n«"+t.slice(0,200)+(t.length>200?"…":"")+"»","✉️ Ответить",PAGE+"?dm="+me.id);
+    return {id:r.id,t:now,text:t}}
+  if(a==="dm_block"){await dmPeer(env,peer);
+    if(p.on)await env.DB.prepare("INSERT OR IGNORE INTO dm_block(uid,who) VALUES(?,?)").bind(me.id,peer).run();
+    else await env.DB.prepare("DELETE FROM dm_block WHERE uid=? AND who=?").bind(me.id,peer).run();return {blocked:p.on?1:0}}
+  if(a==="dm_report"){const P=await dmPeer(env,peer);
+    const L=(await env.DB.prepare("SELECT text FROM dm WHERE a=? AND b=? ORDER BY id DESC LIMIT 5").bind(peer,me.id).all()).results.reverse().map(x=>"— "+x.text.slice(0,200)).join("\n");
+    const who=await nameOf(env,me.id);
+    for(const x of ADMINS)await notify(env,x,"🚩 Жалоба на сообщения\nОт: "+who+" (id "+me.id+")\nНа: "+P.name+" (id "+P.uid+")\n\nПоследние сообщения:\n"+(L||"(нет)"),"⚔️ Открыть",PAGE+"?dm="+P.uid);
+    await env.DB.prepare("INSERT OR IGNORE INTO dm_block(uid,who) VALUES(?,?)").bind(me.id,peer).run();return {ok:1}}
+  fail("Неизвестное действие")}
+/* ---------- админ: начислить звёзды на игровой баланс ---------- */
+async function starApi(env,me,a,p){if(!isAdmin(env,me.id))fail("Нет доступа");const now=Date.now();
+  if(a==="st_find"){const q=String(p.q||"").trim().replace(/^@/,"").slice(0,40);if(!q)return {users:[]};
+    const n=/^\d{3,}$/.test(q)?+q:-1,lo=q.toLowerCase(),cap=lo.charAt(0).toUpperCase()+lo.slice(1),P=[q,lo,cap,q.toUpperCase()].map(x=>"%"+x+"%");
+    const users=(await env.DB.prepare("SELECT id,name,nick,star_bal,vip_until,seen FROM users WHERE id=? OR COALESCE(nick_key,'') LIKE ? OR COALESCE(nick,'') LIKE ? OR COALESCE(nick,'') LIKE ? OR COALESCE(name,'') LIKE ? OR COALESCE(name,'') LIKE ? OR COALESCE(name,'') LIKE ? OR COALESCE(name,'') LIKE ? ORDER BY (id=?) DESC,seen DESC LIMIT 12").bind(n,P[1],P[0],P[2],P[0],P[1],P[2],P[3],n).all()).results;
+    return {users:users.map(u=>({uid:u.id,name:u.nick||u.name||"Игрок",tg:u.name||"",bal:u.star_bal||0,vip:(u.vip_until||0)>now?1:0,seen:u.seen||0}))}}
+  if(a==="st_give"){const uid=Math.floor(+p.uid||0),amt=Math.round(+p.amt||0),note=String(p.note||"").trim().slice(0,200);
+    if(!amt||Math.abs(amt)>100000)fail("Сумма от 1 до 100 000 ⭐");const P=await dmPeer(env,uid);
+    if(amt<0){const r=await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=? AND star_bal>=?").bind(amt,uid,-amt).run();if(r.meta.changes!==1)fail("У игрока меньше звёзд на балансе")}
+    else await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(amt,uid).run();
+    await env.DB.prepare("INSERT INTO star_grants(uid,amt,note,t,by) VALUES(?,?,?,?,?)").bind(uid,amt,note,now,me.id).run();
+    const bal=((await env.DB.prepare("SELECT star_bal FROM users WHERE id=?").bind(uid).first())||{}).star_bal||0;
+    if(amt>0){const txt="⭐ Тебе начислено "+amt+" звёзд на игровой баланс!"+(note?"\n\n"+note:"")+"\n\nТеперь у тебя "+bal+" ⭐. Трать их в Сокровищнице: сундуки, VIP, место для карточек и многое другое.";
+      await notify(env,uid,txt,"🏪 В Сокровищницу",PAGE+"?shop=1");
+      await env.DB.prepare("INSERT INTO dm(a,b,text,t,adm) VALUES(?,?,?,?,1)").bind(me.id,uid,txt,now).run()}
+    return {uid,name:P.name,amt,bal}}
+  if(a==="st_log"){const L=(await env.DB.prepare("SELECT g.uid,g.amt,g.note,g.t,COALESCE(u.nick,u.name) AS name FROM star_grants g LEFT JOIN users u ON u.id=g.uid ORDER BY g.id DESC LIMIT 30").all()).results;
+    const tot=await env.DB.prepare("SELECT COALESCE(SUM(amt),0) AS s,COUNT(*) AS n FROM star_grants").first();return {log:L,sum:tot.s,n:tot.n}}
+  fail("Неизвестное действие")}
 async function adApi(env,me,a,p,origin){if(!isAdmin(env,me.id))fail("Нет доступа");const now=Date.now(),t0=dayNum(now)*864e5-TZ;
   if(a==="ad_create"){const name=String(p.name||"").trim().slice(0,40);if(!name)fail("Напиши название рекламы");
     let base=adCode(p.code)||adCode(name.replace(/[а-яё]/gi,ch=>({а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"c",ч:"ch",ш:"sh",щ:"sh",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"}[ch.toLowerCase()]||"")).replace(/\s+/g,"_"))||"ad";
@@ -1192,7 +1260,7 @@ async function stateFor(env,me){
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
-  S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
+  S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
   Object.assign(S,await nickFx(env));S.shopOn=1;   // переливающиеся ники и «Король Эпох» месяца
   if(u.founder&&!u.founder_seen){await env.DB.prepare("UPDATE users SET founder_seen=1 WHERE id=?").bind(me.id).run();delete topCache.founders}
@@ -2567,6 +2635,8 @@ async function handle(req,env){{
       if(a==="dtop")return J({ok:true,res:await dtopGet(env,me)});
       if(a==="dg_top")return J({ok:true,res:await dgTop(env,me)});
       if(/^ad_(list|create|hide)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
+      if(/^dm_(list|get|send|block|report)$/.test(a))return J({ok:true,res:await dmApi(env,me,a,p)});
+      if(/^st_(find|give|log)$/.test(a))return J({ok:true,res:await starApi(env,me,a,p)});
       if(a==="dg_view")return J({ok:true,res:await dgViewOf(env,Math.floor(+p.uid||0))});
       if(a==="dg_grant")fail("Неизвестное действие");
       if(a==="trader")return J({ok:true,res:await traderInfo(env,me)});
