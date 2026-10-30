@@ -122,3 +122,22 @@ setInterval(()=>{try{cStrip()}catch(e){}},1000);
 {const _qt=qTiles;qTiles=function(){_qt();const el=$("qtiles");if(!el)return;let w=$("qt-c");if(!cOn()){if(w)w.remove();return}
   if(!w){w=document.createElement("button");w.type="button";w.id="qt-c";w.className="qt qtc";w.onclick=cGo}
   if(el.firstChild!==w)el.prepend(w);const C=chData,M=C.me;w.innerHTML='<i>'+(C.vip?"👑":"🎟")+'</i><span><b>'+(C.vip?"Разыгрываем 3 VIP на месяц!":"Розыгрыш "+C.prizes[0])+'</b><small>'+(M.n>=C.min?"ты участвуешь · билетов: "+M.n:"пригласи "+C.min+" друзей · у тебя "+M.n)+' · итоги '+cDM(C.end)+'</small></span><em></em>'}}
+/* ---------- окно «подпишись на канал»: через пару минут в игре, не чаще раза в 12 часов ---------- */
+const SUBP_K="we-subpop",SUBP_GAP=12*36e5,SUBP_AFTER=80e3,subpT0=Date.now();
+function subpLS(v){try{if(v===undefined)return +localStorage.getItem(SUBP_K)||0;localStorage.setItem(SUBP_K,String(v))}catch(e){return 0}}
+function subpCan(){return typeof S!=="undefined"&&S&&ONLINE&&!S.subGot2&&$("modal").hidden&&!document.querySelector(".onb")&&Date.now()-subpLS()>SUBP_GAP}
+function openSubPop(){const m=$("modal"),sh=$("msheet");subpLS(Date.now());m.hidden=false;let st=0;
+  sh.innerHTML='<div class="box subpop" id="subpop"><div class="sp-ic"><svg viewBox="0 0 24 24"><path d="M21.5 4.3 2.9 11.5c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.4.8.8.8.4 0 .6-.2.9-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.7c.3-1.3-.5-1.9-1.3-1.5z" fill="#fff"/></svg></div>'+
+  '<h3>Подпишись на канал игры</h3><p class="sp-ch">@'+CHANNEL+'</p>'+
+  '<ul><li>🔥 Новые карточки и обновления первым</li><li>👑 Розыгрыши VIP и призов</li><li>🎁 Промокоды и бонусы только для подписчиков</li></ul>'+
+  '<div class="sp-rw">🎰 <b>+10 прокруток</b> за подписку</div>'+
+  '<button type="button" class="craftbtn" id="sp-go">📢 Подписаться</button>'+
+  '<button type="button" class="mini2 sp-chk" id="sp-chk">✅ Проверить подписку</button><p class="sp-t" id="sp-t"></p>'+
+  '<button type="button" class="ghost" id="sp-x">Позже</button></div>';
+  const go=$("sp-go"),ck=$("sp-chk"),t=$("sp-t");
+  go.onclick=()=>{hap("light");const u="https://t.me/"+CHANNEL;if(tg&&tg.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank");st=1;subStep=1;ck.classList.add("on");t.textContent="Подписался? Вернись и нажми «Проверить подписку»"};
+  ck.onclick=async()=>{ck.disabled=true;t.textContent="Проверяю…";const r=await act("sub_check");ck.disabled=false;
+    if(!r){t.textContent=st?"Подписки пока не видно. Подпишись и проверь ещё раз":"Сначала нажми «Подписаться»";return}
+    sfx.coin();hapN("success");burst(2);closeModal();renderAll();toast("Спасибо за подписку! +10 прокруток 🎰")};
+  $("sp-x").onclick=()=>{hap("light");closeModal()}}
+setInterval(()=>{if(Date.now()-subpT0>SUBP_AFTER&&subpCan())openSubPop()},10e3);

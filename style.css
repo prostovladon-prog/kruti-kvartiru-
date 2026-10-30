@@ -2078,3 +2078,18 @@ body.drw-on{overflow:hidden}
 .cstrip em{flex:none;font-style:normal;font-family:var(--display);font-size:13px;padding:4px 8px;border-radius:10px;background:rgba(13,16,48,.55)}
 .qt.qtc{grid-column:1/-1;--a:#9b2cf0;--b:#ff2e8d;background:linear-gradient(110deg,#ff2e8d,#9b2cf0 50%,#ffb800)}.qt.qtc b{font-size:15px}.qt.qtc i{font-size:32px}
 #chal.vipc{background:linear-gradient(160deg,#4a1fa8,#9b2cf0 45%,#ff2e8d)}
+.subpop{text-align:center;padding:26px 20px 16px}
+.subpop .sp-ic{width:84px;height:84px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#7fd0ff,#229ed9 55%,#1a6fb0);box-shadow:inset 0 -6px 0 #0005,0 8px 22px #229ed966;animation:spB 2.4s ease-in-out infinite}
+.subpop .sp-ic svg{width:46px;height:46px;margin-left:-4px}
+@keyframes spB{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+.subpop h3{margin:0 0 2px;font-size:22px}
+.subpop .sp-ch{margin:0 0 12px;color:#229ed9;font-weight:800}
+.subpop ul{list-style:none;padding:0;margin:0 0 14px;text-align:left;display:grid;gap:8px}
+.subpop li{background:rgba(127,127,160,.12);border-radius:12px;padding:9px 12px;font-size:14px}
+.subpop .sp-rw{margin:0 0 14px;padding:10px;border-radius:14px;background:linear-gradient(90deg,#ffd23f33,#ff9f1c33);font-size:16px}
+.subpop .craftbtn{width:100%}
+.subpop .sp-chk{width:100%;margin-top:10px;opacity:.75}
+.subpop .sp-chk.on{opacity:1;background:#2fd46a;color:#fff;animation:spP 1.2s ease-in-out infinite}
+@keyframes spP{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+.subpop .sp-t{min-height:18px;margin:8px 0 4px;font-size:13px;opacity:.8}
+.subpop .ghost{margin-top:2px}
