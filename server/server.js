@@ -958,7 +958,7 @@ async function subCheck(env,me){
   const r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/getChatMember?chat_id="+encodeURIComponent(env.CHANNEL||CHANNEL)+"&user_id="+me.id);
   const j=await r.json().catch(()=>({}));
   if(!j.ok){console.error("getChatMember",j);fail("Не получилось проверить подписку. Попробуй через минуту")}
-  if(!["member","administrator","creator"].includes(j.result&&j.result.status))fail("Подписки пока не видно. Подпишись на канал и нажми «Проверить» ещё раз");
+  const R=j.result||{};if(!(["member","administrator","creator"].includes(R.status)||R.status==="restricted"&&R.is_member))fail("Подписки пока не видно. Подпишись на канал и нажми «Проверить» ещё раз");
   return doAction(env,me,"sub_reward",{},{subOk:true});
 }
 
