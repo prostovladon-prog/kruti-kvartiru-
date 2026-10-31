@@ -991,6 +991,24 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const n1 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n, nd = db.prepare("SELECT COUNT(*) n FROM users WHERE json_extract(state,'$.dg') IS NULL AND id<>6724818967").get().n;
   ok(n1 - n0 === nd && nd > 0, "сообщение в игре про дракона за историю — всем без дракона (" + (n1 - n0) + ")");
   const hasDg = db.prepare("SELECT id FROM users WHERE json_extract(state,'$.dg') IS NOT NULL LIMIT 1").get(); ok(!hasDg || !db.prepare("SELECT 1 FROM dm WHERE b=? AND text LIKE '%ДРАКОН ТЕПЕРЬ%'").get(hasDg.id), "у кого дракон уже есть — не пишем"); }
+// 🐉 эволюция, облики, арена драконов, дракон рядом с ником
+{ const envG = { ...env, ADMINS: "8" }, cg = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envG)).json();
+  for (const u of [8601, 8602]) { await cg(u, "sync"); await cg(u, "dg_story", { tg: "voin" + u }); await cg(u, "dg_hatch"); }
+  let q = await cg(8601, "dg_evo", { k: "fire" }); ok(!q.ok && /20 уровня/.test(q.err), "эволюция только с 20 уровня");
+  db.prepare("UPDATE users SET state=json_set(state,'$.dg.lv',25,'$.dg.xp',999999) WHERE id IN (8601,8602)").run();
+  const p0 = (await cg(8601, "sync")).S; q = await cg(8601, "dg_evo", { k: "fire" }); ok(q.ok && q.S.dg.evo === "fire", "путь «Пламя» выбран");
+  q = await cg(8601, "dg_evo", { k: "ice" }); ok(!q.ok, "путь выбирается один раз");
+  await cg(8602, "dg_evo", { k: "ice" });
+  q = await cg(8601, "dg_skin", { k: "pumpkin" }); ok(!q.ok, "облик без покупки не надеть");
+  db.prepare("UPDATE users SET star_bal=500 WHERE id=8601").run();
+  q = await cg(8601, "pay_bal", { item: "dgskin", k: "frost" }); ok(q.ok && q.S.dg.skin === "frost" && q.S.dg.skins.includes("frost"), "облик «Кристальный» куплен с игрового баланса и надет");
+  q = await cg(8601, "dg_skin", { k: null }); ok(q.ok && !q.S.dg.skin, "облик можно снять");
+  q = await cg(8601, "dga_info"); ok(q.ok && q.res.r === 1000 && q.res.left === 5 && q.res.opp.some(o => o.uid === 8602), "арена: рейтинг 1000, 5 боёв, соперники с драконами");
+  q = await cg(8601, "dga_fight", { uid: 8602 }); ok(q.ok && q.res.rounds.length >= 2 && q.res.kb === 1.2 && q.res.left === 4 && q.res.sh > 0, "бой на арене: раунды, лёд сильнее пламени, награда чешуёй");
+  const r1 = db.prepare("SELECT dgr FROM users WHERE id=8601").get().dgr, r2 = db.prepare("SELECT dgr FROM users WHERE id=8602").get().dgr; ok(r1 + r2 === 2000 && r1 !== 1000, "рейтинг перешёл от одного к другому (" + r1 + "/" + r2 + ")");
+  for (let i = 0; i < 4; i++) await cg(8601, "dga_fight", { uid: 8602 }); q = await cg(8601, "dga_fight", { uid: 8602 }); ok(!q.ok && /закончились/.test(q.err), "лимит боёв в день");
+  q = await cg(8602, "dga_info"); ok(q.ok && q.res.hist.some(h => !h.att), "защитник видит, что на него нападали");
+  q = await cg(8601, "dg_looks", { uids: [8601, 8602, 7] }); ok(q.ok && q.res[8602] && q.res[8602][3] === "ice" && !q.res[7], "дракон рядом с ником: вид дракона по id"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
   await cd(8111, "sync"); await cd(8112, "sync"); await cd(8, "sync");

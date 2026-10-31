@@ -608,6 +608,17 @@ const DG_R=[{n:"Обычное",c:"#9aa6bf",p:40,dis:5},{n:"Редкое",c:"#34
 const DG_SET=[{k:"fire",n:"Пламени",ic:"🔥",c:"#ff6a1a"},{k:"ice",n:"Льда",ic:"❄️",c:"#5ac8fa"},{k:"storm",n:"Бури",ic:"🌩",c:"#7a5aff"},{k:"shadow",n:"Тени",ic:"🌑",c:"#8a5ab8"},{k:"gold",n:"Золота Эпох",ic:"👑",c:"#ffcf33"},{k:"olymp",n:"Олимпа",ic:"⚜️",c:"#ff2e63",div:1}];
 const DG_CHEST={nest:{n:"Сундук гнезда",sh:120,p:[62,28,8.5,1.4,.1,0]},royal:{n:"Королевский сундук",sh:600,p:[0,55,33,10,2,0]},
  star:{n:"Звёздный сундук",stars:99,p:[0,0,70,25,5,0],bonus:100},div:{n:"Божественный сундук",stars:499,p:[0,0,0,60,30,10],bonus:500}};
+/* эволюция с 20 уровня (стадия «Взрослый дракон»): выбирается один раз */
+const DG_EVO={fire:{n:"Пламя",ic:"🔥",c:"#ff3d1a",d:"+10% мощи дракона"},ice:{n:"Лёд",ic:"❄️",c:"#4fd6ff",d:"сытость тает на 40% медленнее"},storm:{n:"Буря",ic:"⚡",c:"#9a6aff",d:"+20% опыта"}},DG_EVO_LV=20;
+/* облики за звёзды: меняют только вид. Хэллоуинский — ограниченный по времени */
+const DG_SKIN={pumpkin:{n:"Тыквенный",ic:"🎃",stars:149,until:Date.UTC(2026,10,3,21,0),c:["#ff7a12","#ffd36a","#3a1a08"],eye:"fire",acc:"pumpkin",d:"Хэллоуин! Только до 3 ноября"},
+ frost:{n:"Кристальный",ic:"💎",stars:199,c:["#8fe3ff","#ffffff","#3a7fd0"],eye:"ice",acc:"crystal",d:"Ледяные кристаллы на голове"},
+ abyss:{n:"Бездна",ic:"🌑",stars:249,c:["#2a1a3e","#ff4fd8","#0a0414"],eye:"shadow",acc:"horns",d:"Тёмный, с неоновыми рогами"},
+ emperor:{n:"Император",ic:"👑",stars:399,c:["#ffcf2e","#fff7d0","#8a5a00"],eye:"gold",acc:"crown",d:"Золото и корона"}};
+/* арена драконов: бой против драконов других игроков. Лёд бьёт огонь, огонь — бурю, буря — лёд (+20%) */
+const DGA={day:5,vipDay:3,k:32,start:1000,win:{sh:12,xp:40},lose:{sh:4,xp:10},adv:1.2,prize:[200,100,50]};
+const DGA_BEAT={ice:"fire",fire:"storm",storm:"ice"};
+function dgEl(D){if(!D)return null;if(D.evo)return D.evo;const k=(DG_BREED[D.b]||{}).k;return k==="fire"||k==="ice"||k==="storm"?k:null}
 const DG_SHOP={apple:{n:"3 золотых яблока",stars:49,ap:3},reborn:{n:"Ритуал перерождения",stars:299}};
 const dgSetOf=k=>DG_SET.find(x=>x.k===k)||DG_SET[0], dgSlotOf=k=>DG_SLOT.find(x=>x.k===k)||DG_SLOT[0];
 const dgItemName=it=>dgSlotOf(it.s).n+" "+dgSetOf(it.t).n;
@@ -615,11 +626,11 @@ const dgItemPow=it=>Math.round(DG_R[it.r].p*(1+.12*(it.lv||0))*(it.s==="amul"?1.
 const dgUpCost=it=>20*(it.r+1)*((it.lv||0)+1);
 function dgEq(D){return DG_SLOT.map(S=>(D.inv||[]).find(it=>it.id===(D.eq||{})[S.k])).filter(Boolean)}
 function dgSetBonus(eq){const n={};eq.forEach(it=>n[it.t]=(n[it.t]||0)+1);let best=null;for(const k in n)if(!best||n[k]>n[best])best=k;const c=best?n[best]:0;return {k:best,n:c,b:c>=5?.25:c>=3?.1:0}}
-function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b))}
-const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH));
+function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b)*(D.evo==="fire"?1.1:1))}
+const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH*(D.evo==="ice"?.6:1)));
 function dgBonus(st,now){const D=st&&st.dg;if(!D)return 0;let b=Math.min(.2,.02+dgPower(D)/40000);if(dgSat(D,now)<DG.hungry)b/=2;return Math.round(b*1000)/1000}
 function dgDay(D,now){const d=mskDay(now);if(D.d!==d){D.d=d;D.tp=0;D.fd=0;D.wx=0;D.nest=0;D.gift=0}return D}
-function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
+function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(D.evo==="storm")x=Math.ceil(x*1.2);if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
   if(D.lv>lv0&&ctx.events)ctx.events.push({t:"dglv",lv:D.lv,stage:dgStage(D.lv)>dgStage(lv0)?dgStage(D.lv):0});return x}
 function dgWin(st,ctx){const D=st.dg;if(!D)return null;dgDay(D,ctx.now);if((D.wx||0)>=DG.winCap)return null;D.wx=(D.wx||0)+1;D.sh=(D.sh||0)+DG.winSh;return {xp:dgAddXp(st,ctx,DG.winXp),sh:DG.winSh}}
 function dgNewItem(D,r,t,s){D.nid=(D.nid||0)+1;const sets=DG_SET.filter(x=>r===5?x.div:!x.div);return {id:D.nid,s:s||DG_SLOT[Math.floor(Math.random()*DG_SLOT.length)].k,r,t:r===5?"olymp":t||sets[Math.floor(Math.random()*sets.length)].k,lv:0}}
@@ -932,6 +943,12 @@ const ACTIONS={
   dg_open(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");const K=DG_CHEST[G.p.k];if(!K||!K.sh)fail("Такого сундука нет");
     if((D.inv||[]).length>=DG.invMax)fail("Сумка дракона полная ("+DG.invMax+"). Разбери лишнее на чешую");if((D.sh||0)<K.sh)fail("Не хватает чешуи: нужно "+K.sh);
     D.sh-=K.sh;const it=dgNewItem(D,pick(K.p));D.inv.push(it);return {item:it}},
+  dg_evo(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");if(D.evo)fail("Путь уже выбран");if(D.lv<DG_EVO_LV)fail("Эволюция открывается с "+DG_EVO_LV+" уровня");const k=String(G.p.k||"");if(!DG_EVO[k])fail("Нет такого пути");D.evo=k;return {evo:k}},
+  dg_skin(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const k=G.p.k?String(G.p.k):null;if(k&&!(D.skins||[]).includes(k))fail("Этот облик ещё не куплен");D.skin=k;return {skin:k}},
+  dg_skin_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const k=String(G.p.k||"");if(!DG_SKIN[k])fail("Нет такого облика");D.skins=D.skins||[];if(!D.skins.includes(k))D.skins.push(k);D.skin=k;return {skin:k}},
+  dga_apply(G){const A=G.ctx.dga;if(!A)fail("Неизвестное действие");const st=G.st,D=st.dg;if(!D)fail("Сначала нужен дракон");const d=today(G.ctx.now);st.dgA=st.dgA&&st.dgA.d===d?st.dgA:{d,n:0};
+    const lim=DGA.day+(vipTier(st)?DGA.vipDay:0);if(st.dgA.n>=lim)fail("Бои на арене на сегодня закончились ("+lim+"). Завтра — новые!");if(A.check)return {left:lim-st.dgA.n};
+    st.dgA.n++;const R=A.win?DGA.win:DGA.lose;D.sh=(D.sh||0)+R.sh;dgAddXp(st,G.ctx,R.xp);return {sh:R.sh,xp:R.xp,left:lim-st.dgA.n}},
   dg_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     let out={k:p.k};const K=DG_CHEST[p.k];
     if(K&&K.stars){const it=dgNewItem(D,pick(K.p));D.inv.push(it);D.sh=(D.sh||0)+K.bonus;out.item=it;out.sh=K.bonus}
@@ -1002,7 +1019,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=35;
+const SCHEMA_V=36;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1072,6 +1089,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS dm (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, text TEXT, t INTEGER, rd INTEGER NOT NULL DEFAULT 0, adm INTEGER NOT NULL DEFAULT 0)","CREATE INDEX IF NOT EXISTS dm_b ON dm(b,rd)","CREATE INDEX IF NOT EXISTS dm_ab ON dm(a,b,id)",
  "CREATE TABLE IF NOT EXISTS dm_block (uid INTEGER NOT NULL, who INTEGER NOT NULL, PRIMARY KEY(uid,who))",
  "ALTER TABLE users ADD COLUMN wb INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nb_note INTEGER NOT NULL DEFAULT 0",
+ "ALTER TABLE users ADD COLUMN dgr INTEGER NOT NULL DEFAULT 1000","ALTER TABLE users ADD COLUMN dgr_wk TEXT","ALTER TABLE users ADD COLUMN dgr_w INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dgr_l INTEGER NOT NULL DEFAULT 0",
+ "CREATE TABLE IF NOT EXISTS dg_fights (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, win INTEGER NOT NULL, ra INTEGER, rb INTEGER, t INTEGER, log TEXT)","CREATE INDEX IF NOT EXISTS dg_fights_b ON dg_fights(b,id)","CREATE INDEX IF NOT EXISTS dg_fights_a ON dg_fights(a,id)",
  "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
@@ -1171,6 +1190,47 @@ async function dmApi(env,me,a,p){const now=Date.now(),adm=isAdmin(env,me.id);
     for(const x of ADMINS)await notify(env,x,"🚩 Жалоба на сообщения\nОт: "+who+" (id "+me.id+")\nНа: "+P.name+" (id "+P.uid+")\n\nПоследние сообщения:\n"+(L||"(нет)"),"⚔️ Открыть",PAGE+"?dm="+P.uid);
     await env.DB.prepare("INSERT OR IGNORE INTO dm_block(uid,who) VALUES(?,?)").bind(me.id,peer).run();return {ok:1}}
   fail("Неизвестное действие")}
+/* ---------- ⚔️ арена драконов: асинхронные бои с драконами других игроков, рейтинг на неделю ---------- */
+async function dgLooks(env,uids){uids=[...new Set((uids||[]).map(x=>Math.floor(+x)).filter(x=>x>0))].slice(0,120);if(!uids.length)return {};
+  const R=(await env.DB.prepare("SELECT id,json_extract(state,'$.dg.b') AS b,json_extract(state,'$.dg.lv') AS lv,json_extract(state,'$.dg.skin') AS sk,json_extract(state,'$.dg.evo') AS ev FROM users WHERE dg_pow>0 AND id IN ("+uids.map(()=>"?").join(",")+")").bind(...uids).all()).results;
+  const o={};for(const r of R)o[r.id]=[r.b|0,r.lv|0,r.sk||null,r.ev||null];return o}
+const dgaR=(u,wk)=>u&&u.dgr_wk===wk?u.dgr:DGA.start;
+function dgaDragon(state){let D=null;try{D=JSON.parse(state||"{}").dg}catch(e){}return D}
+function dgaSim(A,B){const pa=dgPower(A),pb=dgPower(B),ea=dgEl(A),eb=dgEl(B),ka=ea&&DGA_BEAT[ea]===eb?DGA.adv:1,kb=eb&&DGA_BEAT[eb]===ea?DGA.adv:1;const rounds=[];let wa=0,wb=0;
+  for(let i=0;i<3&&wa<2&&wb<2;i++){const x=Math.round(pa*ka*(.8+Math.random()*.4)),y=Math.round(pb*kb*(.8+Math.random()*.4));if(x>=y)wa++;else wb++;rounds.push([x,y])}
+  return {win:wa>wb?1:0,rounds,ka,kb,ea,eb}}
+async function dgaApi(env,me,a,p){const now=Date.now(),wk=mskWeek(now);
+  const meU=await env.DB.prepare("SELECT id,state,dgr,dgr_wk,dgr_w,dgr_l,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(me.id).first();const myD=dgaDragon(meU&&meU.state);if(!myD)fail("Сначала нужен дракон");
+  const myR=dgaR(meU,wk);
+  if(a==="dga_info"){const lo=myR-250,hi=myR+250;
+    let opp=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dg_pow AS pow,dgr,dgr_wk,state FROM users WHERE dg_pow>0 AND id<>? ORDER BY ABS(dg_pow-?) LIMIT 30").bind(me.id,dgPower(myD)).all()).results;
+    opp=opp.sort(()=>Math.random()-.5).slice(0,3).map(u=>{const D=dgaDragon(u.state)||{};return {uid:u.id,name:u.name||"Игрок",pow:u.pow,r:dgaR(u,wk),b:D.b|0,lv:D.lv|0,skin:D.skin||null,evo:D.evo||null,dn:D.name||"",el:dgEl(D)}});
+    const top=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dgr,dgr_w,dgr_l,json_extract(state,'$.dg.b') AS b,json_extract(state,'$.dg.lv') AS lv,json_extract(state,'$.dg.skin') AS sk,json_extract(state,'$.dg.evo') AS ev FROM users WHERE dgr_wk=? ORDER BY dgr DESC LIMIT 20").bind(wk).all()).results.map(r=>({uid:r.id,name:r.name,r:r.dgr,w:r.dgr_w,l:r.dgr_l,look:[r.b|0,r.lv|0,r.sk,r.ev]}));
+    const place=meU.dgr_wk===wk?1+(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE dgr_wk=? AND dgr>?").bind(wk,myR).first())||{}).n||0):0;
+    const hist=(await env.DB.prepare("SELECT f.a,f.b,f.win,f.ra,f.rb,f.t,COALESCE(ua.nick,ua.name) AS na,COALESCE(ub.nick,ub.name) AS nb FROM dg_fights f LEFT JOIN users ua ON ua.id=f.a LEFT JOIN users ub ON ub.id=f.b WHERE f.a=? OR f.b=? ORDER BY f.id DESC LIMIT 10").bind(me.id,me.id).all()).results
+      .map(f=>({att:f.a===me.id?1:0,who:f.a===me.id?f.nb:f.na,win:f.a===me.id?f.win:1-f.win,d:f.a===me.id?f.ra:f.rb,t:f.t}));
+    let left=0;try{left=(await doAction(env,me,"dga_apply",{},{dga:{check:1}})).res.left}catch(e){left=0}
+    const end=Date.parse(wk+"T00:00:00Z")-TZ+7*864e5;
+    return {r:myR,w:meU.dgr_wk===wk?meU.dgr_w:0,l:meU.dgr_wk===wk?meU.dgr_l:0,place,opp,top,hist,left,day:DGA.day,prize:DGA.prize,wkLeft:Math.max(0,end-now),el:dgEl(myD),pow:dgPower(myD)}}
+  if(a==="dga_fight"){const oid=Math.floor(+p.uid||0);if(!oid||oid===me.id)fail("Выбери соперника");
+    const o=await env.DB.prepare("SELECT id,state,dgr,dgr_wk,COALESCE(nick,name) AS name FROM users WHERE id=? AND dg_pow>0").bind(oid).first();if(!o)fail("У этого игрока нет дракона");
+    const oD=dgaDragon(o.state);if(!oD)fail("У этого игрока нет дракона");
+    await doAction(env,me,"dga_apply",{},{dga:{check:1}});   // проверка лимита до боя
+    const F=dgaSim(myD,oD),rB=dgaR(o,wk),exp=1/(1+Math.pow(10,(rB-myR)/400)),dA=Math.round(DGA.k*((F.win?1:0)-exp)),dB=-dA;
+    const R=(await doAction(env,me,"dga_apply",{},{dga:{win:F.win}})).res;
+    await env.DB.batch([
+      env.DB.prepare("UPDATE users SET dgr=?,dgr_wk=?,dgr_w=CASE WHEN dgr_wk=? THEN dgr_w ELSE 0 END+?,dgr_l=CASE WHEN dgr_wk=? THEN dgr_l ELSE 0 END+? WHERE id=?").bind(Math.max(0,myR+dA),wk,wk,F.win,wk,1-F.win,me.id),
+      env.DB.prepare("UPDATE users SET dgr=?,dgr_wk=?,dgr_w=CASE WHEN dgr_wk=? THEN dgr_w ELSE 0 END+?,dgr_l=CASE WHEN dgr_wk=? THEN dgr_l ELSE 0 END+? WHERE id=?").bind(Math.max(0,rB+dB),wk,wk,1-F.win,wk,F.win,oid),
+      env.DB.prepare("INSERT INTO dg_fights(a,b,win,ra,rb,t,log) VALUES(?,?,?,?,?,?,?)").bind(me.id,oid,F.win,dA,dB,now,JSON.stringify(F.rounds))]);
+    return {...F,dA,r:Math.max(0,myR+dA),sh:R.sh,xp:R.xp,left:R.left,opp:{uid:oid,name:o.name||"Игрок",b:oD.b|0,lv:oD.lv|0,skin:oD.skin||null,evo:oD.evo||null,dn:oD.name||""},pa:dgPower(myD),pb:dgPower(oD)}}
+  fail("Неизвестное действие")}
+/* недельные призы арены: в понедельник топ-3 прошлой недели получают звёзды на игровой баланс */
+async function dgaWeekTick(env){const now=Date.now(),wk=mskWeek(now),prev=mskWeek(now-7*864e5);if(await cached("dgaw"+prev,300e3,()=>kvGet(env,"dga_prize:"+prev)))return;
+  const T=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dgr FROM users WHERE dgr_wk=? ORDER BY dgr DESC LIMIT 3").bind(prev).all()).results;
+  await kvSet(env,"dga_prize:"+prev,{t:now,top:T});delete topCache["dgaw"+prev];
+  for(let i=0;i<T.length;i++){const amt=DGA.prize[i];await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(amt,T[i].id).run();
+    await notify(env,T[i].id,MEDAL[i]+" Твой дракон занял "+(i+1)+" место на арене за неделю (рейтинг "+T[i].dgr+")!\n\n⭐ "+amt+" звёзд уже на игровом балансе. Новая неделя — новая битва за трон 🐉","🐉 На арену",PAGE+"?dragon=1")}
+  if(T.length)await chanSend(env,{chan:CHANNEL},{text:"🐉 ИТОГИ НЕДЕЛИ НА АРЕНЕ ДРАКОНОВ\n\n"+T.map((r,i)=>MEDAL[i]+" "+r.name+" — рейтинг "+r.dgr+" → "+DGA.prize[i]+" ⭐").join("\n")+"\n\nНовая неделя уже началась — рейтинг у всех снова "+DGA.start+"!\n\n👉 @VoinyEpohBot"})}
 /* ---------- админ: начислить звёзды на игровой баланс ---------- */
 async function starApi(env,me,a,p){if(!isAdmin(env,me.id))fail("Нет доступа");const now=Date.now();
   if(a==="st_find"){const q=String(p.q||"").trim().replace(/^@/,"").slice(0,40);if(!q)return {users:[]};
@@ -1270,7 +1330,7 @@ async function pioneersCount(env){if(pioneersFull)return PIONEERS;const n=((awai
 /* дракон: «живые» друзья — пришли по моей ссылке ПОСЛЕ выхода дракона и сделали хотя бы 5 прокруток. Старые приглашения не считаются */
 async function dgFriends(env,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND created>=? AND COALESCE(json_extract(state,'$.nOp'),0)>=?").bind(uid,DG.since,DG.frSpins).first())||{}).n||0}
 async function dgTop(env,me){const rows=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dg_pow AS pow,state FROM users WHERE dg_pow>0 ORDER BY dg_pow DESC LIMIT 50").all()).results;
-  const list=rows.map((r,i)=>{let D=null;try{D=JSON.parse(r.state||"{}").dg}catch(e){}return {uid:r.id,name:r.name||"Игрок",pow:r.pow,lv:D?D.lv:1,b:D?D.b:0,dn:D?D.name||"":"",me:r.id===me.id?1:0,eq:D?dgEq(D).map(it=>({s:it.s,r:it.r,t:it.t})):[]}});
+  const list=rows.map((r,i)=>{let D=null;try{D=JSON.parse(r.state||"{}").dg}catch(e){}return {uid:r.id,name:r.name||"Игрок",pow:r.pow,lv:D?D.lv:1,b:D?D.b:0,dn:D?D.name||"":"",skin:D&&D.skin||null,evo:D&&D.evo||null,me:r.id===me.id?1:0,eq:D?dgEq(D).map(it=>({s:it.s,r:it.r,t:it.t})):[]}});
   const mine=await env.DB.prepare("SELECT dg_pow AS pow FROM users WHERE id=?").bind(me.id).first();let place=0;
   if(mine&&mine.pow>0)place=1+(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE dg_pow>?").bind(mine.pow).first())||{}).n||0);
   const total=((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE dg_pow>0").first())||{}).n||0;return {list,place,total}}
@@ -2049,6 +2109,9 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}if(!st.dg)fail("Сначала нужен дракон");
     if(K&&(st.dg.inv||[]).length>=DG.invMax)fail("Сумка дракона полная. Разбери лишнее на чешую");
     const t=K?K.n:X.n;return {item,stars:K?K.stars:X.stars,title:("🐉 "+t).slice(0,32),desc:K?"Снаряжение для дракона: "+DG_R[K.p.findIndex(x=>x>0)].n.toLowerCase()+" и выше"+(k==="div"?", шанс 10% на божественное":"")+" + "+K.bonus+" чешуи":k==="apple"?"3 золотых яблока: +2 500 опыта дракону каждое":"Ритуал перерождения: новая порода дракона — редкая или выше",data:{k}}}
+  if(item==="dgskin"){const k=String(p.k||""),K=DG_SKIN[k];if(!K)fail("Нет такого облика");if(K.until&&Date.now()>K.until)fail("Облик «"+K.n+"» больше не продаётся");
+    const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}if(!st.dg)fail("Сначала нужен дракон");if((st.dg.skins||[]).includes(k))fail("Этот облик уже твой");
+    return {item,stars:K.stars,title:("🐉 Облик «"+K.n+"»").slice(0,32),desc:K.ic+" Облик дракона «"+K.n+"» навсегда: "+K.d,data:{k}}}
   if(item==="golem"){const f=p.forever?1:0;return {item,stars:f?GOLEM.f:GOLEM.w,title:"Каменный голем",desc:"Голем в лагере "+(f?"навсегда":"на "+GOLEM.days+" дней")+": энергии в 2 раза больше и она восстанавливается в 2 раза быстрее",data:{forever:f}}}
   if(item==="fx"){const k=String(p.fx||"");if(!NFX[k])fail("Нет такого эффекта");const f=p.forever?1:0;
     return {item,stars:f?NFX_PRICE.f:NFX_PRICE.m,title:"Ник «"+NFX[k]+"»",desc:"Переливающийся ник «"+NFX[k]+"» "+(f?"навсегда":"на "+NFX_DAYS+" дней")+": в топах, чате, лагере и на арене",data:{fx:k,forever:f}}}
@@ -2104,6 +2167,8 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       msg=res.item?"🐉 "+DG_CHEST[d.k].n+": "+DG_R[res.item.r].n.toLowerCase()+" «"+dgItemName(res.item)+"» + "+res.sh+" чешуи!":d.k==="apple"?"🍏 Золотые яблоки уже у дракона!":"🔮 Ритуал совершён: твой дракон переродился — "+DG_BREED[res.b].n.toLowerCase()+"!"}
     else if(P.item==="slots"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"slots_grant",{pid:P.id},{grant:true})).res;delete res.events;msg="📦 +"+SLOT_STAR.n+" мест в коллекции! Теперь влезает "+res.cap+" карточек."}
+    else if(P.item==="dgskin"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"dg_skin_grant",{k:d.k},{grant:true})).res;delete res.events;msg=DG_SKIN[d.k].ic+" Облик «"+DG_SKIN[d.k].n+"» надет на твоего дракона! Им можно похвастаться в топе драконов и на арене."}
     else if(P.item==="golem"){const now=Date.now(),u=await env.DB.prepare("SELECT golem_until FROM users WHERE id=?").bind(P.uid).first()||{};
       const until=d.forever?9e15:Math.max(now,u.golem_until||0)+GOLEM.days*864e5;await env.DB.prepare("UPDATE users SET golem_until=MAX(golem_until,?) WHERE id=?").bind(until,P.uid).run();
       res={until};msg="🗿 Каменный голем в лагере "+(d.forever?"навсегда":"до "+new Date(until+TZ).toISOString().slice(0,10).split("-").reverse().join("."))+"! Энергии ×2 и восстанавливается в 2 раза быстрее."}
@@ -2634,7 +2699,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -2700,6 +2765,8 @@ async function handle(req,env){{
       if(a==="dg_top")return J({ok:true,res:await dgTop(env,me)});
       if(/^ad_(list|create|hide)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
       if(/^dm_(list|get|send|block|report)$/.test(a))return J({ok:true,res:await dmApi(env,me,a,p)});
+      if(/^dga_(info|fight)$/.test(a))return J({ok:true,res:await dgaApi(env,me,a,p),S:await stateFor(env,me)});
+      if(a==="dg_looks")return J({ok:true,res:await dgLooks(env,p.uids)});
       if(/^st_(find|give|log)$/.test(a))return J({ok:true,res:await starApi(env,me,a,p)});
       if(a==="dg_view")return J({ok:true,res:await dgViewOf(env,Math.floor(+p.uid||0))});
       if(a==="dg_grant")fail("Неизвестное действие");

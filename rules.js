@@ -606,6 +606,17 @@ const DG_R=[{n:"Обычное",c:"#9aa6bf",p:40,dis:5},{n:"Редкое",c:"#34
 const DG_SET=[{k:"fire",n:"Пламени",ic:"🔥",c:"#ff6a1a"},{k:"ice",n:"Льда",ic:"❄️",c:"#5ac8fa"},{k:"storm",n:"Бури",ic:"🌩",c:"#7a5aff"},{k:"shadow",n:"Тени",ic:"🌑",c:"#8a5ab8"},{k:"gold",n:"Золота Эпох",ic:"👑",c:"#ffcf33"},{k:"olymp",n:"Олимпа",ic:"⚜️",c:"#ff2e63",div:1}];
 const DG_CHEST={nest:{n:"Сундук гнезда",sh:120,p:[62,28,8.5,1.4,.1,0]},royal:{n:"Королевский сундук",sh:600,p:[0,55,33,10,2,0]},
  star:{n:"Звёздный сундук",stars:99,p:[0,0,70,25,5,0],bonus:100},div:{n:"Божественный сундук",stars:499,p:[0,0,0,60,30,10],bonus:500}};
+/* эволюция с 20 уровня (стадия «Взрослый дракон»): выбирается один раз */
+const DG_EVO={fire:{n:"Пламя",ic:"🔥",c:"#ff3d1a",d:"+10% мощи дракона"},ice:{n:"Лёд",ic:"❄️",c:"#4fd6ff",d:"сытость тает на 40% медленнее"},storm:{n:"Буря",ic:"⚡",c:"#9a6aff",d:"+20% опыта"}},DG_EVO_LV=20;
+/* облики за звёзды: меняют только вид. Хэллоуинский — ограниченный по времени */
+const DG_SKIN={pumpkin:{n:"Тыквенный",ic:"🎃",stars:149,until:Date.UTC(2026,10,3,21,0),c:["#ff7a12","#ffd36a","#3a1a08"],eye:"fire",acc:"pumpkin",d:"Хэллоуин! Только до 3 ноября"},
+ frost:{n:"Кристальный",ic:"💎",stars:199,c:["#8fe3ff","#ffffff","#3a7fd0"],eye:"ice",acc:"crystal",d:"Ледяные кристаллы на голове"},
+ abyss:{n:"Бездна",ic:"🌑",stars:249,c:["#2a1a3e","#ff4fd8","#0a0414"],eye:"shadow",acc:"horns",d:"Тёмный, с неоновыми рогами"},
+ emperor:{n:"Император",ic:"👑",stars:399,c:["#ffcf2e","#fff7d0","#8a5a00"],eye:"gold",acc:"crown",d:"Золото и корона"}};
+/* арена драконов: бой против драконов других игроков. Лёд бьёт огонь, огонь — бурю, буря — лёд (+20%) */
+const DGA={day:5,vipDay:3,k:32,start:1000,win:{sh:12,xp:40},lose:{sh:4,xp:10},adv:1.2,prize:[200,100,50]};
+const DGA_BEAT={ice:"fire",fire:"storm",storm:"ice"};
+function dgEl(D){if(!D)return null;if(D.evo)return D.evo;const k=(DG_BREED[D.b]||{}).k;return k==="fire"||k==="ice"||k==="storm"?k:null}
 const DG_SHOP={apple:{n:"3 золотых яблока",stars:49,ap:3},reborn:{n:"Ритуал перерождения",stars:299}};
 const dgSetOf=k=>DG_SET.find(x=>x.k===k)||DG_SET[0], dgSlotOf=k=>DG_SLOT.find(x=>x.k===k)||DG_SLOT[0];
 const dgItemName=it=>dgSlotOf(it.s).n+" "+dgSetOf(it.t).n;
@@ -613,11 +624,11 @@ const dgItemPow=it=>Math.round(DG_R[it.r].p*(1+.12*(it.lv||0))*(it.s==="amul"?1.
 const dgUpCost=it=>20*(it.r+1)*((it.lv||0)+1);
 function dgEq(D){return DG_SLOT.map(S=>(D.inv||[]).find(it=>it.id===(D.eq||{})[S.k])).filter(Boolean)}
 function dgSetBonus(eq){const n={};eq.forEach(it=>n[it.t]=(n[it.t]||0)+1);let best=null;for(const k in n)if(!best||n[k]>n[best])best=k;const c=best?n[best]:0;return {k:best,n:c,b:c>=5?.25:c>=3?.1:0}}
-function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b))}
-const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH));
+function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b)*(D.evo==="fire"?1.1:1))}
+const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH*(D.evo==="ice"?.6:1)));
 function dgBonus(st,now){const D=st&&st.dg;if(!D)return 0;let b=Math.min(.2,.02+dgPower(D)/40000);if(dgSat(D,now)<DG.hungry)b/=2;return Math.round(b*1000)/1000}
 function dgDay(D,now){const d=mskDay(now);if(D.d!==d){D.d=d;D.tp=0;D.fd=0;D.wx=0;D.nest=0;D.gift=0}return D}
-function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
+function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(D.evo==="storm")x=Math.ceil(x*1.2);if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
   if(D.lv>lv0&&ctx.events)ctx.events.push({t:"dglv",lv:D.lv,stage:dgStage(D.lv)>dgStage(lv0)?dgStage(D.lv):0});return x}
 function dgWin(st,ctx){const D=st.dg;if(!D)return null;dgDay(D,ctx.now);if((D.wx||0)>=DG.winCap)return null;D.wx=(D.wx||0)+1;D.sh=(D.sh||0)+DG.winSh;return {xp:dgAddXp(st,ctx,DG.winXp),sh:DG.winSh}}
 function dgNewItem(D,r,t,s){D.nid=(D.nid||0)+1;const sets=DG_SET.filter(x=>r===5?x.div:!x.div);return {id:D.nid,s:s||DG_SLOT[Math.floor(Math.random()*DG_SLOT.length)].k,r,t:r===5?"olymp":t||sets[Math.floor(Math.random()*sets.length)].k,lv:0}}
@@ -930,6 +941,12 @@ const ACTIONS={
   dg_open(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");const K=DG_CHEST[G.p.k];if(!K||!K.sh)fail("Такого сундука нет");
     if((D.inv||[]).length>=DG.invMax)fail("Сумка дракона полная ("+DG.invMax+"). Разбери лишнее на чешую");if((D.sh||0)<K.sh)fail("Не хватает чешуи: нужно "+K.sh);
     D.sh-=K.sh;const it=dgNewItem(D,pick(K.p));D.inv.push(it);return {item:it}},
+  dg_evo(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");if(D.evo)fail("Путь уже выбран");if(D.lv<DG_EVO_LV)fail("Эволюция открывается с "+DG_EVO_LV+" уровня");const k=String(G.p.k||"");if(!DG_EVO[k])fail("Нет такого пути");D.evo=k;return {evo:k}},
+  dg_skin(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const k=G.p.k?String(G.p.k):null;if(k&&!(D.skins||[]).includes(k))fail("Этот облик ещё не куплен");D.skin=k;return {skin:k}},
+  dg_skin_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const k=String(G.p.k||"");if(!DG_SKIN[k])fail("Нет такого облика");D.skins=D.skins||[];if(!D.skins.includes(k))D.skins.push(k);D.skin=k;return {skin:k}},
+  dga_apply(G){const A=G.ctx.dga;if(!A)fail("Неизвестное действие");const st=G.st,D=st.dg;if(!D)fail("Сначала нужен дракон");const d=today(G.ctx.now);st.dgA=st.dgA&&st.dgA.d===d?st.dgA:{d,n:0};
+    const lim=DGA.day+(vipTier(st)?DGA.vipDay:0);if(st.dgA.n>=lim)fail("Бои на арене на сегодня закончились ("+lim+"). Завтра — новые!");if(A.check)return {left:lim-st.dgA.n};
+    st.dgA.n++;const R=A.win?DGA.win:DGA.lose;D.sh=(D.sh||0)+R.sh;dgAddXp(st,G.ctx,R.xp);return {sh:R.sh,xp:R.xp,left:lim-st.dgA.n}},
   dg_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     let out={k:p.k};const K=DG_CHEST[p.k];
     if(K&&K.stars){const it=dgNewItem(D,pick(K.p));D.inv.push(it);D.sh=(D.sh||0)+K.bonus;out.item=it;out.sh=K.bonus}
