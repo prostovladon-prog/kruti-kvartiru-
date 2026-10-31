@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=36;
+const SCHEMA_V=37;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -101,6 +101,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "ALTER TABLE users ADD COLUMN wb INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nb_note INTEGER NOT NULL DEFAULT 0",
  "ALTER TABLE users ADD COLUMN dgr INTEGER NOT NULL DEFAULT 1000","ALTER TABLE users ADD COLUMN dgr_wk TEXT","ALTER TABLE users ADD COLUMN dgr_w INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dgr_l INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS dg_fights (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, win INTEGER NOT NULL, ra INTEGER, rb INTEGER, t INTEGER, log TEXT)","CREATE INDEX IF NOT EXISTS dg_fights_b ON dg_fights(b,id)","CREATE INDEX IF NOT EXISTS dg_fights_a ON dg_fights(a,id)",
+ "ALTER TABLE users ADD COLUMN dg_exp INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dg_exp_note INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
@@ -206,7 +207,7 @@ async function dgLooks(env,uids){uids=[...new Set((uids||[]).map(x=>Math.floor(+
   const o={};for(const r of R)o[r.id]=[r.b|0,r.lv|0,r.sk||null,r.ev||null];return o}
 const dgaR=(u,wk)=>u&&u.dgr_wk===wk?u.dgr:DGA.start;
 function dgaDragon(state){let D=null;try{D=JSON.parse(state||"{}").dg}catch(e){}return D}
-function dgaSim(A,B,ta){const pa=dgPower(A),pb=B.__pow||dgPower(B),ea=dgEl(A),eb=dgEl(B),tl=Object.keys(DGA_TAC);ta=DGA_TAC[ta]?ta:"rush";const tb=tl[Math.floor(Math.random()*3)];
+function dgaSim(A,B,ta){const pa=Math.round(dgPower(A)*(1+dgGemB(A,"ameth"))),pb=B.__pow||Math.round(dgPower(B)*(1+dgGemB(B,"ameth"))),ea=dgEl(A),eb=dgEl(B),tl=Object.keys(DGA_TAC);ta=DGA_TAC[ta]?ta:"rush";const tb=tl[Math.floor(Math.random()*3)];
   const ka=(ea&&DGA_BEAT[ea]===eb?DGA.adv:1)*(DGA_TBEAT[ta]===tb?DGA_TK:1),kb=(eb&&DGA_BEAT[eb]===ea?DGA.adv:1)*(DGA_TBEAT[tb]===ta?DGA_TK:1);const rounds=[];let wa=0,wb=0;
   for(let i=0;i<3&&wa<2&&wb<2;i++){const x=Math.round(pa*ka*(.8+Math.random()*.4)),y=Math.round(pb*kb*(.8+Math.random()*.4));if(x>=y)wa++;else wb++;rounds.push([x,y])}
   return {win:wa>wb?1:0,rounds,ka,kb,ea,eb,ta,tb,ela:ea&&DGA_BEAT[ea]===eb?1:0,elb:eb&&DGA_BEAT[eb]===ea?1:0,tw:DGA_TBEAT[ta]===tb?1:DGA_TBEAT[tb]===ta?-1:0}}
@@ -414,7 +415,7 @@ async function doAction(env,me,name,p,extra){
     // бой на карточку с игроком: сначала карточка соперника переходит ко мне, и только если это удалось, записывается всё остальное
     const take=ctx.takeCard?env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(me.id,ctx.takeCard,ctx.oppUid):null;
     const own=take?" AND (SELECT owner FROM cards WHERE id="+Math.floor(+ctx.takeCard)+")="+Math.floor(+me.id):"";   // id в Telegram больше 32 бит: без |0
-    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,me.id,u.ver)];
+    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=?,dg_exp=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,st.dg&&st.dg.exp?st.dg.exp.end:0,me.id,u.ver)];
     const ins=[];   // новые карточки пишутся после удалений: собранный воин забирает номер и место тиража правой половинки
     for(const c of out.cards){
       if(typeof c.id==="string"){ins.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,frame,away,dest,created,part,how) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
@@ -1039,15 +1040,19 @@ async function reminders(env){await ensureSchema(env);if(await maintenance(env))
   try{const cd=(await env.DB.prepare("SELECT id,camp_at FROM users WHERE pm=1 AND camp_at>0 AND camp_at<=? AND camp_note<camp_at LIMIT 60").bind(now).all()).results;
     for(const u of cd){await env.DB.prepare("UPDATE users SET camp_note=? WHERE id=?").bind(u.camp_at,u.id).run();
       if(await notify(env,u.id,"🎯 Энергия в лагере снова полная! Манекен ждёт — каждый удар приносит руны 💠","🎯 Тренироваться",PAGE+"?camp=1"))sent++}}catch(e){console.error("camp",e)}
+  try{const ex=(await env.DB.prepare("SELECT id,dg_exp,json_extract(state,'$.dg.name') AS dn,json_extract(state,'$.dg.exp.k') AS k FROM users WHERE pm=1 AND dg_exp>0 AND dg_exp<=? AND dg_exp_note<dg_exp LIMIT 60").bind(now).all()).results;
+    for(const u of ex){await env.DB.prepare("UPDATE users SET dg_exp_note=? WHERE id=?").bind(u.dg_exp,u.id).run();const E=DG_EXP.find(x=>x.k===u.k)||DG_EXP[0];
+      if(await notify(env,u.id,"🐉 "+(u.dn||"Твой дракон")+" вернулся из похода «"+E.n+"» "+E.ic+" с добычей!\n\nЧешуя, опыт, а может и гем 💎 — заходи забрать, пока он не уснул от усталости.","🎒 Забрать добычу",PAGE+"?dragon=1"))sent++}}catch(e){console.error("dgexp",e)}
   try{sent+=await winBack(env,now,h)}catch(e){console.error("winback",e)}
   return {sent,due:due.length}}
 /* возвращаем пропавших: через 1, 3 и 7 дней тишины — сообщение с подарком (прокрутки ждут в игре). Новичкам — напоминание о подарке дня */
 const WB={1:{sp:3,t:"⚔️ Твои воины заскучали! Мы оставили тебе подарок: +3 прокрутки уже в игре. Вдруг сегодня выпадет легенда?"},3:{sp:5,t:"🎁 Тебя не было 3 дня — держи +5 прокруток! Пока тебя не было, игроки выбили новые редкие карточки. Твоя очередь?"},7:{sp:10,t:"👑 Неделя без тебя! Возвращайся — в игре ждут +10 прокруток в подарок, новые воины и розыгрыши каждый день."}};
 async function winBack(env,now,h){if((h<11||h>=21)&&!env.NOTIFY_TEST)return 0;let sent=0;const D=864e5;
-  const R=(await env.DB.prepare("SELECT id,seen,wb FROM users WHERE pm=1 AND seen>? AND seen<? AND ((wb<1) OR (wb<3 AND seen<?) OR (wb<7 AND seen<?)) LIMIT 30").bind(now-30*D,now-D,now-3*D,now-7*D).all()).results;
+  const R=(await env.DB.prepare("SELECT id,seen,wb,dg_pow,json_extract(state,'$.dg.name') AS dn FROM users WHERE pm=1 AND seen>? AND seen<? AND ((wb<1) OR (wb<3 AND seen<?) OR (wb<7 AND seen<?)) LIMIT 30").bind(now-30*D,now-D,now-3*D,now-7*D).all()).results;
   for(const u of R){const g=now-u.seen,st=g>=7*D?7:g>=3*D?3:1;if(st<=u.wb)continue;const W=WB[st];
     const r=await env.DB.prepare("UPDATE users SET wb=?,gift_spins=gift_spins+? WHERE id=? AND wb<?").bind(st,W.sp,u.id,st).run();if(r.meta.changes!==1)continue;
-    if(await notify(env,u.id,W.t,"🎴 Забрать подарок"))sent++}
+    const dn=u.dn||"Твой дракон",txt=u.dg_pow>0?(st===1?"🥺 "+dn+" скучает и ждёт тебя у входа… Он не ел со вчерашнего дня. Загляни — и забери +"+W.sp+" прокрутки в подарок.":st===3?"😢 "+dn+" грустит уже 3 дня и почти не поднимает голову. Вернись к нему — он обрадуется, а тебя ждут +"+W.sp+" прокруток.":"💔 "+dn+" ждёт тебя целую неделю… Каждый вечер смотрит на дверь. Вернись — +"+W.sp+" прокруток уже в игре."):W.t;
+    if(await notify(env,u.id,txt,u.dg_pow>0?"🐉 Навестить дракона":"🎴 Забрать подарок",u.dg_pow>0?PAGE+"?dragon=1":undefined))sent++}
   if(h>=12){const td=dayNum(now);
     const N=(await env.DB.prepare("SELECT id,created,COALESCE(json_extract(state,'$.nb.n'),0) AS n,COALESCE(json_extract(state,'$.nb.last'),'') AS last FROM users WHERE pm=1 AND created>? AND nb_note<? AND seen<? LIMIT 30").bind(now-8*D,td,(td*864e5)-TZ).all()).results;
     for(const u of N){await env.DB.prepare("UPDATE users SET nb_note=? WHERE id=?").bind(td,u.id).run();if(u.n>=NB.length)continue;

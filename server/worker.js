@@ -608,6 +608,16 @@ const DG_R=[{n:"Обычное",c:"#9aa6bf",p:40,dis:5},{n:"Редкое",c:"#34
 const DG_SET=[{k:"fire",n:"Пламени",ic:"🔥",c:"#ff6a1a"},{k:"ice",n:"Льда",ic:"❄️",c:"#5ac8fa"},{k:"storm",n:"Бури",ic:"🌩",c:"#7a5aff"},{k:"shadow",n:"Тени",ic:"🌑",c:"#8a5ab8"},{k:"gold",n:"Золота Эпох",ic:"👑",c:"#ffcf33"},{k:"olymp",n:"Олимпа",ic:"⚜️",c:"#ff2e63",div:1}];
 const DG_CHEST={nest:{n:"Сундук гнезда",sh:120,p:[62,28,8.5,1.4,.1,0]},royal:{n:"Королевский сундук",sh:600,p:[0,55,33,10,2,0]},
  star:{n:"Звёздный сундук",stars:99,p:[0,0,70,25,5,0],bonus:100},div:{n:"Божественный сундук",stars:499,p:[0,0,0,60,30,10],bonus:500}};
+/* ---------- 💎 гемы: вставляются в дракона, он светится их цветом и получает бонус. 3 одинаковых гема = 1 следующего уровня ---------- */
+const DG_GEM={ruby:{n:"Рубин",c:"#ff2e4d",w:25,b:[.03,.06,.10],d:"мощи"},sapph:{n:"Сапфир",c:"#2f8bff",w:25,b:[.05,.10,.15],d:"опыта"},emer:{n:"Изумруд",c:"#2fe07a",w:25,b:[.15,.25,.35],d:"сытость тает медленнее"},
+ ameth:{n:"Аметист",c:"#b45aff",w:20,b:[.04,.08,.12],d:"силы на арене"},diam:{n:"Алмаз",c:"#e8fbff",w:5,b:[.02,.04,.06],d:"мощи и опыта"}},DG_GEM_G=["I","II","III"],DG_GEM_MERGE=3;
+const dgSockN=D=>1+(dgStage(D.lv)>=2?1:0)+(dgStage(D.lv)>=4?1:0);
+function dgGemB(D,k){let b=0;(D.sock||[]).forEach(g=>{if(!g)return;const m=/^([a-z]+)(\d)$/.exec(g);if(m&&m[1]===k)b+=DG_GEM[k].b[m[2]-1]});return b}
+function dgGemRoll(up){let r=Math.random()*100,k="ruby";for(const x in DG_GEM){r-=DG_GEM[x].w;if(r<=0){k=x;break}}const q=Math.random();const g=q<.03+up*.07?3:q<.2+up*.2?2:1;return k+g}
+function dgGemAdd(D,g){D.gems=D.gems||{};D.gems[g]=(D.gems[g]||0)+1}
+/* ---------- 🧭 походы: дракон уходит на 1/4/8 часов и приносит добычу. Пока он в походе — его не погладить и не взять на арену ---------- */
+const DG_EXP=[{k:"forest",n:"Тёмный лес",ic:"🌲",h:1,sh:[15,30],xp:150,gem:.12,item:0,apple:0,sp:0,up:0},{k:"cave",n:"Пещера огня",ic:"🌋",h:4,sh:[60,120],xp:600,gem:.4,item:.2,apple:.03,sp:1,up:.3},{k:"peak",n:"Пик бурь",ic:"🏔",h:8,sh:[150,300],xp:1400,gem:.75,item:.45,apple:.1,sp:3,up:.7}];
+const dgAway=(D,now)=>!!(D&&D.exp&&now<D.exp.end);
 /* эволюция с 20 уровня (стадия «Взрослый дракон»): выбирается один раз */
 const DG_EVO={fire:{n:"Пламя",ic:"🔥",c:"#ff3d1a",d:"+10% мощи дракона"},ice:{n:"Лёд",ic:"❄️",c:"#4fd6ff",d:"сытость тает на 40% медленнее"},storm:{n:"Буря",ic:"⚡",c:"#9a6aff",d:"+20% опыта"}},DG_EVO_LV=20;
 /* облики за звёзды: меняют только вид. Хэллоуинский — ограниченный по времени */
@@ -628,11 +638,11 @@ const dgItemPow=it=>Math.round(DG_R[it.r].p*(1+.12*(it.lv||0))*(it.s==="amul"?1.
 const dgUpCost=it=>20*(it.r+1)*((it.lv||0)+1);
 function dgEq(D){return DG_SLOT.map(S=>(D.inv||[]).find(it=>it.id===(D.eq||{})[S.k])).filter(Boolean)}
 function dgSetBonus(eq){const n={};eq.forEach(it=>n[it.t]=(n[it.t]||0)+1);let best=null;for(const k in n)if(!best||n[k]>n[best])best=k;const c=best?n[best]:0;return {k:best,n:c,b:c>=5?.25:c>=3?.1:0}}
-function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b)*(D.evo==="fire"?1.1:1))}
-const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH*(D.evo==="ice"?.6:1)));
+function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b)*(D.evo==="fire"?1.1:1)*(1+dgGemB(D,"ruby")+dgGemB(D,"diam")))}
+const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH*(D.evo==="ice"?.6:1)*(1-Math.min(.6,dgGemB(D,"emer")))));
 function dgBonus(st,now){const D=st&&st.dg;if(!D)return 0;let b=Math.min(.2,.02+dgPower(D)/40000);if(dgSat(D,now)<DG.hungry)b/=2;return Math.round(b*1000)/1000}
 function dgDay(D,now){const d=mskDay(now);if(D.d!==d){D.d=d;D.tp=0;D.fd=0;D.wx=0;D.nest=0;D.gift=0}return D}
-function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(D.evo==="storm")x=Math.ceil(x*1.2);if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
+function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(D.evo==="storm")x=Math.ceil(x*1.2);x=Math.ceil(x*(1+dgGemB(D,"sapph")+dgGemB(D,"diam")));if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
   if(D.lv>lv0&&ctx.events)ctx.events.push({t:"dglv",lv:D.lv,stage:dgStage(D.lv)>dgStage(lv0)?dgStage(D.lv):0});return x}
 function dgWin(st,ctx){const D=st.dg;if(!D)return null;dgDay(D,ctx.now);if((D.wx||0)>=DG.winCap)return null;D.wx=(D.wx||0)+1;D.sh=(D.sh||0)+DG.winSh;return {xp:dgAddXp(st,ctx,DG.winXp),sh:DG.winSh}}
 function dgNewItem(D,r,t,s){D.nid=(D.nid||0)+1;const sets=DG_SET.filter(x=>r===5?x.div:!x.div);return {id:D.nid,s:s||DG_SLOT[Math.floor(Math.random()*DG_SLOT.length)].k,r,t:r===5?"olymp":t||sets[Math.floor(Math.random()*sets.length)].k,lv:0}}
@@ -929,9 +939,9 @@ const ACTIONS={
     const b=dgBreedRoll(DG_BR_P),D={b,name:"",lv:1,xp:0,sat:80,satAt:ctx.now,inv:[],eq:{},sh:60,nid:0,t:ctx.now,ap:1};const it=dgNewItem(D,0,DG_BREED[b].k==="fire"?"fire":DG_BREED[b].k==="ice"?"ice":null,"head");D.inv.push(it);D.eq.head=it.id;
     dgDay(D,ctx.now);st.dg=D;return {b}},
   dg_name(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const n=String(G.p.name||"").replace(/[^0-9A-Za-zА-Яа-яЁё _\-]/g,"").replace(/\s+/g," ").trim().slice(0,DG.nameMax);if(n.length<2)fail("Имя — от 2 до "+DG.nameMax+" букв");D.name=n;return {name:n}},
-  dg_tap(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");dgDay(D,ctx.now);const n=Math.max(0,Math.min(60,G.p.n|0,DG.tapCap-(D.tp||0)));if(!n)return {n:0,xp:0,cap:1};
+  dg_tap(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");if(dgAway(D,ctx.now))return {n:0,xp:0,away:1};dgDay(D,ctx.now);const n=Math.max(0,Math.min(60,G.p.n|0,DG.tapCap-(D.tp||0)));if(!n)return {n:0,xp:0,cap:1};
     D.tp=(D.tp||0)+n;return {n,xp:dgAddXp(st,ctx,n),tp:D.tp}},
-  dg_feed(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");dgDay(D,ctx.now);const F=DG_FOOD[G.p.k];if(!F)fail("Такой еды нет");const sat=dgSat(D,ctx.now);
+  dg_feed(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");if(dgAway(D,ctx.now))fail("Дракон в походе — покормишь, когда вернётся");dgDay(D,ctx.now);const F=DG_FOOD[G.p.k];if(!F)fail("Такой еды нет");const sat=dgSat(D,ctx.now);
     if(G.p.k==="apple"){if(!(D.ap>0))fail("Золотых яблок нет. Их можно купить за ⭐");D.ap--}
     else{if((D.fd||0)>=DG.feedMax)fail("Дракон сыт на сегодня: можно кормить "+DG.feedMax+" раз в день");if(sat>=99)fail("Дракон не голоден");
       if(F.runes){const C=camp(st,ctx.now);if(C.runes<F.runes)fail("Не хватает рун: нужно "+F.runes.toLocaleString("ru")+" 💠");C.runes-=F.runes}if(F.cash)pay(st,F.cash);D.fd=(D.fd||0)+1}
@@ -944,13 +954,27 @@ const ACTIONS={
     D.gift=1;st.spins+=g;return {sp:g}},
   dg_open(G){const {st,ctx}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");const K=DG_CHEST[G.p.k];if(!K||!K.sh)fail("Такого сундука нет");
     if((D.inv||[]).length>=DG.invMax)fail("Сумка дракона полная ("+DG.invMax+"). Разбери лишнее на чешую");if((D.sh||0)<K.sh)fail("Не хватает чешуи: нужно "+K.sh);
-    D.sh-=K.sh;const it=dgNewItem(D,pick(K.p));D.inv.push(it);return {item:it}},
+    D.sh-=K.sh;const it=dgNewItem(D,pick(K.p));D.inv.push(it);let gem=null;if(Math.random()<(G.p.k==="royal"?.25:.06)){gem=dgGemRoll(G.p.k==="royal"?.2:0);dgGemAdd(D,gem)}return {item:it,gem}},
+  dg_exp(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала нужен дракон");if(D.exp)fail(dgAway(D,ctx.now)?"Дракон уже в походе":"Сначала забери добычу из прошлого похода");
+    const E=DG_EXP.find(x=>x.k===G.p.k);if(!E)fail("Нет такого похода");if(dgSat(D,ctx.now)<DG.hungry)fail("Голодный дракон в поход не пойдёт — сначала покорми");
+    D.exp={k:E.k,at:ctx.now,end:ctx.now+E.h*3600e3};return {exp:D.exp}},
+  dg_exp_end(G){const {st,ctx}=G,D=st.dg;if(!D||!D.exp)fail("Дракон не в походе");if(ctx.now<D.exp.end)fail("Дракон ещё в пути");const E=DG_EXP.find(x=>x.k===D.exp.k)||DG_EXP[0];D.exp=null;
+    const sc=1+dgStage(D.lv)*.15,out={k:E.k,sh:Math.round((E.sh[0]+Math.random()*(E.sh[1]-E.sh[0]))*sc),xp:0,gems:[],item:null,apple:0,sp:E.sp};D.sh=(D.sh||0)+out.sh;out.xp=dgAddXp(st,ctx,E.xp)||E.xp;
+    if(Math.random()<E.gem){const g=dgGemRoll(E.up);dgGemAdd(D,g);out.gems.push(g)}if(E.h>=8&&Math.random()<.25){const g=dgGemRoll(E.up);dgGemAdd(D,g);out.gems.push(g)}
+    if(Math.random()<E.item&&(D.inv||[]).length<DG.invMax){const r=Math.random()<.1?3:Math.random()<.35?2:1,it=dgNewItem(D,r);D.inv.push(it);out.item=it}
+    if(Math.random()<E.apple){D.ap=(D.ap||0)+1;out.apple=1}if(E.sp)st.spins+=E.sp;return out},
+  dg_gem_set(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const n=dgSockN(D),i=G.p.i|0;if(i<0||i>=n)fail("Это гнездо для гема ещё закрыто");D.sock=D.sock||[];D.gems=D.gems||{};
+    const old=D.sock[i]||null,g=G.p.g?String(G.p.g):null;if(g&&!(D.gems[g]>0))fail("Такого гема нет");if(old)dgGemAdd(D,old);if(g){D.gems[g]--;if(!D.gems[g])delete D.gems[g]}D.sock[i]=g;return {sock:D.sock}},
+  dg_gem_merge(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const m=/^([a-z]+)([12])$/.exec(String(G.p.g||""));if(!m||!DG_GEM[m[1]])fail("Этот гем нельзя улучшить");D.gems=D.gems||{};
+    if((D.gems[G.p.g]||0)<DG_GEM_MERGE)fail("Нужно "+DG_GEM_MERGE+" одинаковых гема");D.gems[G.p.g]-=DG_GEM_MERGE;if(!D.gems[G.p.g])delete D.gems[G.p.g];const ng=m[1]+(+m[2]+1);dgGemAdd(D,ng);return {g:ng}},
+  dg_morning(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала нужен дракон");const h=new Date(ctx.now+3*3600e3).getUTCHours();if(h<7||h>=12)fail("«Доброе утро» — с 7 до 12 часов");
+    if(D.morn===today(ctx.now))fail("Сегодня уже здоровались 😊");D.morn=today(ctx.now);const xp=dgAddXp(st,ctx,200)||200;st.spins+=1;return {xp,sp:1}},
   dg_evo(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");if(D.evo)fail("Путь уже выбран");if(D.lv<DG_EVO_LV)fail("Эволюция открывается с "+DG_EVO_LV+" уровня");const k=String(G.p.k||"");if(!DG_EVO[k])fail("Нет такого пути");D.evo=k;return {evo:k}},
   dg_skin(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const k=G.p.k?String(G.p.k):null;if(k&&!(D.skins||[]).includes(k))fail("Этот облик ещё не куплен");D.skin=k;return {skin:k}},
   dg_skin_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const k=String(G.p.k||"");if(!DG_SKIN[k])fail("Нет такого облика");D.skins=D.skins||[];if(!D.skins.includes(k))D.skins.push(k);D.skin=k;return {skin:k}},
   dga_apply(G){const A=G.ctx.dga;if(!A)fail("Неизвестное действие");const st=G.st,D=st.dg;if(!D)fail("Сначала нужен дракон");const d=today(G.ctx.now);st.dgA=st.dgA&&st.dgA.d===d?st.dgA:{d,n:0};
-    const lim=DGA.day+(vipTier(st)?DGA.vipDay:0);if(st.dgA.n>=lim)fail("Бои на арене на сегодня закончились ("+lim+"). Завтра — новые!");if(A.check)return {left:lim-st.dgA.n};
-    st.dgA.n++;const R=A.win?DGA.win:DGA.lose;D.sh=(D.sh||0)+R.sh;dgAddXp(st,G.ctx,R.xp);return {sh:R.sh,xp:R.xp,left:lim-st.dgA.n}},
+    if(dgAway(D,G.ctx.now))fail("Дракон в походе — арена после возвращения");const lim=DGA.day+(vipTier(st)?DGA.vipDay:0);if(st.dgA.n>=lim)fail("Бои на арене на сегодня закончились ("+lim+"). Завтра — новые!");if(A.check)return {left:lim-st.dgA.n};
+    st.dgA.n++;const R=A.win?DGA.win:DGA.lose;D.sh=(D.sh||0)+R.sh;dgAddXp(st,G.ctx,R.xp);let gem=null;if(A.win&&Math.random()<.08){gem=dgGemRoll(0);dgGemAdd(D,gem)}return {sh:R.sh,xp:R.xp,left:lim-st.dgA.n,gem}},
   dg_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;const D=st.dg;if(!D)fail("Сначала нужен дракон");st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     let out={k:p.k};const K=DG_CHEST[p.k];
     if(K&&K.stars){const it=dgNewItem(D,pick(K.p));D.inv.push(it);D.sh=(D.sh||0)+K.bonus;out.item=it;out.sh=K.bonus}
@@ -1021,7 +1045,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=36;
+const SCHEMA_V=37;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1093,6 +1117,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "ALTER TABLE users ADD COLUMN wb INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nb_note INTEGER NOT NULL DEFAULT 0",
  "ALTER TABLE users ADD COLUMN dgr INTEGER NOT NULL DEFAULT 1000","ALTER TABLE users ADD COLUMN dgr_wk TEXT","ALTER TABLE users ADD COLUMN dgr_w INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dgr_l INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS dg_fights (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, win INTEGER NOT NULL, ra INTEGER, rb INTEGER, t INTEGER, log TEXT)","CREATE INDEX IF NOT EXISTS dg_fights_b ON dg_fights(b,id)","CREATE INDEX IF NOT EXISTS dg_fights_a ON dg_fights(a,id)",
+ "ALTER TABLE users ADD COLUMN dg_exp INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dg_exp_note INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
@@ -1198,7 +1223,7 @@ async function dgLooks(env,uids){uids=[...new Set((uids||[]).map(x=>Math.floor(+
   const o={};for(const r of R)o[r.id]=[r.b|0,r.lv|0,r.sk||null,r.ev||null];return o}
 const dgaR=(u,wk)=>u&&u.dgr_wk===wk?u.dgr:DGA.start;
 function dgaDragon(state){let D=null;try{D=JSON.parse(state||"{}").dg}catch(e){}return D}
-function dgaSim(A,B,ta){const pa=dgPower(A),pb=B.__pow||dgPower(B),ea=dgEl(A),eb=dgEl(B),tl=Object.keys(DGA_TAC);ta=DGA_TAC[ta]?ta:"rush";const tb=tl[Math.floor(Math.random()*3)];
+function dgaSim(A,B,ta){const pa=Math.round(dgPower(A)*(1+dgGemB(A,"ameth"))),pb=B.__pow||Math.round(dgPower(B)*(1+dgGemB(B,"ameth"))),ea=dgEl(A),eb=dgEl(B),tl=Object.keys(DGA_TAC);ta=DGA_TAC[ta]?ta:"rush";const tb=tl[Math.floor(Math.random()*3)];
   const ka=(ea&&DGA_BEAT[ea]===eb?DGA.adv:1)*(DGA_TBEAT[ta]===tb?DGA_TK:1),kb=(eb&&DGA_BEAT[eb]===ea?DGA.adv:1)*(DGA_TBEAT[tb]===ta?DGA_TK:1);const rounds=[];let wa=0,wb=0;
   for(let i=0;i<3&&wa<2&&wb<2;i++){const x=Math.round(pa*ka*(.8+Math.random()*.4)),y=Math.round(pb*kb*(.8+Math.random()*.4));if(x>=y)wa++;else wb++;rounds.push([x,y])}
   return {win:wa>wb?1:0,rounds,ka,kb,ea,eb,ta,tb,ela:ea&&DGA_BEAT[ea]===eb?1:0,elb:eb&&DGA_BEAT[eb]===ea?1:0,tw:DGA_TBEAT[ta]===tb?1:DGA_TBEAT[tb]===ta?-1:0}}
@@ -1406,7 +1431,7 @@ async function doAction(env,me,name,p,extra){
     // бой на карточку с игроком: сначала карточка соперника переходит ко мне, и только если это удалось, записывается всё остальное
     const take=ctx.takeCard?env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(me.id,ctx.takeCard,ctx.oppUid):null;
     const own=take?" AND (SELECT owner FROM cards WHERE id="+Math.floor(+ctx.takeCard)+")="+Math.floor(+me.id):"";   // id в Telegram больше 32 бит: без |0
-    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,me.id,u.ver)];
+    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=?,dg_exp=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,st.dg&&st.dg.exp?st.dg.exp.end:0,me.id,u.ver)];
     const ins=[];   // новые карточки пишутся после удалений: собранный воин забирает номер и место тиража правой половинки
     for(const c of out.cards){
       if(typeof c.id==="string"){ins.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,frame,away,dest,created,part,how) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
@@ -2031,15 +2056,19 @@ async function reminders(env){await ensureSchema(env);if(await maintenance(env))
   try{const cd=(await env.DB.prepare("SELECT id,camp_at FROM users WHERE pm=1 AND camp_at>0 AND camp_at<=? AND camp_note<camp_at LIMIT 60").bind(now).all()).results;
     for(const u of cd){await env.DB.prepare("UPDATE users SET camp_note=? WHERE id=?").bind(u.camp_at,u.id).run();
       if(await notify(env,u.id,"🎯 Энергия в лагере снова полная! Манекен ждёт — каждый удар приносит руны 💠","🎯 Тренироваться",PAGE+"?camp=1"))sent++}}catch(e){console.error("camp",e)}
+  try{const ex=(await env.DB.prepare("SELECT id,dg_exp,json_extract(state,'$.dg.name') AS dn,json_extract(state,'$.dg.exp.k') AS k FROM users WHERE pm=1 AND dg_exp>0 AND dg_exp<=? AND dg_exp_note<dg_exp LIMIT 60").bind(now).all()).results;
+    for(const u of ex){await env.DB.prepare("UPDATE users SET dg_exp_note=? WHERE id=?").bind(u.dg_exp,u.id).run();const E=DG_EXP.find(x=>x.k===u.k)||DG_EXP[0];
+      if(await notify(env,u.id,"🐉 "+(u.dn||"Твой дракон")+" вернулся из похода «"+E.n+"» "+E.ic+" с добычей!\n\nЧешуя, опыт, а может и гем 💎 — заходи забрать, пока он не уснул от усталости.","🎒 Забрать добычу",PAGE+"?dragon=1"))sent++}}catch(e){console.error("dgexp",e)}
   try{sent+=await winBack(env,now,h)}catch(e){console.error("winback",e)}
   return {sent,due:due.length}}
 /* возвращаем пропавших: через 1, 3 и 7 дней тишины — сообщение с подарком (прокрутки ждут в игре). Новичкам — напоминание о подарке дня */
 const WB={1:{sp:3,t:"⚔️ Твои воины заскучали! Мы оставили тебе подарок: +3 прокрутки уже в игре. Вдруг сегодня выпадет легенда?"},3:{sp:5,t:"🎁 Тебя не было 3 дня — держи +5 прокруток! Пока тебя не было, игроки выбили новые редкие карточки. Твоя очередь?"},7:{sp:10,t:"👑 Неделя без тебя! Возвращайся — в игре ждут +10 прокруток в подарок, новые воины и розыгрыши каждый день."}};
 async function winBack(env,now,h){if((h<11||h>=21)&&!env.NOTIFY_TEST)return 0;let sent=0;const D=864e5;
-  const R=(await env.DB.prepare("SELECT id,seen,wb FROM users WHERE pm=1 AND seen>? AND seen<? AND ((wb<1) OR (wb<3 AND seen<?) OR (wb<7 AND seen<?)) LIMIT 30").bind(now-30*D,now-D,now-3*D,now-7*D).all()).results;
+  const R=(await env.DB.prepare("SELECT id,seen,wb,dg_pow,json_extract(state,'$.dg.name') AS dn FROM users WHERE pm=1 AND seen>? AND seen<? AND ((wb<1) OR (wb<3 AND seen<?) OR (wb<7 AND seen<?)) LIMIT 30").bind(now-30*D,now-D,now-3*D,now-7*D).all()).results;
   for(const u of R){const g=now-u.seen,st=g>=7*D?7:g>=3*D?3:1;if(st<=u.wb)continue;const W=WB[st];
     const r=await env.DB.prepare("UPDATE users SET wb=?,gift_spins=gift_spins+? WHERE id=? AND wb<?").bind(st,W.sp,u.id,st).run();if(r.meta.changes!==1)continue;
-    if(await notify(env,u.id,W.t,"🎴 Забрать подарок"))sent++}
+    const dn=u.dn||"Твой дракон",txt=u.dg_pow>0?(st===1?"🥺 "+dn+" скучает и ждёт тебя у входа… Он не ел со вчерашнего дня. Загляни — и забери +"+W.sp+" прокрутки в подарок.":st===3?"😢 "+dn+" грустит уже 3 дня и почти не поднимает голову. Вернись к нему — он обрадуется, а тебя ждут +"+W.sp+" прокруток.":"💔 "+dn+" ждёт тебя целую неделю… Каждый вечер смотрит на дверь. Вернись — +"+W.sp+" прокруток уже в игре."):W.t;
+    if(await notify(env,u.id,txt,u.dg_pow>0?"🐉 Навестить дракона":"🎴 Забрать подарок",u.dg_pow>0?PAGE+"?dragon=1":undefined))sent++}
   if(h>=12){const td=dayNum(now);
     const N=(await env.DB.prepare("SELECT id,created,COALESCE(json_extract(state,'$.nb.n'),0) AS n,COALESCE(json_extract(state,'$.nb.last'),'') AS last FROM users WHERE pm=1 AND created>? AND nb_note<? AND seen<? LIMIT 30").bind(now-8*D,td,(td*864e5)-TZ).all()).results;
     for(const u of N){await env.DB.prepare("UPDATE users SET nb_note=? WHERE id=?").bind(td,u.id).run();if(u.n>=NB.length)continue;

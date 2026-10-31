@@ -121,7 +121,9 @@ function dgStageHTML(D){const P=dgParts(D),T=P.pts,pc=a=>`left:${a[0]}%;top:${a[
   if(T.evo==="ice")for(let i=0;i<6;i++)fx+=`<i class="dgsnow" style="left:${8+i*16}%;animation-delay:${-(i*.9).toFixed(1)}s">❄</i>`;
   if(T.evo==="storm")fx+=`<i class="dgbolt" style="left:16%">⚡</i><i class="dgbolt b2" style="left:78%">⚡</i>`;
   if(T.acc)fx+=`<div class="dgacc a-${T.acc}" style="${pc(T.top)};--hw:${T.hw}">${DG_ACC[T.acc]||""}</div>`;
-  return `<div class="dgf s${T.s}" data-mouth="${T.mouth.join(",")}">${P.aura?`<div class="dgl dga">${P.aura}</div>`:""}<div class="dgl dgt">${P.tail}</div><div class="dgl dgwl">${P.wL}</div><div class="dgl dgwr">${P.wR}</div><div class="dgl dgb">${P.body}</div><div class="dgl dghd" style="transform-origin:${T.neck[0]}% ${T.neck[1]}%">${P.head}<div class="dgfx">${fx}</div></div></div>`}
+  const gs=(D.sock||[]).filter(Boolean),gc=gs.map(g=>DG_GEM[g.replace(/\d$/,"")].c),gt=gs.reduce((m,g)=>Math.max(m,+g.slice(-1)),0);
+  const gem=gs.length?`<div class="dggl t${gt}" style="--g1:${gc[0]};--g2:${gc[1]||gc[0]};--g3:${gc[2]||gc[0]}"></div>`:"",gemIc=gs.length?`<i class="dggi" style="left:${T.neck[0]}%;top:${T.neck[1]+6}%">${dgGemSVG(gs[0],22)}</i>`+Array.from({length:3+gt*2},(_,i)=>`<i class="dgsp" style="left:${10+((i*37)%80)}%;top:${15+((i*53)%60)}%;animation-delay:${-(i*.45).toFixed(2)}s;--sc:${gc[i%gc.length]}"></i>`).join(""):"";
+  return `<div class="dgf s${T.s}${gs.length?" gem":""}" data-mouth="${T.mouth.join(",")}">${gem}${gemIc}${P.aura?`<div class="dgl dga">${P.aura}</div>`:""}<div class="dgl dgt">${P.tail}</div><div class="dgl dgwl">${P.wL}</div><div class="dgl dgwr">${P.wR}</div><div class="dgl dgb">${P.body}</div><div class="dgl dghd" style="transform-origin:${T.neck[0]}% ${T.neck[1]}%">${P.head}<div class="dgfx">${fx}</div></div></div>`}
 /* огонь по тапу: детёныш пыхтит облачком, взрослый выдыхает пламя */
 function dgBreath(){const f=document.querySelector("#dg-stage .dgf");if(!f)return;const m=(f.dataset.mouth||"50,50").split(",").map(Number),s=+(f.className.match(/s(\d)/)||[0,0])[1];
   const e=document.createElement("i");e.className=s>=3?"dgfire":"dgpuff";e.style.left=m[0]+"%";e.style.top=m[1]+"%";f.querySelector(".dghd").appendChild(e);setTimeout(()=>e.remove(),s>=3?900:1100)}
@@ -163,15 +165,15 @@ function dgTile(){if(!S)return null;const D=dgOf();if(!D){const fr=dgFr(),r=fr>=
 function dgNav(){const D=dgOf(),i=$("tab-dragon-i"),t=$("tab-dragon-t"),d=$("dg-dot");if(!i)return;i.textContent=D?"🐉":"🥚";t.textContent=D?"Дракон":"Тайна";const T=dgTile();if(d)d.hidden=!(T&&T.dot)}
 function renderDragon(){const R=$("dg-root");if(!R||!S)return;dgNav();if($("sec-dragon").hidden)return;const D=dgOf();
   if(!D){const k="egg"+dgFr()+(S.admin?1:0)+(S.dgStory?1:0);if(dgKey!==k){dgKey=k;R.innerHTML=dgEggHTML();$("dge-go").onclick=dgEggGo;dgStoryBind()}return}
-  const I=dgInfo(D),B=dgLook(D),kk="dg"+D.b+"_"+(D.skin||"")+(D.evo||"")+"_"+I.s+"_"+JSON.stringify(D.eq||{})+"_"+dgEq(D).map(x=>x.lv).join(",");
+  const I=dgInfo(D),B=dgLook(D),kk="dg"+D.b+"_"+(D.skin||"")+(D.evo||"")+(D.sock||[]).join(",")+"_"+I.s+"_"+JSON.stringify(D.eq||{})+"_"+dgEq(D).map(x=>x.lv).join(",");
   if(dgKey!==kk||!$("dg-stage")){dgKey=kk;R.innerHTML=`<div class="dgm" style="--c0:${B.c[0]};--c1:${B.c[1]};--c2:${B.c[2]}">
     <div class="dgh"><div class="dgh-l"><button type="button" class="dgn" id="dg-name"></button><span class="dgst" id="dg-st"></span></div><div class="dgh-p"><small>мощь</small><b id="dg-pow"></b></div></div>
     <div class="dglv"><b id="dg-lv"></b><div class="dgbar"><i id="dg-xp"></i></div><small id="dg-xpt"></small></div>
-    <div class="dgstage" id="dg-stage"><div class="dgbg"></div>${dgStageHTML(D)}<div class="dghs" id="dg-hs"></div><div class="dgtip" id="dg-tip">Погладь меня! 💜</div></div>
+    <div class="dgstage" id="dg-stage"><div class="dgbg"></div>${dgStageHTML(D)}<div class="dghs" id="dg-hs"></div><div class="dgtip" id="dg-tip">Погладь меня! 💜</div><div class="dgmood" id="dg-mood"></div><div class="dgzz" id="dg-zz">Z<i>z</i><b>z</b></div><div class="dgaway" id="dg-away"></div></div><div id="dg-morn"></div><div class="dgexp" id="dg-exp"></div>
     <div class="dgsat"><div><span>🍖 Сытость</span><b id="dg-satn"></b></div><div class="dgbar sat"><i id="dg-sat"></i></div><div><span>💜 Ласка сегодня</span><b id="dg-tp"></b></div></div>
     <div class="dgact"><button type="button" id="dg-feed"><i>🍖</i><b>Покормить</b><small id="dg-feed-t"></small></button><button type="button" id="dg-gift"><i>🎁</i><b>Дар дракона</b><small id="dg-gift-t"></small></button><button type="button" id="dg-nest"><i>🪺</i><b>Гнездо</b><small id="dg-nest-t"></small></button></div>
     <div class="dgbuff" id="dg-buff"></div>
-    <div id="dg-evo"></div><div class="dgseg six" id="dg-seg"><button type="button" data-d="arena">⚔️ Арена</button><button type="button" data-d="gear">🛡 Вещи</button><button type="button" data-d="skin">🎨 Облики</button><button type="button" data-d="chest">🎁 Сундуки</button><button type="button" data-d="top">🏆 Топ</button><button type="button" data-d="how">📜 Рост</button></div>
+    <div id="dg-evo"></div><div class="dgseg six" id="dg-seg"><button type="button" data-d="arena">⚔️ Арена</button><button type="button" data-d="gear">🛡 Вещи</button><button type="button" data-d="gem">💎 Гемы</button><button type="button" data-d="skin">🎨 Облики</button><button type="button" data-d="chest">🎁 Сундуки</button><button type="button" data-d="top">🏆 Топ</button><button type="button" data-d="how">📜 Рост</button></div>
     <div id="dg-sub"></div>
     <button type="button" class="craftbtn dgbrag" id="dg-brag">📣 Похвастаться драконом</button></div>`;
     $("dg-stage").onclick=dgPet;$("dg-name").onclick=dgRename;$("dg-feed").onclick=dgFeedSheet;$("dg-gift").onclick=dgGift;$("dg-nest").onclick=dgNest;$("dg-brag").onclick=dgBrag;
@@ -189,10 +191,10 @@ function dgUpd(D,I){I=I||dgInfo(D);const B=dgBr(D);
   $("dg-gift-t").textContent=I.g?(D.gift?"завтра снова":"+"+I.g+" 🎴"):"с 10 уровня";$("dg-gift").classList.toggle("hot",I.giftOk);$("dg-gift").classList.toggle("off",!I.g||!!D.gift);
   $("dg-nest-t").textContent=D.nest?"завтра снова":I.nestOk?"чешуя ждёт!":"корм + "+DG.nestTaps+" 💜";$("dg-nest").classList.toggle("hot",I.nestOk);$("dg-nest").classList.toggle("off",!!D.nest);
   $("dg-buff").innerHTML='<div><i>⚔️</i><span>+'+Math.round(I.bon*1000)/10+'%</span><small>сила в боях и завоевании</small></div><div><i>🛡</i><span>+'+dgFmt(Math.round(I.pw*.4*(I.hungry?.5:1)))+'</span><small>урона клан-боссу</small></div><div><i>🎴</i><span>+'+I.g+'</span><small>прокруток в день</small></div>'+(I.hungry?'<p class="dgwarn">Дракон голоден: вся сила в 2 раза меньше. Покорми его!</p>':'');
-  const tip=$("dg-tip");if(tip)tip.hidden=(D.tp||0)+dgPend>=DG.tapCap;
+  try{dgLive(D,I)}catch(e){console.error(e)}
   document.querySelectorAll("#dg-seg [data-d]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d===dgSub))}
 /* ---------- ласка: тапы копятся и уходят на сервер пачкой ---------- */
-function dgPet(e){const D=dgOf();if(!D)return;if((D.tp||0)+dgPend>=DG.tapCap){toast("Дракон довольно мурчит — на сегодня ласки хватит 💜");return}
+function dgPet(e){const D=dgOf();if(!D)return;if(dgAway(D,NOW())){toast("Дракон в походе 🧭 — погладишь, когда вернётся");return}if((D.tp||0)+dgPend>=DG.tapCap){toast("Дракон довольно мурчит — на сегодня ласки хватит 💜");return}
   dgPend++;hap("light");const st=$("dg-stage"),f=st.querySelector(".dgf");if(f){f.classList.remove("hop");void f.offsetWidth;f.classList.add("hop")}if(dgPend%4===1)dgBreath();
   if(dgHearts<6){dgHearts++;const r=st.getBoundingClientRect(),h=document.createElement("span");h.className="dgh1";h.textContent=Math.random()<.3?"✨":"💜";h.style.left=((e&&e.clientX?e.clientX-r.left:r.width/2)-10)+"px";h.style.top=((e&&e.clientY?e.clientY-r.top:r.height/2)-14)+"px";h.style.setProperty("--dx",(Math.random()*40-20)+"px");$("dg-hs").appendChild(h);setTimeout(()=>{h.remove();dgHearts--},900)}
   try{sfx.tick(Math.random()<.5)}catch(x){}$("dg-tp").textContent=Math.min(DG.tapCap,(D.tp||0)+dgPend)+" / "+DG.tapCap;
@@ -226,6 +228,7 @@ function dgSubDraw(){const el=$("dg-sub"),D=dgOf();if(!el||!D)return;document.qu
      '<div class="dgch apple"><div class="dgch-i big">🍏</div><div><h4>'+DG_SHOP.apple.n+'</h4><p>Каждое: +2 500 опыта и полная сытость. У тебя: '+(D.ap||0)+'</p><button type="button" class="buy" data-shop="apple">⭐ '+DG_SHOP.apple.stars+'</button></div></div>'+
      '<div class="dgch reborn"><div class="dgch-i big">🔮</div><div><h4>'+DG_SHOP.reborn.n+'</h4><p>Дракон перерождается в новую породу — только редкая или выше: '+DG_REB_P.map((p,r)=>p?DG_BR_R[r].toLowerCase()+" "+p+"%":"").filter(Boolean).join(", ")+'. Уровень и снаряжение остаются.</p><button type="button" class="buy" data-shop="reborn">⭐ '+DG_SHOP.reborn.stars+'</button></div></div>'}
   else if(dgSub==="skin"){el.innerHTML=dgSkinHTML()}
+  else if(dgSub==="gem"){el.innerHTML=dgGemHTML()}
   else if(dgSub==="arena"){el.innerHTML='<div id="dga-root">'+(dgaD?dgaHTML():'<p class="cln">Загружаю арену…</p>')+'</div>';dgaLoad()}
   else if(dgSub==="top"){el.innerHTML='<div class="dgtop" id="dg-top">'+(dgTopD?dgTopHTML():'<p class="cln">Загружаю…</p>')+'</div>';if(ONLINE)act("dg_top").then(r=>{if(!r)return;dgTopD=r;const t=$("dg-top");if(t&&dgSub==="top"){t.innerHTML=dgTopHTML();hydrateDgTop()}});else{dgTopD={list:[{uid:S.uid,name:S.name,pow:dgPower(D),lv:D.lv,b:D.b,dn:D.name,me:1,eq:[]}],place:1,total:1};el.querySelector("#dg-top").innerHTML=dgTopHTML()}}
   else{el.innerHTML='<div class="dghow"><h4>Стадии</h4>'+DG_STAGE.map((T,i)=>'<div class="dgstg'+(dgStage(D.lv)>=i?" on":"")+'"><b>'+T.n+'</b><span>с '+T.lv+' ур.</span><em>'+(T.gift?"🎴 +"+T.gift+" в день":"—")+'</em></div>').join("")+
@@ -243,6 +246,9 @@ async function dgSubClick(e){const D=dgOf();if(!D)return;const t=e.target.closes
   if(t.dataset.shop)return buyItem({item:"dg",k:t.dataset.shop});
   if(t.dataset.view)return dgViewSheet(+t.dataset.view);
   if(t.dataset.skbuy)return buyItem({item:"dgskin",k:t.dataset.skbuy});
+  if(t.dataset.gsock!==undefined){const i=+t.dataset.gsock,cur=(D.sock||[])[i];if(cur){t.disabled=true;const r=await act("dg_gem_set",{i,g:null});if(r){toast("Гем вынут и лежит в шкатулке");dgKey="";renderAll()}else t.disabled=false}else toast("Выбери гем ниже — он встанет сюда");return}
+  if(t.dataset.gput){const g=t.dataset.gput,n=dgSockN(D),so=D.sock||[];let i=-1;for(let k=0;k<n;k++)if(!so[k]){i=k;break}if(i<0)i=0;t.disabled=true;const r=await act("dg_gem_set",{i,g});if(r){sfx.reveal&&sfx.reveal(1);hapN("success");toast("💎 "+dgGemName(g)+" вставлен — дракон засиял!");dgKey="";renderAll();setTimeout(()=>{const st=$("dg-stage");if(st)st.scrollIntoView({block:"center",behavior:"smooth"})},150)}else t.disabled=false;return}
+  if(t.dataset.gmerge){t.disabled=true;const r=await act("dg_gem_merge",{g:t.dataset.gmerge});if(r){sfx.fanfare&&sfx.fanfare();burst(2);toast("✨ Получен "+dgGemName(r.g)+"!");dgSubDraw()}else t.disabled=false;return}
   if(t.dataset.skon!==undefined){t.disabled=true;const r=await act("dg_skin",{k:t.dataset.skon||null});if(r){hapN("success");toast(r.skin?DG_SKIN[r.skin].ic+" Облик «"+DG_SKIN[r.skin].n+"» надет":"Облик снят — дракон в родном цвете");dgKey="";renderAll()}else t.disabled=false;return}
   if(t.dataset.dga)return dgaPre(+t.dataset.dga);
   if(t.dataset.dgarf){dgaD=null;dgSubDraw();return}}
@@ -411,8 +417,60 @@ function dgNickFill(){document.querySelectorAll(".nkdg[data-dgu]:not([data-f])")
 {const _fx=fxName;fxName=function(el,prefix,name,uid){_fx(el,prefix,name,uid);try{if(uid>0&&ONLINE&&el&&!el.querySelector(".nkdg")){const s=document.createElement("span");s.className="nkdg";s.dataset.dgu=uid;el.appendChild(s);setTimeout(dgNickFill,0)}}catch(e){}}}
 setInterval(()=>{try{dgNickFill()}catch(e){}},1500);
 /* летающий дракончик на главной: тап — к дракону */
-function dgFlyMain(){const D=dgOf();let f=$("dgfly");const sec=$("sec-spin");if(!D||!sec||sec.hidden){if(f)f.hidden=true;return}
-  const k=[D.b,D.lv,D.skin||"",D.evo||""].join("|");if(!f){f=document.createElement("button");f.type="button";f.id="dgfly";f.className="dgfly";f.setAttribute("aria-label","Мой дракон");sec.appendChild(f);f.onclick=()=>{hap("light");setTab("dragon")}}
-  f.hidden=false;if(f.dataset.k!==k){f.dataset.k=k;f.innerHTML='<span>'+dgNickSvg([D.b,D.lv,D.skin||null,D.evo||null])+'</span>'}}
+function dgFlyMain(){const D=dgOf();let f=$("dgfly");const sec=$("sec-spin");if(!D||!sec||sec.hidden||dgAway(D,NOW())||!$("modal").hidden||document.querySelector(".onb,#onb")){if(f)f.hidden=true;return}
+  const k=[D.b,D.lv,D.skin||"",D.evo||""].join("|");if(!f){f=document.createElement("button");f.type="button";f.id="dgfly";f.className="dgmf";f.setAttribute("aria-label","Мой дракон");document.body.appendChild(f);f.onclick=()=>{hap("light");setTab("dragon")}}
+  f.hidden=false;if(f.dataset.k!==k){f.dataset.k=k;f.innerHTML='<span>'+dgNickSvg([D.b,D.lv,D.skin||null,D.evo||null])+'</span><em class="dgfb" hidden></em>'}
+  const now=NOW();if(!f._t||now-f._t>14e3){f._t=now;const b=f.querySelector(".dgfb");if(b&&Math.random()<.6){b.textContent=dgSay(D,dgInfo(D),1);b.hidden=false;setTimeout(()=>{b.hidden=true},4500)}}}
 {const _ra7=renderAll;renderAll=function(){_ra7();try{dgFlyMain()}catch(e){}}}
 setInterval(()=>{try{dgFlyMain()}catch(e){}},3000);
+
+/* ===================== 💬 настроение, речь, сон и утро ===================== */
+const mskH=()=>new Date(NOW()+3*3600e3).getUTCHours();
+const dgSleeping=()=>{const h=mskH();return h>=23||h<7};
+function dgMood(D,I){if(dgAway(D,NOW()))return {ic:"🧭",n:"в походе",k:"away"};if(dgSleeping())return {ic:"😴",n:"спит",k:"sleep"};
+  if(I.hungry)return {ic:"😫",n:"голодный",k:"hungry"};const tp=(D.tp||0)+dgPend;
+  if(I.sat>=60&&tp>=50)return {ic:"🥰",n:"счастлив",k:"happy"};if(I.sat>=40&&(tp>=10||(D.fd||0)>0))return {ic:"😊",n:"доволен",k:"ok"};return {ic:"🥺",n:"скучает",k:"sad"}}
+function dgSay(D,I,short){const nm=S&&S.nick?S.nick:"хозяин",M=dgMood(D,I),pick=a=>a[Math.floor(Math.random()*a.length)],h=mskH();
+  if(M.k==="away")return pick(["Я в походе, скоро вернусь с добычей! 🎒","Нашёл сундук… кажется 👀"]);
+  if(M.k==="sleep")return pick(["Zzz… приходи утром ☀️","Мне снятся легендарные карточки… 💤","Тссс, я сплю 😴"]);
+  if(M.k==="hungry")return pick([nm+", я голодный! 🍖","Покорми меня, пожалуйста… 🥺","Живот урчит громче грома ⛈"]);
+  if(D.exp&&!dgAway(D,NOW()))return pick(["Я вернулся! Забирай добычу 🎒","Смотри, что я принёс! ✨"]);
+  if(h>=7&&h<12&&D.morn!==today(NOW()))return pick(["Доброе утро, "+nm+"! ☀️","Ура, ты проснулся! ☀️"]);
+  if(M.k==="sad")return pick(["Погладь меня, "+nm+"… 💜","Я скучал по тебе!","Поиграешь со мной? 🥺"]);
+  const L=["Ты лучший, "+nm+"! 💜","Пойдём на арену? ⚔️","Хочу в поход за гемами 💎","Я стану самым сильным драконом!","Сегодня выпадет легенда, я чувствую 🔮","Мур-р-р… 🐉"];
+  if(!(D.sock||[]).some(Boolean))L.push("Хочу блестящий гем 💎");if((S.dgA&&S.dgA.d===today(NOW())?S.dgA.n:0)<DGA.day)L.push("На арене ждут соперники ⚔️");
+  return pick(L)}
+let dgSayT=0,dgSayLast="";
+function dgLive(D,I){const M=dgMood(D,I),mo=$("dg-mood");if(mo)mo.innerHTML=M.ic+" "+M.n;
+  const st=$("dg-stage");if(st){st.classList.toggle("sleep",M.k==="sleep");st.classList.toggle("away",M.k==="away")}
+  const aw=$("dg-away");if(aw){const E=D.exp&&DG_EXP.find(x=>x.k===D.exp.k);aw.innerHTML=M.k==="away"&&E?'<i>'+E.ic+'</i><b>В походе: '+E.n+'</b><small>вернётся через '+tleft(Math.max(0,D.exp.end-NOW()))+'</small>':""}
+  const tip=$("dg-tip");if(tip&&(NOW()-dgSayT>8000||!dgSayLast)){dgSayT=NOW();dgSayLast=dgSay(D,I);tip.textContent=dgSayLast;tip.classList.remove("pop");void tip.offsetWidth;tip.classList.add("pop")}
+  /* утро */
+  const mn=$("dg-morn"),h=mskH();if(mn){const ok=h>=7&&h<12&&D.morn!==today(NOW())&&!dgAway(D,NOW());mn.innerHTML=ok?'<button type="button" class="dgmorn" id="dgmorn-go">☀️ Доброе утро! Поздоровайся с драконом: +200 опыта и 🎴</button>':"";if(ok)$("dgmorn-go").onclick=async()=>{const r=await act("dg_morning");if(r){sfx.coin();hapN("success");burst(1);toast("☀️ Дракон рад тебя видеть! +"+r.xp+" опыта и +1 🎴");dgSayLast="";renderAll()}}}
+  /* походы */
+  const ex=$("dg-exp");if(ex){let h2="",k="";const now=NOW();
+    if(D.exp&&now>=D.exp.end){k="done";h2='<button type="button" class="dgexp-done" id="dgexp-end">🎒 Дракон вернулся! Забрать добычу</button>'}
+    else if(D.exp){const E=DG_EXP.find(x=>x.k===D.exp.k)||DG_EXP[0],pc=Math.min(1,(now-D.exp.at)/(D.exp.end-D.exp.at));k="away"+Math.floor(now/1000);h2='<div class="dgexp-on"><b>'+E.ic+' Поход: '+E.n+'</b><div class="dgbar"><i style="transform:scaleX('+pc+')"></i></div><small>вернётся через '+tleft(D.exp.end-now)+(S.pm?" · бот напишет, когда вернётся":"")+'</small></div>'}
+    else{k="pick"+(I.hungry?1:0);h2='<div class="dgexp-h">🧭 Отправь дракона в поход за добычей</div><div class="dgexp-l">'+DG_EXP.map(E=>'<button type="button" data-exp="'+E.k+'"><i>'+E.ic+'</i><b>'+E.n+'</b><small>'+E.h+' ч · '+DG_SCI+' '+E.sh[0]+'–'+E.sh[1]+(E.gem>=.3?' · 💎 '+Math.round(E.gem*100)+'%':' · 💎 шанс')+(E.item?' · вещи':'')+(E.sp?' · +'+E.sp+'🎴':'')+'</small></button>').join("")+'</div>'+(I.hungry?'<p class="dgwarn">Голодный дракон в поход не пойдёт — сначала покорми</p>':'')}
+    if(ex.dataset.k!==k){ex.dataset.k=k;ex.innerHTML=h2;
+      const eb=$("dgexp-end");if(eb)eb.onclick=async()=>{eb.disabled=true;const r=await act("dg_exp_end");if(!r){eb.disabled=false;return}dgLootSheet(r);dgKey="";renderAll()};
+      ex.querySelectorAll("[data-exp]").forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await act("dg_exp",{k:b.dataset.exp});if(!r){b.disabled=false;return}hap("medium");const E=DG_EXP.find(x=>x.k===b.dataset.exp);toast(E.ic+" Дракон ушёл в поход «"+E.n+"». Вернётся через "+E.h+" ч");if(!S.pm)setTimeout(()=>{try{askPm()}catch(e){}},1500);dgKey="";renderAll()})}
+    else if(k.startsWith("away")){const sm=ex.querySelector("small"),bar=ex.querySelector(".dgbar i");if(sm&&D.exp)sm.textContent="вернётся через "+tleft(D.exp.end-now)+(S.pm?" · бот напишет, когда вернётся":"");if(bar&&D.exp)bar.style.transform="scaleX("+Math.min(1,(now-D.exp.at)/(D.exp.end-D.exp.at))+")"}}}
+setInterval(()=>{try{const D=dgOf();if(D&&$("dg-stage")&&!$("sec-dragon").hidden)dgLive(D,dgInfo(D))}catch(e){}},1000);
+function dgLootSheet(r){const m=$("modal"),sh=$("msheet"),E=DG_EXP.find(x=>x.k===r.k)||DG_EXP[0];m.hidden=false;
+  sh.innerHTML='<div class="box nickbox dgloot"><h3>🎒 Добыча из похода «'+E.n+'»</h3><div class="dgloot-l"><div>'+DG_SCI+'<b>+'+r.sh+'</b><small>чешуи</small></div><div>⭐<b>+'+r.xp+'</b><small>опыта</small></div>'+(r.sp?'<div>🎴<b>+'+r.sp+'</b><small>прокрутки</small></div>':'')+(r.apple?'<div>🍏<b>+1</b><small>яблоко</small></div>':'')+
+   r.gems.map(g=>'<div class="gm">'+dgGemSVG(g,40)+'<b>'+dgGemName(g)+'</b><small>гем!</small></div>').join("")+(r.item?'<div class="it">'+dgItemTile(r.item,{static:1})+'<small>'+DG_R[r.item.r].n.toLowerCase()+' вещь</small></div>':'')+'</div>'+
+   (r.gems.length?'<p class="cln">Вставь гем в дракона во вкладке «💎 Гемы» — он засияет!</p>':'')+'<button type="button" class="craftbtn" id="dgloot-ok">'+(r.gems.length?"💎 К гемам":"Отлично!")+'</button></div>';
+  try{sfx.fanfare&&sfx.fanfare();burst(r.gems.length?3:1);hapN("success")}catch(e){}
+  $("dgloot-ok").onclick=()=>{closeModal();if(r.gems.length){dgSub="gem";dgSubDraw();setTimeout(()=>{const g=$("dg-seg");if(g)g.scrollIntoView({block:"start",behavior:"smooth"})},80)}}}
+/* ===================== 💎 гемы ===================== */
+function dgGemName(g){const m=/^([a-z]+)(\d)$/.exec(g)||[0,"ruby",1];return DG_GEM[m[1]].n+" "+DG_GEM_G[m[2]-1]}
+function dgGemSVG(g,sz){const m=/^([a-z]+)(\d)$/.exec(g)||[0,"ruby","1"],c=DG_GEM[m[1]].c,t=+m[2],id="gm"+(++dgUid);
+  return `<svg viewBox="0 0 40 40" width="${sz}" height="${sz}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${shade(c,.6)}"/><stop offset=".5" stop-color="${c}"/><stop offset="1" stop-color="${shade(c,-.45)}"/></linearGradient></defs>${t>=2?`<circle cx="20" cy="21" r="18" fill="${c}" opacity="${t>=3?.35:.2}"/>`:""}<path d="M8 15 L14 7 L26 7 L32 15 L20 34 Z" fill="url(#${id})" stroke="#0d1030" stroke-width="2.4" stroke-linejoin="round"/><path d="M8 15 L32 15 M14 7 L17 15 L20 34 L23 15 L26 7" fill="none" stroke="#fff" stroke-width="1.2" opacity=".55"/><path d="M15 9 L18 9 L16 13 Z" fill="#fff" opacity=".9"/>${t>=3?`<path d="M33 4 l1.5 3 3 1.5 -3 1.5 -1.5 3 -1.5 -3 -3 -1.5 3 -1.5 Z" fill="#fff"/>`:""}</svg>`}
+function dgGemHTML(){const D=dgOf(),n=dgSockN(D),so=D.sock||[],G=D.gems||{},keys=Object.keys(G).filter(k=>G[k]>0).sort((a,b)=>(+b.slice(-1))-(+a.slice(-1))||a.localeCompare(b));
+  const lockLv=i=>i===1?DG_STAGE[2].lv:DG_STAGE[4].lv;
+  let h='<div class="dggem-s">'+[0,1,2].map(i=>i<n?'<button type="button" class="dgsock'+(so[i]?" on":"")+'" data-gsock="'+i+'" style="--gc:'+(so[i]?DG_GEM[so[i].replace(/\d$/,"")].c:"#fff3")+'">'+(so[i]?dgGemSVG(so[i],44)+'<small>'+dgGemName(so[i])+'<br>+'+Math.round(DG_GEM[so[i].replace(/\d$/,"")].b[+so[i].slice(-1)-1]*100)+'% '+DG_GEM[so[i].replace(/\d$/,"")].d+'</small><em>вынуть</em>':'<i>＋</i><small>свободно</small>')+'</button>':'<div class="dgsock lock"><i>🔒</i><small>с '+lockLv(i)+' ур.</small></div>').join("")+'</div>';
+  h+='<div class="dggem-h"><b>Шкатулка гемов</b><small>нажми на гем — он встанет в свободное гнездо</small></div>';
+  h+=keys.length?'<div class="dggem-l">'+keys.map(g=>{const k=g.replace(/\d$/,""),t=+g.slice(-1);return '<div class="dggem"><button type="button" data-gput="'+g+'">'+dgGemSVG(g,42)+'<b>'+dgGemName(g)+'</b><small>+'+Math.round(DG_GEM[k].b[t-1]*100)+'% '+DG_GEM[k].d+'</small><u>×'+G[g]+'</u></button>'+(t<3&&G[g]>=DG_GEM_MERGE?'<button type="button" class="dggem-m" data-gmerge="'+g+'">✨ 3 → '+DG_GEM[k].n+' '+DG_GEM_G[t]+'</button>':(t<3?'<small class="dggem-n">'+G[g]+'/'+DG_GEM_MERGE+' до улучшения</small>':''))+'</div>'}).join("")+'</div>':'<p class="cln">Гемов пока нет. Их приносят походы (чем дольше, тем чаще), победы на арене и королевский сундук.</p>';
+  h+='<div class="dghow"><h4>Гемы</h4><ul>'+Object.keys(DG_GEM).map(k=>'<li><span style="color:'+DG_GEM[k].c+'">◆</span> <b>'+DG_GEM[k].n+'</b>: +'+DG_GEM[k].b.map(x=>Math.round(x*100)).join("/")+'% '+DG_GEM[k].d+'</li>').join("")+'</ul><p class="cln">3 одинаковых гема сливаются в гем следующего уровня (I → II → III). Гнёзд для гемов: 1, с '+DG_STAGE[2].lv+' уровня — 2, с '+DG_STAGE[4].lv+' — 3. Чем сильнее гем, тем ярче сияет дракон.</p></div>';
+  return h}

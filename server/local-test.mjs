@@ -1011,6 +1011,21 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   { const w = await cg(8602, "dga_info"); const wo = w.ok && w.res.opp.find(o => o.wild); ok(wo && wo.uid < 0, "дикий дракон подбирается под мощь игрока");
     db.prepare("UPDATE users SET state=json_set(state,'$.dgA.n',0) WHERE id=8602").run(); const f = await cg(8602, "dga_fight", { uid: wo.uid, tac: "guard" }); ok(f.ok && f.res.opp.name && f.res.ta === "guard" && ["rush","trick","guard"].includes(f.res.tb), "бой с диким драконом и тактика"); }
   q = await cg(8601, "dg_looks", { uids: [8601, 8602, 7] }); ok(q.ok && q.res[8602] && q.res[8602][3] === "ice" && !q.res[7], "дракон рядом с ником: вид дракона по id"); }
+// 🧭 походы, 💎 гемы, ☀️ утро
+{ const ch = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
+  await ch(8701, "sync"); await ch(8701, "dg_story", { tg: "voin8701" }); await ch(8701, "dg_hatch");
+  let q = await ch(8701, "dg_exp", { k: "peak" }); ok(q.ok && q.S.dg.exp && q.S.dg.exp.k === "peak", "дракон ушёл в поход на 8 часов");
+  q = await ch(8701, "dg_tap", { n: 5 }); ok(q.ok && q.res.away, "в походе дракона не погладить");
+  q = await ch(8701, "dg_exp_end"); ok(!q.ok && /в пути/.test(q.err), "добычу рано забирать");
+  ok(db.prepare("SELECT dg_exp FROM users WHERE id=8701").get().dg_exp > Date.now(), "время возвращения сохранено для уведомления бота");
+  db.prepare("UPDATE users SET state=json_set(state,'$.dg.exp.end',?) WHERE id=8701").run(Date.now() - 1000);
+  const sp0 = (await ch(8701, "sync")).S.spins; q = await ch(8701, "dg_exp_end"); ok(q.ok && q.res.sh >= 150 && q.res.xp > 0 && q.S.spins === sp0 + 3 && !q.S.dg.exp, "добыча: чешуя, опыт, прокрутки");
+  db.prepare("UPDATE users SET state=json_set(state,'$.dg.gems',json('{\"ruby1\":3,\"sapph2\":1}')) WHERE id=8701").run();
+  const p0 = (await ch(8701, "sync")).S.dg; q = await ch(8701, "dg_gem_set", { i: 0, g: "sapph2" }); ok(q.ok && q.S.dg.sock[0] === "sapph2" && !q.S.dg.gems.sapph2, "гем вставлен в гнездо");
+  q = await ch(8701, "dg_gem_set", { i: 1, g: "ruby1" }); ok(!q.ok && /закрыто/.test(q.err), "второе гнездо закрыто до 20 уровня");
+  q = await ch(8701, "dg_gem_merge", { g: "ruby1" }); ok(q.ok && q.res.g === "ruby2" && q.S.dg.gems.ruby2 === 1 && !q.S.dg.gems.ruby1, "3 рубина I → рубин II");
+  const pw0 = (await ch(8701, "sync")).S.dg; q = await ch(8701, "dg_gem_set", { i: 0, g: "ruby2" }); ok(q.ok && q.S.dg.sock[0] === "ruby2" && q.S.dg.gems.sapph2 === 1, "замена гема: старый вернулся в шкатулку");
+  q = await ch(8701, "dg_morning"); const h = new Date(Date.now() + 3 * 3600e3).getUTCHours(); ok(h >= 7 && h < 12 ? q.ok && q.res.sp === 1 : !q.ok, "«Доброе утро» с 7 до 12"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
   await cd(8111, "sync"); await cd(8112, "sync"); await cd(8, "sync");
