@@ -524,6 +524,15 @@ const GIFTS={
  ring_x:{n:"Кольцо Эпох",base:"ring",err:110,r:5,run:25,stars:500,g:"#34ffb0"},
  feather_x:{n:"Перо феникса",base:"feather",err:190,r:5,run:25,stars:500,g:"#3ab0ff"},
  dragon_x:{n:"Дракончик",base:"dragon",err:250,r:5,run:50,stars:300,g:"#ff4dd8"}};
+/* ---------- календарь новичка: 7 подарков, по одному в день (пропустил день — подарок не сгорает) ---------- */
+const NB=[{sp:5},{leg:1,sp:2},{cash:500,sp:3},{sp:10},{guar:1,sp:5},{runes:5000,sp:5},{leg:1,sp:15}];
+function nbView(st,ctx){const N=st.nb||{n:0,last:""},age=Math.max(0,dayNumU(ctx.now)-dayNumU(ctx.created||ctx.now));
+  return {n:N.n,today:N.last===today(ctx.now),can:N.n<NB.length&&N.last!==today(ctx.now)&&N.n<age+1,done:N.n>=NB.length,age}}
+const dayNumU=t=>Math.floor((t+3*3600e3)/864e5);
+/* цель дня: одна понятная задача, за неё сундук */
+const GOALS=[{k:"opened",n:10,t:"Открой 10 карточек"},{k:"wins",n:3,t:"Выиграй 3 боя"},{k:"opened",n:20,t:"Открой 20 карточек"},{k:"wins",n:5,t:"Выиграй 5 боёв"}],GOAL_R={sp:5,cash:200};
+function goalOf(now){return GOALS[dayNumU(now)%GOALS.length]}
+function goalView(st,now){const G=goalOf(now),D=day(st,now),have=Math.min(G.n,D[G.k]||0),got=!!(st.goal&&st.goal.d===today(now));return {t:G.t,n:G.n,have,got,can:have>=G.n&&!got}}
 /* ---------- «Путь воина»: 5 простых шагов для новичка, за каждый прокрутки, в конце сундук ---------- */
 const PATH=[{k:"open",sp:2},{k:"nick",sp:2},{k:"camp",sp:2},{k:"win",sp:2},{k:"bonus",sp:2}],PATH_FIN={sp:5,guar:1};
 function pathOk(st,ctx,i){const k=(PATH[i]||{}).k;
@@ -747,6 +756,12 @@ const ACTIONS={
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
   ach(G){const A=ACH.find(a=>a.id===G.p.id);if(!A)fail("Нет такого достижения");if(G.st.ach[A.id])fail("Уже получено");if(!A.ok(G.st,G.cards))fail("Достижение ещё не выполнено");G.st.ach[A.id]=1;G.st.spins+=A.r;return {r:A.r,t:A.t}},
 
+  nb_claim(G){const st=G.st,ctx=G.ctx,V=nbView(st,ctx);if(V.done)fail("Все подарки новичка уже получены");if(V.today)fail("Сегодняшний подарок уже забран — приходи завтра");if(!V.can)fail("Следующий подарок откроется завтра");
+    const R=NB[V.n],out={day:V.n+1,sp:R.sp||0};st.nb={n:V.n+1,last:today(ctx.now)};if(R.sp)st.spins+=R.sp;if(R.cash){earn(st,R.cash);out.cash=R.cash}if(R.guar){st.guar=(st.guar||0)+R.guar;out.guar=1}
+    if(R.runes){camp(st,ctx.now).runes+=R.runes;out.runes=R.runes}
+    if(R.leg){const c=rollTier(ctx,3);addCard(G,c);out.card=c}return out},
+  goal_claim(G){const st=G.st,V=goalView(st,G.ctx.now);if(V.got)fail("Сундук дня уже открыт — завтра будет новая цель");if(!V.can)fail("Цель ещё не выполнена: "+V.t+" ("+V.have+"/"+V.n+")");
+    st.goal={d:today(G.ctx.now)};st.spins+=GOAL_R.sp;earn(st,GOAL_R.cash);return {sp:GOAL_R.sp,cash:GOAL_R.cash}},
   path_claim(G){const st=G.st,P=st.path||(st.path={got:[]}),i=G.p.i|0;
     if(G.p.fin){if(P.fin)fail("Сундук уже открыт");if(!PATH.every((x,k)=>P.got.includes(k)))fail("Сначала пройди все шаги");P.fin=1;st.spins+=PATH_FIN.sp;st.guar=(st.guar||0)+PATH_FIN.guar;return {sp:PATH_FIN.sp,fin:1}}
     const S=PATH[i];if(!S)fail("Нет такого шага");if(P.got.includes(i))fail("Уже получено");if(!pathOk(st,G.ctx,i))fail("Шаг ещё не выполнен");P.got.push(i);st.spins+=S.sp;return {i,sp:S.sp}},

@@ -258,3 +258,32 @@ function noSpinDraw(){let el=$("nospin");const show=S&&ONLINE&&(S.spins||0)<=0&&
   const t=S.refillAt?Math.max(0,S.refillAt-NOW()):0;
   el.innerHTML='<b>🎴 Прокрутки закончились'+(t?' · новые через <span class="num">'+tleft(t)+'</span>':'')+'</b><div class="ns-g"><button type="button" data-ns="camp">🎯<span>Лагерь<small>руны → прокрутки</small></span></button><button type="button" data-ns="quest">🎁<span>Задания<small>и награда за вход</small></span></button><button type="button" data-ns="wheel">🎡<span>Колесо<small>бесплатно раз в день</small></span></button><button type="button" data-ns="ref">👥<span>Друг<small>+10 прокруток</small></span></button></div>'}
 setInterval(()=>{try{noSpinDraw()}catch(e){}},1000);
+/* ===================== 📅 «Сегодня» на главной: подарки новичка (7 дней), награда за вход, цель дня ===================== */
+const NB_UI=[["🎴","5 прокруток"],["👑","Легенда"],["🪙","500 монет"],["🎴","10 прокруток"],["💎","Эпик"],["💠","5 000 рун"],["🐉","Легенда +15"]];
+function dayboxDraw(){let el=$("daybox");if(!S||!ONLINE){if(el)el.remove();return}
+  const now=NOW(),V=nbView(S,{now,created:S.created||now}),Gv=goalView(S,now),sk=S.streak||{},stCan=sk.last!==today(now)||!sk.claimed;
+  const showNb=!V.done&&V.age<21;if(!showNb&&!stCan&&Gv.got){if(el)el.remove();return}
+  if(!el){el=document.createElement("div");el.id="daybox";el.className="daybox";const h=$("pathbox")||($("open")&&$("open").parentElement);if(!h)return;h.after(el);
+    el.onclick=async e=>{const b=e.target.closest("[data-db]");if(!b)return;hap("light");const k=b.dataset.db;b.disabled=true;
+      if(k==="nb"){const r=await act("nb_claim");if(r){sfx.fanfare();hapN("success");burst(r.card?3:2);toast("🎁 Подарок дня "+r.day+": "+[r.sp?"+"+r.sp+" прокруток":"",r.cash?"+"+r.cash+" 🪙":"",r.runes?"+"+fmtN(r.runes)+" 💠":"",r.guar?"следующая карточка — эпик":"",r.card?"легендарный воин!":""].filter(Boolean).join(", "));renderAll();if(r.card&&typeof openCardView==="function")setTimeout(()=>openCardView(r.card,{mine:true}),400)}}
+      else if(k==="st"){const r=await act("streak");if(r){sfx.coin();hapN("success");toast(r.n===7?"Неделя подряд! Следующая карточка — эпическая или лучше 🔥":"+1 прокрутка за вход · день "+r.n);renderAll()}}
+      else if(k==="goal"){const r=await act("goal_claim");if(r){sfx.fanfare();hapN("success");burst(2);toast("🎁 Сундук дня: +"+r.sp+" прокруток и +"+r.cash+" 🪙");renderAll()}}
+      else if(k==="ggo"){const G=goalOf(now);if(G.k==="wins")setTab("duel");else{setTab("spin");const o=$("open");if(o)o.scrollIntoView({block:"center",behavior:"smooth"})}}
+      b.disabled=false}}
+  const tl=Math.max(0,(dayNumU(now)+1)*864e5-3*3600e3-now);
+  const k=JSON.stringify([V,Gv,stCan,sk.n,showNb,Math.floor(tl/60e3)]);if(el.dataset.k===k)return;el.dataset.k=k;
+  let h='<div class="db-h"><b>📅 Сегодня</b><span>новое через '+tleft(tl).replace(/:\d\d$/,"")+'</span></div>';
+  if(showNb)h+='<div class="db-nb"><div class="db-t">🎁 Подарки новичка — заходи 7 дней подряд</div><div class="db-cal">'+NB_UI.map((x,i)=>'<div class="dbc'+(i<V.n?" got":i===V.n&&V.can?" now":"")+'"><small>День '+(i+1)+'</small><i>'+(i<V.n?"✅":x[0])+'</i><span>'+x[1]+'</span></div>').join("")+'</div>'+
+    (V.can?'<button type="button" class="craftbtn db-go" data-db="nb">🎁 Забрать подарок дня '+(V.n+1)+'</button>':'<p class="db-wait">✅ Сегодня забрано. Подарок дня '+(V.n+1)+' — завтра!</p>')+'</div>';
+  if(stCan)h+='<div class="db-r"><i>🔥</i><span><b>Награда за вход</b><small>серия: '+(sk.last===today(now)?sk.n:((sk.n||0)%7)+1)+' из 7 дней · на 7-й эпик</small></span><button type="button" class="pth-get" data-db="st">+1 🎴</button></div>';
+  h+='<div class="db-r'+(Gv.got?" got":"")+'"><i>🎯</i><span><b>Цель дня: '+Gv.t+'</b><small>'+(Gv.got?"✅ сундук открыт — завтра новая цель":Gv.have+" из "+Gv.n+" · награда: +"+GOAL_R.sp+" 🎴 и "+GOAL_R.cash+" 🪙")+'</small><em class="db-bar"><u style="width:'+(Gv.have/Gv.n*100)+'%"></u></em></span>'+(Gv.got?'':Gv.can?'<button type="button" class="pth-get" data-db="goal">Сундук</button>':'<button type="button" class="pth-go" data-db="ggo">Вперёд ›</button>')+'</div>';
+  el.innerHTML=h}
+{const _ra6=renderAll;renderAll=function(){_ra6();try{dayboxDraw()}catch(e){console.error(e)}}}
+setInterval(()=>{try{dayboxDraw()}catch(e){}},5000);
+PATH_UI[4].d="Кнопка «+1 🎴» в блоке «Сегодня» на главной";PATH_UI[4].f=()=>{setTab("spin");setTimeout(()=>{const e=$("daybox");if(e)e.scrollIntoView({block:"center",behavior:"smooth"})},120)};
+/* админ: удержание новичков и воронки */
+{const _dsR=drawStats;drawStats=function(){_dsR();try{const R=stData,b=$("st-body");if(!R||!b||!R.retC)return;let box=$("st-ret");if(!box){box=document.createElement("div");box.id="st-ret";box.className="srcbox"}b.prepend(box);
+  const pc=(a,n)=>n?Math.round(a/n*100)+"%":"—",T=R.retC.reduce((a,r)=>({n:a.n+r.n,d1:a.d1+r.d1,s5:a.s5+r.s5}),{n:0,d1:0,s5:0});
+  box.innerHTML='<h4>📈 Удержание новичков (14 дней)</h4><p class="cln">Вернулись на 2-й день (D1), на 4-й (D3) и на 8-й (D7). Хорошо для игр: D1 30–40%, D7 10–15%.</p><table class="rett"><tr><th>Пришли</th><th>Новых</th><th>5+ карт</th><th>D1</th><th>D3</th><th>D7</th></tr>'+
+    R.retC.map(r=>'<tr><td>'+r.day+'</td><td>'+r.n+'</td><td>'+pc(r.s5,r.n)+'</td><td>'+pc(r.d1,r.n)+'</td><td>'+pc(r.d3,r.n)+'</td><td>'+pc(r.d7,r.n)+'</td></tr>').join("")+'<tr class="tot"><td>Итого</td><td>'+T.n+'</td><td>'+pc(T.s5,T.n)+'</td><td>'+pc(T.d1,T.n)+'</td><td></td><td></td></tr></table>'+
+    '<p class="cln"><b>Путь воина</b> (шагов пройдено → игроков): '+[0,1,2,3,4,5,6].map(k=>k+": "+((R.pathF||{})[k]||0)).join(" · ")+'</p><p class="cln"><b>Подарки новичка</b> (дней забрано → игроков): '+[0,1,2,3,4,5,6,7].map(k=>k+": "+((R.nbF||{})[k]||0)).join(" · ")+'</p>'}catch(e){console.error(e)}}}

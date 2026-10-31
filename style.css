@@ -2158,3 +2158,17 @@ body.drw-on{overflow:hidden}
 .ns-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ns-g button{display:flex;align-items:center;gap:8px;border:0;border-radius:14px;padding:10px;background:#f1edff;color:#1a1240;font-size:22px;text-align:left}
 .ns-g button span{display:grid;font-size:14px;font-weight:900}.ns-g small{font-size:11px;font-weight:600;opacity:.7}
+.daybox{margin:12px 0;padding:14px;border-radius:20px;background:linear-gradient(160deg,#eef6ff,#d9e8ff);border:3px solid var(--ink,#1a1240);box-shadow:0 6px 0 var(--ink,#1a1240);color:#1a1240}
+.db-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.db-h b{font-size:18px}.db-h span{font-size:12px;font-weight:800;opacity:.6}
+.db-t{font-weight:900;font-size:14px;margin-bottom:6px}
+.db-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dbc{display:grid;justify-items:center;gap:1px;padding:5px 2px;border-radius:10px;background:#fff;border:2px solid #1a124022;text-align:center}
+.dbc small{font-size:9px;font-weight:800;opacity:.6}.dbc i{font-style:normal;font-size:20px}.dbc span{font-size:9px;font-weight:800;line-height:1.1}
+.dbc.got{opacity:.5}.dbc.now{border-color:#ffb800;background:#fff6cc;animation:pthP 1.4s ease-in-out infinite}
+.dbc:last-child{background:linear-gradient(180deg,#fff2c0,#ffd23f)}
+.db-go{width:100%;margin-top:8px}.db-wait{text-align:center;font-weight:800;font-size:13px;margin:8px 0 2px;opacity:.75}
+.db-r{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;background:#fff;margin-top:8px}
+.db-r>i{font-style:normal;font-size:24px;width:32px;text-align:center}.db-r span{flex:1;min-width:0;display:grid}.db-r b{font-size:14px}.db-r small{font-size:12px;opacity:.75}
+.db-r.got{opacity:.65}
+.db-bar{display:block;height:6px;border-radius:4px;background:#1a124018;margin-top:4px;overflow:hidden}.db-bar u{display:block;height:100%;background:linear-gradient(90deg,#2fd46a,#ffd23f)}
+.rett{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}.rett th,.rett td{padding:4px;border-bottom:1px solid #8884;text-align:center}.rett tr.tot td{font-weight:900}

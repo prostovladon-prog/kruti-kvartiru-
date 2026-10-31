@@ -526,6 +526,15 @@ const GIFTS={
  ring_x:{n:"Кольцо Эпох",base:"ring",err:110,r:5,run:25,stars:500,g:"#34ffb0"},
  feather_x:{n:"Перо феникса",base:"feather",err:190,r:5,run:25,stars:500,g:"#3ab0ff"},
  dragon_x:{n:"Дракончик",base:"dragon",err:250,r:5,run:50,stars:300,g:"#ff4dd8"}};
+/* ---------- календарь новичка: 7 подарков, по одному в день (пропустил день — подарок не сгорает) ---------- */
+const NB=[{sp:5},{leg:1,sp:2},{cash:500,sp:3},{sp:10},{guar:1,sp:5},{runes:5000,sp:5},{leg:1,sp:15}];
+function nbView(st,ctx){const N=st.nb||{n:0,last:""},age=Math.max(0,dayNumU(ctx.now)-dayNumU(ctx.created||ctx.now));
+  return {n:N.n,today:N.last===today(ctx.now),can:N.n<NB.length&&N.last!==today(ctx.now)&&N.n<age+1,done:N.n>=NB.length,age}}
+const dayNumU=t=>Math.floor((t+3*3600e3)/864e5);
+/* цель дня: одна понятная задача, за неё сундук */
+const GOALS=[{k:"opened",n:10,t:"Открой 10 карточек"},{k:"wins",n:3,t:"Выиграй 3 боя"},{k:"opened",n:20,t:"Открой 20 карточек"},{k:"wins",n:5,t:"Выиграй 5 боёв"}],GOAL_R={sp:5,cash:200};
+function goalOf(now){return GOALS[dayNumU(now)%GOALS.length]}
+function goalView(st,now){const G=goalOf(now),D=day(st,now),have=Math.min(G.n,D[G.k]||0),got=!!(st.goal&&st.goal.d===today(now));return {t:G.t,n:G.n,have,got,can:have>=G.n&&!got}}
 /* ---------- «Путь воина»: 5 простых шагов для новичка, за каждый прокрутки, в конце сундук ---------- */
 const PATH=[{k:"open",sp:2},{k:"nick",sp:2},{k:"camp",sp:2},{k:"win",sp:2},{k:"bonus",sp:2}],PATH_FIN={sp:5,guar:1};
 function pathOk(st,ctx,i){const k=(PATH[i]||{}).k;
@@ -749,6 +758,12 @@ const ACTIONS={
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
   ach(G){const A=ACH.find(a=>a.id===G.p.id);if(!A)fail("Нет такого достижения");if(G.st.ach[A.id])fail("Уже получено");if(!A.ok(G.st,G.cards))fail("Достижение ещё не выполнено");G.st.ach[A.id]=1;G.st.spins+=A.r;return {r:A.r,t:A.t}},
 
+  nb_claim(G){const st=G.st,ctx=G.ctx,V=nbView(st,ctx);if(V.done)fail("Все подарки новичка уже получены");if(V.today)fail("Сегодняшний подарок уже забран — приходи завтра");if(!V.can)fail("Следующий подарок откроется завтра");
+    const R=NB[V.n],out={day:V.n+1,sp:R.sp||0};st.nb={n:V.n+1,last:today(ctx.now)};if(R.sp)st.spins+=R.sp;if(R.cash){earn(st,R.cash);out.cash=R.cash}if(R.guar){st.guar=(st.guar||0)+R.guar;out.guar=1}
+    if(R.runes){camp(st,ctx.now).runes+=R.runes;out.runes=R.runes}
+    if(R.leg){const c=rollTier(ctx,3);addCard(G,c);out.card=c}return out},
+  goal_claim(G){const st=G.st,V=goalView(st,G.ctx.now);if(V.got)fail("Сундук дня уже открыт — завтра будет новая цель");if(!V.can)fail("Цель ещё не выполнена: "+V.t+" ("+V.have+"/"+V.n+")");
+    st.goal={d:today(G.ctx.now)};st.spins+=GOAL_R.sp;earn(st,GOAL_R.cash);return {sp:GOAL_R.sp,cash:GOAL_R.cash}},
   path_claim(G){const st=G.st,P=st.path||(st.path={got:[]}),i=G.p.i|0;
     if(G.p.fin){if(P.fin)fail("Сундук уже открыт");if(!PATH.every((x,k)=>P.got.includes(k)))fail("Сначала пройди все шаги");P.fin=1;st.spins+=PATH_FIN.sp;st.guar=(st.guar||0)+PATH_FIN.guar;return {sp:PATH_FIN.sp,fin:1}}
     const S=PATH[i];if(!S)fail("Нет такого шага");if(P.got.includes(i))fail("Уже получено");if(!pathOk(st,G.ctx,i))fail("Шаг ещё не выполнен");P.got.push(i);st.spins+=S.sp;return {i,sp:S.sp}},
@@ -984,7 +999,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=34;
+const SCHEMA_V=35;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1053,6 +1068,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS ad_starts (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, new INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))","CREATE INDEX IF NOT EXISTS ad_starts_u ON ad_starts(uid)",   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
  "CREATE TABLE IF NOT EXISTS dm (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, text TEXT, t INTEGER, rd INTEGER NOT NULL DEFAULT 0, adm INTEGER NOT NULL DEFAULT 0)","CREATE INDEX IF NOT EXISTS dm_b ON dm(b,rd)","CREATE INDEX IF NOT EXISTS dm_ab ON dm(a,b,id)",
  "CREATE TABLE IF NOT EXISTS dm_block (uid INTEGER NOT NULL, who INTEGER NOT NULL, PRIMARY KEY(uid,who))",
+ "ALTER TABLE users ADD COLUMN wb INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nb_note INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
@@ -1285,7 +1301,7 @@ async function stateFor(env,me){
   // когда игрок заходил: активные за день, возврат на второй день
   const now=Date.now();
   if(dayNum(u.seen||0)!==dayNum(now)||now-(u.seen||0)>5*60e3){const nd=dayNum(u.seen||0)!==dayNum(now),cd=dayNum(u.created||now),td=dayNum(now);
-    const q=[env.DB.prepare("UPDATE users SET seen=?,back=MAX(back,?),d1=MAX(d1,?) WHERE id=?").bind(now,td>cd?1:0,td===cd+1?1:0,me.id)];
+    const q=[env.DB.prepare("UPDATE users SET seen=?,back=MAX(back,?),d1=MAX(d1,?),wb=0 WHERE id=?").bind(now,td>cd?1:0,td===cd+1?1:0,me.id)];
     if(nd)q.push(bump(env,"dau"),env.DB.prepare("INSERT OR IGNORE INTO user_days(uid,d) VALUES(?,?)").bind(me.id,td));try{await env.DB.batch(q)}catch(e){}}
   // числа для мирового топа: обновляем, только если изменились
   const worth=Math.round(cards.reduce((a,c)=>a+c.v,0)*100)/100,album=new Set(cards.filter(c=>c.h<NBASE).map(c=>c.h)).size,wins=S.totalWins||0;
@@ -1304,7 +1320,7 @@ async function doAction(env,me,name,p,extra){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
-    st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;
+    st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;ctx.created=u.created||Date.now();
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
@@ -1451,7 +1467,11 @@ async function adminStats(env){
   let srcs=[];try{srcs=(await env.DB.prepare("SELECT v.code,COUNT(*) AS visits,SUM(u.src=v.code) AS fresh,SUM(u.src=v.code AND u.album>=1) AS c1,SUM(u.src=v.code AND u.nick IS NOT NULL) AS nk,SUM(u.src=v.code AND u.album>=3) AS act,SUM(u.src=v.code AND u.back=1) AS back FROM src_visits v LEFT JOIN users u ON u.id=v.uid GROUP BY v.code ORDER BY visits DESC LIMIT 40").all()).results}catch(e){}
   let x={};try{x=await adminStatsX(env,now,t0,D,days,by)}catch(e){console.error("statsX",e);x={err:String(e&&e.message||e)}}
   let streaks=[];try{streaks=(await env.DB.prepare(STREAK_SQL+" SELECT u.src AS code,COUNT(*) AS n,SUM(r.mx>=2) AS s2,SUM(r.mx>=3) AS s3,SUM(r.mx>=5) AS s5,SUM(r.mx>=7) AS s7,SUM(r.cur>=2) AS now2 FROM users u LEFT JOIN best r ON r.uid=u.id WHERE u.src IS NOT NULL GROUP BY u.src").bind(dayNum(now)).all()).results}catch(e){console.error("streaks",e)}
-  return {x,streaks,srcs,players:tot.n||0,fromRef:tot.r||0,withNick:tot.nk||0,newToday:nw.d0||0,newYesterday:nw.d1||0,newWeek:nw.w||0,newRefToday:nw.r0||0,
+  let retC=[],nbF={},pathF={};try{const t14=(dayNum(Date.now())-14)*864e5-TZ;
+    retC=(await env.DB.prepare("SELECT cd,COUNT(*) AS n,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=u.id AND x.d=u.cd+1)) AS d1,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=u.id AND x.d=u.cd+3)) AS d3,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=u.id AND x.d=u.cd+7)) AS d7,SUM(COALESCE(json_extract(u.state,'$.nOp'),0)>=5) AS s5 FROM (SELECT id,state,CAST((created+?)/86400000 AS INTEGER) AS cd FROM users WHERE created>=?) u GROUP BY cd ORDER BY cd DESC").bind(TZ,t14).all()).results.map(r=>({...r,day:new Date(r.cd*864e5).toISOString().slice(5,10).split("-").reverse().join(".")}));
+    for(const r of (await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nb.n'),0) AS k,COUNT(*) AS n FROM users WHERE created>=? GROUP BY k").bind(t14).all()).results)nbF[r.k]=r.n;
+    for(const r of (await env.DB.prepare("SELECT COALESCE(json_array_length(json_extract(state,'$.path.got')),0)+COALESCE(json_extract(state,'$.path.fin'),0) AS k,COUNT(*) AS n FROM users WHERE created>=? GROUP BY k").bind(t14).all()).results)pathF[r.k]=r.n}catch(e){console.error("ret",e)}
+  return {retC,nbF,pathF,x,streaks,srcs,players:tot.n||0,fromRef:tot.r||0,withNick:tot.nk||0,newToday:nw.d0||0,newYesterday:nw.d1||0,newWeek:nw.w||0,newRefToday:nw.r0||0,
     activeToday:act.d0||0,activeWeek:act.w||0,cohort:ret.n||0,d1:ret.d1||0,back:ret.b||0,
     today:{open:T.a_open||0,craft:T.a_craft||0,duel:(T.a_duel||0)+(T.a_fduel||0),boss:T.a_boss_hit||0,forge:T.a_forge||0,story:T.a_story||0,sales:sales.n||0,salesV:Math.round(sales.v||0)},
     cardsInGame:cards.n||0,inviters:inv,days:days.map(d=>({d,n:(by[d]||{}).new||0,a:(by[d]||{}).dau||0,o:(by[d]||{}).a_open||0}))};
@@ -1936,7 +1956,21 @@ async function reminders(env){await ensureSchema(env);if(await maintenance(env))
   try{const cd=(await env.DB.prepare("SELECT id,camp_at FROM users WHERE pm=1 AND camp_at>0 AND camp_at<=? AND camp_note<camp_at LIMIT 60").bind(now).all()).results;
     for(const u of cd){await env.DB.prepare("UPDATE users SET camp_note=? WHERE id=?").bind(u.camp_at,u.id).run();
       if(await notify(env,u.id,"🎯 Энергия в лагере снова полная! Манекен ждёт — каждый удар приносит руны 💠","🎯 Тренироваться",PAGE+"?camp=1"))sent++}}catch(e){console.error("camp",e)}
+  try{sent+=await winBack(env,now,h)}catch(e){console.error("winback",e)}
   return {sent,due:due.length}}
+/* возвращаем пропавших: через 1, 3 и 7 дней тишины — сообщение с подарком (прокрутки ждут в игре). Новичкам — напоминание о подарке дня */
+const WB={1:{sp:3,t:"⚔️ Твои воины заскучали! Мы оставили тебе подарок: +3 прокрутки уже в игре. Вдруг сегодня выпадет легенда?"},3:{sp:5,t:"🎁 Тебя не было 3 дня — держи +5 прокруток! Пока тебя не было, игроки выбили новые редкие карточки. Твоя очередь?"},7:{sp:10,t:"👑 Неделя без тебя! Возвращайся — в игре ждут +10 прокруток в подарок, новые воины и розыгрыши каждый день."}};
+async function winBack(env,now,h){if((h<11||h>=21)&&!env.NOTIFY_TEST)return 0;let sent=0;const D=864e5;
+  const R=(await env.DB.prepare("SELECT id,seen,wb FROM users WHERE pm=1 AND seen>? AND seen<? AND ((wb<1) OR (wb<3 AND seen<?) OR (wb<7 AND seen<?)) LIMIT 30").bind(now-30*D,now-D,now-3*D,now-7*D).all()).results;
+  for(const u of R){const g=now-u.seen,st=g>=7*D?7:g>=3*D?3:1;if(st<=u.wb)continue;const W=WB[st];
+    const r=await env.DB.prepare("UPDATE users SET wb=?,gift_spins=gift_spins+? WHERE id=? AND wb<?").bind(st,W.sp,u.id,st).run();if(r.meta.changes!==1)continue;
+    if(await notify(env,u.id,W.t,"🎴 Забрать подарок"))sent++}
+  if(h>=12){const td=dayNum(now);
+    const N=(await env.DB.prepare("SELECT id,created,COALESCE(json_extract(state,'$.nb.n'),0) AS n,COALESCE(json_extract(state,'$.nb.last'),'') AS last FROM users WHERE pm=1 AND created>? AND nb_note<? AND seen<? LIMIT 30").bind(now-8*D,td,(td*864e5)-TZ).all()).results;
+    for(const u of N){await env.DB.prepare("UPDATE users SET nb_note=? WHERE id=?").bind(td,u.id).run();if(u.n>=NB.length)continue;
+      const k=u.n,R2=NB[k],what=R2.leg?"легендарный воин":R2.guar?"гарантированная эпическая карточка":R2.runes?fmtR(R2.runes)+" рун":R2.cash?R2.cash+" монет":(R2.sp||0)+" прокруток";
+      if(await notify(env,u.id,"🎁 Подарок новичка, день "+(k+1)+" из "+NB.length+": "+what+(R2.sp&&!/прокрут/.test(what)?" + "+R2.sp+" прокруток":"")+"!\n\nОн ждёт тебя в игре — заходи и забирай. Не забудешь каждый день — на 7-й день легендарный воин и 15 прокруток 👑","🎁 Забрать подарок"))sent++}}
+  return sent}
 
 /* ---------- бот: ответ на /start и настройка ----------
    Один раз открой в браузере https://<адрес воркера>/setup — сервер сам подключит бота

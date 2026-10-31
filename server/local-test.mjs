@@ -967,6 +967,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cp(8301, "path_claim", { i: 0 }); ok(!q.ok, "путь: дважды не получить");
   await cp(8301, "nick", { nick: "Новичок_путь" }); q = await cp(8301, "path_claim", { i: 1 }); ok(q.ok, "путь: ник засчитан");
   q = await cp(8301, "path_claim", { fin: 1 }); ok(!q.ok, "путь: сундук только после всех шагов"); }
+// 📅 подарки новичка, цель дня, возврат пропавших, удержание в статистике
+{ const envR = { ...env, ADMINS: "8", NOTIFY_TEST: "1" }, cr = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envR)).json();
+  await cr(8401, "sync"); let q = await cr(8401, "nb_claim"); ok(q.ok && q.res.day === 1 && q.res.sp === 5, "подарок новичка, день 1: +5 прокруток");
+  q = await cr(8401, "nb_claim"); ok(!q.ok, "второй подарок в тот же день не взять");
+  db.prepare("UPDATE users SET created=created-864e5, state=json_set(state,'$.nb.last','2000-01-01') WHERE id=8401").run();
+  const n0 = (await cr(8401, "sync")).S.cards.length; q = await cr(8401, "nb_claim"); ok(q.ok && q.res.day === 2 && q.res.card && q.S.cards.length === n0 + 1, "день 2: легендарный воин в коллекции");
+  q = await cr(8401, "goal_claim"); ok(!q.ok, "цель дня: без выполнения сундук не открыть");
+  db.prepare("UPDATE users SET state=json_set(state,'$.day.opened',50,'$.day.wins',50) WHERE id=8401").run(); q = await cr(8401, "goal_claim"); ok(q.ok && q.res.sp === 5, "цель дня выполнена: сундук +5 прокруток");
+  db.prepare("UPDATE users SET pm=1,seen=?,wb=0,gift_spins=0 WHERE id=8401").run(Date.now() - 4 * 864e5);
+  const rf = globalThis.fetch; globalThis.fetch = async () => new Response('{"ok":true,"result":{}}'); await worker.scheduled({}, envR, { waitUntil: p => p }); await new Promise(z => setTimeout(z, 300)); globalThis.fetch = rf;
+  const u = db.prepare("SELECT wb,gift_spins g FROM users WHERE id=8401").get(); ok(u.wb === 3 && u.g === 5, "возврат через 3 дня тишины: сообщение и +5 прокруток (wb=" + u.wb + ")");
+  q = await cr(8401, "sync"); ok(db.prepare("SELECT wb FROM users WHERE id=8401").get().wb === 0, "вернулся — счётчик возврата сброшен");
+  q = await cr(8, "stats"); ok(q.ok && Array.isArray(q.res.retC) && q.res.retC.length > 0, "статистика: удержание D1/D3/D7 по дням"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
   await cd(8101, "sync"); await cd(8102, "sync"); await cd(8, "sync");
