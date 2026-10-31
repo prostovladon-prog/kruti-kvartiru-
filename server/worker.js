@@ -618,6 +618,8 @@ const DG_SKIN={pumpkin:{n:"Тыквенный",ic:"🎃",stars:149,until:Date.UT
 /* арена драконов: бой против драконов других игроков. Лёд бьёт огонь, огонь — бурю, буря — лёд (+20%) */
 const DGA={day:5,vipDay:3,k:32,start:1000,win:{sh:12,xp:40},lose:{sh:4,xp:10},adv:1.2,prize:[200,100,50]};
 const DGA_BEAT={ice:"fire",fire:"storm",storm:"ice"};
+/* тактика боя: Натиск бьёт Хитрость, Хитрость — Оборону, Оборона — Натиск (+15%) */
+const DGA_TAC={rush:{n:"Натиск",ic:"💥",d:"бьёт Хитрость"},trick:{n:"Хитрость",ic:"🌀",d:"бьёт Оборону"},guard:{n:"Оборона",ic:"🛡",d:"бьёт Натиск"}},DGA_TBEAT={rush:"trick",trick:"guard",guard:"rush"},DGA_TK=1.15;
 function dgEl(D){if(!D)return null;if(D.evo)return D.evo;const k=(DG_BREED[D.b]||{}).k;return k==="fire"||k==="ice"||k==="storm"?k:null}
 const DG_SHOP={apple:{n:"3 золотых яблока",stars:49,ap:3},reborn:{n:"Ритуал перерождения",stars:299}};
 const dgSetOf=k=>DG_SET.find(x=>x.k===k)||DG_SET[0], dgSlotOf=k=>DG_SLOT.find(x=>x.k===k)||DG_SLOT[0];
@@ -1196,15 +1198,21 @@ async function dgLooks(env,uids){uids=[...new Set((uids||[]).map(x=>Math.floor(+
   const o={};for(const r of R)o[r.id]=[r.b|0,r.lv|0,r.sk||null,r.ev||null];return o}
 const dgaR=(u,wk)=>u&&u.dgr_wk===wk?u.dgr:DGA.start;
 function dgaDragon(state){let D=null;try{D=JSON.parse(state||"{}").dg}catch(e){}return D}
-function dgaSim(A,B){const pa=dgPower(A),pb=dgPower(B),ea=dgEl(A),eb=dgEl(B),ka=ea&&DGA_BEAT[ea]===eb?DGA.adv:1,kb=eb&&DGA_BEAT[eb]===ea?DGA.adv:1;const rounds=[];let wa=0,wb=0;
+function dgaSim(A,B,ta){const pa=dgPower(A),pb=B.__pow||dgPower(B),ea=dgEl(A),eb=dgEl(B),tl=Object.keys(DGA_TAC);ta=DGA_TAC[ta]?ta:"rush";const tb=tl[Math.floor(Math.random()*3)];
+  const ka=(ea&&DGA_BEAT[ea]===eb?DGA.adv:1)*(DGA_TBEAT[ta]===tb?DGA_TK:1),kb=(eb&&DGA_BEAT[eb]===ea?DGA.adv:1)*(DGA_TBEAT[tb]===ta?DGA_TK:1);const rounds=[];let wa=0,wb=0;
   for(let i=0;i<3&&wa<2&&wb<2;i++){const x=Math.round(pa*ka*(.8+Math.random()*.4)),y=Math.round(pb*kb*(.8+Math.random()*.4));if(x>=y)wa++;else wb++;rounds.push([x,y])}
-  return {win:wa>wb?1:0,rounds,ka,kb,ea,eb}}
+  return {win:wa>wb?1:0,rounds,ka,kb,ea,eb,ta,tb,ela:ea&&DGA_BEAT[ea]===eb?1:0,elb:eb&&DGA_BEAT[eb]===ea?1:0,tw:DGA_TBEAT[ta]===tb?1:DGA_TBEAT[tb]===ta?-1:0}}
+/* дикие драконы: если живых соперников близкой силы мало, арена подбирает дикого дракона под твою мощь */
+const DGA_WILD=["Дикий","Горный","Пещерный","Лесной","Морской","Пустынный","Северный","Древний"];
+function dgaWild(seed,myPow,myLv){const r=k=>((seed*9301+49297*k)%233280)/233280,b=Math.floor(r(1)*5),evo=r(2)<.5?["fire","ice","storm"][Math.floor(r(3)*3)]:null,lv=Math.max(1,Math.round(myLv*(.8+r(4)*.4)));
+  return {uid:-seed,name:DGA_WILD[Math.floor(r(5)*DGA_WILD.length)]+" дракон",dn:"",pow:Math.max(50,Math.round(myPow*(.75+r(6)*.4))),r:DGA.start,b,lv,skin:null,evo,wild:1,D:{b,lv,evo,inv:[],eq:{}}}}
 async function dgaApi(env,me,a,p){const now=Date.now(),wk=mskWeek(now);
   const meU=await env.DB.prepare("SELECT id,state,dgr,dgr_wk,dgr_w,dgr_l,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(me.id).first();const myD=dgaDragon(meU&&meU.state);if(!myD)fail("Сначала нужен дракон");
   const myR=dgaR(meU,wk);
   if(a==="dga_info"){const lo=myR-250,hi=myR+250;
-    let opp=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dg_pow AS pow,dgr,dgr_wk,state FROM users WHERE dg_pow>0 AND id<>? ORDER BY ABS(dg_pow-?) LIMIT 30").bind(me.id,dgPower(myD)).all()).results;
+    const mp=dgPower(myD);let opp=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dg_pow AS pow,dgr,dgr_wk,state FROM users WHERE dg_pow>0 AND id<>? AND dg_pow BETWEEN ? AND ? ORDER BY ABS(dg_pow-?) LIMIT 30").bind(me.id,Math.floor(mp*.6),Math.ceil(mp*1.6),mp).all()).results;
     opp=opp.sort(()=>Math.random()-.5).slice(0,3).map(u=>{const D=dgaDragon(u.state)||{};return {uid:u.id,name:u.name||"Игрок",pow:u.pow,r:dgaR(u,wk),b:D.b|0,lv:D.lv|0,skin:D.skin||null,evo:D.evo||null,dn:D.name||"",el:dgEl(D)}});
+    while(opp.length<3){const sd=1+Math.floor(Math.random()*2e9),W=dgaWild(sd,mp,myD.lv);delete W.D;W.el=W.evo||null;opp.push(W)}
     const top=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,dgr,dgr_w,dgr_l,json_extract(state,'$.dg.b') AS b,json_extract(state,'$.dg.lv') AS lv,json_extract(state,'$.dg.skin') AS sk,json_extract(state,'$.dg.evo') AS ev FROM users WHERE dgr_wk=? ORDER BY dgr DESC LIMIT 20").bind(wk).all()).results.map(r=>({uid:r.id,name:r.name,r:r.dgr,w:r.dgr_w,l:r.dgr_l,look:[r.b|0,r.lv|0,r.sk,r.ev]}));
     const place=meU.dgr_wk===wk?1+(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE dgr_wk=? AND dgr>?").bind(wk,myR).first())||{}).n||0):0;
     const hist=(await env.DB.prepare("SELECT f.a,f.b,f.win,f.ra,f.rb,f.t,COALESCE(ua.nick,ua.name) AS na,COALESCE(ub.nick,ub.name) AS nb FROM dg_fights f LEFT JOIN users ua ON ua.id=f.a LEFT JOIN users ub ON ub.id=f.b WHERE f.a=? OR f.b=? ORDER BY f.id DESC LIMIT 10").bind(me.id,me.id).all()).results
@@ -1213,10 +1221,14 @@ async function dgaApi(env,me,a,p){const now=Date.now(),wk=mskWeek(now);
     const end=Date.parse(wk+"T00:00:00Z")-TZ+7*864e5;
     return {r:myR,w:meU.dgr_wk===wk?meU.dgr_w:0,l:meU.dgr_wk===wk?meU.dgr_l:0,place,opp,top,hist,left,day:DGA.day,prize:DGA.prize,wkLeft:Math.max(0,end-now),el:dgEl(myD),pow:dgPower(myD)}}
   if(a==="dga_fight"){const oid=Math.floor(+p.uid||0);if(!oid||oid===me.id)fail("Выбери соперника");
+    if(oid<0){const W=dgaWild(-oid,dgPower(myD),myD.lv),oD=Object.assign({},W.D,{__pow:W.pow});await doAction(env,me,"dga_apply",{},{dga:{check:1}});
+      const F=dgaSim(myD,oD,String(p.tac||"")),exp=1/(1+Math.pow(10,0)),dA=Math.round(DGA.k*.5*((F.win?1:0)-exp));const R=(await doAction(env,me,"dga_apply",{},{dga:{win:F.win}})).res;
+      await env.DB.prepare("UPDATE users SET dgr=?,dgr_wk=?,dgr_w=CASE WHEN dgr_wk=? THEN dgr_w ELSE 0 END+?,dgr_l=CASE WHEN dgr_wk=? THEN dgr_l ELSE 0 END+? WHERE id=?").bind(Math.max(0,myR+dA),wk,wk,F.win,wk,1-F.win,me.id).run();
+      return {...F,dA,r:Math.max(0,myR+dA),sh:R.sh,xp:R.xp,left:R.left,opp:{uid:oid,name:W.name,b:W.b,lv:W.lv,skin:null,evo:W.evo,dn:""},pa:dgPower(myD),pb:W.pow}}
     const o=await env.DB.prepare("SELECT id,state,dgr,dgr_wk,COALESCE(nick,name) AS name FROM users WHERE id=? AND dg_pow>0").bind(oid).first();if(!o)fail("У этого игрока нет дракона");
     const oD=dgaDragon(o.state);if(!oD)fail("У этого игрока нет дракона");
     await doAction(env,me,"dga_apply",{},{dga:{check:1}});   // проверка лимита до боя
-    const F=dgaSim(myD,oD),rB=dgaR(o,wk),exp=1/(1+Math.pow(10,(rB-myR)/400)),dA=Math.round(DGA.k*((F.win?1:0)-exp)),dB=-dA;
+    const F=dgaSim(myD,oD,String(p.tac||"")),rB=dgaR(o,wk),exp=1/(1+Math.pow(10,(rB-myR)/400)),dA=Math.round(DGA.k*((F.win?1:0)-exp)),dB=-dA;
     const R=(await doAction(env,me,"dga_apply",{},{dga:{win:F.win}})).res;
     await env.DB.batch([
       env.DB.prepare("UPDATE users SET dgr=?,dgr_wk=?,dgr_w=CASE WHEN dgr_wk=? THEN dgr_w ELSE 0 END+?,dgr_l=CASE WHEN dgr_wk=? THEN dgr_l ELSE 0 END+? WHERE id=?").bind(Math.max(0,myR+dA),wk,wk,F.win,wk,1-F.win,me.id),

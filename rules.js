@@ -616,6 +616,8 @@ const DG_SKIN={pumpkin:{n:"Тыквенный",ic:"🎃",stars:149,until:Date.UT
 /* арена драконов: бой против драконов других игроков. Лёд бьёт огонь, огонь — бурю, буря — лёд (+20%) */
 const DGA={day:5,vipDay:3,k:32,start:1000,win:{sh:12,xp:40},lose:{sh:4,xp:10},adv:1.2,prize:[200,100,50]};
 const DGA_BEAT={ice:"fire",fire:"storm",storm:"ice"};
+/* тактика боя: Натиск бьёт Хитрость, Хитрость — Оборону, Оборона — Натиск (+15%) */
+const DGA_TAC={rush:{n:"Натиск",ic:"💥",d:"бьёт Хитрость"},trick:{n:"Хитрость",ic:"🌀",d:"бьёт Оборону"},guard:{n:"Оборона",ic:"🛡",d:"бьёт Натиск"}},DGA_TBEAT={rush:"trick",trick:"guard",guard:"rush"},DGA_TK=1.15;
 function dgEl(D){if(!D)return null;if(D.evo)return D.evo;const k=(DG_BREED[D.b]||{}).k;return k==="fire"||k==="ice"||k==="storm"?k:null}
 const DG_SHOP={apple:{n:"3 золотых яблока",stars:49,ap:3},reborn:{n:"Ритуал перерождения",stars:299}};
 const dgSetOf=k=>DG_SET.find(x=>x.k===k)||DG_SET[0], dgSlotOf=k=>DG_SLOT.find(x=>x.k===k)||DG_SLOT[0];

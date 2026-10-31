@@ -1004,10 +1004,12 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cg(8601, "pay_bal", { item: "dgskin", k: "frost" }); ok(q.ok && q.S.dg.skin === "frost" && q.S.dg.skins.includes("frost"), "облик «Кристальный» куплен с игрового баланса и надет");
   q = await cg(8601, "dg_skin", { k: null }); ok(q.ok && !q.S.dg.skin, "облик можно снять");
   q = await cg(8601, "dga_info"); ok(q.ok && q.res.r === 1000 && q.res.left === 5 && q.res.opp.some(o => o.uid === 8602), "арена: рейтинг 1000, 5 боёв, соперники с драконами");
-  q = await cg(8601, "dga_fight", { uid: 8602 }); ok(q.ok && q.res.rounds.length >= 2 && q.res.kb === 1.2 && q.res.left === 4 && q.res.sh > 0, "бой на арене: раунды, лёд сильнее пламени, награда чешуёй");
+  q = await cg(8601, "dga_fight", { uid: 8602 }); ok(q.ok && q.res.rounds.length >= 2 && q.res.elb === 1 && q.res.left === 4 && q.res.sh > 0, "бой на арене: раунды, лёд сильнее пламени, награда чешуёй");
   const r1 = db.prepare("SELECT dgr FROM users WHERE id=8601").get().dgr, r2 = db.prepare("SELECT dgr FROM users WHERE id=8602").get().dgr; ok(r1 + r2 === 2000 && r1 !== 1000, "рейтинг перешёл от одного к другому (" + r1 + "/" + r2 + ")");
   for (let i = 0; i < 4; i++) await cg(8601, "dga_fight", { uid: 8602 }); q = await cg(8601, "dga_fight", { uid: 8602 }); ok(!q.ok && /закончились/.test(q.err), "лимит боёв в день");
   q = await cg(8602, "dga_info"); ok(q.ok && q.res.hist.some(h => !h.att), "защитник видит, что на него нападали");
+  { const w = await cg(8602, "dga_info"); const wo = w.ok && w.res.opp.find(o => o.wild); ok(wo && wo.uid < 0, "дикий дракон подбирается под мощь игрока");
+    db.prepare("UPDATE users SET state=json_set(state,'$.dgA.n',0) WHERE id=8602").run(); const f = await cg(8602, "dga_fight", { uid: wo.uid, tac: "guard" }); ok(f.ok && f.res.opp.name && f.res.ta === "guard" && ["rush","trick","guard"].includes(f.res.tb), "бой с диким драконом и тактика"); }
   q = await cg(8601, "dg_looks", { uids: [8601, 8602, 7] }); ok(q.ok && q.res[8602] && q.res[8602][3] === "ice" && !q.res[7], "дракон рядом с ником: вид дракона по id"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
