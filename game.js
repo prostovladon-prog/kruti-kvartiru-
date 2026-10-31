@@ -831,7 +831,7 @@ function renderCol(){
   // шапка коллекции
   const tot=S.cards.reduce((a,c)=>a+c.v,0),best=[...S.cards].sort((a,b)=>b.v-a.v)[0],cnt=[0,0,0,0,0];S.cards.forEach(c=>cnt[HEROES[c.h][2]]++);
   $("col-head").innerHTML='<div class="t">🗂 МОЯ КОЛЛЕКЦИЯ <span></span></div><div class="v"></div><div class="s"></div><div class="bar"><i></i></div><div class="rc">'+HT.map((t,i)=>'<div style="--c:'+t.c+'"><b>'+cnt[i]+'</b>'+RK[i]+'</div>').join("")+'</div>';
-  const H=$("col-head");H.querySelector(".t span").innerHTML=S.cards.length+" / "+capOf(S)+' <button type="button" class="capbtn'+(S.cards.length>=capOf(S)-3?" full":"")+'" id="cap-open">📦 место</button>';H.querySelector(".v").textContent=fmt(tot);
+  const H=$("col-head");H.querySelector(".t span").innerHTML=S.cards.length+" / "+capOf(S);H.querySelector(".v").textContent=fmt(tot);
   H.querySelector(".s").textContent=best?"стоимость коллекции · лучшая: "+HEROES[best.h][0]+", "+FIN[best.f].k.toLowerCase():"открой первую карточку на вкладке «Крутить»";
   H.querySelector(".bar i").style.width=Math.min(100,S.cards.length/capOf(S)*100)+"%";
   ["cards","beauty","merge"].forEach(k=>{$("colp-"+k).hidden=k!==colView});

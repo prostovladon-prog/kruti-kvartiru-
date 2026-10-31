@@ -164,7 +164,7 @@ function dgTile(){if(!S)return null;const D=dgOf();if(!D){const fr=dgFr(),r=fr>=
   const I=dgInfo(D);return {ic:"🐉",n:D.name||dgBr(D).n+" дракон",s:I.hungry?"🍖 голоден — покорми!":I.giftOk?"🎁 принёс "+I.g+" 🎴":I.nestOk?"🪺 в гнезде чешуя":"ур. "+D.lv+" · мощь "+dgFmt(I.pw),dot:I.hungry||I.giftOk||I.nestOk?1:0,c:[dgBr(D).c[2],dgBr(D).c[0]]}}
 function dgNav(){const D=dgOf(),i=$("tab-dragon-i"),t=$("tab-dragon-t"),d=$("dg-dot");if(!i)return;i.textContent=D?"🐉":"🥚";t.textContent=D?"Дракон":"Тайна";const T=dgTile();if(d)d.hidden=!(T&&T.dot)}
 function renderDragon(){const R=$("dg-root");if(!R||!S)return;dgNav();if($("sec-dragon").hidden)return;const D=dgOf();
-  if(!D){const k="egg"+dgFr()+(S.admin?1:0)+(S.dgStory?1:0);if(dgKey!==k){dgKey=k;R.innerHTML=dgEggHTML();$("dge-go").onclick=dgEggGo;dgStoryBind()}return}
+  if(!D){const k="egg"+dgFr()+(S.admin?1:0)+(S.dgStory?1:0);if(dgKey!==k){dgKey=k;R.innerHTML=dgEggHTML();$("dge-go").onclick=dgEggGo;dgStoryBind();try{dgEggEnhance()}catch(e){console.error(e)}}return}
   const I=dgInfo(D),B=dgLook(D),kk="dg"+D.b+"_"+(D.skin||"")+(D.evo||"")+(D.sock||[]).join(",")+"_"+I.s+"_"+JSON.stringify(D.eq||{})+"_"+dgEq(D).map(x=>x.lv).join(",");
   if(dgKey!==kk||!$("dg-stage")){dgKey=kk;R.innerHTML=`<div class="dgm" style="--c0:${B.c[0]};--c1:${B.c[1]};--c2:${B.c[2]}">
     <div class="dgh"><div class="dgh-l"><button type="button" class="dgn" id="dg-name"></button><span class="dgst" id="dg-st"></span></div><div class="dgh-p"><small>мощь</small><b id="dg-pow"></b></div></div>
@@ -417,7 +417,7 @@ function dgNickFill(){document.querySelectorAll(".nkdg[data-dgu]:not([data-f])")
 {const _fx=fxName;fxName=function(el,prefix,name,uid){_fx(el,prefix,name,uid);try{if(uid>0&&ONLINE&&el&&!el.querySelector(".nkdg")){const s=document.createElement("span");s.className="nkdg";s.dataset.dgu=uid;el.appendChild(s);setTimeout(dgNickFill,0)}}catch(e){}}}
 setInterval(()=>{try{dgNickFill()}catch(e){}},1500);
 /* летающий дракончик на главной: тап — к дракону */
-function dgFlyMain(){const D=dgOf();let f=$("dgfly");const sec=$("sec-spin");if(!D||!sec||sec.hidden||dgAway(D,NOW())||!$("modal").hidden||document.querySelector(".onb,#onb")){if(f)f.hidden=true;return}
+function dgFlyMain(){const D=dgOf();let f=$("dgfly");const sec=$("sec-spin");if(!D){try{dgEggFly()}catch(e){}if(f)f.hidden=true;return}{const ef=$("eggfly");if(ef)ef.hidden=true}if(!sec||sec.hidden||dgAway(D,NOW())||!$("modal").hidden||document.querySelector(".onb,#onb")){if(f)f.hidden=true;return}
   const k=[D.b,D.lv,D.skin||"",D.evo||""].join("|");if(!f){f=document.createElement("button");f.type="button";f.id="dgfly";f.className="dgmf";f.setAttribute("aria-label","Мой дракон");document.body.appendChild(f);f.onclick=()=>{hap("light");setTab("dragon")}}
   f.hidden=false;if(f.dataset.k!==k){f.dataset.k=k;f.innerHTML='<span>'+dgNickSvg([D.b,D.lv,D.skin||null,D.evo||null])+'</span><em class="dgfb" hidden></em>'}
   const now=NOW();if(!f._t||now-f._t>14e3){f._t=now;const b=f.querySelector(".dgfb");if(b&&Math.random()<.6){b.textContent=dgSay(D,dgInfo(D),1);b.hidden=false;setTimeout(()=>{b.hidden=true},4500)}}}
@@ -474,3 +474,17 @@ function dgGemHTML(){const D=dgOf(),n=dgSockN(D),so=D.sock||[],G=D.gems||{},keys
   h+=keys.length?'<div class="dggem-l">'+keys.map(g=>{const k=g.replace(/\d$/,""),t=+g.slice(-1);return '<div class="dggem"><button type="button" data-gput="'+g+'">'+dgGemSVG(g,42)+'<b>'+dgGemName(g)+'</b><small>+'+Math.round(DG_GEM[k].b[t-1]*100)+'% '+DG_GEM[k].d+'</small><u>×'+G[g]+'</u></button>'+(t<3&&G[g]>=DG_GEM_MERGE?'<button type="button" class="dggem-m" data-gmerge="'+g+'">✨ 3 → '+DG_GEM[k].n+' '+DG_GEM_G[t]+'</button>':(t<3?'<small class="dggem-n">'+G[g]+'/'+DG_GEM_MERGE+' до улучшения</small>':''))+'</div>'}).join("")+'</div>':'<p class="cln">Гемов пока нет. Их приносят походы (чем дольше, тем чаще), победы на арене и королевский сундук.</p>';
   h+='<div class="dghow"><h4>Гемы</h4><ul>'+Object.keys(DG_GEM).map(k=>'<li><span style="color:'+DG_GEM[k].c+'">◆</span> <b>'+DG_GEM[k].n+'</b>: +'+DG_GEM[k].b.map(x=>Math.round(x*100)).join("/")+'% '+DG_GEM[k].d+'</li>').join("")+'</ul><p class="cln">3 одинаковых гема сливаются в гем следующего уровня (I → II → III). Гнёзд для гемов: 1, с '+DG_STAGE[2].lv+' уровня — 2, с '+DG_STAGE[4].lv+' — 3. Чем сильнее гем, тем ярче сияет дракон.</p></div>';
   return h}
+
+/* ===================== 🥚 яйцо само просит: «одна история в Telegram — и я вылуплюсь» ===================== */
+const EGG_SAY=n=>["Выпусти меня! 🥺","Всего ОДНА история в Telegram — и я вылуплюсь! 📲","Мне тут темно и тесно… помоги, "+n+"! 🥚","Нажми «Выложить в Telegram» — это 10 секунд 👇","Я уже чувствую тебя… Выложи историю — и мы встретимся! 🐉","Другие драконы уже летают… а я жду тебя 😢"];
+function dgEggEnhance(){const st=document.querySelector(".dge-st"),sty=document.querySelector(".dge-sty"),prog=document.querySelector(".dge-prog"),or=document.querySelector(".dge-or");if(!st)return;
+  if(sty&&prog){const h=document.createElement("div");h.className="dge-hero";h.innerHTML='<b>📲 Всего 1 история в Telegram — и дракон твой!</b><small>Яйцо треснет сразу. Друзей звать не обязательно.</small>';prog.parentNode.insertBefore(h,prog);prog.parentNode.insertBefore(sty,prog);if(or){or.querySelector("span").textContent="или позови друзей";prog.parentNode.insertBefore(or,prog)}
+    const tgb=$("dgs-tg");if(tgb){tgb.classList.add("dge-big");tgb.textContent="📲 Выложить историю в Telegram"}}
+  let b=st.querySelector(".dge-say");if(!b){b=document.createElement("div");b.className="dge-say";st.appendChild(b)}
+  const nm=S&&S.nick?S.nick:"друг",L=EGG_SAY(nm);let i=0;const show=()=>{if(!document.body.contains(b))return clearInterval(tm);b.textContent=L[i++%L.length];b.classList.remove("pop");void b.offsetWidth;b.classList.add("pop")};show();const tm=setInterval(show,4500)}
+function dgEggFly(){let f=$("eggfly");const sec=$("sec-spin");const off=!S||!ONLINE||S.dg||S.dgStory||!sec||sec.hidden||!$("modal").hidden||document.querySelector(".onb,#onb")||(typeof isPathNewbie==="function"&&isPathNewbie());
+  if(off){if(f)f.hidden=true;return}
+  if(!f){f=document.createElement("button");f.type="button";f.id="eggfly";f.className="dgmf eggf";f.setAttribute("aria-label","Тайное яйцо");document.body.appendChild(f);f.innerHTML='<span>'+dgEggSVG(2)+'</span><em class="dgfb"></em>';
+    f.onclick=()=>{hap("light");setTab("dragon");setTimeout(()=>{const t=$("dgs-tg")||document.querySelector(".dge-sty");if(t)t.scrollIntoView({block:"center",behavior:"smooth"})},400)}}
+  f.hidden=false;const now=NOW();if(!f._t||now-f._t>10e3){f._t=now;const b=f.querySelector(".dgfb"),L=EGG_SAY(S.nick||"друг");b.textContent=L[Math.floor(Math.random()*L.length)];b.hidden=false;setTimeout(()=>{b.hidden=true},5000)}}
+setInterval(()=>{try{if(!dgOf())dgEggFly()}catch(e){}},2500);

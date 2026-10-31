@@ -685,6 +685,12 @@ const SEASON_TITLE={n:"Герой сезона",ic:"🎖"};
 const ACTIONS={
   sync(){return {}},
 
+  /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
+  open_multi(G){const {st,ctx}=G;refill(st,ctx.now);const want=Math.max(2,Math.min(10,G.p.n|0||5));if(st.spins<=0)fail("Прокрутки закончились");
+    const free=capOf(st)-G.cards.length;if(free<=0)fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
+    const n=Math.min(want,st.spins,free),cards=[];let wel=0;
+    for(let i=0;i<n;i++){try{const r=ACTIONS.open(G);cards.push(r.card);if(r.wel)wel=1}catch(e){if(!cards.length)throw e;break}}
+    return {cards,wel,asked:want}},
   open(G){const {st,ctx}=G;refill(st,ctx.now);
     if(st.spins<=0)fail("Прокрутки закончились");
     if(G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
@@ -2857,7 +2863,8 @@ async function handle(req,env){{
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
       const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);
-      if(a==="open"&&r.res&&r.res.card&&r.res.card.h===THOR){try{const nm=await nameOf(env,me.id);
+      if(a==="open_multi"&&r.res&&r.res.cards&&r.res.cards.some(c=>c.h===THOR))r.res.card=r.res.cards.find(c=>c.h===THOR);
+      if((a==="open"||a==="open_multi")&&r.res&&r.res.card&&r.res.card.h===THOR){try{const nm=await nameOf(env,me.id);
         for(const ad of ADMINS)await notify(env,ad,"⚡⚡⚡ ТОР ВЫБИТ! Игрок "+nm+" (id "+me.id+") выбил Тора — ошибку печати, 1 из 1!\n\nВыдай обещанный приз: VIP навсегда и NFT-подарок.","⚔️ Открыть");
         await chanSend(env,{chan:CHANNEL},{text:"⚡ ЛЕГЕНДА ВЫБИТА!\n\n"+nm+" выбил ТОРА — ошибку печати, единственную карточку на всю игру. Шанс был 1 на миллион!\n\n👉 @VoinyEpohBot"})}catch(e){console.error("thor",e)}}
       if(a==="cas_slot")await casLog(env,me.id,"slot",Math.floor(+p.bet||0),r.res.win||0,null,r.res.m);

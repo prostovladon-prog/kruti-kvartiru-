@@ -2308,3 +2308,33 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .dggem b{font-size:13px}.dggem small{font-size:11px;opacity:.8}.dggem u{position:absolute;right:8px;top:6px;text-decoration:none;font-weight:900;background:#ffd23f;color:#1a1240;border-radius:8px;padding:0 6px;font-size:12px}
 .dggem-m{border:2px solid var(--ink);border-radius:12px;padding:7px;font-weight:900;font-size:12px;background:linear-gradient(180deg,#fff2a8,#ffd23f);color:var(--ink)}
 .dggem-n{text-align:center;font-size:11px;opacity:.6;color:#fff}
+.multi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 2px}
+.multi button{border:4px solid var(--ink);border-radius:18px;padding:12px 8px;font-family:var(--display);font-size:15px;font-weight:900;color:var(--ink);background:linear-gradient(180deg,#9ff3ff,#3ab8ff);box-shadow:0 5px 0 var(--ink)}
+.multi button:only-child{grid-column:1/-1}
+.multi .x10{background:linear-gradient(180deg,#ffb38a,#ff5a2a);color:#fff;text-shadow:0 2px 0 var(--ink)}
+.multi button:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink)}
+.mop{padding:14px}.mop-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}.mop-h b{font-size:20px}
+.mop-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:58vh;overflow:auto;padding:4px}
+.mop-c{opacity:0;transform:rotateY(90deg) scale(.7);animation:mopIn .45s cubic-bezier(.2,1.4,.4,1) forwards;border-radius:14px}
+.mop-c .mc{width:100%;font-size:9px}
+.mop-c.r2{box-shadow:0 0 0 3px #0a84ff,0 0 18px #0a84ff}.mop-c.r3{box-shadow:0 0 0 3px #bf5af2,0 0 22px #bf5af2}.mop-c.r4{box-shadow:0 0 0 3px #ff9f0a,0 0 26px #ff9f0a}
+.mop-c.fin{box-shadow:0 0 0 3px #ffd23f,0 0 22px #ffd23f}.mop-c.best{animation:mopIn .45s cubic-bezier(.2,1.4,.4,1) forwards,mopB 1.4s 1.2s ease-in-out infinite}
+@keyframes mopIn{to{opacity:1;transform:none}}@keyframes mopB{50%{transform:scale(1.04)}}
+.mop-best{margin:10px 0;text-align:center;font-size:14px}
+.mop-b{display:grid;grid-template-columns:1fr auto;gap:8px}.mop-b .mini2{white-space:nowrap}
+#mop-sell{width:100%;margin-top:8px}
+.capbig{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0 10px;padding:12px 14px;border-radius:18px;border:4px solid var(--ink);background:linear-gradient(180deg,#fff7d6,#ffe08a);color:var(--ink);box-shadow:0 5px 0 var(--ink);text-align:left;font:inherit}
+.capbig>i{font-style:normal;font-size:30px}.capbig span{flex:1;min-width:0;display:grid;gap:3px}.capbig b{font-size:15px}.capbig small{font-size:12px;opacity:.75}
+.cb-bar{display:block;height:8px;border-radius:5px;background:rgba(0,0,0,.12);overflow:hidden}.cb-bar u{display:block;height:100%;background:linear-gradient(90deg,#2fd46a,#ffd23f)}
+.capbig strong{flex:none;padding:9px 12px;border-radius:12px;background:var(--ink);color:#ffd23f;font-size:14px}
+.capbig.full{background:linear-gradient(180deg,#ffd0d0,#ff8a8a);animation:pthP 1.4s ease-in-out infinite}.capbig.full .cb-bar u{background:linear-gradient(90deg,#ff9f0a,#ff2e4d)}
+.dge-st{position:relative}
+.dge-say{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:max-content;max-width:86%;padding:8px 12px;border-radius:14px;background:#fff;color:#1a1240;font-weight:900;font-size:13px;line-height:1.25;border:3px solid #1a1240;box-shadow:0 4px 0 #1a1240;text-align:center;z-index:3}
+.dge-say::after{content:"";position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);border:8px solid transparent;border-top-color:#1a1240}
+.dge-say.pop{animation:dgTipP .35s ease-out}
+.dge-hero{margin:14px 0 8px;padding:12px;border-radius:16px;background:linear-gradient(90deg,rgba(42,171,238,.35),rgba(122,90,255,.35));border:2px solid #2aabee;display:grid;gap:2px;text-align:center}
+.dge-hero b{font-size:17px}.dge-hero small{opacity:.85}
+.dge-big{font-size:17px!important;padding:16px!important;background:linear-gradient(180deg,#5fc8ff,#1d8fe0)!important;color:#fff!important;animation:pthP 1.4s ease-in-out infinite;flex-basis:100%!important}
+.eggf .dgfb{right:56px}
+.eggf span svg{width:100%;height:100%}
+#capbar.capbig>span{flex:1 1 auto!important;width:auto!important;min-width:0!important;display:grid!important}#capbar>i,#capbar>strong{flex:none!important}

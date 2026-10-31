@@ -1033,6 +1033,12 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const ctx = { issuedOf: h => h === R2.THOR ? 0 : 1, newId: () => 1, now: Date.now() }; let c0 = "x"; try { c0 = R2.rollOne(ctx) } catch (e) { c0 = "err" }
   ok(c0 === null, "в сундуках и обычных легендах 1 из 1 Тора нет (свободен только Тор → ничего не выпало)");
   let e = null; try { R2.makeAny(ctx, R2.THOR, 4) } catch (x) { e = x.message } ok(/только выбить/.test(e || ""), "Тора нельзя купить через «Любую карточку»"); }
+// 🎴 мультиоткрытие
+{ const cm = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
+  let q = await cm(8801, "sync"); const sp = q.S.spins, n0 = q.S.cards.length;
+  q = await cm(8801, "open_multi", { n: 5 }); ok(q.ok && q.res.cards.length === Math.min(5, sp) && q.S.cards.length === n0 + q.res.cards.length && q.S.spins === sp - q.res.cards.length, "мультиоткрытие ×5: карточки в коллекции, прокрутки списаны");
+  db.prepare("UPDATE users SET state=json_set(state,'$.spins',3) WHERE id=8801").run(); q = await cm(8801, "open_multi", { n: 10 }); ok(q.ok && q.res.cards.length === 3, "×10 при 3 прокрутках — открывает 3");
+  q = await cm(8801, "open_multi", { n: 10 }); ok(!q.ok && /закончились/.test(q.err), "без прокруток — ошибка"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
   await cd(8111, "sync"); await cd(8112, "sync"); await cd(8, "sync");

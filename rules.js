@@ -683,6 +683,12 @@ const SEASON_TITLE={n:"Герой сезона",ic:"🎖"};
 const ACTIONS={
   sync(){return {}},
 
+  /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
+  open_multi(G){const {st,ctx}=G;refill(st,ctx.now);const want=Math.max(2,Math.min(10,G.p.n|0||5));if(st.spins<=0)fail("Прокрутки закончились");
+    const free=capOf(st)-G.cards.length;if(free<=0)fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
+    const n=Math.min(want,st.spins,free),cards=[];let wel=0;
+    for(let i=0;i<n;i++){try{const r=ACTIONS.open(G);cards.push(r.card);if(r.wel)wel=1}catch(e){if(!cards.length)throw e;break}}
+    return {cards,wel,asked:want}},
   open(G){const {st,ctx}=G;refill(st,ctx.now);
     if(st.spins<=0)fail("Прокрутки закончились");
     if(G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");

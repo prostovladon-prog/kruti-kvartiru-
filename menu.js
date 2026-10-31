@@ -287,3 +287,31 @@ PATH_UI[4].d="Кнопка «+1 🎴» в блоке «Сегодня» на г�
   box.innerHTML='<h4>📈 Удержание новичков (14 дней)</h4><p class="cln">Вернулись на 2-й день (D1), на 4-й (D3) и на 8-й (D7). Хорошо для игр: D1 30–40%, D7 10–15%.</p><table class="rett"><tr><th>Пришли</th><th>Новых</th><th>5+ карт</th><th>D1</th><th>D3</th><th>D7</th></tr>'+
     R.retC.map(r=>'<tr><td>'+r.day+'</td><td>'+r.n+'</td><td>'+pc(r.s5,r.n)+'</td><td>'+pc(r.d1,r.n)+'</td><td>'+pc(r.d3,r.n)+'</td><td>'+pc(r.d7,r.n)+'</td></tr>').join("")+'<tr class="tot"><td>Итого</td><td>'+T.n+'</td><td>'+pc(T.s5,T.n)+'</td><td>'+pc(T.d1,T.n)+'</td><td></td><td></td></tr></table>'+
     '<p class="cln"><b>Путь воина</b> (шагов пройдено → игроков): '+[0,1,2,3,4,5,6].map(k=>k+": "+((R.pathF||{})[k]||0)).join(" · ")+'</p><p class="cln"><b>Подарки новичка</b> (дней забрано → игроков): '+[0,1,2,3,4,5,6,7].map(k=>k+": "+((R.nbF||{})[k]||0)).join(" · ")+'</p>'}catch(e){console.error(e)}}}
+/* ===================== 🎴 Мультиоткрытие: ×5 и ×10 ===================== */
+function multiDraw(){let el=$("multi");const h=$("open")&&$("open").parentElement;if(!h||!S)return;const n=S.spins||0;
+  if(!el){el=document.createElement("div");el.id="multi";el.className="multi";h.after(el);
+    el.onclick=e=>{const b=e.target.closest("[data-mo]");if(b)openMulti(+b.dataset.mo)}}
+  const show=n>=2&&!(typeof isPathNewbie==="function"&&isPathNewbie()&&(S.nOp||0)<3);el.hidden=!show;if(!show)return;
+  const k=String(n>=10?2:n>=5?1:0)+(n<5?n:"");if(el.dataset.k===k)return;el.dataset.k=k;
+  el.innerHTML=(n>=5?'<button type="button" data-mo="5">🎴 Открыть ×5</button>':'<button type="button" data-mo="'+n+'">🎴 Открыть все ×'+n+'</button>')+(n>=10?'<button type="button" class="x10" data-mo="10">🔥 Открыть ×10</button>':'')}
+{const _ra8=renderAll;renderAll=function(){_ra8();try{multiDraw()}catch(e){}}}
+setInterval(()=>{try{multiDraw()}catch(e){}},2000);
+let multiBusy=false;
+async function openMulti(n){if(multiBusy||!S)return;multiBusy=true;hap("medium");try{whoosh()}catch(e){}
+  const r=await act("open_multi",{n});multiBusy=false;if(!r||!r.cards||!r.cards.length)return;renderAll();
+  const C=r.cards,best=C.reduce((a,c)=>c.v>a.v?c:a,C[0]),tot=C.reduce((a,c)=>a+c.v,0),rank=c=>HEROES[c.h][2]*10+c.f;
+  const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box mop"><div class="mop-h"><b>🎴 Открыто: '+C.length+'</b><span>на сумму <b class="num">'+fmt(tot)+'</b> 🪙</span></div><div class="mop-g" id="mop-g"></div>'+
+    '<div class="mop-best" id="mop-best"></div><div class="mop-b"><button type="button" class="craftbtn" id="mop-ok">Отлично!</button>'+(S.spins>=2?'<button type="button" class="mini2" id="mop-more">🎴 Ещё ×'+Math.min(S.spins,n)+'</button>':'')+'</div><button type="button" class="ghost" id="mop-sell" hidden></button></div>';
+  const g=$("mop-g");C.forEach((c,i)=>{const w=document.createElement("div");w.className="mop-c r"+HEROES[c.h][2]+(c.f>=2?" fin":"")+(c===best?" best":"");w.style.animationDelay=(i*.16)+"s";const d=bigMc(c,0);d.querySelector(".v")&&(d.querySelector(".v").innerHTML='<small>'+FIN[c.f].k+'</small><b class="num">'+fmt(c.v)+'</b>');w.appendChild(d);g.appendChild(w)});
+  const top=C.filter(c=>HEROES[c.h][2]>=2||c.f>=2).sort((a,b)=>rank(b)-rank(a));
+  $("mop-best").innerHTML=top.length?'⭐ Лучшая: <b>'+escH(HEROES[best.h][0])+'</b> · '+FIN[best.f].k+' · '+HT[HEROES[best.h][2]].k.toLowerCase():'Редких нет — повезёт в следующий раз!';
+  const mx=Math.max(...C.map(c=>revealLevel(c)));setTimeout(()=>{try{sfx.reveal(mx);if(mx>=1)burst(mx);if(mx>=3){sfx.fanfare();hapN("success")}}catch(e){}},C.length*160+200);
+  const cheap=C.filter(c=>c.f===0&&HEROES[c.h][2]===0&&S.cards.some(x=>x.id===c.id));const sb=$("mop-sell");
+  if(cheap.length){sb.hidden=false;sb.textContent="💰 Продать обычные из пачки ("+cheap.length+")";sb.onclick=async()=>{sb.disabled=true;const q=await act("sellmany",{ids:cheap.map(c=>c.id)});if(q){toast("Продано "+q.n+" за "+fmt(q.got)+" 🪙");sb.hidden=true;renderAll()}else sb.disabled=false}}
+  $("mop-ok").onclick=closeModal;if($("mop-more"))$("mop-more").onclick=()=>{closeModal();setTimeout(()=>openMulti(n),120)}}
+/* ===================== 📦 Хранилище: большая заметная кнопка в «Картах» ===================== */
+function capBarDraw(){const H=$("col-head");if(!H||!S)return;let b=$("capbar");if(!b){b=document.createElement("button");b.type="button";b.id="capbar";b.className="capbig";H.after(b);b.onclick=()=>{hap("light");openCap()}}
+  const n=S.cards.length,c=capOf(S),pc=Math.min(100,n/c*100),full=n>=c-3;const k=n+"/"+c;if(b.dataset.k===k)return;b.dataset.k=k;b.classList.toggle("full",full);
+  b.innerHTML='<i>📦</i><span><b>Хранилище: '+n+' / '+c+'</b><em class="cb-bar"><u style="width:'+pc+'%"></u></em><small>'+(full?(n>=c?"Места нет! Новые карточки не влезут":"Почти заполнено — осталось "+(c-n))+"":"свободно "+(c-n)+" мест")+'</small></span><strong>＋ Место</strong>'}
+{const _ra9=renderAll;renderAll=function(){_ra9();try{capBarDraw()}catch(e){}}}
