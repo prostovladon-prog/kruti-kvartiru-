@@ -637,15 +637,16 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     await cp(U, "pay_sim", { pid: a.res.pid }); const rb = await cp(U2, "pay_sim", { pid: b.res.pid });
     ok(rb.res.status === "refund", "если номер успели занять — звёзды возвращаются"); }
   // любая карточка и карточка мечты
-  r = await cp(U2, "invoice", { item: "any", h: 41, f: 0 }); ok(!r.ok && /Ошибкой печати/.test(r.err), "Тор только «ошибкой печати»");
-  db.prepare("DELETE FROM cards WHERE sn='444444'").run(); db.prepare("DELETE FROM cards WHERE h=41").run();
-  r = await buy(U2, { item: "any", h: 41, f: 4 }); const thor = r.ok && r.res.res.cards[0];
-  ok(thor && thor.h === 41 && thor.f === 4 && thor.sn === "444444", "любая карточка: Тор 1 из 1 с номером 444 444");
-  r = await cp(U, "invoice", { item: "any", h: 41, f: 4 }); ok(!r.ok && /закончился/.test(r.err), "второго Тора нет");
+  r = await cp(U2, "invoice", { item: "any", h: 43, f: 0 }); ok(!r.ok && /Ошибкой печати/.test(r.err), "легенда 1 из 1 только «ошибкой печати»");
+  r = await cp(U2, "invoice", { item: "any", h: 41, f: 4 }); ok(!r.ok && /только выбить/.test(r.err), "Тора нельзя купить — только выбить");
+  db.prepare("DELETE FROM cards WHERE h=43").run();
+  r = await buy(U2, { item: "any", h: 43, f: 4 }); const thor = r.ok && r.res.res.cards[0];
+  ok(thor && thor.h === 43 && thor.f === 4, "любая карточка: Зевс 1 из 1");
+  r = await cp(U, "invoice", { item: "any", h: 43, f: 4 }); ok(!r.ok && /закончился/.test(r.err), "второго Зевса нет");
   r = await cp(U2, "sell", { id: thor.id }); ok(!r.ok && /1 из 1/.test(r.err), "легенду 1 из 1 нельзя продать системе");
   r = await buy(U2, { item: "any", h: 30, f: 3 }); ok(r.ok && r.res.res.cards[0].h === 30 && r.res.res.cards[0].f === 3, "любая карточка: золотой Сёгун");
   r = await buy(U2, { item: "custom" }); ok(r.ok && r.res.status === "done" && r.res.res.manual === 1, "карточка мечты оплачена, заявка админу");
-  sh = await cp(U2, "shop"); ok(sh.res.ones[41] && sh.res.ones[41].uid === U2 && 42 in sh.res.ones, "Сокровищница показывает, у кого легенда");
+  sh = await cp(U2, "shop"); ok(sh.res.ones[43] && sh.res.ones[43].uid === U2 && 41 in sh.res.ones, "Сокровищница показывает, у кого легенда");
   // ник и король
   r = await buy(U2, { item: "fx", fx: "fire" }); ok(r.ok && r.S.nfx && r.S.nfx[U2] === "fire", "переливающийся ник включён");
   r = await cp(U2, "sync"); ok(r.S.king === U2, "«Король Эпох» — первый в топе донатеров месяца");
@@ -1026,6 +1027,12 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await ch(8701, "dg_gem_merge", { g: "ruby1" }); ok(q.ok && q.res.g === "ruby2" && q.S.dg.gems.ruby2 === 1 && !q.S.dg.gems.ruby1, "3 рубина I → рубин II");
   const pw0 = (await ch(8701, "sync")).S.dg; q = await ch(8701, "dg_gem_set", { i: 0, g: "ruby2" }); ok(q.ok && q.S.dg.sock[0] === "ruby2" && q.S.dg.gems.sapph2 === 1, "замена гема: старый вернулся в шкатулку");
   q = await ch(8701, "dg_morning"); const h = new Date(Date.now() + 3 * 3600e3).getUTCHours(); ok(h >= 7 && h < 12 ? q.ok && q.res.sp === 1 : !q.ok, "«Доброе утро» с 7 до 12"); }
+// ⚡ Тор: только из прокрутки, 1 на миллион, купить нельзя
+{ const R2 = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { THOR, THOR_P, rollOne, makeAny, ONE };").toString("base64"));
+  ok(R2.THOR >= 0 && R2.THOR_P <= 1e-6, "Тор найден, шанс 1 на миллион");
+  const ctx = { issuedOf: h => h === R2.THOR ? 0 : 1, newId: () => 1, now: Date.now() }; let c0 = "x"; try { c0 = R2.rollOne(ctx) } catch (e) { c0 = "err" }
+  ok(c0 === null, "в сундуках и обычных легендах 1 из 1 Тора нет (свободен только Тор → ничего не выпало)");
+  let e = null; try { R2.makeAny(ctx, R2.THOR, 4) } catch (x) { e = x.message } ok(/только выбить/.test(e || ""), "Тора нельзя купить через «Любую карточку»"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
   await cd(8111, "sync"); await cd(8112, "sync"); await cd(8, "sync");

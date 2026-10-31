@@ -1110,7 +1110,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
-    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||H[4].collab)fail("Такой карточки нет");
+    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
       if(H[4].one&&f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");if(H[4].comp&&f!==0)fail("Составного воина можно взять только обычной отделки");
       const f2=H[4].comp?0:f,n=((await env.DB.prepare(H[4].comp?"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=0 AND no<=?":"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,H[4].comp?HALF_RUN:f2).first())||{}).n||0;
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
@@ -1837,6 +1837,9 @@ async function handle(req,env){{
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
       const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);
+      if(a==="open"&&r.res&&r.res.card&&r.res.card.h===THOR){try{const nm=await nameOf(env,me.id);
+        for(const ad of ADMINS)await notify(env,ad,"⚡⚡⚡ ТОР ВЫБИТ! Игрок "+nm+" (id "+me.id+") выбил Тора — ошибку печати, 1 из 1!\n\nВыдай обещанный приз: VIP навсегда и NFT-подарок.","⚔️ Открыть");
+        await chanSend(env,{chan:CHANNEL},{text:"⚡ ЛЕГЕНДА ВЫБИТА!\n\n"+nm+" выбил ТОРА — ошибку печати, единственную карточку на всю игру. Шанс был 1 на миллион!\n\n👉 @VoinyEpohBot"})}catch(e){console.error("thor",e)}}
       if(a==="cas_slot")await casLog(env,me.id,"slot",Math.floor(+p.bet||0),r.res.win||0,null,r.res.m);
       else if(a==="cas_hl_go")await casLog(env,me.id,"hl",Math.floor(+p.bet||0),0);
       else if(a==="cas_hl_take")await casLog(env,me.id,"hl",0,r.res.win||0);

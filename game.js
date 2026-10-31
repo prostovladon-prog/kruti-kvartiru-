@@ -2096,7 +2096,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     v+='<div class="ghd">✨ Переливающийся ник</div><p class="gnote">Ник с эффектом в топах, чате, лагере и на арене. '+(D.fx&&NFX[D.fx]?"Сейчас у тебя: <b>"+NFX[D.fx]+"</b>"+(D.fxUntil<9e15?" до "+new Date(D.fxUntil).toLocaleDateString("ru"):" навсегда")+".":"")+'</p><div class="fxg">'+
       Object.keys(NFX).map(k=>'<div class="fxc"><div class="fxn"><span class="nfx nfx-'+k+'"></span></div><small>'+NFX[k]+'</small><button type="button" class="buy sm" data-fx="'+k+'">30 дней · ⭐ '+NFX_PRICE.m+'</button><button type="button" class="buy sm alt" data-fx="'+k+'" data-forever="1">навсегда · ⭐ '+NFX_PRICE.f+'</button></div>').join("")+'</div>';
     v+='<div class="ghd">😏 Для очень богатых</div><p class="gnote">Это шутка, никто такое не купит… Но если купишь — сделаем по-настоящему.</p>'+
-      '<div class="joke"><div class="jk-h">🃏 Любая карточка в игре</div><p>Выбери <b>любого воина</b> и <b>любую отделку</b> — хоть золотого Сёгуна, хоть Тора 1 из 1, если он ещё свободен. Карточка сразу твоя.</p><button type="button" class="buy" id="any-go">⭐ 4 000</button></div>'+
+      '<div class="joke"><div class="jk-h">🃏 Любая карточка в игре</div><p>Выбери <b>любого воина</b> и <b>любую отделку</b> — хоть золотого Сёгуна, хоть Зевса 1 из 1, если он ещё свободен. Карточка сразу твоя.</p><button type="button" class="buy" id="any-go">⭐ 4 000</button></div>'+
       '<div class="joke j2"><div class="jk-h">👑 Карточка твоей мечты</div><p>Нарисуем <b>любого героя</b>, какого захочешь, с <b>любым номером</b>. Она будет только у тебя — в единственном экземпляре на весь мир. Дорого? Ну так это ж мечта 😅</p><button type="button" class="buy" data-buy="custom">⭐ 5 000</button></div>';
     v+='<div class="ghd">✍️ Свой номер на карточке</div><p class="gnote">Любой свободный номер из 6 цифр: дата рождения, 000 777, 123 456. Обычный — ⭐ 100, красивый дороже (×15 → ⭐ 1600). На карточке появится лента «Именной номер». Цена карточки не меняется — это чистый понт.</p><button type="button" class="craftbtn" id="num-pick">Выбрать карточку</button>'}
   B.innerHTML=v;
@@ -2119,7 +2119,7 @@ function newsUpd(){return;if(!S||(ONLINE&&!S.shopOn)||!$("modal").hidden||onbSte
   sh.innerHTML='<div class="box nickbox newsb"><h3>🔥 Большое обновление!</h3><div class="nws">'+miniSlot(demoOne(ONE[0]))+miniSlot(demoOne(DON[0],0))+miniSlot(Object.assign(demoOne(COMP[0],0),{no:17}))+'</div><ul>'+
    '<li>🏪 <b>Сокровищница</b> — сундуки с прокрутками, карточками и половинками</li>'+
    '<li>⚔️ <b>Богатыри</b> Илья Муромец, Добрыня и Алёша — новые мифические воины</li>'+
-   '<li>🔥 <b>Легенды 1 из 1</b>: Тор, Зевс, Геракл и Три богатыря — по одной на весь мир</li>'+
+   '<li>🔥 <b>Легенды 1 из 1</b>: Зевс, Геракл и Три богатыря — по одной на весь мир</li><li>⚡ <b>Тор, ошибка печати</b> — одна карточка на всю игру, шанс <b>1 на 1 000 000</b> прокруток. Только из прокрутки, купить нельзя</li>'+
    '<li>🧩 <b>Составные воины</b>: Дракон, Феникс, Кракен… собери из двух половинок</li>'+
    '<li>✍️ <b>Свой номер</b> на карточке, ✨ <b>переливающийся ник</b> и 👑 <b>Король Эпох</b> месяца</li>'+
    '<li>🎁 Новичкам: <b>10 прокруток + эпик</b> за полцены</li></ul><button type="button" class="craftbtn" id="nw-go">Открыть Сокровищницу</button><button type="button" class="ghost" id="nw-x">Позже</button></div>';

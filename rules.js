@@ -96,6 +96,8 @@ const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h
 const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
 const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
+/* Тор (ошибка печати, 1 из 1) — главный трофей игры: падает только из прокрутки, шанс 1 на миллион. В сундуках и в «Любой карточке» его нет */
+const THOR=HEROES.findIndex(H=>H[0]==="Тор"), THOR_P=.000001;
 /* половинки: part 1 — левая (частая), part 2 — правая (в 5 раз реже, 300 на воина на весь мир).
    Целая карточка забирает номер тиража правой половинки (17/300). «Ошибка печати»: одна левая и одна правая на воина */
 const HALF_RUN=300, HALF_P={drop:.0035,right:.15,err:.004}, PART_K=["","Левая ½","Правая ½"];
@@ -420,7 +422,7 @@ function rollHalf(ctx,rightP){let part=Math.random()<rightP?2:1,pool=COMP;
 function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tier).concat(extra||[]),h=pool[Math.floor(Math.random()*pool.length)];
   let f=pick(FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;return makeCard(ctx,h,f)}
 /* легенда 1 из 1 (Тор и др.): только «Ошибка печати», свой номер. null — если все уже у игроков */
-function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1);if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
+function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1&&(h!==THOR||want1===THOR));if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
   const c=makeCard(ctx,h,4),want=HEROES[h][4].sn;if(want&&ctx.snFree(want)){ctx.takeSn(want);c.sn=want;c.v=priceOf(h,4,1,want,false)}return c}
 /* Близнец: свободная карточка из 2 на весь мир. null — если все уже разобраны */
 function rollDuo(ctx,want){const free=DUO.filter(h=>ctx.issuedOf(h,DUO_F)<DUO_RUN);if(!free.length)return null;const h=want!=null?want:free[Math.floor(Math.random()*free.length)];
@@ -439,6 +441,7 @@ const SHOP={
 const CHESTS=["newbie","small","royal","warrior","legend","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
+  if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
   if(W.one){if(f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");return rollOne(ctx,h)}
   if(W.duo){if(f!==DUO_F)fail("Близнецы бывают только с отделкой «Близнец»");return rollDuo(ctx,h)}
   if(f===DUO_F)fail("Отделка «Близнец» есть только у воинов-Близнецов");
@@ -446,7 +449,7 @@ function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||HEROES[h][4].coll
     const sn=genNumber(ctx,0),B=cardBody(h,0);return {id:ctx.newId(),h,f:0,no,sn,part:0,hue:B.hue,stats:B.stats,v:priceOf(h,0,no,sn,B.top,0),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0}}
   return makeCard(ctx,h,f)}
 SHOP.twins={n:"Сундук Близнецов",stars:1500,twins:1,cards:3,d:["♊ <b>Близнец</b> — карточка, которой всего <b>2</b> на весь мир","+ <b>3</b> обычные карточки","собери пару близнецов — их знает вся игра"]};
-SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Тора 1 из 1, если он ещё свободен"]};
+SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
 SHOP.custom={n:"Карточка твоей мечты",stars:5000,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
 /* свой номер: 100 ⭐ + 100 ⭐ за каждый «икс» красивого номера (777 777 ×15 = 1600 ⭐) */
 const numPrice=sn=>{const c=classify(sn);return 100+(c?c.m*100:0)};
@@ -686,7 +689,8 @@ const ACTIONS={
     st.spins--;if(st.spins<spinCap(st)&&!st.refillAt)st.refillAt=ctx.now+REFILL_MS;if(st.dg)dgAddXp(st,ctx,DG.spinXp);
     const epic=(st.guar||0)>0||(st.pity||0)>=PITY-1;let c=null;
     const rr=ctx.noRare?1:Math.random();   // noRare — только для автотестов
-    if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
+    if(!ctx.noRare&&Math.random()<THOR_P)try{c=rollOne(ctx,THOR)}catch(e){}   // Тор: один шанс на миллион
+    if(c){}else if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
     else if(rr<SPIN_P.one+SPIN_P.don)c=rollTier(ctx,-1,DON);   // богатырь
     else if(rr<SPIN_P.one+SPIN_P.don+SPIN_P.duo)c=rollDuo(ctx);   // Близнец: 2 на весь мир
     if(!c&&!epic&&!ctx.noRare&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
