@@ -201,21 +201,21 @@ function dmMenu(){const ex=$("dm-menu");if(ex){ex.remove();return}const r=dmInfo
   r.onclick=e=>{const b=e.target.closest("[data-k]");if(!b)return;if(b.dataset.k==="dm")dmThread(F.uid);else stOpen({uid:F.uid,name:F.name})};who.after(r)}}
 /* ===================== ⭐ Админ: звёзды на игровой баланс ===================== */
 async function stOpen(pre){if(!S||!S.admin)return;dmStop();const m=$("modal"),sh=$("msheet");m.hidden=false;
-  sh.innerHTML='<div class="box nickbox stbox" id="stbox"><button type="button" class="x" id="st-x">Закрыть</button><h3>⭐ Звёзды игрокам</h3><p class="cln">Звёзды падают на игровой баланс. Игрок тратит их в Сокровищнице как настоящие: сундуки, VIP, места, дракон. Ему придёт сообщение от бота.</p><input type="text" id="st-q" placeholder="🔎 ID, ник или имя игрока" autocomplete="off"><div id="st-res"></div><div id="st-form"></div><h3 class="sth">История начислений</h3><div id="st-log"><p class="cln">Загружаю…</p></div></div>';
-  $("st-x").onclick=closeModal;let tm=0;$("st-q").oninput=()=>{clearTimeout(tm);tm=setTimeout(stFind,350)};
+  sh.innerHTML='<div class="box nickbox stbox" id="stbox"><button type="button" class="x" id="sgv-x">Закрыть</button><h3>⭐ Звёзды игрокам</h3><p class="cln">Звёзды падают на игровой баланс. Игрок тратит их в Сокровищнице как настоящие: сундуки, VIP, места, дракон. Ему придёт сообщение от бота.</p><input type="text" id="sgv-q" placeholder="🔎 ID, ник или имя игрока" autocomplete="off"><div id="sgv-res"></div><div id="sgv-form"></div><h3 class="sth">История начислений</h3><div id="sgv-log"><p class="cln">Загружаю…</p></div></div>';
+  $("sgv-x").onclick=closeModal;let tm=0;$("sgv-q").oninput=()=>{clearTimeout(tm);tm=setTimeout(stFind,350)};
   if(pre)stForm(pre);stLog()}
-async function stFind(){const q=$("st-q")?$("st-q").value.trim():"",R=$("st-res");if(!R)return;if(!q){R.innerHTML="";return}const r=await act("st_find",{q});if(!r||!$("st-res"))return;
+async function stFind(){const q=$("sgv-q")?$("sgv-q").value.trim():"",R=$("sgv-res");if(!R)return;if(!q){R.innerHTML="";return}const r=await act("st_find",{q});if(!r||!$("sgv-res"))return;
   R.innerHTML=r.users.length?r.users.map(u=>'<button type="button" class="stu" data-u="'+u.uid+'"><span><b>'+(u.vip?"👑 ":"")+esc(u.name)+'</b><small>id '+u.uid+(u.tg&&u.tg!==u.name?" · "+esc(u.tg):"")+'</small></span><em>'+u.bal+' ⭐</em></button>').join(""):'<p class="cln">Никого не нашёл</p>';
   R.onclick=e=>{const b=e.target.closest("[data-u]");if(b)stForm(r.users.find(x=>x.uid===+b.dataset.u))}}
-function stForm(u){const F=$("st-form");if(!F||!u)return;$("st-res").innerHTML="";let amt=50;
-  F.innerHTML='<div class="stf"><div class="stwho"><b>'+esc(u.name)+'</b><small>id '+u.uid+(u.bal!=null?' · на балансе '+u.bal+' ⭐':'')+'</small></div><div class="stam">'+[25,50,100,250,500,1000].map(n=>'<button type="button" data-a="'+n+'"'+(n===amt?' class="on"':'')+'>'+n+'</button>').join("")+'</div><input type="number" id="st-a" min="1" max="100000" value="'+amt+'" inputmode="numeric"><input type="text" id="st-n" maxlength="200" placeholder="Комментарий для игрока (необязательно)"><button type="button" class="craftbtn" id="st-go"></button><button type="button" class="ghost" id="st-dm">✉️ Написать игроку</button></div>';
-  const upd=()=>{amt=Math.round(+$("st-a").value||0);$("st-go").textContent="⭐ Начислить "+amt+" ⭐";[...F.querySelectorAll("[data-a]")].forEach(b=>b.classList.toggle("on",+b.dataset.a===amt))};upd();
-  F.querySelector(".stam").onclick=e=>{const b=e.target.closest("[data-a]");if(!b)return;$("st-a").value=b.dataset.a;upd()};$("st-a").oninput=upd;
-  $("st-dm").onclick=()=>dmThread(u.uid);
-  $("st-go").onclick=async()=>{if(amt<1){toast("Укажи сумму");return}const g=$("st-go");g.disabled=true;const r=await act("st_give",{uid:u.uid,amt,note:$("st-n").value});g.disabled=false;if(!r)return;
+function stForm(u){const F=$("sgv-form");if(!F||!u)return;$("sgv-res").innerHTML="";let amt=50;
+  F.innerHTML='<div class="stf"><div class="stwho"><b>'+esc(u.name)+'</b><small>id '+u.uid+(u.bal!=null?' · на балансе '+u.bal+' ⭐':'')+'</small></div><div class="stam">'+[25,50,100,250,500,1000].map(n=>'<button type="button" data-a="'+n+'"'+(n===amt?' class="on"':'')+'>'+n+'</button>').join("")+'</div><input type="number" id="sgv-a" min="1" max="100000" value="'+amt+'" inputmode="numeric"><input type="text" id="sgv-n" maxlength="200" placeholder="Комментарий для игрока (необязательно)"><button type="button" class="craftbtn" id="sgv-go"></button><button type="button" class="ghost" id="sgv-dm">✉️ Написать игроку</button></div>';
+  const upd=()=>{amt=Math.round(+$("sgv-a").value||0);$("sgv-go").textContent="⭐ Начислить "+amt+" ⭐";[...F.querySelectorAll("[data-a]")].forEach(b=>b.classList.toggle("on",+b.dataset.a===amt))};upd();
+  F.querySelector(".stam").onclick=e=>{const b=e.target.closest("[data-a]");if(!b)return;$("sgv-a").value=b.dataset.a;upd()};$("sgv-a").oninput=upd;
+  $("sgv-dm").onclick=()=>dmThread(u.uid);
+  $("sgv-go").onclick=async()=>{if(amt<1){toast("Укажи сумму");return}const g=$("sgv-go");g.disabled=true;const r=await act("st_give",{uid:u.uid,amt,note:$("sgv-n").value});g.disabled=false;if(!r)return;
     sfx.coin();hapN("success");toast("⭐ "+r.name+": +"+r.amt+" ⭐, теперь "+r.bal+" ⭐");F.innerHTML='<p class="stok">✅ '+esc(r.name)+' получил '+r.amt+' ⭐ · на балансе '+r.bal+' ⭐</p>';stLog()};
   F.scrollIntoView({block:"nearest"})}
-async function stLog(){const r=await act("st_log");const L=$("st-log");if(!r||!L)return;
+async function stLog(){const r=await act("st_log");const L=$("sgv-log");if(!r||!L)return;
   L.innerHTML='<p class="cln">Всего начислено: <b>'+r.sum+' ⭐</b> · '+r.n+' раз</p>'+r.log.map(x=>'<div class="stl"><span><b>'+esc(x.name||"id "+x.uid)+'</b><small>'+dmTime(x.t)+(x.note?" · "+esc(x.note):"")+'</small></span><em class="'+(x.amt<0?"neg":"")+'">'+(x.amt>0?"+":"")+x.amt+' ⭐</em></div>').join("")}
 {const _mg=menuGo;menuGo=function(k){if(k==="dm"){menuClose();return dmOpen()}if(k==="stars"){menuClose();return stOpen()}return _mg(k)}}
 {const _mb=menuBadges;menuBadges=function(){const b=_mb();if(S&&S.dmUn)b.dm=S.dmUn>99?"99+":S.dmUn;return b}}
