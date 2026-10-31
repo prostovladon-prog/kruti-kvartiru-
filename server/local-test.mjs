@@ -960,6 +960,13 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const g0 = db.prepare("SELECT COUNT(*) n FROM gifts WHERE owner=6200 AND k='dragon_x'").get().n;
   q = await cn(8, "story_ok", { place: 1 }); ok(q.ok && db.prepare("SELECT COUNT(*) n FROM gifts WHERE owner=6200 AND k='dragon_x'").get().n === g0 + 1, "1 место: NFT-подарок «Дракончик» с ошибкой печати выдан сам");
   await cn(8, "chal_set", { cfg: null }); }
+// 🧭 «Путь воина» для новичка
+{ const cp = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
+  await cp(8301, "sync"); let q = await cp(8301, "path_claim", { i: 0 }); ok(!q.ok, "путь: шаг без выполнения не засчитать");
+  for (let i = 0; i < 3; i++) await cp(8301, "open"); q = await cp(8301, "path_claim", { i: 0 }); ok(q.ok && q.res.sp === 2, "путь: 3 карточки → +2 прокрутки");
+  q = await cp(8301, "path_claim", { i: 0 }); ok(!q.ok, "путь: дважды не получить");
+  await cp(8301, "nick", { nick: "Новичок_путь" }); q = await cp(8301, "path_claim", { i: 1 }); ok(q.ok, "путь: ник засчитан");
+  q = await cp(8301, "path_claim", { fin: 1 }); ok(!q.ok, "путь: сундук только после всех шагов"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
   await cd(8101, "sync"); await cd(8102, "sync"); await cd(8, "sync");

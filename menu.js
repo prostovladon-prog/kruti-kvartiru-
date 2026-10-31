@@ -223,3 +223,38 @@ async function stLog(){const r=await act("st_log");const L=$("st-log");if(!r||!L
 /* ссылка из бота: ?dm=<id> — сразу в переписку */
 {const q=+new URLSearchParams(location.search).get("dm");if(q){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{try{closeModal()}catch(e){}dmThread(q)},800)},300)}}
 setInterval(()=>{try{moreDot()}catch(e){}},15e3);
+/* ===================== 🧭 «Путь воина»: понятный старт для новичка — 5 шагов, за каждый прокрутки, в конце сундук ===================== */
+const PATH_UI=[
+ {ic:"🎴",t:"Открой 3 карточки",d:"Жми большую жёлтую кнопку «Открыть»",go:"Открыть",f:()=>{setTab("spin");const o=$("open");if(o){o.scrollIntoView({block:"center",behavior:"smooth"});o.classList.remove("pth-pulse");void o.offsetWidth;o.classList.add("pth-pulse")}},n:st=>Math.min(3,st.nOp||0)+"/3"},
+ {ic:"🏷",t:"Придумай себе ник",d:"С ником ты появишься в топах и чате",go:"Выбрать ник",f:()=>openNick(false)},
+ {ic:"🎯",t:"Разбей мишень в Лагере",d:"Тапай по мишени — копишь руны 💠 и прокачиваешься",go:"В Лагерь",f:()=>openCamp()},
+ {ic:"⚔️",t:"Выиграй первый бой",d:"Выбери воина и характеристику, где он сильнее",go:"В бой",f:()=>setTab("duel")},
+ {ic:"📅",t:"Забери награду за вход",d:"Заходи каждый день — награда растёт, на 7-й день эпик",go:"Забрать",f:()=>{setTab("quest");setTimeout(()=>{const e=$("streak");if(e)e.closest(".box").scrollIntoView({block:"center",behavior:"smooth"})},120)}}];
+function pathSt(){if(!S)return null;const P=S.path||{got:[]};const ok=PATH_UI.map((x,i)=>{try{return pathOk(S,{nick:!!S.nick},i)}catch(e){return false}});return {P,ok,got:P.got||[],fin:!!P.fin}}
+function pathShow(){const V=pathSt();if(!V||V.fin||!ONLINE)return false;return S.created&&NOW()-S.created<14*864e5}
+function pathDraw(){let el=$("pathbox");if(!pathShow()){if(el)el.remove();return}
+  if(!el){el=document.createElement("div");el.id="pathbox";el.className="pathbox";const h=$("open")&&$("open").parentElement;if(!h)return;h.after(el);
+    el.onclick=async e=>{const b=e.target.closest("[data-pa]");if(!b)return;const a=b.dataset.pa,i=+b.dataset.i;hap("light");
+      if(a==="go"){PATH_UI[i].f();return}
+      if(a==="get"){b.disabled=true;const r=await act("path_claim",{i});if(r){sfx.coin();hapN("success");burst(1);toast("+"+r.sp+" прокрутки 🎴");renderAll()}else b.disabled=false;return}
+      if(a==="fin"){b.disabled=true;const r=await act("path_claim",{fin:1});if(r){sfx.fanfare();hapN("success");burst(3);toast("🎁 Сундук открыт: +"+r.sp+" прокруток и следующая карточка — эпическая или лучше!");renderAll()}else b.disabled=false;return}
+      if(a==="all"){el.classList.toggle("open")}}}
+  const V=pathSt(),n=V.got.length,all=n>=PATH_UI.length,cur=PATH_UI.findIndex((x,i)=>!V.got.includes(i));
+  const k=JSON.stringify([V.got,V.ok,S.nOp>=3?3:S.nOp,el.classList.contains("open")]);if(el.dataset.k===k)return;el.dataset.k=k;
+  const row=(x,i)=>{const got=V.got.includes(i),ok=V.ok[i];return '<div class="pth-r'+(got?" got":ok?" ok":"")+(i===cur?" cur":"")+'"><i>'+(got?"✅":x.ic)+'</i><span><b>'+x.t+(x.n&&!got?' <u>'+x.n(S)+'</u>':'')+'</b><small>'+(got?"готово":ok?"выполнено — забирай награду!":x.d)+'</small></span>'+(got?'':ok?'<button type="button" class="pth-get" data-pa="get" data-i="'+i+'">+'+PATH[i].sp+' 🎴</button>':'<button type="button" class="pth-go" data-pa="go" data-i="'+i+'">'+x.go+' ›</button>')+'</div>'};
+  el.innerHTML='<div class="pth-h"><b>🧭 Путь воина</b><span>'+n+' из '+PATH_UI.length+'</span></div><div class="pth-bar"><i style="width:'+(n/PATH_UI.length*100)+'%"></i></div>'+
+    (all?'<div class="pth-fin"><span>🎁 Все шаги пройдены!<small>Сундук: +'+PATH_FIN.sp+' прокруток и эпическая карточка</small></span><button type="button" class="craftbtn" data-pa="fin">Открыть сундук</button></div>':
+    row(PATH_UI[cur],cur)+'<div class="pth-all">'+PATH_UI.map((x,i)=>i===cur?'':row(x,i)).join("")+'</div><button type="button" class="pth-tg" data-pa="all">'+(el.classList.contains("open")?"Свернуть":"Все шаги и награды")+'</button><p class="pth-note">За каждый шаг +2 🎴, за весь путь — сундук с эпической карточкой</p>')}
+{const _ra5=renderAll;renderAll=function(){_ra5();try{pathDraw()}catch(e){console.error(e)}}}
+setInterval(()=>{try{pathDraw()}catch(e){}},2000);
+const isPathNewbie=()=>{try{return pathShow()&&pathSt().got.length<3&&NOW()-S.created<36e5}catch(e){return false}};
+/* новичку не мешаем всплывашками, пока он не прошёл первые шаги (подписка — после 3 шагов или через час) */
+{const _sc=subpCan;subpCan=function(){if(isPathNewbie())return false;return _sc()}}
+{const _sa=storyAnnWaiting;storyAnnWaiting=function(){if(isPathNewbie())return false;return _sa()}}
+/* прокрутки кончились — понятная подсказка, что делать дальше */
+function noSpinDraw(){let el=$("nospin");const show=S&&ONLINE&&(S.spins||0)<=0&&$("sec-spin")&&!$("sec-spin").hidden;if(!show){if(el)el.remove();return}
+  if(!el){el=document.createElement("div");el.id="nospin";el.className="nospin";const h=$("open")&&$("open").parentElement;if(!h)return;h.after(el);
+    el.onclick=e=>{const b=e.target.closest("[data-ns]");if(!b)return;hap("light");const k=b.dataset.ns;if(k==="camp")openCamp();else if(k==="quest")setTab("quest");else if(k==="wheel")menuGo("wheel");else if(k==="ref"){try{$("ref-go").click()}catch(x){}}}}
+  const t=S.refillAt?Math.max(0,S.refillAt-NOW()):0;
+  el.innerHTML='<b>🎴 Прокрутки закончились'+(t?' · новые через <span class="num">'+tleft(t)+'</span>':'')+'</b><div class="ns-g"><button type="button" data-ns="camp">🎯<span>Лагерь<small>руны → прокрутки</small></span></button><button type="button" data-ns="quest">🎁<span>Задания<small>и награда за вход</small></span></button><button type="button" data-ns="wheel">🎡<span>Колесо<small>бесплатно раз в день</small></span></button><button type="button" data-ns="ref">👥<span>Друг<small>+10 прокруток</small></span></button></div>'}
+setInterval(()=>{try{noSpinDraw()}catch(e){}},1000);

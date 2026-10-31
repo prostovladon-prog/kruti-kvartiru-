@@ -526,6 +526,11 @@ const GIFTS={
  ring_x:{n:"Кольцо Эпох",base:"ring",err:110,r:5,run:25,stars:500,g:"#34ffb0"},
  feather_x:{n:"Перо феникса",base:"feather",err:190,r:5,run:25,stars:500,g:"#3ab0ff"},
  dragon_x:{n:"Дракончик",base:"dragon",err:250,r:5,run:50,stars:300,g:"#ff4dd8"}};
+/* ---------- «Путь воина»: 5 простых шагов для новичка, за каждый прокрутки, в конце сундук ---------- */
+const PATH=[{k:"open",sp:2},{k:"nick",sp:2},{k:"camp",sp:2},{k:"win",sp:2},{k:"bonus",sp:2}],PATH_FIN={sp:5,guar:1};
+function pathOk(st,ctx,i){const k=(PATH[i]||{}).k;
+  if(k==="open")return (st.nOp||0)>=3;if(k==="nick")return !!(ctx&&ctx.nick);if(k==="camp")return !!(st.camp&&(st.camp.kills||0)>=1);
+  if(k==="win")return (st.totalWins||0)>=1;if(k==="bonus")return !!(st.streak&&st.streak.claimed);return false}
 const giftVal=k=>GIFTS[k]?GIFTS[k].stars||GR_V[GIFTS[k].r]:0, SHELF_N=9;
 /* ---------- казино за руны лагеря. Возврат игроку около 90%, есть лимит в день ---------- */
 const CAS_DAY=30;
@@ -744,6 +749,9 @@ const ACTIONS={
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
   ach(G){const A=ACH.find(a=>a.id===G.p.id);if(!A)fail("Нет такого достижения");if(G.st.ach[A.id])fail("Уже получено");if(!A.ok(G.st,G.cards))fail("Достижение ещё не выполнено");G.st.ach[A.id]=1;G.st.spins+=A.r;return {r:A.r,t:A.t}},
 
+  path_claim(G){const st=G.st,P=st.path||(st.path={got:[]}),i=G.p.i|0;
+    if(G.p.fin){if(P.fin)fail("Сундук уже открыт");if(!PATH.every((x,k)=>P.got.includes(k)))fail("Сначала пройди все шаги");P.fin=1;st.spins+=PATH_FIN.sp;st.guar=(st.guar||0)+PATH_FIN.guar;return {sp:PATH_FIN.sp,fin:1}}
+    const S=PATH[i];if(!S)fail("Нет такого шага");if(P.got.includes(i))fail("Уже получено");if(!pathOk(st,G.ctx,i))fail("Шаг ещё не выполнен");P.got.push(i);st.spins+=S.sp;return {i,sp:S.sp}},
   sub_reward(G){if(!G.ctx.subOk)fail("Сначала подпишись на канал");if(G.st.subGot2)fail("Награда за подписку уже получена");G.st.subGot2=1;G.st.spins+=10;return {r:10}},
 
   /* история в Telegram: +10 прокруток раз в неделю. Telegram не даёт ботам проверить, что история опубликована,
@@ -1296,7 +1304,7 @@ async function doAction(env,me,name,p,extra){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
-    st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;
+    st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
