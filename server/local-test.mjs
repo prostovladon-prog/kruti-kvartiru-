@@ -948,6 +948,18 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   ok(L && L.clicks === 3 && L.uniq === 2, "переходы считаются (3, уникальных 2), превью Telegram не считается");
   ok(L && L.starts === 2 && L.startsNew === 1, "«Старт» в боте: 2, из них новый 1 (старый игрок не новый)");
   ok(L && L.opened === 1 && L.sp5 === 1, "новый зашёл в игру и сделал 5+ прокруток"); }
+// 🐉 конкурс: 2 друга + история, NFT-подарок первому месту
+{ const envN = { ...env, ADMINS: "8" }, cn = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envN)).json();
+  const t0 = Date.now() - 864e5, cfg = e => ({ id: "nft1", story: 1, fr: 2, gift: "dragon_x", start: t0, end: e, resAt: e, prizes: ["NFT", "200 ⭐", "100 ⭐"], bal: [0, 200, 100], slots: [] });
+  await cn(8, "chal_set", { cfg: cfg(Date.now() + 36e5) });
+  let q = await cn(6200, "chal_get"); ok(q.ok && q.res.fr === 2 && q.res.frOk >= 2 && q.res.gift === "dragon_x", "конкурс: видно, что друзей хватает (" + (q.res && q.res.frOk) + "/2)");
+  q = await cn(6210, "chal_get"); ok(q.ok && q.res.frOk < 2, "у второго друзей не хватает");
+  await cn(6200, "story_join", { tg: "spartak200" }); await cn(6210, "story_join", { tg: "nofriends" });
+  await cn(8, "chal_set", { cfg: cfg(Date.now() - 1) }); await worker.tick(envN); await worker.tick(envN);
+  q = await cn(8, "story_res"); const R = q.ok && q.res.R; ok(R && R.total === 1 && R.win.length === 1 && R.win[0].uid === 6200, "в розыгрыше только те, у кого 2 друга и история");
+  const g0 = db.prepare("SELECT COUNT(*) n FROM gifts WHERE owner=6200 AND k='dragon_x'").get().n;
+  q = await cn(8, "story_ok", { place: 1 }); ok(q.ok && db.prepare("SELECT COUNT(*) n FROM gifts WHERE owner=6200 AND k='dragon_x'").get().n === g0 + 1, "1 место: NFT-подарок «Дракончик» с ошибкой печати выдан сам");
+  await cn(8, "chal_set", { cfg: null }); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
   await cd(8101, "sync"); await cd(8102, "sync"); await cd(8, "sync");
