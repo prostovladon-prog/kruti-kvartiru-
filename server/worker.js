@@ -616,7 +616,7 @@ const DG_SKIN={pumpkin:{n:"Тыквенный",ic:"🎃",stars:149,until:Date.UT
  abyss:{n:"Бездна",ic:"🌑",stars:249,c:["#2a1a3e","#ff4fd8","#0a0414"],eye:"shadow",acc:"horns",d:"Тёмный, с неоновыми рогами"},
  emperor:{n:"Император",ic:"👑",stars:399,c:["#ffcf2e","#fff7d0","#8a5a00"],eye:"gold",acc:"crown",d:"Золото и корона"}};
 /* арена драконов: бой против драконов других игроков. Лёд бьёт огонь, огонь — бурю, буря — лёд (+20%) */
-const DGA={day:5,vipDay:3,k:32,start:1000,win:{sh:12,xp:40},lose:{sh:4,xp:10},adv:1.2,prize:[200,100,50]};
+const DGA={day:7,vipDay:3,k:32,start:1000,win:{sh:12,xp:40},lose:{sh:4,xp:10},adv:1.2,prize:[200,100,50]};
 const DGA_BEAT={ice:"fire",fire:"storm",storm:"ice"};
 /* тактика боя: Натиск бьёт Хитрость, Хитрость — Оборону, Оборона — Натиск (+15%) */
 const DGA_TAC={rush:{n:"Натиск",ic:"💥",d:"бьёт Хитрость"},trick:{n:"Хитрость",ic:"🌀",d:"бьёт Оборону"},guard:{n:"Оборона",ic:"🛡",d:"бьёт Натиск"}},DGA_TBEAT={rush:"trick",trick:"guard",guard:"rush"},DGA_TK=1.15;
