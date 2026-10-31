@@ -980,24 +980,35 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const u = db.prepare("SELECT wb,gift_spins g FROM users WHERE id=8401").get(); ok(u.wb === 3 && u.g === 5, "возврат через 3 дня тишины: сообщение и +5 прокруток (wb=" + u.wb + ")");
   q = await cr(8401, "sync"); ok(db.prepare("SELECT wb FROM users WHERE id=8401").get().wb === 0, "вернулся — счётчик возврата сброшен");
   q = await cr(8, "stats"); ok(q.ok && Array.isArray(q.res.retC) && q.res.retC.length > 0, "статистика: удержание D1/D3/D7 по дням"); }
+// 🥚 дракон за историю
+{ const cs = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
+  await cs(8501, "sync"); let q = await cs(8501, "dg_hatch"); ok(!q.ok, "без друзей и истории яйцо не разбить");
+  q = await cs(8501, "dg_story", { tg: "" }); ok(!q.ok, "история: нужен ник");
+  q = await cs(8501, "dg_story", { ig: "https://instagram.com/voin_8501/" }); ok(q.ok && q.res.ig === "voin_8501", "история засчитана (ник из ссылки)");
+  q = await cs(8501, "dg_hatch"); ok(q.ok && q.S.dg, "после истории яйцо разбивается — дракон вылупился"); }
+// 🐉 сообщение в игре всем без дракона (без бота)
+{ db.prepare("DELETE FROM kv WHERE k='dmb:dgst3110'").run(); const n0 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n; const RN = Date.now; Date.now = () => Date.UTC(2026, 9, 31, 10); try { await worker.tick({ ...env }) } finally { Date.now = RN }
+  const n1 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n, nd = db.prepare("SELECT COUNT(*) n FROM users WHERE json_extract(state,'$.dg') IS NULL AND id<>6724818967").get().n;
+  ok(n1 - n0 === nd && nd > 0, "сообщение в игре про дракона за историю — всем без дракона (" + (n1 - n0) + ")");
+  const hasDg = db.prepare("SELECT id FROM users WHERE json_extract(state,'$.dg') IS NOT NULL LIMIT 1").get(); ok(!hasDg || !db.prepare("SELECT 1 FROM dm WHERE b=? AND text LIKE '%ДРАКОН ТЕПЕРЬ%'").get(hasDg.id), "у кого дракон уже есть — не пишем"); }
 // ✉️ личные сообщения и ⭐ звёзды от админа
 { const envD = { ...env, ADMINS: "8" }, cd = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envD)).json();
-  await cd(8101, "sync"); await cd(8102, "sync"); await cd(8, "sync");
-  let q = await cd(8101, "dm_send", { uid: 8102, text: "привет" }); ok(!q.ok && /ник/.test(q.err), "писать игрокам — только с ником");
-  await cd(8101, "nick", { nick: "Почтальон" }); await cd(8102, "nick", { nick: "Адресат" });
-  q = await cd(8101, "dm_send", { uid: 8102, text: "привет, го обмен?" }); ok(q.ok, "игрок написал игроку");
-  q = await cd(8101, "dm_send", { uid: 8102, text: "смотри t.me/xxx" }); ok(!q.ok, "ссылки в личке запрещены");
-  q = await cd(8102, "sync"); ok(q.S.dmUn === 1, "у получателя 1 непрочитанное");
-  q = await cd(8102, "dm_list"); ok(q.ok && q.res.list[0].uid === 8101 && q.res.list[0].un === 1, "переписка в списке с непрочитанным");
-  q = await cd(8102, "dm_get", { uid: 8101 }); ok(q.ok && q.res.items.length === 1 && q.res.un === 0, "открыл переписку — прочитано");
+  await cd(8111, "sync"); await cd(8112, "sync"); await cd(8, "sync");
+  let q = await cd(8111, "dm_send", { uid: 8112, text: "привет" }); ok(!q.ok && /ник/.test(q.err), "писать игрокам — только с ником");
+  await cd(8111, "nick", { nick: "Почтальон" }); await cd(8112, "nick", { nick: "Адресат" });
+  q = await cd(8111, "dm_send", { uid: 8112, text: "привет, го обмен?" }); ok(q.ok, "игрок написал игроку");
+  q = await cd(8111, "dm_send", { uid: 8112, text: "смотри t.me/xxx" }); ok(!q.ok, "ссылки в личке запрещены");
+  q = await cd(8112, "sync"); ok(q.S.dmUn === 1, "у получателя 1 непрочитанное");
+  q = await cd(8112, "dm_list"); ok(q.ok && q.res.list[0].uid === 8111 && q.res.list[0].un === 1, "переписка в списке с непрочитанным");
+  q = await cd(8112, "dm_get", { uid: 8111 }); ok(q.ok && q.res.items.length === 1 && q.res.un === 0, "открыл переписку — прочитано");
   await new Promise(z => setTimeout(z, 1600));
-  q = await cd(8102, "dm_block", { uid: 8101, on: 1 }); q = await cd(8101, "dm_send", { uid: 8102, text: "ау" }); ok(!q.ok && /ограничил/.test(q.err), "заблокированный не может писать");
-  q = await cd(8101, "st_give", { uid: 8102, amt: 100 }); ok(!q.ok, "звёзды начисляет только админ");
-  q = await cd(8, "st_find", { q: "Адрес" }); ok(q.ok && q.res.users.some(u => u.uid === 8102), "админ находит игрока по нику");
-  q = await cd(8, "st_give", { uid: 8102, amt: 250, note: "приз за конкурс" }); ok(q.ok && q.res.bal === 250, "админ начислил 250 ⭐ на игровой баланс");
-  q = await cd(8102, "sync"); ok(q.S.starBal === 250 && q.S.dmUn === 1, "звёзды на балансе и сообщение от администрации");
-  q = await cd(8, "dm_send", { uid: 8102, text: "Поздравляем!" }); ok(q.ok, "админ пишет игроку");
-  q = await cd(8, "st_give", { uid: 8102, amt: -1000 }); ok(!q.ok, "списать больше, чем есть, нельзя");
-  q = await cd(8, "st_log"); ok(q.ok && q.res.sum === 250 && q.res.log[0].uid === 8102, "история начислений"); }
+  q = await cd(8112, "dm_block", { uid: 8111, on: 1 }); q = await cd(8111, "dm_send", { uid: 8112, text: "ау" }); ok(!q.ok && /ограничил/.test(q.err), "заблокированный не может писать");
+  q = await cd(8111, "st_give", { uid: 8112, amt: 100 }); ok(!q.ok, "звёзды начисляет только админ");
+  q = await cd(8, "st_find", { q: "Адрес" }); ok(q.ok && q.res.users.some(u => u.uid === 8112), "админ находит игрока по нику");
+  q = await cd(8, "st_give", { uid: 8112, amt: 250, note: "приз за конкурс" }); ok(q.ok && q.res.bal === 250, "админ начислил 250 ⭐ на игровой баланс");
+  q = await cd(8112, "sync"); ok(q.S.starBal === 250 && q.S.dmUn === 1, "звёзды на балансе и сообщение от администрации");
+  q = await cd(8, "dm_send", { uid: 8112, text: "Поздравляем!" }); ok(q.ok, "админ пишет игроку");
+  q = await cd(8, "st_give", { uid: 8112, amt: -1000 }); ok(!q.ok, "списать больше, чем есть, нельзя");
+  q = await cd(8, "st_log"); ok(q.ok && q.res.sum === 250 && q.res.log[0].uid === 8112, "история начислений"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

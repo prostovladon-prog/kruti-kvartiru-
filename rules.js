@@ -907,7 +907,10 @@ const ACTIONS={
     return out},
 
   /* ---------- дракон ---------- */
-  dg_hatch(G){const {st,ctx}=G;if(st.dg)fail("Яйцо уже раскололось");if(!ctx.admin&&(ctx.dgFr||0)<DG.fr)fail("Яйцо ещё не готово. Позови друзей: "+(ctx.dgFr||0)+" из "+DG.fr);
+  dg_story(G){const st=G.st,h=v=>{v=String(v||"").trim().replace(/^https?:\/\/(www\.)?(instagram\.com|t\.me)\//i,"").replace(/^@/,"").replace(/[/?#].*$/,"");return /^[A-Za-z0-9_.]{3,40}$/.test(v)?v:""};
+    if(st.dg)fail("Дракон уже с тобой");const tg=h(G.p.tg),ig=h(G.p.ig);if(!tg&&!ig)fail("Укажи свой ник в Telegram или Instagram, где выложил историю");
+    st.dgStory={t:G.ctx.now,tg,ig};return {tg,ig}},
+  dg_hatch(G){const {st,ctx}=G;if(st.dg)fail("Яйцо уже раскололось");if(!ctx.admin&&!st.dgStory&&(ctx.dgFr||0)<DG.fr)fail("Яйцо ещё не готово. Позови друзей: "+(ctx.dgFr||0)+" из "+DG.fr);
     const b=dgBreedRoll(DG_BR_P),D={b,name:"",lv:1,xp:0,sat:80,satAt:ctx.now,inv:[],eq:{},sh:60,nid:0,t:ctx.now,ap:1};const it=dgNewItem(D,0,DG_BREED[b].k==="fire"?"fire":DG_BREED[b].k==="ice"?"ice":null,"head");D.inv.push(it);D.eq.head=it.id;
     dgDay(D,ctx.now);st.dg=D;return {b}},
   dg_name(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const n=String(G.p.name||"").replace(/[^0-9A-Za-zА-Яа-яЁё _\-]/g,"").replace(/\s+/g," ").trim().slice(0,DG.nameMax);if(n.length<2)fail("Имя — от 2 до "+DG.nameMax+" букв");D.name=n;return {name:n}},

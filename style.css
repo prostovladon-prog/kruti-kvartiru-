@@ -2172,3 +2172,11 @@ body.drw-on{overflow:hidden}
 .db-r.got{opacity:.65}
 .db-bar{display:block;height:6px;border-radius:4px;background:#1a124018;margin-top:4px;overflow:hidden}.db-bar u{display:block;height:100%;background:linear-gradient(90deg,#2fd46a,#ffd23f)}
 .rett{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}.rett th,.rett td{padding:4px;border-bottom:1px solid #8884;text-align:center}.rett tr.tot td{font-weight:900}
+.dge-or{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-weight:900;opacity:.8}.dge-or::before,.dge-or::after{content:"";flex:1;height:2px;background:currentColor;opacity:.3}
+.dge-sty{padding:14px;border-radius:18px;background:rgba(255,255,255,.1);border:2px dashed rgba(255,214,10,.7);display:grid;gap:8px;text-align:left}
+.dge-sty>b{font-size:16px}.dge-sty>small{opacity:.8;font-size:12px}
+.dge-sb{display:flex;gap:8px;flex-wrap:wrap}.dge-sb>*{flex:1;min-width:140px}
+.dge-sl2{display:flex;gap:6px;align-items:center}.dge-sl2 code{flex:1;min-width:0;font-size:11px;padding:8px;border-radius:10px;background:rgba(0,0,0,.25);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dge-sty input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:12px;border:2px solid rgba(255,255,255,.3);background:rgba(0,0,0,.2);color:inherit;font:inherit}
+.dgs-ok{width:100%}
+.dge-sty{grid-template-columns:minmax(0,1fr);box-sizing:border-box;max-width:100%;min-width:0}.dge-sty>*{min-width:0}.dge-sl2 .mini2{flex:none}

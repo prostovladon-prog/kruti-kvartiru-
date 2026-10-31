@@ -130,21 +130,26 @@ function dgEggSVG(fr){const cr=["M100 18 L94 44 L108 60 L96 84 L104 98","M34 128
    ${cr.map((d,i)=>i<fr?`<path d="${d}" fill="none" stroke="#ffb84d" stroke-width="7" opacity=".55"/><path d="${d}" fill="none" stroke="#fff6c8" stroke-width="3"/>`:"").join("")}
    <ellipse cx="70" cy="70" rx="16" ry="26" fill="#fff" opacity=".18" transform="rotate(-20 70 70)"/></svg>`}
 function dgFr(){return Math.min(DG.fr,(S&&S.dgFr)||0)}
-function dgEggHTML(){const fr=dgFr(),ready=fr>=DG.fr||(S&&S.admin);
+function dgEggHTML(){const fr=dgFr(),ready=fr>=DG.fr||(S&&S.admin)||!!(S&&S.dgStory);
   return `<div class="dge${ready?" ready":""}"><div class="dge-st"><div class="dge-glow"></div><div class="dge-egg">${dgEggSVG(ready?3:fr)}</div><i class="dge-q q1">?</i><i class="dge-q q2">?</i><i class="dge-q q3">?</i></div>
    <h2>Тайное яйцо</h2><p class="dge-lore">${ready?"Оно треснуло и дрожит… Внутри кто-то ждёт тебя. Разбей скорлупу!":"Его нашли в руинах древнего храма. Внутри что-то дышит и греется… Говорят, тот, кто разбудит яйцо, получит силу, которая <b>перевернёт всю игру</b>."}</p>
-   <div class="dge-prog"><div class="dge-ph"><b>Тепло друзей</b><span>${fr} из ${DG.fr}</span></div><div class="dge-sl">${[0,1,2].map(i=>`<div class="${i<fr?"on":""}"><i>${i<fr?"🔥":"❔"}</i><small>${i<fr?"друг согрел":"ждёт друга"}</small></div>`).join("")}</div>
-    <small>Яйцо просыпается только от тепла друзей. Пригласи ${DG.fr} новых друзей по своей ссылке — друг считается, если пришёл после появления яйца (с 28 октября) и сделал ${DG.frSpins} прокруток.</small></div>
+   ${DG.fr?`<div class="dge-prog"><div class="dge-ph"><b>Тепло друзей</b><span>${fr} из ${DG.fr}</span></div><div class="dge-sl">${[0,1,2].map(i=>`<div class="${i<fr?"on":""}"><i>${i<fr?"🔥":"❔"}</i><small>${i<fr?"друг согрел":"ждёт друга"}</small></div>`).join("")}</div>
+    <small>Яйцо просыпается только от тепла друзей. Пригласи ${DG.fr} новых друзей по своей ссылке — друг считается, если пришёл после появления яйца (с 28 октября) и сделал ${DG.frSpins} прокруток.</small></div>`:""}
    <button type="button" class="craftbtn dge-go" id="dge-go">${ready?"🔨 Разбить скорлупу!":"👥 Позвать друзей"}</button>
+   ${ready?"":`<div class="dge-or"><span>или</span></div><div class="dge-sty"><b>📸 Выложи историю — и яйцо треснет сразу!</b><small>История с игрой в Telegram или Instagram со ссылкой на бота. Не удаляй её 24 часа.</small>
+    <div class="dge-sb">${tg&&tg.shareToStory?'<button type="button" class="craftbtn" id="dgs-tg">📲 Выложить в Telegram</button>':''}<button type="button" class="mini2" id="dgs-dl">⬇️ Фото для Instagram</button></div>
+    <div class="dge-sl2"><code id="dgs-link"></code><button type="button" class="mini2" id="dgs-cp">Копировать ссылку</button></div>
+    <input id="dgs-tgn" placeholder="Твой ник в Telegram (если там)" maxlength="40"><input id="dgs-ign" placeholder="Твой ник в Instagram (если там)" maxlength="60">
+    <button type="button" class="craftbtn dgs-ok" id="dgs-ok">✅ Я выложил историю</button></div>`}
    <div class="dge-tz"><div><i>⚔️</i><b>???</b><small>изменит твои бои</small></div><div><i>🎴</i><b>???</b><small>каждый день</small></div><div><i>👑</i><b>???</b><small>чем будут хвастаться</small></div><div><i>🌱</i><b>???</b><small>растёт вместе с тобой</small></div></div></div>`}
 /* ---------- главный экран дракона ---------- */
 function dgInfo(D){const now=NOW(),s=dgStage(D.lv),sat=dgSat(D,now),pw=dgPower(D),bon=dgBonus(S,now),g=DG_STAGE[s].gift;dgDay(D,now);
   return {s,sat,pw,bon,g,giftOk:g>0&&!D.gift&&sat>=DG.hungry,nestOk:!D.nest&&D.fd>=1&&(D.tp||0)>=DG.nestTaps,hungry:sat<DG.hungry,cur:dgCum(D.lv),next:dgCum(D.lv+1)}}
-function dgTile(){if(!S)return null;const D=dgOf();if(!D){const fr=dgFr(),r=fr>=DG.fr;return {ic:"🥚",n:"Тайное яйцо",s:r?"оно треснуло! загляни":"разбуди его: "+fr+"/"+DG.fr+" друзей",dot:r?1:0,c:["#2a1a5a","#7a5ad8"],cls:"egg"}}
+function dgTile(){if(!S)return null;const D=dgOf();if(!D){const fr=dgFr(),r=fr>=DG.fr||!!S.dgStory;return {ic:"🥚",n:"Тайное яйцо",s:r?"оно треснуло! загляни":"разбуди его: "+fr+"/"+DG.fr+" друзей",dot:r?1:0,c:["#2a1a5a","#7a5ad8"],cls:"egg"}}
   const I=dgInfo(D);return {ic:"🐉",n:D.name||dgBr(D).n+" дракон",s:I.hungry?"🍖 голоден — покорми!":I.giftOk?"🎁 принёс "+I.g+" 🎴":I.nestOk?"🪺 в гнезде чешуя":"ур. "+D.lv+" · мощь "+dgFmt(I.pw),dot:I.hungry||I.giftOk||I.nestOk?1:0,c:[dgBr(D).c[2],dgBr(D).c[0]]}}
 function dgNav(){const D=dgOf(),i=$("tab-dragon-i"),t=$("tab-dragon-t"),d=$("dg-dot");if(!i)return;i.textContent=D?"🐉":"🥚";t.textContent=D?"Дракон":"Тайна";const T=dgTile();if(d)d.hidden=!(T&&T.dot)}
 function renderDragon(){const R=$("dg-root");if(!R||!S)return;dgNav();if($("sec-dragon").hidden)return;const D=dgOf();
-  if(!D){const k="egg"+dgFr()+(S.admin?1:0);if(dgKey!==k){dgKey=k;R.innerHTML=dgEggHTML();$("dge-go").onclick=dgEggGo}return}
+  if(!D){const k="egg"+dgFr()+(S.admin?1:0)+(S.dgStory?1:0);if(dgKey!==k){dgKey=k;R.innerHTML=dgEggHTML();$("dge-go").onclick=dgEggGo;dgStoryBind()}return}
   const I=dgInfo(D),B=dgBr(D),kk="dg"+D.b+"_"+I.s+"_"+JSON.stringify(D.eq||{})+"_"+dgEq(D).map(x=>x.lv).join(",");
   if(dgKey!==kk||!$("dg-stage")){dgKey=kk;R.innerHTML=`<div class="dgm" style="--c0:${B.c[0]};--c1:${B.c[1]};--c2:${B.c[2]}">
     <div class="dgh"><div class="dgh-l"><button type="button" class="dgn" id="dg-name"></button><span class="dgst" id="dg-st"></span></div><div class="dgh-p"><small>мощь</small><b id="dg-pow"></b></div></div>
@@ -244,7 +249,13 @@ function dgNameSheet(v,title){const m=$("modal"),sh=$("msheet");m.hidden=false;s
 function dgBrag(){const D=dgOf();if(!D)return;const B=dgBr(D);if(!ONLINE){toast("Поделиться можно в игре через бота");return}
   sendLink("🐉 Мой дракон «"+(D.name||B.n)+"» — "+DG_STAGE[dgStage(D.lv)].n.toLowerCase()+" "+D.lv+" уровня, порода "+B.n.toLowerCase()+" ("+DG_BR_R[B.r].toLowerCase()+"), мощь "+dgFmt(dgPower(D))+"! А у тебя есть дракон? Залетай в «Воины Эпох»",linkFor("r_"+S.uid))}
 /* ---------- яйцо: позвать друзей или разбить ---------- */
-async function dgEggGo(){const fr=dgFr();if(fr<DG.fr&&!S.admin){if(!ONLINE){toast("Приглашения работают в игре через бота");return}sendLink("Помоги разбудить моё тайное яйцо в «Воинах Эпох»! 🥚 Заходи по ссылке и крути карточки воинов",linkFor("r_"+S.uid));return}
+function dgStoryBind(){if(!$("dgs-ok"))return;const link=ONLINE?"https://t.me/VoinyEpohBot?startapp=r_"+S.uid:"https://t.me/VoinyEpohBot",url=location.origin+location.pathname.replace(/[^/]*$/,"")+"assets/story-contest.jpg?v=2";
+  $("dgs-link").textContent=link;
+  $("dgs-cp").onclick=()=>{try{navigator.clipboard.writeText(link);toast("Ссылка скопирована — вставь её в стикер «Ссылка»")}catch(e){toast(link)}};
+  if($("dgs-tg"))$("dgs-tg").onclick=()=>{const p={text:"Разбудил дракона в «Воинах Эпох» 🐉 Залетай: @VoinyEpohBot"};try{tg.shareToStory(url,Object.assign({},p,{widget_link:{url:link,name:"Играть"}}))}catch(e){try{tg.shareToStory(url,p)}catch(x){toast("Не получилось — скачай фото и выложи вручную")}}};
+  $("dgs-dl").onclick=()=>{try{if(tg&&tg.downloadFile){tg.downloadFile({url,file_name:"voiny-epoh-story.jpg"});return}}catch(e){}try{tg&&tg.openLink?tg.openLink(url):open(url)}catch(e){open(url)}};
+  $("dgs-ok").onclick=async()=>{const r=await act("dg_story",{tg:$("dgs-tgn").value,ig:$("dgs-ign").value});if(r){try{if(typeof chData!=="undefined"&&chData&&chData.story&&chData.phase==="on"&&!chData.me)act("story_join",{tg:r.tg,ig:r.ig}).then(()=>{try{loadChal()}catch(e){}})}catch(e){}sfx.reveal&&sfx.reveal(2);hapN("success");toast("🔥 Яйцо треснуло! Разбей скорлупу");dgKey="";renderAll();try{renderDragon()}catch(e){}setTimeout(()=>{const g=$("dge-go");if(g)g.scrollIntoView({block:"center",behavior:"smooth"})},300)}}}
+async function dgEggGo(){const fr=dgFr();if(fr<DG.fr&&!S.admin&&!S.dgStory){if(!ONLINE){toast("Приглашения работают в игре через бота");return}sendLink("Помоги разбудить моё тайное яйцо в «Воинах Эпох»! 🥚 Заходи по ссылке и крути карточки воинов",linkFor("r_"+S.uid));return}
   const egg=document.querySelector(".dge");if(!egg||egg.classList.contains("hatch"))return;egg.classList.add("hatch");try{for(let i=0;i<6;i++)setTimeout(()=>sfx.rumble(i),i*260)}catch(e){}hap("heavy");
   const r=await act("dg_hatch");if(!r){egg.classList.remove("hatch");return}
   setTimeout(()=>{const fl=document.createElement("div");fl.className="dgflash";document.body.appendChild(fl);setTimeout(()=>fl.remove(),1100);try{sfx.fanfare()}catch(e){}hapN("success")},1500);
@@ -303,3 +314,10 @@ function dgCash(){const w=$("cash-sw");if(!w||!S)return;const D=dgOf();w.hidden=
 {const _uc=updCash;updCash=function(){_uc.apply(this,arguments);try{dgCash()}catch(e){}}}
 $("cash-sw").onclick=e=>{e.stopPropagation();dgSub="chest";dgKey="";setTab("dragon")};
 try{dgCash()}catch(e){}
+
+/* объявление в игре: дракон теперь за историю — один раз тем, у кого нет дракона */
+function dgAnn(){try{if(!S||!ONLINE||S.dg||S.dgStory||NOW()>Date.UTC(2026,10,7,21)||!$("modal").hidden||document.querySelector(".onb,#onb,.terms,.wsheet"))return;if(typeof isPathNewbie==="function"&&isPathNewbie())return;
+  if(localStorage.getItem("we-dgann1"))return;localStorage.setItem("we-dgann1","1")}catch(e){return}
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox newsb"><h3>🐉 Дракон — за историю!</h3><img src="assets/post-dgstory.jpg?v=1" alt="" style="width:100%;border-radius:14px;border:3px solid var(--ink);margin:4px 0 8px"><p>Тайное яйцо теперь можно разбудить <b>без друзей</b>: выложи историю с игрой в Telegram или Instagram, нажми «Я выложил» — и яйцо треснет сразу. Внутри твой собственный дракон!</p><p style="font-size:13px;opacity:.8">Эта же история участвует в розыгрыше NFT-подарка 🎁</p><button type="button" class="craftbtn" id="dga-go">🥚 Разбудить дракона</button><button type="button" class="ghost" id="dga-x">Позже</button></div>';
+  $("dga-go").onclick=()=>{closeModal();setTab("dragon")};$("dga-x").onclick=closeModal}
+setTimeout(()=>{const t=setInterval(()=>{if(!S)return;dgAnn();let f=null;try{f=localStorage.getItem("we-dgann1")}catch(e){f=1}if(f||S.dg)clearInterval(t)},4000)},6000);

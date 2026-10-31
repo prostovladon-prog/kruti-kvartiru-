@@ -1610,16 +1610,23 @@ async function cbTick(env){if(cbBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY
 /* ---------- разовая рассылка о большом обновлении 24.10: пост в канал + всем в бота (окно 20:30–22:50 по Минску, если не успели — завтра 9:30–12:00) ---------- */
 const TERMS_V=1;
 const UPD={id:"upd2810",cut:Date.UTC(2026,9,28,18,30),noChan:1,win:[[Date.UTC(2026,9,28,17,50),Date.UTC(2026,9,28,19,50)],[Date.UTC(2026,9,29,7,0),Date.UTC(2026,9,29,10,0)]],photo:"assets/post-upd2810.jpg?v=1",btn:"🥚 Что внутри яйца?",link:"?dragon=1",chan:"",
- dm:"🔥 ОЧЕНЬ КРУПНОЕ ОБНОВЛЕНИЕ «ВОИНОВ ЭПОХ»!\n\n🥚 Тайное яйцо. В игре появилось загадочное яйцо — что внутри, не знает никто… Говорят, оно перевернёт всю игру. Разбудить его помогут друзья\n\n⚔️ 30 новых воинов: Ахиллес, Одиссей, Леонид, Спартак, Клеопатра, Ганнибал, Александр Македонский, Юлий Цезарь, Гильгамеш и другие — у каждого своя «Ошибка печати»\n\n🔱 Новые легенды 1 из 1: Посейдон и Аид\n\n♊ Близнецы — карточки, которых всего 2 на весь мир. Собери пару!\n\n🗺 Две новые главы завоевания: «Стены Трои» и «Великие империи»\n\n📦 Больше места для карточек и новое удобное меню\n\nЗаходи первым 👇"};
+ dm:"🐉 ДРАКОН ТЕПЕРЬ ОТКРЫВАЕТСЯ ЗА ИСТОРИЮ!\n\nРаньше тайное яйцо будили только друзья. Теперь есть второй путь — быстрее:\n\n📲 Выложи историю с игрой в Telegram или Instagram со ссылкой на бота\n✅ Нажми «Я выложил» — и яйцо треснет сразу\n\nВнутри — твой личный дракон: растёт вместе с тобой, усиливает воинов в боях, носит снаряжение и каждый день приносит подарки 🎁\n\n🔥 Бонус: эта же история участвует в розыгрыше NFT-подарка «Дракончик» с ошибкой печати (ещё нужно пригласить 2 друзей). Итоги завтра в 22:00!\n\nФото и твоя ссылка уже готовы — во вкладке «Тайна» 👇"};
+/* ---------- разовое сообщение в игре (раздел «Сообщения», от администрации) — без рассылки в бота ---------- */
+const DMB={id:"dgst3110",from:Date.UTC(2026,9,31,9,0),to:Date.UTC(2026,10,7,21,0),where:"json_extract(state,'$.dg') IS NULL",
+  text:"🐉 ДРАКОН ТЕПЕРЬ ОТКРЫВАЕТСЯ ЗА ИСТОРИЮ!\n\nРаньше тайное яйцо будили только друзья. Теперь есть второй путь — быстрее:\n\n📲 Выложи историю с игрой в Telegram или Instagram со ссылкой на бота\n✅ Нажми «Я выложил» во вкладке «Тайна»\n🔨 Яйцо треснет сразу — и внутри твой дракон!\n\nДракон растёт 60 уровней, помогает в боях и каждый день приносит подарки. Не удаляй историю 24 часа 😉\n\nP.S. Эта же история участвует в розыгрыше NFT-подарка «Дракончик» — итоги 1.11 в 22:00."};
+async function dmBlast(env){const now=Date.now();if(now<DMB.from||now>DMB.to)return;if(await cached("dmb"+DMB.id,60e3,()=>kvGet(env,"dmb:"+DMB.id)))return;
+  await kvSet(env,"dmb:"+DMB.id,{t:now});delete topCache["dmb"+DMB.id];const a=ADMINS[0];
+  const r=await env.DB.prepare("INSERT INTO dm(a,b,text,t,adm) SELECT ?,id,?,?,1 FROM users WHERE id<>? AND "+DMB.where).bind(a,DMB.text,now,a).run();
+  await kvSet(env,"dmb:"+DMB.id,{t:now,n:(r.meta&&r.meta.changes)||0})}
 let updBusy=false;
 async function updBlast(env){if(updBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();if(!UPD.win.some(([a,b])=>now>=a&&now<b))return;
   updBusy=true;try{const st=(await kvGet(env,"blast:"+UPD.id))||{ch:0,after:0,done:0,n:0};if(st.done&&st.ch)return;
     if(!st.ch&&UPD.noChan){st.ch=1;await kvSet(env,"blast:"+UPD.id,st)}
     if(!st.ch){st.ch=1;await kvSet(env,"blast:"+UPD.id,st);try{await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+UPD.photo,caption:UPD.chan,reply_markup:{inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]}})}catch(e){}}
     if(st.done)return;
-    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? AND created<? ORDER BY id LIMIT 25").bind(st.after,UPD.cut||9e15).all()).results;   // только тем, кто уже в игре
+    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? AND created<?"+(UPD.where||"")+" ORDER BY id LIMIT 25").bind(st.after,UPD.cut||9e15).all()).results;   // только тем, кто уже в игре
     for(const u of us){if(await notify(env,u.id,UPD.dm,UPD.btn||"🎁 Смотреть обновление",PAGE+(UPD.link||"?shop=1"),PAGE+UPD.photo))st.n++;st.after=u.id}
-    if(us.length<25){st.done=1;for(const a of ADMINS)await notify(env,a,"✅ Рассылка об обновлении: пост в канал и "+st.n+" игрокам в бота.","⚔️ Открыть")}
+    if(us.length<25){st.done=1;for(const a of ADMINS)await notify(env,a,"✅ Рассылка «"+UPD.id+"»: "+st.n+" игрокам в бота.","⚔️ Открыть")}
     await kvSet(env,"blast:"+UPD.id,st)}finally{updBusy=false}}
 async function lotBlast(env){if(blastBusy)return;const now=Date.now();if(now<BLAST.at||now>BLAST.at+3*3600e3)return;
   const C=await chalCfg(env);if(!C||!C.lot||C.id!==BLAST.chal||now>=C.end)return;
@@ -1654,7 +1661,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
