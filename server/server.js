@@ -1475,10 +1475,12 @@ async function chanSend(env,C,P,img){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&
   const kb={inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]};
   try{const r=P.photo?await tgApi(env,"sendPhoto",{chat_id:C.chan,photo:PAGE+(img||C.img||(C.lot?"assets/post-lottery.jpg?v=1":"assets/post-challenge.jpg?v=2")),caption:P.text,reply_markup:kb}):await tgApi(env,"sendMessage",{chat_id:C.chan,text:P.text,reply_markup:kb});return !!r.ok}catch(e){return false}}
 async function chanCheck(env,C){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
-  const k=(await kvGet(env,"chan_chk:"+C.id))||{ok:0,at:0,warned:0};if(k.ok||now-k.at<10*60e3)return;k.at=now;
-  let ok=false;try{const r=await tgApi(env,"getChatMember",{chat_id:C.chan,user_id:+String(env.BOT_TOKEN).split(":")[0]});ok=!!(r.ok&&(r.result.status==="creator"||r.result.status==="administrator"&&r.result.can_post_messages))}catch(e){}
-  if(ok){k.ok=1;for(const a of ADMINS)await notify(env,a,"✅ Бот может публиковать в канал "+C.chan+". Посты выйдут сами: "+(C.chanSlots||C.slots.filter((s,i)=>i===0||i>=C.slots.length-2)).map(h=>Math.floor(h)+":"+String(Math.round(h%1*60)).padStart(2,"0")).join(", ")+" и итоги в "+hmM(C.end)+".","⚔️ Открыть")}
-  else if(!k.warned){k.warned=1;for(const a of ADMINS)await notify(env,a,"⚠️ Бот не может публиковать в канал "+C.chan+".\n\nДобавь @VoinyEpohBot администратором канала с правом «Публикация сообщений» — я проверю снова через 10 минут.","⚔️ Открыть")}
+  const k=(await kvGet(env,"chan_chk:"+C.id))||{ok:0,at:0,warned:0,fail:0};if(k.ok||now-k.at<10*60e3)return;k.at=now;
+  let ok=false,why="";try{const r=await tgApi(env,"getChatMember",{chat_id:C.chan,user_id:+String(env.BOT_TOKEN).split(":")[0]});
+    if(!r||!r.ok)why="Telegram ответил: "+((r&&r.description)||"нет ответа");else{const R=r.result||{};ok=R.status==="creator"||R.status==="administrator"&&R.can_post_messages!==false;if(!ok)why=R.status==="administrator"?"у бота нет права «Публикация сообщений»":"бот не администратор канала (статус: "+R.status+")"}}catch(e){why="ошибка связи с Telegram"}
+  if(ok){k.ok=1;if(k.warned)for(const a of ADMINS)await notify(env,a,"✅ Всё в порядке: бот снова может публиковать в канал "+C.chan+". Посты выйдут по расписанию.","⚔️ Открыть")}
+  else{k.fail=(k.fail||0)+1;console.error("chancheck",why);   // разовый сбой связи — не повод пугать: предупреждаем только после двух неудач подряд
+    if(k.fail>=2&&!k.warned){k.warned=1;for(const a of ADMINS)await notify(env,a,"⚠️ Бот не может публиковать в канал "+C.chan+".\n\nПричина: "+why+".\n\nПроверю снова через 10 минут.","⚔️ Открыть")}}
   await kvSet(env,"chan_chk:"+C.id,k)}
 /* ---------- казино: журнал игр, лента крупных выигрышей для всех и статистика для админа ---------- */
 async function casLog(env,uid,g,bet,win,gift,m){try{await env.DB.prepare("INSERT INTO cas_log(uid,g,bet,win,gift,gno,m,at) VALUES(?,?,?,?,?,?,?,?)").bind(uid,g,bet|0,win|0,gift?gift.k:null,gift?gift.no:null,m||null,Date.now()).run()}catch(e){console.error("caslog",e)}}
