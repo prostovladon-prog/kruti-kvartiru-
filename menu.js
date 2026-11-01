@@ -498,6 +498,6 @@ function vidOpen(){const R=stData;if(!R)return toast("Сначала обнов�
    '<div class="vneed">нужно <b>'+fmtN(need)+'</b> новых игроков в день</div>'+(src?'<div class="vsrc">📹 из вчерашнего видео пришло: <b>'+(src.fresh||0)+'</b></div>':'')+
    '<div class="vbot">@VoinyEpohBot</div><div class="vhint">метка для сегодняшнего видео: <b>s_d'+day+'</b> · тап — заново · ✕ — закрыть</div></div><button type="button" class="vx">✕</button>';
   document.body.appendChild(o);const run=()=>{const n=o.querySelector(".vnum"),to=+n.dataset.to,t0=performance.now();o.classList.remove("go");void o.offsetWidth;o.classList.add("go");
-    const st=t=>{const k=Math.min(1,(t-t0)/4500),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;n.textContent=fmtN(Math.round(to*e));if(k<1)requestAnimationFrame(st)};requestAnimationFrame(st)};run();
+    const st=t=>{const k=Math.min(1,(t-t0)/10000),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;n.textContent=fmtN(Math.round(to*e));if(k<1)requestAnimationFrame(st)};requestAnimationFrame(st)};run();
   o.onclick=e=>{if(e.target.closest(".vx")){o.remove();return}run()}}
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vid-go"))return;const x=document.createElement("button");x.type="button";x.id="vid-go";x.className="craftbtn";x.textContent="🎬 Экран для видео: день и игроки";x.onclick=vidOpen;b.prepend(x)}catch(e){}}}
