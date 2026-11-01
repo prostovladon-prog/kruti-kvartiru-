@@ -359,8 +359,7 @@ let nmLast="";
 function nmDraw(){let el=$("nmbox");if(!S||!ONLINE||!$("open")){if(el)el.remove();return}
   if(!el){el=document.createElement("div");el.id="nmbox";el.className="nmbox";const row=$("open").parentElement;row.after(el);
     el.onclick=e=>{const b=e.target.closest("[data-nm]");if(!b)return;hap("light");if(b.dataset.nm==="era")setTab("album");else if(b.dataset.nm==="pity")toast("Если "+PITY+" карточек подряд не будет эпической, следующая точно будет эпической или лучше")}}
-  const left=nmPity(),pp=left<=1?100:Math.round((S.pity||0)/PITY*100),R=nmEra();
-  let h=`<button type="button" class="nmrow${left<=3?" hot":""}" data-nm="pity"><i>💎</i><span><b>${left<=1?"Следующая карточка — эпик или лучше!":"Эпик гарантирован через "+left+" "+plural(left,"прокрутку","прокрутки","прокруток")}</b><u><s style="width:${pp}%"></s></u></span></button>`;
+  const R=nmEra();if(!R){el.innerHTML="";nmLast="";return}let h="";
   if(R){const t=R.E.h.length,done=!R.miss.length,names=R.miss.slice(0,2).map(i=>HEROES[i][0]).join(", ");
     h+=`<button type="button" class="nmrow${done||R.miss.length<=2?" hot":""}" data-nm="era"><i>${R.E.ic}</i><span><b>${done?"Эпоха «"+R.E.n+"» собрана — забери награду!":R.E.n+": "+R.n+" из "+t+" · не хватает "+(R.miss.length<=2?names:R.miss.length+" воинов")}</b><u><s style="width:${R.n/t*100}%"></s></u><small>награда: ${R.E.sp} 🎴 + ${fmtN(R.E.cash)} 🪙</small></span></button>`}
   if(h!==nmLast){const chg=nmLast!=="";nmLast=h;el.innerHTML=h;if(chg){el.classList.remove("nmpulse");void el.offsetWidth;el.classList.add("nmpulse")}}}
@@ -370,6 +369,5 @@ function nmDraw(){let el=$("nmbox");if(!S||!ONLINE||!$("open")){if(el)el.remove(
   try{if(pre&&r&&r.card){const c=r.card;if(HEROES[c.h][2]>=3||c.f>=3)return r;const now=nmEra(),left=nmPity();let msg="";
     if(now&&!now.miss.length&&!(pre.era&&pre.era.E.k===now.E.k&&!pre.era.miss.length))msg="🗺 Эпоха «"+now.E.n+"» собрана! Забери "+now.E.sp+" прокруток в альбоме";
     else if(now&&now.miss.length<=2&&ERA_OF[c.h]===now.E.k&&(!pre.era||pre.era.E.k!==now.E.k||now.miss.length<pre.era.miss.length))msg="🔥 Почти! До эпохи «"+now.E.n+"» не хватает: "+now.miss.map(i=>HEROES[i][0]).join(", ");
-    else if(left<=3&&left<pre.left)msg=left<=1?"💎 Следующая карточка точно будет эпической!":"💎 Ещё "+left+" "+plural(left,"прокрутка","прокрутки","прокруток")+" — и эпик гарантирован";
     if(msg)setTimeout(()=>toast(msg),2300)}}catch(e){}
   return r}}
