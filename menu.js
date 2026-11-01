@@ -5,7 +5,8 @@ const MENU_GROUPS=[
   {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
   {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
   {k:"prof",ic:"👤",n:"Профиль",c:["#7cc8ff","#2a4fd0"]},
-  {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]}]],
+  {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]},
+  {k:"don",ic:"⭐",n:"Донат и понт",c:["#ffe9a8","#d06a00"]}]],
  ["Каждый день",[
   {k:"quest",ic:"🎯",n:"Задания",c:["#7ee89a","#1e8a4a"]},
   {k:"wheel",ic:"🎡",n:"Колесо",c:["#ffb84d","#d0302a"]},
@@ -24,6 +25,7 @@ const MENU_GROUPS=[
   {k:"odds",ic:"🎲",n:"Шансы",c:["#e0c8ff","#6a3ab0"]}]]];
 function menuGo(k){menuClose();hap&&hap("light");
   if(k==="gold")return openGold();
+  if(k==="don")return openGold("flex");
   if(k==="cas"){if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas");return}
   if(k==="prof"||k==="pass"||k==="conq"||k==="clan"||k==="camp")return goSub(k);
   if(k==="chat")return openChat();
@@ -373,3 +375,46 @@ function nmDraw(){let el=$("nmbox");if(!S||!ONLINE||!$("open")){if(el)el.remove(
     else if(left<=5&&left<pre.left)msg=left<=1?"👑 Следующая карточка точно будет легендарной!":"👑 Ещё "+left+" "+plural(left,"прокрутка","прокрутки","прокруток")+" — и легенда гарантирована";
     if(msg)setTimeout(()=>toast(msg),2300)}}catch(e){}
   return r}}
+/* ---------- ⭐ донаты для понта: Соавтор, звёздные титулы, Звезда дня, поддержка проекта ---------- */
+const ttlTag=k=>'<span class="ttlb'+(TITLES[k].stars||TITLES[k].sup?" ttls":"")+(k==="author"?" ttla":"")+'">'+TITLES[k].ic+" "+TITLES[k].n+'</span>';
+function flexTop(D){const own=S.titles||[],al=D.authLeft==null?TITLES.author.month:D.authLeft,nx=D.sdayNext?D.sdayNext.split("-").reverse().slice(0,2).join("."):null,me=escH(S.nick||S.name||"Ты");
+  const btn=(k,st)=>own.includes(k)?'<button type="button" class="buy sm alt" disabled>✓ Уже твой</button>':'<button type="button" class="buy sm" data-ttlbuy="'+k+'">⭐ '+fmtN(st)+'</button>';
+  return '<div class="dnhero"><b>⭐ Донат и понт</b><span>Всё здесь — только для красоты и славы. На силу и шансы не влияет</span></div>'+
+  '<div class="dnauth"><div class="dnglow"></div><div class="dnah">'+ttlTag("author")+'<em>'+(al>0?"мест в этом месяце: "+al+" из "+TITLES.author.month:"места на месяц закончились")+'</em></div>'+
+   '<h4>Стань Соавтором игры</h4><ul><li>✍️ Титул <b>«Соавтор»</b> рядом с ником навсегда — особый, переливающийся</li><li>💡 <b>Твою идею добавим в игру</b>: новый воин, событие, предмет, режим — в пределах разумного</li><li>↩️ Не получится сделать — вернём звёзды</li></ul>'+
+   '<div class="dnprev">Так увидят все: '+ttlTag("author")+' <b>'+me+'</b></div>'+
+   (own.includes("author")?'<button type="button" class="craftbtn" disabled>✓ Ты уже Соавтор</button>':'<button type="button" class="craftbtn dnbig" data-ttlbuy="author"'+(al>0?"":" disabled")+'>Стать Соавтором · ⭐ '+fmtN(TITLES.author.stars)+'</button>')+'</div>'+
+  '<div class="ghd">🎖 Титулы навсегда</div><p class="gnote">Видны рядом с ником в топах, чате, на арене и в витрине.</p><div class="dnttl">'+
+   ["immortal","emperor"].map(k=>'<div class="dntc">'+ttlTag(k)+'<small>'+me+'</small>'+btn(k,TITLES[k].stars)+'</div>').join("")+'</div>'+
+  '<div class="ghd">🌟 Звезда дня</div><div class="dnday"><div><b>Твой ник и лучшая карточка весь день на главной у всех игроков</b><small>'+(nx?"Ближайший свободный день: "+nx:"Все дни заняты")+' · один игрок в день</small></div><button type="button" class="buy sm" data-buy="sday"'+(nx?"":" disabled")+'>⭐ '+SDAY.stars+'</button></div>'+
+  '<div class="ghd">❤️ Поддержать проект</div><div class="dnsup"><p>Игру делает один человек. Если она тебе нравится — поддержи сколько хочешь. От '+SUP.title+' ⭐ за всё время — титул '+ttlTag("patron")+'</p>'+
+   '<div class="dnsr">'+[25,50,100,250,500].map(n=>'<button type="button" class="dnp" data-supn="'+n+'">'+n+' ⭐</button>').join("")+'</div>'+
+   '<div class="dnsr"><input id="dn-n" type="number" inputmode="numeric" min="'+SUP.min+'" max="'+SUP.max+'" placeholder="Своя сумма"><button type="button" class="craftbtn" data-sup="1">❤️ Поддержать</button></div></div>'}
+$("gold-body").addEventListener("click",e=>{const t=e.target.closest("button");if(!t||t.disabled)return;
+  if(t.dataset.ttlbuy){hap("light");return buyItem({item:"title",k:t.dataset.ttlbuy})}
+  if(t.dataset.supn){hap("light");const i=$("dn-n");if(i)i.value=t.dataset.supn;document.querySelectorAll(".dnp").forEach(x=>x.classList.toggle("on",x===t));return}
+  if(t.dataset.sup){const n=Math.floor(+($("dn-n")||{}).value||0);if(!(n>=SUP.min&&n<=SUP.max)){toast("Выбери сумму от "+SUP.min+" до "+SUP.max+" ⭐");return}hap("light");return buyItem({item:"support",n})}});
+function flexDone(k){const T=TITLES[k],m=$("modal"),sh=$("msheet");m.hidden=false;sfx.fanfare();burst(4);hapN("success");
+  sh.innerHTML='<div class="box nickbox grant dndone"><h3>'+(k==="author"?"✍️ Ты — Соавтор игры!":T.ic+" Титул «"+T.n+"» твой!")+'</h3><div class="dnprev big">'+ttlTag(k)+' <b>'+escH(S.nick||S.name||"")+'</b></div>'+
+    (k==="author"?'<p>Теперь самое интересное: напиши свою идею в @voinovadmin. Новый воин, событие, режим — расскажи, что хочешь увидеть в игре.</p><button type="button" class="craftbtn" id="dn-idea">💡 Написать идею</button>':'<p>Его уже видят все рядом с твоим ником. Сменить титул можно в профиле → «Титулы».</p>')+
+    '<button type="button" class="ghost" id="dn-ok">Отлично</button></div>';
+  const i=$("dn-idea");if(i)i.onclick=()=>{try{tg.openTelegramLink("https://t.me/voinovadmin")}catch(e){open("https://t.me/voinovadmin")}};$("dn-ok").onclick=()=>{closeModal();renderAll()}}
+function flexDay(d){const t=d===today(NOW());sfx.fanfare();burst(3);hapN("success");toast("🌟 Ты — Звезда дня "+(t?"прямо сейчас! Тебя видят все на главной":d.split("-").reverse().join(".")+"! В этот день тебя увидят все"))}
+{const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&r.item==="support"){const R=r.res||{};renderAll();loadGold();sfx.fanfare();burst(3);hapN("success");
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox grant dndone"><h3>❤️ Спасибо!</h3><p>Твои '+R.n+' ⭐ пойдут на новых воинов, события и сервер. Это правда помогает игре расти.</p>'+(R.ttl?'<div class="dnprev big">'+ttlTag("patron")+' <b>'+escH(S.nick||S.name||"")+'</b></div><p>Тебе выдан титул «Меценат»!</p>':R.tot<SUP.title?'<p class="cln">До титула «Меценат» осталось '+(SUP.title-R.tot)+' ⭐</p>':'')+'<button type="button" class="craftbtn" id="dn-ok">Обнять разработчика 🤗</button></div>';$("dn-ok").onclick=closeModal;return}
+  return _ps(r)}}
+/* 🌟 Звезда дня на главной */
+function sdayDraw(){let el=$("sdaybar");const d=S&&S.sday;if(!d||!ONLINE||!$("sec-spin")){if(el)el.remove();return}
+  if(!el){el=document.createElement("button");el.type="button";el.id="sdaybar";el.className="sdaybar";$("sec-spin").prepend(el);el.onclick=()=>{hap("light");if(d.uid===S.uid)toast("🌟 Сегодня ты Звезда дня — тебя видят все!");else openGold("flex")}}
+  const c=d.card,key=d.uid+"|"+(c&&c.id);if(el.dataset.k===key)return;el.dataset.k=key;
+  el.innerHTML='<span class="sdi">🌟</span><span class="sdt"><small>ЗВЕЗДА ДНЯ</small><b></b>'+(c?'<em>'+escH(HEROES[c.h][0])+' · '+fmtC(c.v)+'</em>':"")+'</span><span class="sdq">Хочешь сюда?</span>';
+  fxName(el.querySelector("b"),"",d.name,d.uid)}
+{const _r=renderAll;renderAll=function(){_r.apply(this,arguments);try{sdayDraw()}catch(e){console.error(e)}}}
+/* чужой звёздный титул — тап по нему открывает, где такой взять */
+document.addEventListener("click",e=>{const b=e.target.closest(".ttlb[data-ttl]");if(!b)return;const T=TITLES[b.dataset.ttl];if(!T||!(T.stars||T.sup))return;e.stopPropagation();hap("light");
+  toast(T.ic+" «"+T.n+"» — "+(T.sup?"титул за поддержку проекта":"титул из «Донат и понт»")+". Открываю…");setTimeout(()=>openGold("flex"),700)},true);
+/* один раз рассказать, что донаты есть: тем, кто уже втянулся (30+ прокруток), не новичкам */
+setInterval(()=>{try{if(!S||!ONLINE||document.hidden||(S.nOp||0)<30||$("onb")||document.querySelector(".modal:not([hidden]),.hhpop"))return;let seen=0;try{seen=+localStorage.getItem("we-don1")||0}catch(e){}if(seen)return;
+  try{localStorage.setItem("we-don1",1)}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box nickbox dnann"><h3>⭐ Новое: Донат и понт</h3><div class="dnprev big">'+ttlTag("author")+' <b>'+escH(S.nick||S.name||"")+'</b></div><ul class="dnul"><li>✍️ <b>Стань Соавтором</b> — твою идею добавим в игру (3 места в месяц)</li><li>🎖 Титулы «Бессмертный» и «Император» рядом с ником</li><li>🌟 <b>Звезда дня</b> — тебя видят все на главной</li><li>❤️ Поддержать проект на любую сумму</li></ul><p class="cln">Только для красоты — на силу и шансы не влияет.</p><button type="button" class="craftbtn" id="dn-go">Посмотреть</button><button type="button" class="ghost" id="dn-x">Позже</button></div>';
+  $("dn-go").onclick=()=>{closeModal();openGold("flex")};$("dn-x").onclick=closeModal}catch(e){}},20000);

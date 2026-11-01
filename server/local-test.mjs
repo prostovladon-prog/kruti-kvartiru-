@@ -661,6 +661,19 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     const bad = await cp(U2, "invoice", { item: "small" });
     await worker.fetch(new Request("https://x/tg", { method: "POST", headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": sec }, body: JSON.stringify({ message: { from: { id: U2 }, chat: { id: U2, type: "private" }, successful_payment: { currency: "XTR", total_amount: 1, invoice_payload: "p" + bad.res.pid, telegram_payment_charge_id: "ch_2" } } }) }), env);
     ok(db.prepare("SELECT status FROM payments WHERE id=?").get(bad.res.pid).status === "refund", "сумма не совпала — возврат"); }
+  /* титулы за ⭐, Соавтор, Звезда дня, поддержка проекта */
+  { const V = 7051; await cp(V, "sync");
+    let q = await cp(V, "title_buy", { k: "immortal" }); ok(!q.ok, "звёздный титул за монеты не купить");
+    q = await cp(V, "title_buy", { k: "patron" }); ok(!q.ok, "«Меценат» не продаётся");
+    q = await buy(V, { item: "title", k: "immortal" }); ok(q.ok && q.res.status === "done" && q.S.title === "immortal", "титул «Бессмертный» за ⭐");
+    q = await cp(V, "invoice", { item: "title", k: "immortal" }); ok(!q.ok, "второй раз тот же титул не купить");
+    for (let k = 0; k < 3; k++) { const w = 7052 + k; await cp(w, "sync"); q = await buy(w, { item: "title", k: "author" }); ok(q.ok && q.res.status === "done", "Соавтор #" + (k + 1)); }
+    q = await cp(7060, "sync"); q = await cp(7060, "invoice", { item: "title", k: "author" }); ok(!q.ok && /закончились/.test(q.err), "Соавторов только 3 в месяц");
+    q = await buy(V, { item: "sday" }); ok(q.ok && q.res.status === "done" && q.res.res.d, "Звезда дня: день занят " + (q.res && q.res.res && q.res.res.d));
+    q = await cp(V, "invoice", { item: "support", n: 5 }); ok(!q.ok, "поддержка меньше минимума нельзя");
+    q = await buy(V, { item: "support", n: 50 }); ok(q.ok && q.res.status === "done" && !q.res.res.ttl, "поддержка 50 ⭐ — пока без титула");
+    q = await buy(V, { item: "support", n: 60 }); ok(q.ok && q.res.res.ttl && q.S.titles.includes("patron") && q.S.title === "immortal", "от 100 ⭐ — «Меценат», надетый титул не снят");
+    q = await cp(V, "shop"); ok(q.ok && q.res.authLeft === 0 && q.res.donors.some(d => d.uid === V), "в топе донатеров и места Соавтора на месяц кончились"); }
 }
 
 /* --- разовая рассылка 17:00: без поддельного времени не срабатывает и ничего не ломает --- */

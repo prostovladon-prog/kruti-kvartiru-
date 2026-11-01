@@ -1901,8 +1901,8 @@ $("auc-go").onclick=()=>{setTab("shop");shView="buy";renderShop();setTimeout(()=
 function openTitles(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const own=S.titles||[];
   sh.innerHTML='<div class="box nickbox"><h3>🎖 Титулы</h3><p>Покупаются за деньги игры один раз и навсегда. Титул виден рядом с ником в топах, чате и рейтинге.</p><div class="ttll"></div><button type="button" class="ghost" id="ttl-x">Закрыть</button></div>';
   const L=sh.querySelector(".ttll");for(const k in TITLES){const T=TITLES[k],has=own.includes(k);if(T.pass&&!has)continue;const d=document.createElement("div");d.className="ttli"+(S.title===k?" on":"");
-    d.innerHTML='<span class="ttlb">'+T.ic+" "+T.n+'</span><b class="num">'+(T.pass?"сезон":fmtC(T.price))+'</b>';const b=document.createElement("button");b.type="button";b.className=has?"ghost":"craftbtn";
-    b.textContent=has?(S.title===k?"Снять":"Надеть"):"Купить";b.onclick=async()=>{if(!has&&S.cash<T.price){toast("Не хватает "+fmt(T.price-S.cash));return}b.disabled=true;
+    d.innerHTML='<span class="ttlb'+(T.stars?" ttls":"")+(k==="author"?" ttla":"")+'">'+T.ic+" "+T.n+'</span><b class="num">'+(T.pass?"сезон":T.stars?"⭐ "+fmtN(T.stars):fmtC(T.price))+'</b>';const b=document.createElement("button");b.type="button";b.className=has?"ghost":"craftbtn";
+    b.textContent=has?(S.title===k?"Снять":"Надеть"):"Купить";b.onclick=async()=>{if(!has&&T.stars){closeModal();openGold("flex");return}if(!has&&S.cash<T.price){toast("Не хватает "+fmt(T.price-S.cash));return}b.disabled=true;
       const r=await act(has?"title_set":"title_buy",{k:has&&S.title===k?"":k});b.disabled=false;if(!r)return;sfx.coin();Object.keys(tpCache).forEach(x=>delete tpCache[x]);renderAll();openTitles();if(!has)toast("Теперь ты «"+T.n+"»!")};d.appendChild(b);L.appendChild(d)}
   $("ttl-x").onclick=closeModal}
 $("ttl-go").onclick=openTitles;
@@ -2056,7 +2056,7 @@ $("fchest-svg").innerHTML=chestSVG("royal",72);
 function openGold(tab){if(tab)goldTab=tab;setTab("gold");loadGold()}
 async function loadGold(){const r=await act("shop");if(r){goldData=r;renderGold()}}
 /* имя игрока с переливающимся эффектом и короной «Король Эпох» */
-function fxName(el,prefix,name,uid){el.textContent=prefix||"";const tk=S&&S.ttl&&uid!=null&&S.ttl[uid];if(tk&&TITLES[tk])el.insertAdjacentHTML("beforeend",'<span class="ttlb">'+TITLES[tk].ic+" "+TITLES[tk].n+'</span> ');const s=document.createElement("span");s.textContent=name;const fx=S&&S.nfx&&uid!=null&&S.nfx[uid];if(fx)s.className="nfx nfx-"+fx;el.appendChild(s);
+function fxName(el,prefix,name,uid){el.textContent=prefix||"";const tk=S&&S.ttl&&uid!=null&&S.ttl[uid];if(tk&&TITLES[tk])el.insertAdjacentHTML("beforeend",'<span class="ttlb'+(TITLES[tk].stars?" ttls":"")+(tk==="author"?" ttla":"")+'" data-ttl="'+tk+'">'+TITLES[tk].ic+" "+TITLES[tk].n+'</span> ');const s=document.createElement("span");s.textContent=name;const fx=S&&S.nfx&&uid!=null&&S.nfx[uid];if(fx)s.className="nfx nfx-"+fx;el.appendChild(s);
   if(S&&S.king&&uid!=null&&S.king==uid)el.insertAdjacentHTML("beforeend",' <span class="kingb">👑 Король Эпох</span>');return el}
 function compHave(h){const L=S.cards.filter(c=>c.h===h&&c.part===1),R=S.cards.filter(c=>c.h===h&&c.part===2),F=S.cards.filter(c=>c.h===h&&!c.part);
   const fr=x=>x.filter(c=>!away(c));const ok=fr(L).some(c=>c.f===0)&&fr(R).some(c=>c.f===0)||fr(L).some(c=>c.f===4)&&fr(R).some(c=>c.f===4);return {L,R,F,ok}}
@@ -2091,7 +2091,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
         <button type="button" class="craftbtn cmpgo" data-asm="${h}"${H.ok?"":" disabled"}>${H.ok?"🧩 Собрать":"Нужна пара половинок"}</button></div></div>`});
     v+='<button type="button" class="linkbtn" data-goto="chest">🧩 Сундуки с половинками →</button>'}
   if(goldTab==="flex"){
-    const top=D.donors||[];
+    const top=D.donors||[];v+=flexTop(D);
     v+='<div class="ghd">👑 Топ донатеров месяца</div><p class="gnote">Первое место получает корону «Король Эпох» рядом с ником — её видят все в топах, чате и лагере. Новый месяц — новая гонка.</p><div class="dtop" id="dtop"></div>'+(D.mine?'<p class="gnote">Ты в этом месяце: <b>⭐ '+fmtN(D.mine)+'</b></p>':"");
     v+='<div class="ghd">✨ Переливающийся ник</div><p class="gnote">Ник с эффектом в топах, чате, лагере и на арене. '+(D.fx&&NFX[D.fx]?"Сейчас у тебя: <b>"+NFX[D.fx]+"</b>"+(D.fxUntil<9e15?" до "+new Date(D.fxUntil).toLocaleDateString("ru"):" навсегда")+".":"")+'</p><div class="fxg">'+
       Object.keys(NFX).map(k=>'<div class="fxc"><div class="fxn"><span class="nfx nfx-'+k+'"></span></div><small>'+NFX[k]+'</small><button type="button" class="buy sm" data-fx="'+k+'">30 дней · ⭐ '+NFX_PRICE.m+'</button><button type="button" class="buy sm alt" data-fx="'+k+'" data-forever="1">навсегда · ⭐ '+NFX_PRICE.f+'</button></div>').join("")+'</div>';
@@ -2146,7 +2146,8 @@ function payShow(r){renderAll();loadGold();if(r.status==="refund"){toast("↩️
     $("cu-ok").onclick=()=>{closeModal();try{tg.openTelegramLink("https://t.me/voinovadmin")}catch(e){open("https://t.me/voinovadmin")}};return}
   if(I)return showGrant(R,I.any?"🎁 Карточка твоя!":"🎁 "+I.n+" открыт!");
   if(r.item==="num"){toast("✍️ Готово! Новый номер "+fmtSn(R.sn));const c=S.cards.find(x=>x.id===R.card);if(c)openCardView(c,{mine:true});return}
-  if(r.item==="fx"){toast("✨ Ник «"+NFX[R.fx]+"» включён!");goldTab="flex";renderGold()}}
+  if(r.item==="fx"){toast("✨ Ник «"+NFX[R.fx]+"» включён!");goldTab="flex";renderGold()}
+  if(r.item==="title")return flexDone(R.k);if(r.item==="sday")return flexDay(R.d)}
 function showGrant(R,title){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const cs=R.cards||[];
   sh.innerHTML='<div class="box nickbox grant"><h3></h3><div class="grl">'+(R.sp?'<span>🎴 +'+R.sp+' прокруток</span>':"")+(R.guar?'<span>💎 гарантированный эпик</span>':"")+'</div><div class="grg">'+cs.map((c,i)=>'<div class="gri" style="--d:'+(i*.12)+'s">'+miniSlot(c)+'<small>'+HEROES[c.h][0]+(c.part?" · "+PART_K[c.part]:"")+'</small></div>').join("")+'</div><button type="button" class="craftbtn" id="gr-ok">Забрать</button></div>';
   sh.querySelector("h3").textContent=title;sh.classList.toggle("wide",cs.length>3);$("gr-ok").onclick=()=>{closeModal();renderAll()};
