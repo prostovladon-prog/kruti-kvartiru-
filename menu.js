@@ -331,3 +331,21 @@ function capBarDraw(){const H=$("col-head");if(!H||!S)return;let b=$("capbar");i
   const n=S.cards.length,c=capOf(S),pc=Math.min(100,n/c*100),full=n>=c-3;const k=n+"/"+c;if(b.dataset.k===k)return;b.dataset.k=k;b.classList.toggle("full",full);
   b.innerHTML='<i>📦</i><span><b>Хранилище: '+n+' / '+c+'</b><em class="cb-bar"><u style="width:'+pc+'%"></u></em><small>'+(full?(n>=c?"Места нет! Новые карточки не влезут":"Почти заполнено — осталось "+(c-n))+"":"свободно "+(c-n)+" мест")+'</small></span><strong>＋ Место</strong>'}
 {const _ra9=renderAll;renderAll=function(){_ra9();try{capBarDraw()}catch(e){}}}
+/* ---------- 🍀 счастливые часы: плашка с таймером + окно в начале события ---------- */
+const HH_GO={drag:{b:"🐉 К дракону",f:()=>setTab("dragon")},coin:{b:"🎴 К коллекции",f:()=>setTab("col")},camp:{b:"🎯 В Лагерь",f:()=>openCamp()},gift:{b:"🎁 Забрать +3",f:null}};
+async function hhGo(k){hap("light");if(k==="gift"){const r=await act("hh_claim");if(r){sfx.fanfare();hapN("success");burst(2);toast("🍀 +3 прокрутки! Удачи на счастливом часе");renderAll()}return}closeModal();HH_GO[k].f()}
+function hhPop(e){const T=HH_T[e.k],o=document.createElement("div");o.className="hhpop";
+  o.innerHTML=`<div class="hhcard"><div class="hhrays"></div><div class="hhclv">🍀</div><div class="hhk">Счастливый час!</div><div class="hhic">${T.ic}</div><div class="hhn">${T.n}</div><div class="hhd">${T.d}</div><div class="hht">⏳ <b data-hht>30:00</b></div><button type="button" class="hhbtn" data-hg>${HH_GO[e.k].b}</button><button type="button" class="hhx" data-hx>Позже</button></div>`;
+  document.body.appendChild(o);try{sfx.fanfare()}catch(_){}hapN("success");
+  o.onclick=ev=>{if(ev.target.closest("[data-hg]")){o.remove();hhGo(e.k)}else if(ev.target.closest("[data-hx]")||ev.target===o)o.remove()}}
+function hhTick(){let b=$("hhbar");const now=NOW(),e=S&&ONLINE?hhNow(now):null;
+  if(!e||e.k==="gift"&&S.hhGot===e.at){if(b)b.remove();document.querySelectorAll(".hhpop [data-hht]").forEach(x=>{const p=x.closest(".hhpop");if(p&&!e)p.remove()});return}
+  const T=HH_T[e.k],ms=e.end-now,mm=String(Math.floor(ms/60e3)).padStart(2,"0"),ss=String(Math.floor(ms/1e3)%60).padStart(2,"0");
+  if(!b){b=document.createElement("button");b.type="button";b.id="hhbar";b.className="hhbar";b.onclick=()=>{const x=hhNow(NOW());if(x)hhGo(x.k)}}
+  const sec=["spin","dragon","camp","col"].map(k=>$("sec-"+k)).find(s=>s&&!s.hidden);if(sec&&b.parentElement!==sec)sec.prepend(b);
+  b.innerHTML=`<span class="hhb-i">🍀${T.ic}</span><span class="hhb-t"><b>${T.n}</b><small>${T.d}</small></span><span class="hhb-c">${mm}:${ss}</span>`;
+  document.querySelectorAll(".hhpop [data-hht]").forEach(x=>x.textContent=mm+":"+ss);
+  let seen="";try{seen=localStorage.getItem("we-hh")||""}catch(_){}
+  if(seen!==String(e.at)&&!$("onb")&&!document.querySelector(".modal:not([hidden]),.hhpop")){try{localStorage.setItem("we-hh",e.at)}catch(_){}hhPop(e)}}
+setInterval(()=>{try{if(!document.hidden)hhTick()}catch(err){}},1000);
+{const _r=renderAll;renderAll=function(){_r.apply(this,arguments);try{hhTick()}catch(e){}}}

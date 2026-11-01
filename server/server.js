@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=37;
+const SCHEMA_V=38;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -102,7 +102,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "ALTER TABLE users ADD COLUMN dgr INTEGER NOT NULL DEFAULT 1000","ALTER TABLE users ADD COLUMN dgr_wk TEXT","ALTER TABLE users ADD COLUMN dgr_w INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dgr_l INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS dg_fights (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, win INTEGER NOT NULL, ra INTEGER, rb INTEGER, t INTEGER, log TEXT)","CREATE INDEX IF NOT EXISTS dg_fights_b ON dg_fights(b,id)","CREATE INDEX IF NOT EXISTS dg_fights_a ON dg_fights(a,id)",
  "ALTER TABLE users ADD COLUMN dg_exp INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dg_exp_note INTEGER NOT NULL DEFAULT 0",
- "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)"];
+ "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)",
+ "ALTER TABLE users ADD COLUMN hh_note INTEGER NOT NULL DEFAULT 0"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1043,8 +1044,16 @@ async function reminders(env){await ensureSchema(env);if(await maintenance(env))
   try{const ex=(await env.DB.prepare("SELECT id,dg_exp,json_extract(state,'$.dg.name') AS dn,json_extract(state,'$.dg.exp.k') AS k FROM users WHERE pm=1 AND dg_exp>0 AND dg_exp<=? AND dg_exp_note<dg_exp LIMIT 60").bind(now).all()).results;
     for(const u of ex){await env.DB.prepare("UPDATE users SET dg_exp_note=? WHERE id=?").bind(u.dg_exp,u.id).run();const E=DG_EXP.find(x=>x.k===u.k)||DG_EXP[0];
       if(await notify(env,u.id,"🐉 "+(u.dn||"Твой дракон")+" вернулся из похода «"+E.n+"» "+E.ic+" с добычей!\n\nЧешуя, опыт, а может и гем 💎 — заходи забрать, пока он не уснул от усталости.","🎒 Забрать добычу",PAGE+"?dragon=1"))sent++}}catch(e){console.error("dgexp",e)}
+  try{sent+=await hhPush(env,now)}catch(e){console.error("hh",e)}
   try{sent+=await winBack(env,now,h)}catch(e){console.error("winback",e)}
   return {sent,due:due.length}}
+/* 🍀 счастливый час: пуш один раз за событие и не больше одного в день — только тем, кто играл последние 3 дня и сейчас не в игре */
+async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)return 0;const T=HH_T[e.k],D=864e5,day0=Math.floor((now+TZ)/D)*D-TZ;
+  const L=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND seen>? AND seen<? AND hh_note<? LIMIT 150").bind(now-3*D,now-5*60e3,day0).all()).results;let sent=0;
+  const left=Math.max(1,Math.round((e.end-now)/60e3));
+  for(const u of L){await env.DB.prepare("UPDATE users SET hh_note=? WHERE id=?").bind(e.at,u.id).run();
+    if(await notify(env,u.id,"🍀 Счастливый час! "+T.ic+" "+T.n+": "+T.d+".\n\nДействует ещё "+left+" мин — потом обычные правила.","🍀 Успеть"))sent++}
+  return sent}
 /* возвращаем пропавших: через 1, 3 и 7 дней тишины — сообщение с подарком (прокрутки ждут в игре). Новичкам — напоминание о подарке дня */
 const WB={1:{sp:3,t:"⚔️ Твои воины заскучали! Мы оставили тебе подарок: +3 прокрутки уже в игре. Вдруг сегодня выпадет легенда?"},3:{sp:5,t:"🎁 Тебя не было 3 дня — держи +5 прокруток! Пока тебя не было, игроки выбили новые редкие карточки. Твоя очередь?"},7:{sp:10,t:"👑 Неделя без тебя! Возвращайся — в игре ждут +10 прокруток в подарок, новые воины и розыгрыши каждый день."}};
 async function winBack(env,now,h){if((h<11||h>=21)&&!env.NOTIFY_TEST)return 0;let sent=0;const D=864e5;

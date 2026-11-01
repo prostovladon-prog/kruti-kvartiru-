@@ -2366,3 +2366,21 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .mop-skip{width:100%;margin-top:10px;border:0;border-radius:12px;padding:10px;background:rgba(127,127,160,.15);color:inherit;font-weight:900}
 .mop-end{animation:dgabIn .4s ease-out}
 .mop-h b{white-space:nowrap}.mop-h span{white-space:nowrap;font-size:14px}
+/* 🍀 счастливый час */
+.hhbar{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 10px;padding:10px 12px;border:0;border-radius:16px;color:#fff;text-align:left;cursor:pointer;font:inherit;
+  background:linear-gradient(110deg,#0d6b38 0%,#1fbf6a 25%,#0d6b38 50%,#1fbf6a 75%,#0d6b38 100%);background-size:200% 100%;animation:hhflow 5s linear infinite;box-shadow:0 0 0 2px #ffd34d inset,0 6px 22px rgba(31,191,106,.45)}
+.hhb-i{font-size:24px;animation:hhbob 1.6s ease-in-out infinite}
+.hhb-t{flex:1;display:flex;flex-direction:column;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.35)}.hhb-t b{font-size:15px}.hhb-t small{font-size:12px;opacity:.95}
+.hhb-c{font-weight:800;font-variant-numeric:tabular-nums;background:rgba(0,0,0,.3);padding:6px 9px;border-radius:10px;font-size:15px}
+@keyframes hhflow{to{background-position:-200% 0}}@keyframes hhbob{50%{transform:translateY(-3px) rotate(-6deg)}}
+.hhpop{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;background:rgba(4,10,8,.72);backdrop-filter:blur(4px);animation:hhfade .25s}
+.hhcard{position:relative;overflow:hidden;width:min(320px,86vw);padding:26px 20px 18px;border-radius:24px;text-align:center;color:#fff;background:radial-gradient(circle at 50% 0,#2fd47e 0,#0d6b38 55%,#06301b 100%);box-shadow:0 0 0 2px #ffd34d,0 18px 60px rgba(31,191,106,.55);animation:hhin .5s cubic-bezier(.2,1.5,.4,1)}
+.hhrays{position:absolute;left:50%;top:70px;width:520px;height:520px;margin:-260px 0 0 -260px;background:repeating-conic-gradient(rgba(255,230,120,.16) 0 10deg,transparent 10deg 20deg);animation:hhspin 14s linear infinite;pointer-events:none}
+.hhcard>*:not(.hhrays){position:relative}
+.hhclv{font-size:22px}.hhk{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#ffe48a;font-weight:800}
+.hhic{font-size:68px;margin:6px 0;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));animation:hhbob 1.6s ease-in-out infinite}
+.hhn{font-size:22px;font-weight:900}.hhd{font-size:15px;margin:4px 0 10px;opacity:.95}
+.hht{font-size:14px;margin-bottom:14px}.hht b{font-variant-numeric:tabular-nums;font-size:18px;color:#ffe48a}
+.hhbtn{width:100%;padding:13px;border:0;border-radius:14px;font:inherit;font-weight:800;font-size:16px;color:#2a1a00;background:linear-gradient(180deg,#ffe680,#ffb92e);box-shadow:0 4px 0 #b77a00;cursor:pointer}
+.hhx{margin-top:10px;background:none;border:0;color:#d6f5e3;font:inherit;font-size:13px;cursor:pointer;opacity:.8}
+@keyframes hhfade{from{opacity:0}}@keyframes hhin{from{transform:scale(.6);opacity:0}}@keyframes hhspin{to{transform:rotate(360deg)}}

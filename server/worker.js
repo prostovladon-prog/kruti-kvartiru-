@@ -645,7 +645,7 @@ function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D)
 const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH*(D.evo==="ice"?.6:1)*(1-Math.min(.6,dgGemB(D,"emer")))));
 function dgBonus(st,now){const D=st&&st.dg;if(!D)return 0;let b=Math.min(.2,.02+dgPower(D)/40000);if(dgSat(D,now)<DG.hungry)b/=2;return Math.round(b*1000)/1000}
 function dgDay(D,now){const d=mskDay(now);if(D.d!==d){D.d=d;D.tp=0;D.fd=0;D.wx=0;D.nest=0;D.gift=0}return D}
-function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(D.evo==="storm")x=Math.ceil(x*1.2);x=Math.ceil(x*(1+dgGemB(D,"sapph")+dgGemB(D,"diam")));if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
+function dgAddXp(st,ctx,x){const D=st.dg;if(!D||!x)return 0;if(ctx&&hhIs(ctx.now,"drag"))x*=3;if(D.evo==="storm")x=Math.ceil(x*1.2);x=Math.ceil(x*(1+dgGemB(D,"sapph")+dgGemB(D,"diam")));if(dgSat(D,ctx.now)<DG.hungry)x=Math.ceil(x/2);D.xp+=x;const lv0=D.lv;while(D.lv<DG.max&&D.xp>=dgCum(D.lv+1))D.lv++;
   if(D.lv>lv0&&ctx.events)ctx.events.push({t:"dglv",lv:D.lv,stage:dgStage(D.lv)>dgStage(lv0)?dgStage(D.lv):0});return x}
 function dgWin(st,ctx){const D=st.dg;if(!D)return null;dgDay(D,ctx.now);if((D.wx||0)>=DG.winCap)return null;D.wx=(D.wx||0)+1;D.sh=(D.sh||0)+DG.winSh;return {xp:dgAddXp(st,ctx,DG.winXp),sh:DG.winSh}}
 function dgNewItem(D,r,t,s){D.nid=(D.nid||0)+1;const sets=DG_SET.filter(x=>r===5?x.div:!x.div);return {id:D.nid,s:s||DG_SLOT[Math.floor(Math.random()*DG_SLOT.length)].k,r,t:r===5?"olymp":t||sets[Math.floor(Math.random()*sets.length)].k,lv:0}}
@@ -682,10 +682,19 @@ function passReward(lv,prem){   // lv 1…30
 function passAdd(st,ctx,k,n){if(!n)return;const P=passState(st,ctx.now);P.c[k]=(P.c[k]||0)+n;if(PQ_XP[k])P.xp+=PQ_XP[k]*n;
   passQuests(P.d).forEach(i=>{const Q=PQ[i];if(!P.q.includes(i)&&(P.c[Q.k]||0)>=Q.n){P.q.push(i);P.xp+=Q.xp;conqDay(st,ctx.now).x++;if(ctx.events)ctx.events.push({t:"pq",q:Q.t,xp:Q.xp,torch:1})}})}
 const SEASON_TITLE={n:"Герой сезона",ic:"🎖"};
+/* ---------- 🍀 счастливые часы: 1–2 раза в день в случайное время (12:00–22:00 МСК) на 30 минут. Расписание одинаковое у всех, считается от даты ---------- */
+const HH_T={drag:{n:"Драконий час",ic:"🐉",d:"×3 опыт дракона"},coin:{n:"Монетный час",ic:"🪙",d:"+50% монет за продажу карточек"},camp:{n:"Час Лагеря",ic:"🎯",d:"×2 руны в Лагере"},gift:{n:"Час подарков",ic:"🎁",d:"+3 бесплатные прокрутки — забери!"}},HH_LEN=30*60e3;
+function hhDay(d){let h=2166136261;for(const ch of "hh"+d){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0}const r=()=>{h^=h<<13;h>>>=0;h^=h>>>17;h^=h<<5;h>>>=0;return h/4294967296};
+  const n=r()<.55?2:1,keys=Object.keys(HH_T),out=[],base=Date.parse(d+"T00:00:00Z")-3*3600e3;let used=-1;
+  for(let i=0;i<n;i++){let slot=Math.floor(r()*20);if(slot===used||Math.abs(slot-used)<4)slot=(slot+8)%20;used=slot;const k=keys[Math.floor(r()*keys.length)];const at=base+12*3600e3+slot*30*60e3;out.push({k,at,end:at+HH_LEN})}
+  return out.sort((a,b)=>a.at-b.at)}
+function hhNow(now){const d=new Date(now+3*3600e3).toISOString().slice(0,10);return hhDay(d).find(e=>now>=e.at&&now<e.end)||null}
+const hhIs=(now,k)=>{const e=hhNow(now);return !!(e&&e.k===k)};
 const ACTIONS={
   sync(){return {}},
 
   /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
+  hh_claim(G){const e=hhNow(G.ctx.now);if(!e||e.k!=="gift")fail("Сейчас нет Часа подарков");if(G.st.hhGot===e.at)fail("Подарок этого часа уже забран");G.st.hhGot=e.at;G.st.spins+=3;return {sp:3}},
   open_multi(G){const {st,ctx}=G;refill(st,ctx.now);const want=Math.max(2,Math.min(10,G.p.n|0||5));if(st.spins<=0)fail("Прокрутки закончились");
     const free=capOf(st)-G.cards.length;if(free<=0)fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
     const n=Math.min(want,st.spins,free),cards=[];let wel=0;
@@ -708,11 +717,11 @@ const ACTIONS={
     st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;
     addCard(G,c);day(st,ctx.now).opened++;return wel?{card:c,wel:1}:{card:c}},
 
-  sell(G){const c=burnable(freeCard(G,G.p.id)),got=Math.round(c.v*QUICK*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
+  sell(G){const c=burnable(freeCard(G,G.p.id)),got=Math.round(c.v*QUICK*(hhIs(G.ctx.now,"coin")?1.5:1)*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
 
   /* продать выбранные карточки системе одним нажатием */
   sellmany(G){const ids=[...new Set(G.p.ids||[])].slice(0,60);if(!ids.length)fail("Выбери карточки");
-    const list=ids.map(id=>burnable(freeCard(G,id))),got=Math.round(list.reduce((a,c)=>a+c.v*QUICK,0)*100)/100;burn(G,ids);earn(G.st,got);return {got,n:list.length}},
+    const list=ids.map(id=>burnable(freeCard(G,id))),got=Math.round(list.reduce((a,c)=>a+c.v*QUICK,0)*(hhIs(G.ctx.now,"coin")?1.5:1)*100)/100;burn(G,ids);earn(G.st,got);return {got,n:list.length}},
 
   sellcommon(G){const list=G.cards.filter(c=>!away(c)&&c.f===0&&HEROES[c.h][2]===0);if(!list.length)fail("Обычных карточек нет");
     const got=Math.round(list.reduce((a,c)=>a+c.v*QUICK,0)*100)/100;burn(G,list.map(c=>c.id));earn(G.st,got);return {got,n:list.length}},
@@ -819,7 +828,7 @@ const ACTIONS={
     let gain=0,crits=0,chests=0,chestR=0;const pw=campPow(C,G.cards),cc=campCrit(C);
     for(let i=0;i<n;i++){const cr=Math.random()<cc,d=pw*(cr?CRIT_X:1);if(cr)crits++;gain+=d;C.hp-=d;
       if(C.hp<=0){chests++;chestR+=TARGETS[C.t].chest;C.kills++;C.hp=TARGETS[C.t].hp}}
-    gain=Math.round(gain)+chestR;C.en-=n;C.runes+=gain;C.total+=gain;campEarn(C,ctx.now,gain);C.fullAt=C.en>=campMax(C)?0:Math.round(ctx.now+(campMax(C)-C.en)/campMax(C)*campFull(C));
+    if(hhIs(ctx.now,"camp"))gain*=2;gain=Math.round(gain)+chestR;C.en-=n;C.runes+=gain;C.total+=gain;campEarn(C,ctx.now,gain);C.fullAt=C.en>=campMax(C)?0:Math.round(ctx.now+(campMax(C)-C.en)/campMax(C)*campFull(C));
     return {n,gain,crits,chests,chestR}},
   camp_up(G){const {st,ctx}=G;const C=camp(st,ctx.now),k=G.p.k,U=CAMP_UP[k];if(!U)fail("Нет такой прокачки");const l=C.lv[k]||0;if(l>=U.max)fail("Уже максимальный уровень");
     const c=U.c(l);if(C.runes<c)fail("Не хватает рун: нужно "+c);if(k==="sq"&&C.lv.sq){const g=campSq(C,ctx.now);C.runes+=g;campEarn(C,ctx.now,g)}C.runes-=c;C.lv[k]=l+1;
@@ -1021,7 +1030,7 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -1055,7 +1064,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=37;
+const SCHEMA_V=38;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1128,7 +1137,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "ALTER TABLE users ADD COLUMN dgr INTEGER NOT NULL DEFAULT 1000","ALTER TABLE users ADD COLUMN dgr_wk TEXT","ALTER TABLE users ADD COLUMN dgr_w INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dgr_l INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS dg_fights (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, win INTEGER NOT NULL, ra INTEGER, rb INTEGER, t INTEGER, log TEXT)","CREATE INDEX IF NOT EXISTS dg_fights_b ON dg_fights(b,id)","CREATE INDEX IF NOT EXISTS dg_fights_a ON dg_fights(a,id)",
  "ALTER TABLE users ADD COLUMN dg_exp INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dg_exp_note INTEGER NOT NULL DEFAULT 0",
- "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)"];
+ "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)",
+ "ALTER TABLE users ADD COLUMN hh_note INTEGER NOT NULL DEFAULT 0"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -2069,8 +2079,16 @@ async function reminders(env){await ensureSchema(env);if(await maintenance(env))
   try{const ex=(await env.DB.prepare("SELECT id,dg_exp,json_extract(state,'$.dg.name') AS dn,json_extract(state,'$.dg.exp.k') AS k FROM users WHERE pm=1 AND dg_exp>0 AND dg_exp<=? AND dg_exp_note<dg_exp LIMIT 60").bind(now).all()).results;
     for(const u of ex){await env.DB.prepare("UPDATE users SET dg_exp_note=? WHERE id=?").bind(u.dg_exp,u.id).run();const E=DG_EXP.find(x=>x.k===u.k)||DG_EXP[0];
       if(await notify(env,u.id,"🐉 "+(u.dn||"Твой дракон")+" вернулся из похода «"+E.n+"» "+E.ic+" с добычей!\n\nЧешуя, опыт, а может и гем 💎 — заходи забрать, пока он не уснул от усталости.","🎒 Забрать добычу",PAGE+"?dragon=1"))sent++}}catch(e){console.error("dgexp",e)}
+  try{sent+=await hhPush(env,now)}catch(e){console.error("hh",e)}
   try{sent+=await winBack(env,now,h)}catch(e){console.error("winback",e)}
   return {sent,due:due.length}}
+/* 🍀 счастливый час: пуш один раз за событие и не больше одного в день — только тем, кто играл последние 3 дня и сейчас не в игре */
+async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)return 0;const T=HH_T[e.k],D=864e5,day0=Math.floor((now+TZ)/D)*D-TZ;
+  const L=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND seen>? AND seen<? AND hh_note<? LIMIT 150").bind(now-3*D,now-5*60e3,day0).all()).results;let sent=0;
+  const left=Math.max(1,Math.round((e.end-now)/60e3));
+  for(const u of L){await env.DB.prepare("UPDATE users SET hh_note=? WHERE id=?").bind(e.at,u.id).run();
+    if(await notify(env,u.id,"🍀 Счастливый час! "+T.ic+" "+T.n+": "+T.d+".\n\nДействует ещё "+left+" мин — потом обычные правила.","🍀 Успеть"))sent++}
+  return sent}
 /* возвращаем пропавших: через 1, 3 и 7 дней тишины — сообщение с подарком (прокрутки ждут в игре). Новичкам — напоминание о подарке дня */
 const WB={1:{sp:3,t:"⚔️ Твои воины заскучали! Мы оставили тебе подарок: +3 прокрутки уже в игре. Вдруг сегодня выпадет легенда?"},3:{sp:5,t:"🎁 Тебя не было 3 дня — держи +5 прокруток! Пока тебя не было, игроки выбили новые редкие карточки. Твоя очередь?"},7:{sp:10,t:"👑 Неделя без тебя! Возвращайся — в игре ждут +10 прокруток в подарок, новые воины и розыгрыши каждый день."}};
 async function winBack(env,now,h){if((h<11||h>=21)&&!env.NOTIFY_TEST)return 0;let sent=0;const D=864e5;
