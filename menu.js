@@ -486,3 +486,18 @@ setInterval(()=>{try{const C=chData;if(!C||!C.big||C.phase==="done"||!S||!ONLINE
     if(!$("sec-spin")||$("sec-spin").hidden||!$("modal").hidden||document.querySelector(".terms,.hhpop"))return;
     const el=Date.now()-t0,b=$("open");if(el>4000&&b)b.classList.add("autonudge");
     if(el>10000){done=true;clearInterval(it);if(b)b.classList.remove("autonudge");try{scrollTo({top:0,behavior:"smooth"})}catch(e){}setTimeout(()=>{if(!touched)open()},400)}}catch(e){}},500)}
+/* ---------- 🎬 экран для ежедневного видео (только админ): «100 000 игроков до Нового года» ---------- */
+const VID={start:Date.UTC(2026,9,20)-3*3600e3,goal:100000,ny:Date.UTC(2026,11,31,21)};
+function vidOpen(){const R=stData;if(!R)return toast("Сначала обнови статистику");const now=NOW(),day=Math.floor((now-VID.start)/864e5)+1,tot=R.players||0,left=Math.max(0,VID.goal-tot),dl=Math.max(1,Math.ceil((VID.ny-now)/864e5)),need=Math.ceil(left/dl);
+  const src=(R.srcs||[]).find(r=>r.code==="d"+(day-1)),p=Math.min(100,tot/VID.goal*100);
+  const o=document.createElement("div");o.className="vids";
+  o.innerHTML='<div class="vbg"><i></i><i></i><i></i></div><div class="vin"><div class="vtag">ВОИНЫ ЭПОХ · ЧЕЛЛЕНДЖ</div><div class="vday">ДЕНЬ <b>'+day+'</b></div>'+
+   '<div class="vgoal">цель: <b>100 000</b> игроков до Нового года 🎄</div><div class="vnum" data-to="'+tot+'">0</div><div class="vlbl">игроков сейчас</div>'+
+   '<div class="vbar"><s style="--p:'+Math.max(.6,p).toFixed(2)+'%"></s><em>'+(p<1?p.toFixed(2):p.toFixed(1))+'%</em></div>'+
+   '<div class="vrow"><div><b>+'+fmtN(R.newYesterday||0)+'</b><span>вчера</span></div><div><b>+'+fmtN(R.newToday||0)+'</b><span>сегодня</span></div><div><b>'+dl+'</b><span>'+plural(dl,"день","дня","дней")+' до НГ</span></div></div>'+
+   '<div class="vneed">нужно <b>'+fmtN(need)+'</b> новых игроков в день</div>'+(src?'<div class="vsrc">📹 из вчерашнего видео пришло: <b>'+(src.fresh||0)+'</b></div>':'')+
+   '<div class="vbot">@VoinyEpohBot</div><div class="vhint">метка для сегодняшнего видео: <b>s_d'+day+'</b> · тап — заново · ✕ — закрыть</div></div><button type="button" class="vx">✕</button>';
+  document.body.appendChild(o);const run=()=>{const n=o.querySelector(".vnum"),to=+n.dataset.to,t0=performance.now();o.classList.remove("go");void o.offsetWidth;o.classList.add("go");
+    const st=t=>{const k=Math.min(1,(t-t0)/1800),e=1-Math.pow(1-k,3);n.textContent=fmtN(Math.round(to*e));if(k<1)requestAnimationFrame(st)};requestAnimationFrame(st)};run();
+  o.onclick=e=>{if(e.target.closest(".vx")){o.remove();return}run()}}
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vid-go"))return;const x=document.createElement("button");x.type="button";x.id="vid-go";x.className="craftbtn";x.textContent="🎬 Экран для видео: день и игроки";x.onclick=vidOpen;b.prepend(x)}catch(e){}}}
