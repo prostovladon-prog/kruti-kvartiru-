@@ -2477,3 +2477,18 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .mop-sellb{width:100%;margin-top:8px;padding:12px;border:0;border-radius:14px;font:inherit;font-weight:800;font-size:15px;color:#2a1a00;background:linear-gradient(180deg,#ffe680,#ffb92e);box-shadow:0 4px 0 #b77a00;cursor:pointer}
 .mop-sellb:disabled{background:rgba(0,0,0,.06);color:#6b6f80;box-shadow:none;font-weight:600;font-size:13px}
 .mop-hint{margin:0 0 6px;text-align:center;font-size:12px;opacity:.8}
+/* 🎟 большой розыгрыш */
+.chal.bigc{background:radial-gradient(circle at 80% 0,#5a2aa8,#1a0f4a 60%,#0e0828);border:2px solid #ffd23f;box-shadow:0 0 24px rgba(255,210,63,.35)}
+.chal.bigc #chal-p{display:flex;flex-direction:column;gap:6px}
+.bigpz{display:grid!important;grid-template-columns:30px auto 1fr;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.07);text-align:left}
+.bigpz span{font-size:22px}.bigpz b{font-size:20px;color:#ffd23f;font-weight:900;white-space:nowrap}.bigpz small{font-size:10.5px;line-height:1.25;opacity:.75}
+.bigpz:first-child{background:linear-gradient(90deg,rgba(255,210,63,.25),rgba(255,210,63,.05));border:1px solid rgba(255,210,63,.5)}.bigpz:first-child b{font-size:26px}
+.bigme{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}.bigt{display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:12px;background:rgba(0,0,0,.3)}
+.bigt b{font-size:20px;color:#fff;font-weight:900}.bigt span{font-size:10.5px;opacity:.75;text-align:center}.bigt:nth-child(2) b{color:#5df28a}
+.bigtip{margin:6px 0 0;text-align:center;font-size:12.5px;font-weight:700;color:#ffd23f}
+.bigpop{position:relative;overflow:hidden;text-align:center;background:radial-gradient(circle at 50% 0,#6a32c8,#24104e 55%,#120830)!important;color:#fff;border:2px solid #ffd23f}
+.bigpop>*:not(.bigrays){position:relative}.bigrays{position:absolute;left:50%;top:90px;width:600px;height:600px;margin:-300px 0 0 -300px;background:repeating-conic-gradient(rgba(255,210,63,.13) 0 9deg,transparent 9deg 18deg);animation:hhspin 16s linear infinite}
+.bigk{font-size:13px;letter-spacing:3px;font-weight:900;color:#ffd23f}.bigusd{font-size:84px;font-weight:900;line-height:1;margin:4px 0;background:linear-gradient(180deg,#fff6c0,#ffd23f 50%,#ff9f0a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 14px rgba(255,180,0,.6));animation:hhin .6s cubic-bezier(.2,1.5,.4,1)}
+.bigsub{font-size:14px;font-weight:700;margin-bottom:10px}.bigrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bigrow>div{padding:8px;border-radius:12px;background:rgba(255,255,255,.1);display:flex;flex-direction:column}.bigrow b{font-size:18px}.bigrow small{font-size:11px;opacity:.8}
+.bignote{display:block;font-size:10.5px;opacity:.65;margin:6px 0 10px}.bigrule{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:12px;background:rgba(93,242,138,.15);border:1px solid rgba(93,242,138,.5);margin-bottom:12px}.bigrule b{font-size:15px;color:#5df28a}.bigrule span{font-size:12px}
+.chal.bigc #chal-me{background:none;border:0;box-shadow:none;padding:0;color:#fff}

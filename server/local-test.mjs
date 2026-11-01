@@ -534,6 +534,18 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   r = await cc(6200, "sync"); { const c = r.S.cards.find(x => x.f === 6); ok(c && c.v === 0, "карточка в коллекции победителя");
     let q = await cc(6200, "sell", { id: c.id }); ok(!q.ok, "бесценную нельзя продать системе");
     q = await cc(6200, "list", { id: c.id, price: 5000000 }); ok(q.ok, "бесценную можно выставить на рынок за свою цену"); }
+  // большой розыгрыш: каждый друг = билет, призы — звёзды на баланс и прокрутки
+  { const B = { id: "big1", lot: 1, big: 1, noL2: 1, min: 1, prizes: ["$15", "$8", "100 ⭐"], pnote: ["a", "b", "c"], usd: [750, 400, 100], sp: [0, 10, 5], slots: [] };
+    await cc(8, "chal_set", { cfg: { ...B, start: n0 - 36e5, end: n0 + 36e5 } });
+    r = await cc(6200, "chal_get"); ok(r.ok && r.res.big === 1 && r.res.me.n === 3 && r.res.pnote.length === 3, "большой розыгрыш: 3 друга = 3 билета");
+    const b0 = db.prepare("SELECT SUM(star_bal) s FROM users WHERE id IN (6200,6210)").get().s || 0, sp0 = (await cc(6210, "sync")).S.spins;
+    await cc(8, "chal_set", { cfg: { ...B, start: n0 - 36e5, end: Date.now() - 1 } }); await worker.tick(envC); await worker.tick(envC);
+    const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:big1'").get().v), W = (fin.winners || []).map(w => w.uid);
+    const b1 = db.prepare("SELECT SUM(star_bal) s FROM users WHERE id IN (6200,6210)").get().s || 0, sp1 = (await cc(6210, "sync")).S.spins;
+    const exp = [6200, 6210].reduce((a, id) => { const k = W.indexOf(id); return a + (k >= 0 ? [750, 400, 100][k] : 0) }, 0);
+    ok(W.length === 3 && new Set(W).size === 3 && b1 - b0 === exp, "три победителя, звёзды за $ на балансе (" + (b1 - b0) + ")");
+    { const k = W.indexOf(6210); ok(sp1 - sp0 === (k < 0 ? 0 : [0, 10, 5][k]), "прокрутки победителю по месту"); }
+    db.exec("UPDATE users SET star_bal=0"); }
   // розыгрыш 3 VIP: друзья друзей не считаются, VIP выдаётся автоматически
   await cc(8, "chal_set", { cfg: { id: "vip1", lot: 1, multi: 1, vip: 2, vipDays: 30, noL2: 1, min: 1, start: n0 - 36e5, end: n0 + 36e5, prizes: ["VIP", "VIP", "VIP"], bal: [0, 0, 0], slots: [] } });
   r = await cc(6200, "chal_get"); ok(r.ok && r.res.vip === 1 && r.res.me.n === 3 && r.res.me.l2 === 0, "VIP-розыгрыш: билеты только за своих друзей");
