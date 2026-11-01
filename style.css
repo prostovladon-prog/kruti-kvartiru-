@@ -2492,3 +2492,5 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .bigsub{font-size:14px;font-weight:700;margin-bottom:10px}.bigrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bigrow>div{padding:8px;border-radius:12px;background:rgba(255,255,255,.1);display:flex;flex-direction:column}.bigrow b{font-size:18px}.bigrow small{font-size:11px;opacity:.8}
 .bignote{display:block;font-size:10.5px;opacity:.65;margin:6px 0 10px}.bigrule{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:12px;background:rgba(93,242,138,.15);border:1px solid rgba(93,242,138,.5);margin-bottom:12px}.bigrule b{font-size:15px;color:#5df28a}.bigrule span{font-size:12px}
 .chal.bigc #chal-me{background:none;border:0;box-shadow:none;padding:0;color:#fff}
+.open.autonudge{animation:autonudge 1s ease-in-out infinite;box-shadow:0 0 0 0 rgba(255,214,10,.7)}
+@keyframes autonudge{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,214,10,.7)}50%{transform:scale(1.06);box-shadow:0 0 0 14px rgba(255,214,10,0)}}
