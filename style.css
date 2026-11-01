@@ -2424,3 +2424,50 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .dnday .buy{flex:0 0 auto;width:auto;min-width:86px;margin:0;padding:10px 14px}
 .sdt b{white-space:normal}
 .dnprev.big{background:linear-gradient(135deg,#2a1460,#140a30)}
+/* 🎨 анимации выпадения */
+.dfx{position:absolute;inset:-30px -10px;pointer-events:none;z-index:20;overflow:visible}
+.dfx i,.dfx svg{position:absolute;display:block}
+.dfx-dark{inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(40,60,160,.0),rgba(5,8,30,.75));animation:dfxdk 1.8s ease-out forwards;border-radius:30px}
+.dfx-bolt{top:-10%;width:22%;height:90%;margin-left:-11%;fill:#fff;stroke:#7fd8ff;stroke-width:3;filter:drop-shadow(0 0 10px #7fd8ff) drop-shadow(0 0 26px #3a7bff);opacity:0;animation:dfxbolt .5s steps(2) forwards}
+.dfx-flash{inset:0;background:#e8f6ff;opacity:0;animation:dfxfl .9s ease-out .1s;border-radius:30px;mix-blend-mode:screen}
+@keyframes dfxdk{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes dfxbolt{0%{opacity:0}20%{opacity:1}40%{opacity:.2}60%{opacity:1}100%{opacity:0;transform:scaleY(1.05)}}
+@keyframes dfxfl{0%,100%{opacity:0}10%{opacity:.85}25%{opacity:.1}35%{opacity:.6}}
+.dfx-shake{animation:dfxsh .5s}@keyframes dfxsh{20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-2px)}}
+.dfx-glow{inset:10% 5% -5%;background:radial-gradient(ellipse at 50% 100%,rgba(255,120,0,.75),rgba(255,40,0,.3) 45%,transparent 70%);animation:dfxdk 2s ease-out forwards;filter:blur(6px)}
+.dfx-fl{bottom:0;width:calc(30px*var(--s));height:calc(46px*var(--s));border-radius:50% 50% 45% 45%/60% 60% 40% 40%;background:radial-gradient(ellipse at 50% 70%,#fff6b0,#ffb21a 35%,#ff4d00 65%,transparent 72%);filter:blur(1px) drop-shadow(0 0 8px #ff6a00);opacity:0;animation:dfxfire 1.3s ease-out forwards}
+@keyframes dfxfire{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translateY(-260px) scale(.2) rotate(25deg)}}
+.dfx-sh{width:140px;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#fff 70%,#ffe680);transform:rotate(35deg);filter:drop-shadow(0 0 6px #fff);opacity:0;animation:dfxshoot 1s ease-in forwards}
+@keyframes dfxshoot{0%{opacity:0;transform:rotate(35deg) translateX(-80px)}20%{opacity:1}100%{opacity:0;transform:rotate(35deg) translateX(320px)}}
+.dfx-sp{width:8px;height:8px;background:#fff;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);filter:drop-shadow(0 0 6px #ffe680);opacity:0;animation:dfxsp 1s ease-out forwards}
+@keyframes dfxsp{0%{opacity:0;transform:scale(0)}40%{opacity:1;transform:scale(1.6) rotate(45deg)}100%{opacity:0;transform:scale(.3) rotate(90deg)}}
+/* 🖼 фоны профиля */
+.pbgb{position:relative;overflow:hidden;height:92px;border-radius:16px;display:flex;align-items:flex-end;padding:10px 14px;margin-bottom:10px}
+.pbgb b{position:relative;z-index:2;color:#fff;font-size:18px;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.pbgb i{position:absolute;inset:0;display:block}
+.pbg-space{background:radial-gradient(ellipse at 30% 30%,#4a2a9a,transparent 55%),radial-gradient(ellipse at 80% 70%,#1a5aa8,transparent 50%),#070624}
+.pbg-space i:nth-child(1){background-image:radial-gradient(1.5px 1.5px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 30% 70%,#fff,transparent),radial-gradient(2px 2px at 55% 30%,#bfe8ff,transparent),radial-gradient(1px 1px at 75% 55%,#fff,transparent),radial-gradient(1.5px 1.5px at 90% 15%,#fff,transparent),radial-gradient(1px 1px at 45% 85%,#fff,transparent);animation:pbtw 3s ease-in-out infinite alternate}
+.pbg-space i:nth-child(2){background:radial-gradient(circle at 70% 40%,rgba(255,63,216,.35),transparent 40%);animation:pbdrift 9s ease-in-out infinite alternate}
+.pbg-lava{background:linear-gradient(180deg,#2a0500,#5a0f00)}
+.pbg-lava i:nth-child(1){background:radial-gradient(ellipse at 20% 110%,#ff6a00,transparent 50%),radial-gradient(ellipse at 80% 120%,#ff2d00,transparent 55%);animation:pbdrift 5s ease-in-out infinite alternate}
+.pbg-lava i:nth-child(2){background:radial-gradient(circle at 50% 100%,#ffd23f,transparent 35%);filter:blur(8px);animation:pblava 3s ease-in-out infinite alternate}
+.pbg-aurora{background:#03122a}
+.pbg-aurora i:nth-child(1){background:linear-gradient(100deg,transparent 10%,rgba(0,255,170,.85) 30%,transparent 45%,rgba(170,90,255,.8) 65%,transparent 80%);filter:blur(10px);background-size:200% 100%;animation:pbaur 6s ease-in-out infinite alternate}
+.pbg-aurora i:nth-child(2){background:linear-gradient(80deg,transparent 30%,rgba(0,220,255,.6) 50%,transparent 70%);filter:blur(14px);background-size:200% 100%;animation:pbaur 8s ease-in-out infinite alternate-reverse}
+.pbg-gold{background:linear-gradient(135deg,#5a3a00,#c08a0a 40%,#ffe680 50%,#c08a0a 60%,#5a3a00)}
+.pbg-gold i:nth-child(1){background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.7) 50%,transparent 65%);background-size:250% 100%;animation:pbshine 2.6s linear infinite}
+.pbg-gold i:nth-child(2){background-image:radial-gradient(2px 2px at 20% 30%,#fff,transparent),radial-gradient(2px 2px at 70% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 25%,#fff,transparent);animation:pbtw 1.6s ease-in-out infinite alternate}
+@keyframes pbtw{to{opacity:.3}}@keyframes pbdrift{to{transform:translate(-8%,4%) scale(1.15)}}@keyframes pblava{to{transform:scale(1.4);opacity:.6}}@keyframes pbaur{to{background-position:-100% 0}}@keyframes pbshine{from{background-position:150% 0}to{background-position:-100% 0}}
+/* витрина магазина косметики */
+.cosg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cosg.c2{grid-template-columns:1fr 1fr}
+.cosc{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}.cosc.on{border-color:#ffd23f;box-shadow:0 0 12px rgba(255,210,63,.35)}
+.cosc b{font-size:12.5px}.cosc .buy{width:100%;margin:0}.cosc .pbgb{width:100%;height:64px;margin:0}.cosc .pbgb b{font-size:13px}
+.cosp{position:relative;width:100%;aspect-ratio:3/4;border-radius:10px;background:linear-gradient(160deg,#2a2a5a,#0e0e2a);display:grid;place-items:center;font-size:30px;cursor:pointer;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+.cosp .dfx{inset:0}.cosp .dfx-bolt{width:30%;margin-left:-15%}.cosp .dfx-fl{width:calc(14px*var(--s));height:calc(22px*var(--s))}.cosp .dfx-sh{width:60px}
+.presb{padding:12px;border-radius:14px;background:linear-gradient(135deg,rgba(255,63,216,.12),rgba(122,60,255,.12));border:1px solid rgba(255,63,216,.35)}.presb p{margin:0 0 10px;font-size:13px}
+.presg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.presc{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.25);color:#fff;font:inherit;cursor:pointer}
+.presc span{font-size:22px}.presc b{font-size:11px;line-height:1.15;text-align:center}.presc small{font-size:11px;color:#ffd23f;font-weight:800}.presc.on{border-color:#ff3fd8;background:rgba(255,63,216,.25);box-shadow:0 0 12px rgba(255,63,216,.4)}
+.prespop{text-align:center}.presbox{font-size:72px;animation:hhin .6s cubic-bezier(.2,1.5,.4,1),hhbob 1.6s ease-in-out .6s infinite}
+.wsh .top.haspbg{position:relative;overflow:hidden;border-radius:16px;padding:14px 12px;margin-bottom:8px}
+.wsh .top.haspbg>*:not(.pbgb){position:relative;z-index:1}.pbgb.pbgbg{position:absolute;inset:0;height:auto;margin:0;border-radius:0;z-index:0}

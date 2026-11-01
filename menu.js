@@ -418,3 +418,42 @@ setInterval(()=>{try{if(!S||!ONLINE||document.hidden||(S.nOp||0)<10||$("onb")||d
   try{localStorage.setItem("we-don1",1)}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
   sh.innerHTML='<div class="box nickbox dnann"><h3>⭐ Новое: Донат и понт</h3><div class="dnprev big">'+ttlTag("author")+' <b>'+escH(S.nick||S.name||"")+'</b></div><ul class="dnul"><li>✍️ <b>Стань Соавтором</b> — твою идею добавим в игру (3 места в месяц)</li><li>🎖 Титулы «Бессмертный» и «Император» рядом с ником</li><li>🌟 <b>Звезда дня</b> — тебя видят все на главной</li><li>❤️ Поддержать проект на любую сумму</li></ul><p class="cln">Только для красоты — на силу и шансы не влияет.</p><button type="button" class="craftbtn" id="dn-go">Посмотреть</button><button type="button" class="ghost" id="dn-x">Позже</button></div>';
   $("dn-go").onclick=()=>{closeModal();openGold("flex")};$("dn-x").onclick=closeModal}catch(e){}},20000);
+/* ---------- 🎨 косметика: своя анимация выпадения, фон профиля, подарки друзьям ---------- */
+function dfxPlay(k,host){host=host||$("stage");if(!host||!DFX[k])return;const o=document.createElement("div");o.className="dfx dfx-"+k;let h="";
+  if(k==="storm"){h='<i class="dfx-dark"></i>'+[[-30,0],[40,1],[5,2]].map(([x,i])=>'<svg class="dfx-bolt" style="left:calc(50% + '+x+'%);animation-delay:'+(i*.18)+'s" viewBox="0 0 60 200"><path d="M34 0 L12 92 L30 92 L8 200 L52 74 L32 74 L48 0Z"/></svg>').join("")+'<i class="dfx-flash"></i>'}
+  else if(k==="fire"){h='<i class="dfx-glow"></i>';for(let i=0;i<26;i++)h+='<i class="dfx-fl" style="left:'+(4+Math.random()*92)+'%;animation-delay:'+(Math.random()*.7).toFixed(2)+'s;--s:'+(.6+Math.random()*1.1).toFixed(2)+'"></i>'}
+  else{for(let i=0;i<14;i++)h+='<i class="dfx-sh" style="left:'+(Math.random()*110-10)+'%;top:'+(Math.random()*40-20)+'%;animation-delay:'+(Math.random()*.9).toFixed(2)+'s"></i>';for(let i=0;i<22;i++)h+='<i class="dfx-sp" style="left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;animation-delay:'+(Math.random()*1.2).toFixed(2)+'s"></i>'}
+  o.innerHTML=h;host.appendChild(o);if(k==="storm"){host.classList.add("dfx-shake");setTimeout(()=>host.classList.remove("dfx-shake"),700)}setTimeout(()=>o.remove(),2300)}
+{const _a=act;act=async function(n,p){const r=await _a(n,p);try{if(n==="open"&&r&&r.card&&S&&S.dfxOn)dfxPlay(S.dfxOn)}catch(e){}return r}}
+const pbgBan=(k,name)=>'<div class="pbgb pbg-'+k+'"><i></i><i></i><i></i>'+(name?'<b>'+escH(name)+'</b>':"")+'</div>';
+{const _os=openShowcase;openShowcase=function(F){_os.apply(this,arguments);const k=F&&F.pbg;if(!k||!PBG[k])return;
+  const put=()=>{const t=$("msheet").querySelector(".wsh .top");if(!t||t.querySelector(".pbgb"))return !!t;t.classList.add("haspbg");t.insertAdjacentHTML("afterbegin",pbgBan(k).replace('class="pbgb','class="pbgb pbgbg'));return true};
+  if(!put())setTimeout(put,300)}}
+const presStars=w=>w==="vip"?VIP_T[1].stars:SHOP[w]?SHOP[w].stars:(()=>{const [c,k]=w.split(":");return (c==="t"?TITLES:c==="d"?DFX:PBG)[k].stars})();
+let presW="vip";
+function cosHTML(){const own=t=>S[t]||[],on=t=>S[t+"On"]||"";
+  let v='<div class="ghd">✨ Своя анимация выпадения</div><p class="gnote">Каждый раз, когда ты открываешь карточку. Нажми на карточку — посмотри, как это выглядит.</p><div class="cosg">'+
+   Object.keys(DFX).map(k=>{const K=DFX[k],h=own("dfx").includes(k),a=on("dfx")===k;return '<div class="cosc'+(a?" on":"")+'"><div class="cosp dfxp" data-dfxp="'+k+'"><span>'+K.ic+'</span></div><b>'+K.n+'</b>'+
+    (h?'<button type="button" class="buy sm alt" data-cos="dfx" data-k="'+(a?"":k)+'">'+(a?"✓ Включена":"Включить")+'</button>':'<button type="button" class="buy sm" data-cosbuy="dfx" data-k="'+k+'">⭐ '+K.stars+'</button>')+'</div>'}).join("")+'</div>';
+  v+='<div class="ghd">🖼 Фон профиля</div><p class="gnote">Живой фон в твоей витрине — его видят все, кто к тебе заходит.</p><div class="cosg c2">'+
+   Object.keys(PBG).map(k=>{const K=PBG[k],h=own("pbg").includes(k),a=on("pbg")===k;return '<div class="cosc'+(a?" on":"")+'">'+pbgBan(k,S.nick||S.name)+'<b>'+K.ic+' '+K.n+'</b>'+
+    (h?'<button type="button" class="buy sm alt" data-cos="pbg" data-k="'+(a?"":k)+'">'+(a?"✓ Стоит":"Поставить")+'</button>':'<button type="button" class="buy sm" data-cosbuy="pbg" data-k="'+k+'">⭐ '+K.stars+'</button>')+'</div>'}).join("")+'</div>';
+  v+='<div class="ghd">🎁 Подарить другу</div><div class="presb"><p>Сделай другу сюрприз — он получит подарок сразу и узнает, что это от тебя.</p><div class="presg">'+
+   Object.keys(PRESENT).map(w=>'<button type="button" class="presc'+(w===presW?" on":"")+'" data-presw="'+w+'"><span>'+PRESENT[w].ic+'</span><b>'+PRESENT[w].n+'</b><small>⭐ '+presStars(w)+'</small></button>').join("")+'</div>'+
+   '<div class="dnsr"><input id="pres-n" placeholder="Ник друга" autocomplete="off"><button type="button" class="craftbtn" data-pres="1">🎁 Подарить</button></div></div>';
+  return v}
+{const _ft=flexTop;flexTop=function(D){return _ft(D)+cosHTML()}}
+$("gold-body").addEventListener("click",async e=>{const t=e.target.closest("button,[data-dfxp]");if(!t||t.disabled)return;
+  if(t.dataset.dfxp){hap("light");dfxPlay(t.dataset.dfxp,t);return}
+  if(t.dataset.cosbuy){hap("light");return buyItem({item:"cos",t:t.dataset.cosbuy,k:t.dataset.k})}
+  if(t.dataset.cos){hap("light");const r=await act("cos_set",{t:t.dataset.cos,k:t.dataset.k});if(r){sfx.coin();renderGold();if(r.t==="dfx"&&r.k)setTimeout(()=>toast("✨ Включено! Открой карточку — увидишь"),100)}return}
+  if(t.dataset.presw){hap("light");presW=t.dataset.presw;document.querySelectorAll(".presc").forEach(x=>x.classList.toggle("on",x===t));return}
+  if(t.dataset.pres){const n=String(($("pres-n")||{}).value||"").trim();if(!n){toast("Напиши ник друга");return}hap("light");return buyItem({item:"present",w:presW,nick:n})}});
+{const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&(r.item==="cos"||r.item==="present")){renderAll();loadGold();sfx.fanfare();burst(3);hapN("success");const R=r.res||{};
+  if(r.item==="present")toast("🎁 Подарок для "+R.tn+" отправлен! Он узнает, что это от тебя");else{const K=(R.t==="pbg"?PBG:DFX)[R.k];toast(K.ic+" «"+K.n+"» твоё!"+(R.t==="dfx"?" Открой карточку — посмотри":""));if(R.t==="dfx")setTimeout(()=>{setTab("spin");setTimeout(()=>dfxPlay(R.k),400)},900)}return}
+  return _ps(r)}}
+/* получил подарок от друга */
+setInterval(()=>{try{if(!S||!ONLINE||!(S.prs&&S.prs.length)||document.hidden||$("onb")||document.querySelector(".modal:not([hidden]),.hhpop"))return;const L=S.prs.slice();S.prs=[];act("present_seen");
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sfx.fanfare();burst(4);hapN("success");
+  sh.innerHTML='<div class="box nickbox prespop"><div class="presbox">🎁</div><h3>Тебе подарок!</h3>'+L.map(x=>'<p><b>'+escH(x.f)+'</b> подарил тебе '+(PRESENT[x.w]?PRESENT[x.w].ic+" <b>"+PRESENT[x.w].n+"</b>":"подарок")+'</p>').join("")+'<p class="cln">Всё уже в игре. Скажи спасибо — или подари что-нибудь в ответ 😉</p><button type="button" class="craftbtn" id="pr-ok">Ура!</button><button type="button" class="ghost" id="pr-back">🎁 Подарить в ответ</button></div>';
+  $("pr-ok").onclick=closeModal;$("pr-back").onclick=()=>{closeModal();openGold("flex");setTimeout(()=>{const i=$("pres-n");if(i){i.value=L[L.length-1].f;i.scrollIntoView({block:"center"})}},500)}}catch(e){}},3000);

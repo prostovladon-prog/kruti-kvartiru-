@@ -909,6 +909,10 @@ const ACTIONS={
   title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");if(T.pass)fail("Этот титул — награда сезонного пропуска");if(T.sup)fail("Этот титул дают за поддержку проекта от "+SUP.title+" ⭐");if(T.stars)fail("Этот титул покупается за ⭐ в Сокровищнице");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
     pay(st,T.price);st.titles.push(G.p.k);st.title=G.p.k;return {k:G.p.k}},
   title_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const k=G.p.k,st=G.st;if(!TITLES[k])fail("Нет такого титула");st.titles=st.titles||[];const newT=!st.titles.includes(k);if(newT)st.titles.push(k);if(!G.p.keep||!st.title)st.title=k;return {k,newT}},
+  cos_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,p}=G,t=p.t==="pbg"?"pbg":"dfx",L=t==="pbg"?PBG:DFX;if(!L[p.k])fail("Нет такого");st[t]=st[t]||[];const nw=!st[t].includes(p.k);if(nw)st[t].push(p.k);st[t+"On"]=p.k;return {t,k:p.k,nw}},
+  cos_set(G){const {st,p}=G,t=p.t==="pbg"?"pbg":"dfx",k=String(p.k||"");if(k&&!(st[t]||[]).includes(k))fail("Сначала купи");st[t+"On"]=k;return {t,k}},
+  present_note(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st;st.prs=(st.prs||[]).slice(-4);st.prs.push({f:String(G.p.f||"Друг").slice(0,32),w:G.p.w,t:G.ctx.now});return {}},
+  present_seen(G){G.st.prs=[];return {}},
   title_set(G){const st=G.st,k=G.p.k||"";if(k&&!(st.titles||[]).includes(k))fail("Сначала купи этот титул");st.title=k;return {k}},
   /* выигрыш аукциона: только сервер, карточка кладётся даже сверх лимита */
   auc_win(G){const A=G.ctx.auc;if(!A)fail("Неизвестное действие");const card=makeCard(G.ctx,A.h,A.f,{stats:A.stats,hue:A.hue});card.v=A.v;card.how="auction";G.cards.push(card);noteCard(G.st,card);return {card}},
@@ -1031,6 +1035,11 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
 const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8},season:{n:"Герой сезона",ic:"🎖",price:0,pass:1},
   immortal:{n:"Бессмертный",ic:"🔥",price:0,stars:300},emperor:{n:"Император",ic:"🏛",price:0,stars:700},author:{n:"Соавтор",ic:"✍️",price:0,stars:2000,month:3},
   patron:{n:"Меценат",ic:"❤️",price:0,sup:1}};
+/* 🎨 косметика за ⭐: анимация выпадения карточки и фон профиля (видят все, кто открывает твою витрину) */
+const DFX={storm:{n:"Гроза",ic:"⚡",stars:249},fire:{n:"Пламя",ic:"🔥",stars:249},stars:{n:"Звездопад",ic:"🌠",stars:249}};
+const PBG={space:{n:"Космос",ic:"🌌",stars:199},lava:{n:"Лава",ic:"🌋",stars:199},aurora:{n:"Северное сияние",ic:"🌈",stars:199},gold:{n:"Золото",ic:"💰",stars:299}};
+/* 🎁 подарок другу за ⭐: что можно подарить */
+const PRESENT={vip:{n:"VIP на неделю",ic:"👑"},small:{n:"Малый сундук",ic:"🧰"},royal:{n:"Королевский сундук",ic:"👑"},"t:immortal":{n:"Титул «Бессмертный»",ic:"🔥"},"t:emperor":{n:"Титул «Император»",ic:"🏛"},"d:fire":{n:"Анимация «Пламя»",ic:"🔥"},"b:space":{n:"Фон «Космос»",ic:"🌌"}};
 /* ❤️ поддержать проект: игрок сам выбирает сумму. От SUP.title ⭐ за всё время — титул «Меценат» */
 const SUP={min:10,max:2500,title:100};
 /* 🌟 Звезда дня: ник и самая дорогая карточка игрока весь день на главной у всех. Один игрок в день, очередь на следующие свободные дни */
@@ -1038,7 +1047,7 @@ const SDAY={stars:250,ahead:60};
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -1527,7 +1536,8 @@ async function profile(env,p,me){
   const gs=(await env.DB.prepare("SELECT id,k,no,shelf FROM gifts WHERE owner=?").bind(u.id).all()).results;
   if(me&&me.id!==u.id)await env.DB.prepare("UPDATE users SET gv=gv+1 WHERE id=?").bind(u.id).run();
   const gv=((await env.DB.prepare("SELECT gv FROM users WHERE id=?").bind(u.id).first())||{}).gv||0;
-  return {name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
+  const _st=JSON.parse(u.state||"{}");
+  return {pbg:_st.pbgOn||"",dfx:_st.dfxOn||"",name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
     shelf:gs.filter(g=>g.shelf>0),gn:gs.length,gval:gs.reduce((a,g)=>a+giftVal(g.k),0),gv,grank:await giftRank(env,u.id)};
 }
 async function cardInfo(env,p){
@@ -2089,6 +2099,7 @@ async function reminders(env){await ensureSchema(env);if(await maintenance(env))
     for(const u of ex){await env.DB.prepare("UPDATE users SET dg_exp_note=? WHERE id=?").bind(u.dg_exp,u.id).run();const E=DG_EXP.find(x=>x.k===u.k)||DG_EXP[0];
       if(await notify(env,u.id,"🐉 "+(u.dn||"Твой дракон")+" вернулся из похода «"+E.n+"» "+E.ic+" с добычей!\n\nЧешуя, опыт, а может и гем 💎 — заходи забрать, пока он не уснул от усталости.","🎒 Забрать добычу",PAGE+"?dragon=1"))sent++}}catch(e){console.error("dgexp",e)}
   try{sent+=await hhPush(env,now)}catch(e){console.error("hh",e)}
+  try{if(h>=12&&h<21)sent+=await donBlast(env)}catch(e){console.error("donb",e)}
   try{sent+=await winBack(env,now,h)}catch(e){console.error("winback",e)}
   return {sent,due:due.length}}
 /* 🍀 счастливый час: пуш один раз за событие и не больше одного в день — только тем, кто играл последние 3 дня и сейчас не в игре */
@@ -2194,6 +2205,13 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let own=[];try{own=JSON.parse(u&&u.state||"{}").titles||[]}catch(e){}if(own.includes(k))fail("Этот титул уже твой");
     if(T.month&&await titleLeft(env,k,except)<=0)fail("Места «"+T.n+"» на этот месяц закончились. Новые — 1-го числа");
     return {item,stars:T.stars,title:"Титул «"+T.n+"»",desc:k==="author"?"✍️ Соавтор игры: титул навсегда + твою идею добавим в «Воинов Эпох» (в пределах разумного). Не получится реализовать — вернём звёзды":T.ic+" Титул «"+T.n+"» рядом с ником навсегда: в топах, чате, лагере и на арене",data:{k}}}
+  if(item==="cos"){const t=p.t==="pbg"?"pbg":"dfx",L=t==="pbg"?PBG:DFX,k=String(p.k||""),K=L[k];if(!K)fail("Нет такого");
+    const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}if((st[t]||[]).includes(k))fail("Уже твоё");
+    return {item,stars:K.stars,title:(K.ic+" "+(t==="pbg"?"Фон":"Анимация")+" «"+K.n+"»").slice(0,32),desc:t==="pbg"?"Анимированный фон «"+K.n+"» твоего профиля и витрины навсегда — его видят все, кто к тебе заходит":"Своя анимация выпадения карточки «"+K.n+"» навсегда: каждый раз, когда ты открываешь карточку",data:{t,k}}}
+  if(item==="present"){const w=String(p.w||""),W=PRESENT[w];if(!W)fail("Такое подарить нельзя");const to=await trUser(env,p);if(!to)fail("Игрок с таким ником не найден");if(to.id===uid)fail("Себе подарить нельзя — купи обычным способом");
+    const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(to.id).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
+    let stars;if(w==="vip")stars=VIP_T[1].stars;else if(SHOP[w])stars=SHOP[w].stars;else{const [c,k]=w.split(":"),L=c==="t"?TITLES:c==="d"?DFX:PBG,own=c==="t"?st.titles:c==="d"?st.dfx:st.pbg;if((own||[]).includes(k))fail("У "+to.name+" это уже есть — выбери другой подарок");stars=L[k].stars}
+    return {item,stars,title:("🎁 "+W.n+" для "+to.name).slice(0,32),desc:"Подарок игроку "+to.name+": "+W.ic+" "+W.n+". Он получит его сразу и узнает, что это от тебя",data:{to:to.id,w,tn:to.name}}}
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{}}}
   if(item==="sday"){const d=await sdayFree(env,Date.now());if(!d)fail("Все дни на 2 месяца вперёд заняты");return {item,stars:SDAY.stars,title:"🌟 Звезда дня",desc:"Твой ник и самая дорогая карточка весь день на главной у всех игроков. Ближайший свободный день: "+d.split("-").reverse().join("."),data:{}}}
@@ -2267,6 +2285,19 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       if(d.k==="author"){msg="✍️ Ты — Соавтор «Воинов Эпох»! Титул уже рядом с ником.\n\nТеперь напиши @voinovadmin свою идею: новый воин, событие, режим, предмет — что угодно в пределах разумного. Если реализовать не получится, вернём звёзды.";
         for(const a of ADMINS)await notify(env,a,"✍️ КУПИЛИ «Соавтора» за "+T.stars+" ⭐! Игрок "+(u.n||"?")+" (id "+P.uid+"). Ему сказано написать идею в @voinovadmin.","⚔️ Открыть")}
       else msg=T.ic+" Титул «"+T.n+"» твой навсегда! Его видят все рядом с твоим ником."}
+    else if(P.item==="cos"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"cos_grant",{t:d.t,k:d.k},{grant:true})).res;delete res.events;const K=(d.t==="pbg"?PBG:DFX)[d.k];
+      msg=K.ic+" "+(d.t==="pbg"?"Фон «"+K.n+"» уже на твоём профиле!":"Анимация «"+K.n+"» включена — открой карточку и посмотри!")}
+    else if(P.item==="present"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(d.to).first(),me=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      const to={id:d.to,name:u.name||"Игрок"},w=d.w;
+      if(w==="vip"){const now=Date.now(),V=VIP_T[1],x=await env.DB.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").bind(d.to).first()||{};const until=Math.max(now,x.vip_until||0)+V.days*864e5;
+        await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=MAX(COALESCE(vip_t,1),1) WHERE id=?").bind(until,d.to).run()}
+      else if(SHOP[w]){const r=(await doAction(env,to,"grant",{item:w,pid:P.id},{grant:true})).res}
+      else{const [c,k]=w.split(":");if(c==="t"){await doAction(env,to,"title_grant",{k,keep:1},{grant:true});await env.DB.prepare("UPDATE users SET title=? WHERE id=? AND (title IS NULL OR title='')").bind(k,d.to).run();delete topCache.nfx}
+        else await doAction(env,to,"cos_grant",{t:c==="d"?"dfx":"pbg",k},{grant:true})}
+      const fn=(me&&me.n)||"Друг";await doAction(env,to,"present_note",{f:fn,w},{grant:true});const W=PRESENT[w];res={to:d.to,tn:d.tn,w};
+      msg="🎁 Подарок отправлен! "+d.tn+" получил "+W.ic+" "+W.n+" и узнает, что это от тебя.";
+      await notify(env,d.to,"🎁 "+fn+" подарил тебе "+W.ic+" "+W.n+"!\n\nПодарок уже в игре — заходи посмотреть.","🎁 Открыть подарок")}
     else if(P.item==="support"){const u=await env.DB.prepare("SELECT name,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       const tot=(((await env.DB.prepare("SELECT SUM(stars) AS s FROM payments WHERE uid=? AND item='support' AND (status='done' OR id=?)").bind(P.uid,P.id).first())||{}).s)||0;let ttl=0;
       if(tot>=SUP.title){const g=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"title_grant",{k:"patron",keep:1},{grant:true})).res;ttl=g.newT?1:0;
@@ -2763,6 +2794,13 @@ async function dmBlast(env){const now=Date.now();if(now<DMB.from||now>DMB.to)ret
   await kvSet(env,"dmb:"+DMB.id,{t:now});delete topCache["dmb"+DMB.id];const a=ADMINS[0];
   const r=await env.DB.prepare("INSERT INTO dm(a,b,text,t,adm) SELECT ?,id,?,?,1 FROM users WHERE id<>? AND "+DMB.where).bind(a,DMB.text,now,a).run();
   await kvSet(env,"dmb:"+DMB.id,{t:now,n:(r.meta&&r.meta.changes)||0})}
+/* разовое мягкое сообщение тем, кто уже донатил: в Сокровищнице новинки. По 40 человек за заход, ID по порядку */
+const DONB={id:"don1",text:"⭐ Привет! Спасибо, что поддерживаешь «Воинов Эпох» — это правда помогает игре расти ❤️\n\nПока тебя не было, в Сокровищнице появилось кое-что новое для тех, кто любит выделяться… 👀 Загляни во вкладку «Понт» — думаю, тебе понравится."};
+async function donBlast(env){if(!env.BOT_TOKEN&&!env.NOTIFY_TEST)return 0;const k="donb:"+DONB.id,st=(await kvGet(env,k))||{last:0,n:0};if(st.done)return 0;
+  const L=(await env.DB.prepare("SELECT DISTINCT p.uid FROM payments p JOIN users u ON u.id=p.uid WHERE p.status='done' AND p.uid>? AND u.pm=1 ORDER BY p.uid LIMIT 40").bind(st.last).all()).results;
+  if(!L.length){await kvSet(env,k,Object.assign(st,{done:1}));return 0}let sent=0;
+  for(const r of L){st.last=r.uid;if(isAdmin(env,r.uid))continue;if(await notify(env,r.uid,DONB.text,"👑 Посмотреть",PAGE+"?shop=flex"))sent++}
+  st.n+=sent;await kvSet(env,k,st);return sent}
 let updBusy=false;
 async function updBlast(env){if(updBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();if(!UPD.win.some(([a,b])=>now>=a&&now<b))return;
   updBusy=true;try{const st=(await kvGet(env,"blast:"+UPD.id))||{ch:0,after:0,done:0,n:0};if(st.done&&st.ch)return;

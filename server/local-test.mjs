@@ -673,6 +673,16 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     q = await cp(V, "invoice", { item: "support", n: 5 }); ok(!q.ok, "поддержка меньше минимума нельзя");
     q = await buy(V, { item: "support", n: 50 }); ok(q.ok && q.res.status === "done" && !q.res.res.ttl, "поддержка 50 ⭐ — пока без титула");
     q = await buy(V, { item: "support", n: 60 }); ok(q.ok && q.res.res.ttl && q.S.titles.includes("patron") && q.S.title === "immortal", "от 100 ⭐ — «Меценат», надетый титул не снят");
+    q = await buy(V, { item: "cos", t: "dfx", k: "storm" }); ok(q.ok && q.res.status === "done" && q.S.dfxOn === "storm", "анимация выпадения «Гроза» включена");
+    q = await cp(V, "cos_set", { t: "pbg", k: "lava" }); ok(!q.ok, "чужой фон без покупки не поставить");
+    q = await buy(V, { item: "cos", t: "pbg", k: "lava" }); ok(q.ok && q.S.pbgOn === "lava", "фон профиля «Лава»");
+    q = await cp(V, "profile", { uid: V }); ok(q.ok && q.res.pbg === "lava" && q.res.dfx === "storm", "фон и анимацию видят другие");
+    q = await cp(V, "invoice", { item: "present", w: "vip", uid: V }); ok(!q.ok, "себе подарок нельзя");
+    q = await buy(V, { item: "present", w: "t:emperor", uid: 7052 }); ok(q.ok && q.res.status === "done", "подарил титул другу");
+    q = await cp(7052, "sync"); ok(q.S.titles.includes("emperor") && q.S.prs && q.S.prs.length === 1, "друг получил титул и записку от кого");
+    q = await cp(V, "invoice", { item: "present", w: "t:emperor", uid: 7052 }); ok(!q.ok, "второй раз тот же титул не подарить");
+    q = await buy(V, { item: "present", w: "small", uid: 7052 }); ok(q.ok && q.res.status === "done", "подарил сундук");
+    q = await cp(7052, "present_seen"); ok(q.ok && !(q.S.prs || []).length, "записки о подарках прочитаны");
     q = await cp(V, "shop"); ok(q.ok && q.res.authLeft === 0 && q.res.donors.some(d => d.uid === V), "в топе донатеров и места Соавтора на месяц кончились"); }
 }
 

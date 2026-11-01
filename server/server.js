@@ -484,7 +484,8 @@ async function profile(env,p,me){
   const gs=(await env.DB.prepare("SELECT id,k,no,shelf FROM gifts WHERE owner=?").bind(u.id).all()).results;
   if(me&&me.id!==u.id)await env.DB.prepare("UPDATE users SET gv=gv+1 WHERE id=?").bind(u.id).run();
   const gv=((await env.DB.prepare("SELECT gv FROM users WHERE id=?").bind(u.id).first())||{}).gv||0;
-  return {name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
+  const _st=JSON.parse(u.state||"{}");
+  return {pbg:_st.pbgOn||"",dfx:_st.dfxOn||"",name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
     shelf:gs.filter(g=>g.shelf>0),gn:gs.length,gval:gs.reduce((a,g)=>a+giftVal(g.k),0),gv,grank:await giftRank(env,u.id)};
 }
 async function cardInfo(env,p){
@@ -1046,6 +1047,7 @@ async function reminders(env){await ensureSchema(env);if(await maintenance(env))
     for(const u of ex){await env.DB.prepare("UPDATE users SET dg_exp_note=? WHERE id=?").bind(u.dg_exp,u.id).run();const E=DG_EXP.find(x=>x.k===u.k)||DG_EXP[0];
       if(await notify(env,u.id,"🐉 "+(u.dn||"Твой дракон")+" вернулся из похода «"+E.n+"» "+E.ic+" с добычей!\n\nЧешуя, опыт, а может и гем 💎 — заходи забрать, пока он не уснул от усталости.","🎒 Забрать добычу",PAGE+"?dragon=1"))sent++}}catch(e){console.error("dgexp",e)}
   try{sent+=await hhPush(env,now)}catch(e){console.error("hh",e)}
+  try{if(h>=12&&h<21)sent+=await donBlast(env)}catch(e){console.error("donb",e)}
   try{sent+=await winBack(env,now,h)}catch(e){console.error("winback",e)}
   return {sent,due:due.length}}
 /* 🍀 счастливый час: пуш один раз за событие и не больше одного в день — только тем, кто играл последние 3 дня и сейчас не в игре */
@@ -1151,6 +1153,13 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let own=[];try{own=JSON.parse(u&&u.state||"{}").titles||[]}catch(e){}if(own.includes(k))fail("Этот титул уже твой");
     if(T.month&&await titleLeft(env,k,except)<=0)fail("Места «"+T.n+"» на этот месяц закончились. Новые — 1-го числа");
     return {item,stars:T.stars,title:"Титул «"+T.n+"»",desc:k==="author"?"✍️ Соавтор игры: титул навсегда + твою идею добавим в «Воинов Эпох» (в пределах разумного). Не получится реализовать — вернём звёзды":T.ic+" Титул «"+T.n+"» рядом с ником навсегда: в топах, чате, лагере и на арене",data:{k}}}
+  if(item==="cos"){const t=p.t==="pbg"?"pbg":"dfx",L=t==="pbg"?PBG:DFX,k=String(p.k||""),K=L[k];if(!K)fail("Нет такого");
+    const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}if((st[t]||[]).includes(k))fail("Уже твоё");
+    return {item,stars:K.stars,title:(K.ic+" "+(t==="pbg"?"Фон":"Анимация")+" «"+K.n+"»").slice(0,32),desc:t==="pbg"?"Анимированный фон «"+K.n+"» твоего профиля и витрины навсегда — его видят все, кто к тебе заходит":"Своя анимация выпадения карточки «"+K.n+"» навсегда: каждый раз, когда ты открываешь карточку",data:{t,k}}}
+  if(item==="present"){const w=String(p.w||""),W=PRESENT[w];if(!W)fail("Такое подарить нельзя");const to=await trUser(env,p);if(!to)fail("Игрок с таким ником не найден");if(to.id===uid)fail("Себе подарить нельзя — купи обычным способом");
+    const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(to.id).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
+    let stars;if(w==="vip")stars=VIP_T[1].stars;else if(SHOP[w])stars=SHOP[w].stars;else{const [c,k]=w.split(":"),L=c==="t"?TITLES:c==="d"?DFX:PBG,own=c==="t"?st.titles:c==="d"?st.dfx:st.pbg;if((own||[]).includes(k))fail("У "+to.name+" это уже есть — выбери другой подарок");stars=L[k].stars}
+    return {item,stars,title:("🎁 "+W.n+" для "+to.name).slice(0,32),desc:"Подарок игроку "+to.name+": "+W.ic+" "+W.n+". Он получит его сразу и узнает, что это от тебя",data:{to:to.id,w,tn:to.name}}}
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{}}}
   if(item==="sday"){const d=await sdayFree(env,Date.now());if(!d)fail("Все дни на 2 месяца вперёд заняты");return {item,stars:SDAY.stars,title:"🌟 Звезда дня",desc:"Твой ник и самая дорогая карточка весь день на главной у всех игроков. Ближайший свободный день: "+d.split("-").reverse().join("."),data:{}}}
@@ -1224,6 +1233,19 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       if(d.k==="author"){msg="✍️ Ты — Соавтор «Воинов Эпох»! Титул уже рядом с ником.\n\nТеперь напиши @voinovadmin свою идею: новый воин, событие, режим, предмет — что угодно в пределах разумного. Если реализовать не получится, вернём звёзды.";
         for(const a of ADMINS)await notify(env,a,"✍️ КУПИЛИ «Соавтора» за "+T.stars+" ⭐! Игрок "+(u.n||"?")+" (id "+P.uid+"). Ему сказано написать идею в @voinovadmin.","⚔️ Открыть")}
       else msg=T.ic+" Титул «"+T.n+"» твой навсегда! Его видят все рядом с твоим ником."}
+    else if(P.item==="cos"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"cos_grant",{t:d.t,k:d.k},{grant:true})).res;delete res.events;const K=(d.t==="pbg"?PBG:DFX)[d.k];
+      msg=K.ic+" "+(d.t==="pbg"?"Фон «"+K.n+"» уже на твоём профиле!":"Анимация «"+K.n+"» включена — открой карточку и посмотри!")}
+    else if(P.item==="present"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(d.to).first(),me=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      const to={id:d.to,name:u.name||"Игрок"},w=d.w;
+      if(w==="vip"){const now=Date.now(),V=VIP_T[1],x=await env.DB.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").bind(d.to).first()||{};const until=Math.max(now,x.vip_until||0)+V.days*864e5;
+        await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=MAX(COALESCE(vip_t,1),1) WHERE id=?").bind(until,d.to).run()}
+      else if(SHOP[w]){const r=(await doAction(env,to,"grant",{item:w,pid:P.id},{grant:true})).res}
+      else{const [c,k]=w.split(":");if(c==="t"){await doAction(env,to,"title_grant",{k,keep:1},{grant:true});await env.DB.prepare("UPDATE users SET title=? WHERE id=? AND (title IS NULL OR title='')").bind(k,d.to).run();delete topCache.nfx}
+        else await doAction(env,to,"cos_grant",{t:c==="d"?"dfx":"pbg",k},{grant:true})}
+      const fn=(me&&me.n)||"Друг";await doAction(env,to,"present_note",{f:fn,w},{grant:true});const W=PRESENT[w];res={to:d.to,tn:d.tn,w};
+      msg="🎁 Подарок отправлен! "+d.tn+" получил "+W.ic+" "+W.n+" и узнает, что это от тебя.";
+      await notify(env,d.to,"🎁 "+fn+" подарил тебе "+W.ic+" "+W.n+"!\n\nПодарок уже в игре — заходи посмотреть.","🎁 Открыть подарок")}
     else if(P.item==="support"){const u=await env.DB.prepare("SELECT name,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       const tot=(((await env.DB.prepare("SELECT SUM(stars) AS s FROM payments WHERE uid=? AND item='support' AND (status='done' OR id=?)").bind(P.uid,P.id).first())||{}).s)||0;let ttl=0;
       if(tot>=SUP.title){const g=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"title_grant",{k:"patron",keep:1},{grant:true})).res;ttl=g.newT?1:0;
@@ -1720,6 +1742,13 @@ async function dmBlast(env){const now=Date.now();if(now<DMB.from||now>DMB.to)ret
   await kvSet(env,"dmb:"+DMB.id,{t:now});delete topCache["dmb"+DMB.id];const a=ADMINS[0];
   const r=await env.DB.prepare("INSERT INTO dm(a,b,text,t,adm) SELECT ?,id,?,?,1 FROM users WHERE id<>? AND "+DMB.where).bind(a,DMB.text,now,a).run();
   await kvSet(env,"dmb:"+DMB.id,{t:now,n:(r.meta&&r.meta.changes)||0})}
+/* разовое мягкое сообщение тем, кто уже донатил: в Сокровищнице новинки. По 40 человек за заход, ID по порядку */
+const DONB={id:"don1",text:"⭐ Привет! Спасибо, что поддерживаешь «Воинов Эпох» — это правда помогает игре расти ❤️\n\nПока тебя не было, в Сокровищнице появилось кое-что новое для тех, кто любит выделяться… 👀 Загляни во вкладку «Понт» — думаю, тебе понравится."};
+async function donBlast(env){if(!env.BOT_TOKEN&&!env.NOTIFY_TEST)return 0;const k="donb:"+DONB.id,st=(await kvGet(env,k))||{last:0,n:0};if(st.done)return 0;
+  const L=(await env.DB.prepare("SELECT DISTINCT p.uid FROM payments p JOIN users u ON u.id=p.uid WHERE p.status='done' AND p.uid>? AND u.pm=1 ORDER BY p.uid LIMIT 40").bind(st.last).all()).results;
+  if(!L.length){await kvSet(env,k,Object.assign(st,{done:1}));return 0}let sent=0;
+  for(const r of L){st.last=r.uid;if(isAdmin(env,r.uid))continue;if(await notify(env,r.uid,DONB.text,"👑 Посмотреть",PAGE+"?shop=flex"))sent++}
+  st.n+=sent;await kvSet(env,k,st);return sent}
 let updBusy=false;
 async function updBlast(env){if(updBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();if(!UPD.win.some(([a,b])=>now>=a&&now<b))return;
   updBusy=true;try{const st=(await kvGet(env,"blast:"+UPD.id))||{ch:0,after:0,done:0,n:0};if(st.done&&st.ch)return;
