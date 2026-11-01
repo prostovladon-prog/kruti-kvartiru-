@@ -4,7 +4,7 @@
    Этот файл работает и в браузере (локальный режим), и на сервере (Cloudflare Worker).
    Здесь нет ничего про интерфейс: только данные игры и действия, которые меняют состояние игрока. */
 
-const CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=45, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
+const CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LPITY=90, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 const HT=[{k:"Обычный",c:"#8f9bb3",b:[1,3]},{k:"Редкий",c:"#34c759",b:[4,9]},{k:"Эпический",c:"#0a84ff",b:[15,30]},{k:"Легендарный",c:"#bf5af2",b:[60,120]},{k:"Мифический",c:"#ff9f0a",b:[300,500]}];
 const HEROES=[
@@ -463,7 +463,7 @@ function phantom(h,f){const B=cardBody(h,f);const [a,b]=HT[HEROES[h][2]].b;retur
 /* режим удачи (только для аккаунта администратора, включается на сервере): редкие воины, дорогие отделки, красивые номера */
 const HW_LUCK=[0,0,1,3,3], FW_LUCK=[0,2,3,3,2];
 function rollCard(ctx,epic){
-  const pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&(!epic||HEROES[i][2]>=2));
+  const mt=epic===3?3:epic?2:0,pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]>=mt);
   const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
   let f=pick(ctx.luck?FW_LUCK:FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
   return makeCard(ctx,h,f);
@@ -713,8 +713,9 @@ const ACTIONS={
     if(!c&&!epic&&!ctx.noRare&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
     st.nOp=(st.nOp||0)+1;let wel=0;
     if(st.wel===0&&st.nOp>=2&&!c){wel=1;st.wel=1;const pl=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===3),h=pl[Math.floor(Math.random()*pl.length)];c=makeCard(ctx,h,ctx.issuedOf(h,1)<FIN[1].run?1:0)}   // подарок новичку: на 2-й прокрутке легендарный воин с блеском
-    if(!c)c=rollCard(ctx,epic);if(epic&&!wel&&(st.guar||0)>0)st.guar--;
-    st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;
+    const leg=!c&&(st.lpity||0)>=LPITY-1;   // гарантия легенды: 90-я прокрутка без легендарки — точно легендарка
+    if(!c)c=rollCard(ctx,leg?3:epic);if(epic&&!wel&&(st.guar||0)>0&&HEROES[c.h][2]>=2)st.guar--;
+    st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;st.lpity=HEROES[c.h][2]>=3?0:(st.lpity||0)+1;
     addCard(G,c);day(st,ctx.now).opened++;return wel?{card:c,wel:1}:{card:c}},
 
   sell(G){const c=burnable(freeCard(G,G.p.id)),got=Math.round(c.v*QUICK*(hhIs(G.ctx.now,"coin")?1.5:1)*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
@@ -1030,7 +1031,7 @@ const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магн
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.

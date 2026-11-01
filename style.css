@@ -2393,3 +2393,4 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .nmrow.hot{border-color:#ffd34d;box-shadow:0 0 14px rgba(255,211,77,.35)}.nmrow.hot s{background:linear-gradient(90deg,#ffb92e,#ffe680);animation:nmglow 1.4s ease-in-out infinite}
 @keyframes nmglow{50%{filter:brightness(1.35)}}
 .nmpulse .nmrow{animation:nmpop .5s}@keyframes nmpop{40%{transform:scale(1.03)}}
+.nmrow.lg s{background:linear-gradient(90deg,#7a3cff,#bf5af2)}
