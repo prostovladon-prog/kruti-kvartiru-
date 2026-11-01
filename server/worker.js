@@ -4,7 +4,7 @@
    Этот файл работает и в браузере (локальный режим), и на сервере (Cloudflare Worker).
    Здесь нет ничего про интерфейс: только данные игры и действия, которые меняют состояние игрока. */
 
-const CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
+const CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=45, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 const HT=[{k:"Обычный",c:"#8f9bb3",b:[1,3]},{k:"Редкий",c:"#34c759",b:[4,9]},{k:"Эпический",c:"#0a84ff",b:[15,30]},{k:"Легендарный",c:"#bf5af2",b:[60,120]},{k:"Мифический",c:"#ff9f0a",b:[300,500]}];
 const HEROES=[
