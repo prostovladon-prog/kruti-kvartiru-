@@ -2471,3 +2471,9 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .prespop{text-align:center}.presbox{font-size:72px;animation:hhin .6s cubic-bezier(.2,1.5,.4,1),hhbob 1.6s ease-in-out .6s infinite}
 .wsh .top.haspbg{position:relative;overflow:hidden;border-radius:16px;padding:14px 12px;margin-bottom:8px}
 .wsh .top.haspbg>*:not(.pbgb){position:relative;z-index:1}.pbgb.pbgbg{position:absolute;inset:0;height:auto;margin:0;border-radius:0;z-index:0}
+.mop-s.msel .mop-in{outline:3px solid #ffd23f;outline-offset:2px;border-radius:12px}
+.mop-s.msel::after{content:"💰";position:absolute;top:-8px;right:-6px;z-index:5;font-size:20px;background:#ffd23f;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.4);animation:hhin .3s}
+.mop-s.msold{opacity:.35;filter:grayscale(1)}.mop-s.msold::after{content:"ПРОДАНО";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-14deg);z-index:5;font-weight:900;font-size:12px;color:#fff;background:#ff3b30;padding:3px 8px;border-radius:6px}
+.mop-sellb{width:100%;margin-top:8px;padding:12px;border:0;border-radius:14px;font:inherit;font-weight:800;font-size:15px;color:#2a1a00;background:linear-gradient(180deg,#ffe680,#ffb92e);box-shadow:0 4px 0 #b77a00;cursor:pointer}
+.mop-sellb:disabled{background:rgba(0,0,0,.06);color:#6b6f80;box-shadow:none;font-weight:600;font-size:13px}
+.mop-hint{margin:0 0 6px;text-align:center;font-size:12px;opacity:.8}

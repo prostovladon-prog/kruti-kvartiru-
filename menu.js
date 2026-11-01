@@ -323,8 +323,15 @@ async function openMulti(n){if(multiBusy||!S)return;multiBusy=true;hap("medium")
   function finish(){clearTimeout(timer);$("mop-skip").hidden=true;const e=$("mop-end");e.hidden=false;
     best&&slots.find(x=>x.c===best).w.classList.add("crown");
     $("mop-best").innerHTML=Lv.some(l=>l>=2)?'⭐ Лучшая: <b>'+escH(HEROES[best.h][0])+'</b> · '+FIN[best.f].k+' · '+HT[HEROES[best.h][2]].k.toLowerCase():'Редких нет — повезёт в следующий раз!';
-    const cheap=C.filter(c=>c.f===0&&HEROES[c.h][2]===0&&S.cards.some(x=>x.id===c.id));const sb=$("mop-sell");
-    if(cheap.length){sb.hidden=false;sb.textContent="💰 Продать обычные из пачки ("+cheap.length+")";sb.onclick=async()=>{sb.disabled=true;const q=await act("sellmany",{ids:cheap.map(c=>c.id)});if(q){toast("Продано "+q.n+" за "+fmt(q.got)+" 🪙");sb.hidden=true;renderAll()}else sb.disabled=false}}
+    /* выбор, что продать: тап по карточке ставит/снимает отметку; обычные отмечены сразу */
+    const can=x=>x.c.f<5&&!x.sold&&S.cards.some(y=>y.id===x.c.id),sb=$("mop-sell"),k=()=>hhIs(NOW(),"coin")?1.5:1;
+    slots.forEach(x=>{x.sel=can(x)&&x.c.f===0&&HEROES[x.c.h][2]===0;x.w.classList.toggle("msel",x.sel)});
+    const upd=()=>{const L=slots.filter(x=>x.sel),v=L.reduce((a,x)=>a+x.c.v*QUICK*k(),0);sb.hidden=false;sb.disabled=!L.length;sb.className="mop-sellb";
+      sb.innerHTML=L.length?'💰 Продать выбранные ('+L.length+') · <b class="num">'+fmt(Math.round(v*100)/100)+'</b>':'Нажми на карточки, которые хочешь продать'};
+    e.insertAdjacentHTML("afterbegin",'<p class="mop-hint">👆 Нажми на карточку, чтобы выбрать её для продажи</p>');
+    slots.forEach(x=>{x.w.onclick=()=>{if(!can(x)){if(x.c.f>=5)toast("Эту карточку продать нельзя");return}x.sel=!x.sel;x.w.classList.toggle("msel",x.sel);hap("light");upd()}});upd();
+    sb.onclick=async()=>{const L=slots.filter(x=>x.sel&&can(x));if(!L.length)return;sb.disabled=true;const q=await act("sellmany",{ids:L.map(x=>x.c.id)});
+      if(q){try{sfx.coin()}catch(_){}hapN("success");toast("Продано "+q.n+" за "+fmt(q.got)+" 🪙");L.forEach(x=>{x.sel=false;x.sold=true;x.w.classList.remove("msel");x.w.classList.add("msold")});renderAll();upd()}else sb.disabled=false};
     $("mop-ok").onclick=closeModal;if($("mop-more"))$("mop-more").onclick=()=>{closeModal();setTimeout(()=>openMulti(n),120)}}
   $("mop-skip").onclick=()=>{clearTimeout(timer);slots.forEach((x,k)=>setTimeout(()=>flip(x,true),k*60))};
   setTimeout(next,C.length*70+450)}
