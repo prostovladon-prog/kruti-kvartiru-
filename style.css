@@ -2384,3 +2384,12 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .hhbtn{width:100%;padding:13px;border:0;border-radius:14px;font:inherit;font-weight:800;font-size:16px;color:#2a1a00;background:linear-gradient(180deg,#ffe680,#ffb92e);box-shadow:0 4px 0 #b77a00;cursor:pointer}
 .hhx{margin-top:10px;background:none;border:0;color:#d6f5e3;font:inherit;font-size:13px;cursor:pointer;opacity:.8}
 @keyframes hhfade{from{opacity:0}}@keyframes hhin{from{transform:scale(.6);opacity:0}}@keyframes hhspin{to{transform:rotate(360deg)}}
+/* 💎 почти достиг */
+.nmbox{display:flex;flex-direction:column;gap:6px;margin:10px 0 4px}
+.nmrow{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(10,14,40,.55);color:#fff;font:inherit;text-align:left;cursor:pointer}
+.nmrow>i{font-style:normal;font-size:20px}.nmrow>span{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.nmrow b{font-size:13px;line-height:1.2}.nmrow small{font-size:11px;opacity:.7}
+.nmrow u{display:block;height:6px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}.nmrow s{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#5ac8fa,#a66bff);transition:width .8s cubic-bezier(.2,.9,.3,1)}
+.nmrow.hot{border-color:#ffd34d;box-shadow:0 0 14px rgba(255,211,77,.35)}.nmrow.hot s{background:linear-gradient(90deg,#ffb92e,#ffe680);animation:nmglow 1.4s ease-in-out infinite}
+@keyframes nmglow{50%{filter:brightness(1.35)}}
+.nmpulse .nmrow{animation:nmpop .5s}@keyframes nmpop{40%{transform:scale(1.03)}}
