@@ -487,11 +487,11 @@ setInterval(()=>{try{const C=chData;if(!C||!C.big||C.phase==="done"||!S||!ONLINE
     const el=Date.now()-t0,b=$("open");if(el>4000&&b)b.classList.add("autonudge");
     if(el>10000){done=true;clearInterval(it);if(b)b.classList.remove("autonudge");try{scrollTo({top:0,behavior:"smooth"})}catch(e){}setTimeout(()=>{if(!touched)open()},400)}}catch(e){}},500)}
 /* ---------- 🎬 экран для ежедневного видео (только админ): «100 000 игроков до Нового года» ---------- */
-const VID={start:Date.UTC(2026,9,20)-3*3600e3,goal:100000,ny:Date.UTC(2026,11,31,21)};
+const VID={start:Date.UTC(2026,10,2)-3*3600e3,goal:100000,ny:Date.UTC(2026,11,31,21)};
 function vidOpen(){const R=stData;if(!R)return toast("Сначала обнови статистику");const now=NOW(),day=Math.floor((now-VID.start)/864e5)+1,tot=R.players||0,left=Math.max(0,VID.goal-tot),dl=Math.max(1,Math.ceil((VID.ny-now)/864e5)),need=Math.ceil(left/dl);
   const src=(R.srcs||[]).find(r=>r.code==="d"+(day-1)),p=Math.min(100,tot/VID.goal*100);
   const o=document.createElement("div");o.className="vids";
-  o.innerHTML='<div class="vbg"><i></i><i></i><i></i></div><div class="vin"><div class="vtag">ВОИНЫ ЭПОХ · ЧЕЛЛЕНДЖ</div><div class="vday">ДЕНЬ <b>'+day+'</b></div>'+
+  o.innerHTML='<div class="vbg"><i></i><i></i><i></i></div><div class="vin"><div class="vtag">ВОИНЫ ЭПОХ · ЧЕЛЛЕНДЖ</div><div class="vday">ДЕНЬ <b>'+day+'</b><small>/ 60</small></div>'+
    '<div class="vgoal">цель: <b>100 000</b> игроков до Нового года 🎄</div><div class="vnum" data-to="'+tot+'">0</div><div class="vlbl">игроков сейчас</div>'+
    '<div class="vbar"><s style="--p:'+Math.max(.6,p).toFixed(2)+'%"></s><em>'+(p<1?p.toFixed(2):p.toFixed(1))+'%</em></div>'+
    '<div class="vrow"><div><b>+'+fmtN(R.newYesterday||0)+'</b><span>вчера</span></div><div><b>+'+fmtN(R.newToday||0)+'</b><span>сегодня</span></div><div><b>'+dl+'</b><span>'+plural(dl,"день","дня","дней")+' до НГ</span></div></div>'+
