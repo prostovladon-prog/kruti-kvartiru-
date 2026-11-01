@@ -299,17 +299,33 @@ setInterval(()=>{try{multiDraw()}catch(e){}},2000);
 let multiBusy=false;
 async function openMulti(n){if(multiBusy||!S)return;multiBusy=true;hap("medium");try{whoosh()}catch(e){}
   const r=await act("open_multi",{n});multiBusy=false;if(!r||!r.cards||!r.cards.length)return;renderAll();
-  const C=r.cards,best=C.reduce((a,c)=>c.v>a.v?c:a,C[0]),tot=C.reduce((a,c)=>a+c.v,0),rank=c=>HEROES[c.h][2]*10+c.f;
+  const C=r.cards,best=C.reduce((a,c)=>c.v>a.v?c:a,C[0]),tot=C.reduce((a,c)=>a+c.v,0),Lv=C.map(c=>revealLevel(c));
+  const RC=["#9aa6bf","#34c759","#0a84ff","#bf5af2","#ff9f0a"],col=c=>c.f>=2?["","","#5ac8fa","#ffd23f","#ff3fd8"][c.f]||RC[HEROES[c.h][2]]:RC[HEROES[c.h][2]];
   const m=$("modal"),sh=$("msheet");m.hidden=false;
-  sh.innerHTML='<div class="box mop"><div class="mop-h"><b>🎴 Открыто: '+C.length+'</b><span>на сумму <b class="num">'+fmt(tot)+'</b> 🪙</span></div><div class="mop-g" id="mop-g"></div>'+
-    '<div class="mop-best" id="mop-best"></div><div class="mop-b"><button type="button" class="craftbtn" id="mop-ok">Отлично!</button>'+(S.spins>=2?'<button type="button" class="mini2" id="mop-more">🎴 Ещё ×'+Math.min(S.spins,n)+'</button>':'')+'</div><button type="button" class="ghost" id="mop-sell" hidden></button></div>';
-  const g=$("mop-g");C.forEach((c,i)=>{const w=document.createElement("div");w.className="mop-c r"+HEROES[c.h][2]+(c.f>=2?" fin":"")+(c===best?" best":"");w.style.animationDelay=(i*.16)+"s";const d=bigMc(c,0);d.querySelector(".v")&&(d.querySelector(".v").innerHTML='<small>'+FIN[c.f].k+'</small><b class="num">'+fmt(c.v)+'</b>');w.appendChild(d);g.appendChild(w)});
-  const top=C.filter(c=>HEROES[c.h][2]>=2||c.f>=2).sort((a,b)=>rank(b)-rank(a));
-  $("mop-best").innerHTML=top.length?'⭐ Лучшая: <b>'+escH(HEROES[best.h][0])+'</b> · '+FIN[best.f].k+' · '+HT[HEROES[best.h][2]].k.toLowerCase():'Редких нет — повезёт в следующий раз!';
-  const mx=Math.max(...C.map(c=>revealLevel(c)));setTimeout(()=>{try{sfx.reveal(mx);if(mx>=1)burst(mx);if(mx>=3){sfx.fanfare();hapN("success")}}catch(e){}},C.length*160+200);
-  const cheap=C.filter(c=>c.f===0&&HEROES[c.h][2]===0&&S.cards.some(x=>x.id===c.id));const sb=$("mop-sell");
-  if(cheap.length){sb.hidden=false;sb.textContent="💰 Продать обычные из пачки ("+cheap.length+")";sb.onclick=async()=>{sb.disabled=true;const q=await act("sellmany",{ids:cheap.map(c=>c.id)});if(q){toast("Продано "+q.n+" за "+fmt(q.got)+" 🪙");sb.hidden=true;renderAll()}else sb.disabled=false}}
-  $("mop-ok").onclick=closeModal;if($("mop-more"))$("mop-more").onclick=()=>{closeModal();setTimeout(()=>openMulti(n),120)}}
+  sh.innerHTML='<div class="box mop2"><div class="mop-h"><b>🎴 Пачка ×'+C.length+'</b><span id="mop-sum">открываем…</span></div><div class="mop-stage"><div class="mop-rays"></div><div class="mop-g2" id="mop-g"></div></div>'+
+    '<button type="button" class="mop-skip" id="mop-skip">⏩ Открыть все сразу</button><div class="mop-end" id="mop-end" hidden><div class="mop-best" id="mop-best"></div><div class="mop-b"><button type="button" class="craftbtn" id="mop-ok">Отлично!</button>'+(S.spins>=2?'<button type="button" class="mini2" id="mop-more">🎴 Ещё ×'+Math.min(S.spins,n)+'</button>':'')+'</div><button type="button" class="ghost" id="mop-sell" hidden></button></div></div>';
+  const g=$("mop-g"),slots=[];
+  C.forEach((c,i)=>{const w=document.createElement("div");w.className="mop-s";w.style.setProperty("--rc",col(c));w.style.setProperty("--d",(i*.07)+"s");w.style.setProperty("--fx",((i%3)-1)*-110+"%");w.style.setProperty("--fy",(-Math.floor(i/3)*100-60)+"%");
+    w.innerHTML='<div class="mop-in"><div class="mop-back"><i>⚔️</i><b>ВОИНЫ<br>ЭПОХ</b></div><div class="mop-front"></div></div>';
+    const d=bigMc(c,0);const v=d.querySelector(".v");if(v)v.innerHTML='<small>'+FIN[c.f].k+'</small><b class="num">'+fmt(c.v)+'</b>';w.querySelector(".mop-front").appendChild(d);
+    if(c===best)w.classList.add("best");g.appendChild(w);slots.push({w,c,L:Lv[i],done:false});w.onclick=()=>flip(slots[i],true)});
+  let sum=0,left=C.length,timer=0,idx=0;
+  function flip(S2,fast){if(S2.done)return;S2.done=true;left--;if(!fast)try{S2.w.scrollIntoView({block:"nearest",behavior:"smooth"})}catch(e){}const L=S2.L;S2.w.classList.remove("tease");S2.w.classList.add("open","l"+L);
+    try{sfx.reveal(Math.min(L,4))}catch(e){}if(L>=2){try{burst(L-1)}catch(e){}hap(L>=3?"heavy":"medium")}else if(!fast)hap("light");
+    sum+=S2.c.v;$("mop-sum").innerHTML='на сумму <b class="num">'+fmt(sum)+'</b> 🪙';
+    if(L>=3){const st=sh.querySelector(".mop-stage");st.classList.remove("boom");void st.offsetWidth;st.classList.add("boom");try{sfx.fanfare();hapN("success")}catch(e){}}
+    if(!left)finish()}
+  function next(){if(idx>=slots.length)return;const S2=slots[idx++];if(S2.done){next();return}
+    if(S2.L>=2){S2.w.classList.add("tease");try{for(let k=0;k<3;k++)setTimeout(()=>sfx.rumble(k*.6),k*150)}catch(e){}timer=setTimeout(()=>{flip(S2);timer=setTimeout(next,S2.L>=3?900:420)},S2.L>=3?900:520)}
+    else{flip(S2);timer=setTimeout(next,230)}}
+  function finish(){clearTimeout(timer);$("mop-skip").hidden=true;const e=$("mop-end");e.hidden=false;
+    best&&slots.find(x=>x.c===best).w.classList.add("crown");
+    $("mop-best").innerHTML=Lv.some(l=>l>=2)?'⭐ Лучшая: <b>'+escH(HEROES[best.h][0])+'</b> · '+FIN[best.f].k+' · '+HT[HEROES[best.h][2]].k.toLowerCase():'Редких нет — повезёт в следующий раз!';
+    const cheap=C.filter(c=>c.f===0&&HEROES[c.h][2]===0&&S.cards.some(x=>x.id===c.id));const sb=$("mop-sell");
+    if(cheap.length){sb.hidden=false;sb.textContent="💰 Продать обычные из пачки ("+cheap.length+")";sb.onclick=async()=>{sb.disabled=true;const q=await act("sellmany",{ids:cheap.map(c=>c.id)});if(q){toast("Продано "+q.n+" за "+fmt(q.got)+" 🪙");sb.hidden=true;renderAll()}else sb.disabled=false}}
+    $("mop-ok").onclick=closeModal;if($("mop-more"))$("mop-more").onclick=()=>{closeModal();setTimeout(()=>openMulti(n),120)}}
+  $("mop-skip").onclick=()=>{clearTimeout(timer);slots.forEach((x,k)=>setTimeout(()=>flip(x,true),k*60))};
+  setTimeout(next,C.length*70+450)}
 /* ===================== 📦 Хранилище: большая заметная кнопка в «Картах» ===================== */
 function capBarDraw(){const H=$("col-head");if(!H||!S)return;let b=$("capbar");if(!b){b=document.createElement("button");b.type="button";b.id="capbar";b.className="capbig";H.after(b);b.onclick=()=>{hap("light");openCap()}}
   const n=S.cards.length,c=capOf(S),pc=Math.min(100,n/c*100),full=n>=c-3;const k=n+"/"+c;if(b.dataset.k===k)return;b.dataset.k=k;b.classList.toggle("full",full);
