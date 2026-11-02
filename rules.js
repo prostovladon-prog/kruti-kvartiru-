@@ -693,6 +693,7 @@ const ACTIONS={
 
   /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
   hh_claim(G){const e=hhNow(G.ctx.now);if(!e||e.k!=="gift")fail("Сейчас нет Часа подарков");if(G.st.hhGot===e.at)fail("Подарок этого часа уже забран");G.st.hhGot=e.at;G.st.spins+=3;return {sp:3}},
+  seen(G){const k=String(G.p.k||"").slice(0,40);if(!k)fail("Нет ключа");const L=(G.st.seen||[]).filter(x=>x!==k);L.push(k);G.st.seen=L.slice(-60);return {}},
   open_multi(G){const {st,ctx}=G;refill(st,ctx.now);const want=Math.max(2,Math.min(10,G.p.n|0||5));if(st.spins<=0)fail("Прокрутки закончились");
     const free=capOf(st)-G.cards.length;if(free<=0)fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
     const n=Math.min(want,st.spins,free),cards=[];let wel=0;

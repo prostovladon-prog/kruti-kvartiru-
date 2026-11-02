@@ -1,5 +1,9 @@
 /* ===================== Меню «Ещё»: шторка со всеми разделами + быстрые плитки на главной =====================
    Нижняя панель: Крутить · Карты · Бой · Дракон · Рынок · Ещё. Всё остальное — в шторке. */
+/* ---------- разовые окна: «уже видел» хранится и в аккаунте, а не только в браузере — чтобы не показывать снова на другом устройстве или после очистки Telegram ---------- */
+{const SYNC=k=>/^we-(don1|big-|dgann1)/.test(k),gi=Storage.prototype.getItem,si=Storage.prototype.setItem,sent=new Set();
+  Storage.prototype.getItem=function(k){const v=gi.call(this,k);if(v==null&&SYNC(k)&&typeof S!=="undefined"&&S&&(S.seen||[]).includes(k))return "1";return v};
+  Storage.prototype.setItem=function(k,v){si.call(this,k,v);if(SYNC(k)&&!sent.has(k)&&typeof S!=="undefined"&&S&&ONLINE&&!(S.seen||[]).includes(k)){sent.add(k);(S.seen=S.seen||[]).push(k);try{act("seen",{k})}catch(e){}}}}
 const MENU_GROUPS=[
  ["Главное",[
   {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
@@ -235,7 +239,9 @@ const PATH_UI=[
  {ic:"⚔️",t:"Выиграй первый бой",d:"Выбери воина и характеристику, где он сильнее",go:"В бой",f:()=>setTab("duel")},
  {ic:"📅",t:"Забери награду за вход",d:"Заходи каждый день — награда растёт, на 7-й день эпик",go:"Забрать",f:()=>{setTab("quest");setTimeout(()=>{const e=$("streak");if(e)e.closest(".box").scrollIntoView({block:"center",behavior:"smooth"})},120)}}];
 function pathSt(){if(!S)return null;const P=S.path||{got:[]};const ok=PATH_UI.map((x,i)=>{try{return pathOk(S,{nick:!!S.nick},i)}catch(e){return false}});return {P,ok,got:P.got||[],fin:!!P.fin}}
-function pathShow(){const V=pathSt();if(!V||V.fin||!ONLINE)return false;return S.created&&NOW()-S.created<14*864e5}
+/* «новичковые» блоки — только тем, кто пришёл после их запуска (31.10): у старых игроков их нет */
+const NEWB_FROM=Date.UTC(2026,9,30,21);
+function pathShow(){const V=pathSt();if(!V||V.fin||!ONLINE)return false;return S.created>=NEWB_FROM&&NOW()-S.created<14*864e5}
 function pathDraw(){let el=$("pathbox");if(!pathShow()){if(el)el.remove();return}
   if(!el){el=document.createElement("div");el.id="pathbox";el.className="pathbox";const h=$("open")&&$("open").parentElement;if(!h)return;h.after(el);
     el.onclick=async e=>{const b=e.target.closest("[data-pa]");if(!b)return;const a=b.dataset.pa,i=+b.dataset.i;hap("light");
@@ -266,7 +272,7 @@ setInterval(()=>{try{noSpinDraw()}catch(e){}},1000);
 const NB_UI=[["🎴","5 прокруток"],["👑","Легенда"],["🪙","500 монет"],["🎴","10 прокруток"],["💎","Эпик"],["💠","5 000 рун"],["🐉","Легенда +15"]];
 function dayboxDraw(){let el=$("daybox");if(!S||!ONLINE){if(el)el.remove();return}
   const now=NOW(),V=nbView(S,{now,created:S.created||now}),Gv=goalView(S,now),sk=S.streak||{},stCan=sk.last!==today(now)||!sk.claimed;
-  const showNb=!V.done&&V.age<21;if(!showNb&&!stCan&&Gv.got){if(el)el.remove();return}
+  const showNb=!V.done&&V.age<21&&(S.created||0)>=NEWB_FROM;if(!showNb&&!stCan&&Gv.got){if(el)el.remove();return}
   if(!el){el=document.createElement("div");el.id="daybox";el.className="daybox";const h=$("pathbox")||($("open")&&$("open").parentElement);if(!h)return;h.after(el);
     el.onclick=async e=>{const b=e.target.closest("[data-db]");if(!b)return;hap("light");const k=b.dataset.db;b.disabled=true;
       if(k==="nb"){const r=await act("nb_claim");if(r){sfx.fanfare();hapN("success");burst(r.card?3:2);toast("🎁 Подарок дня "+r.day+": "+[r.sp?"+"+r.sp+" прокруток":"",r.cash?"+"+r.cash+" 🪙":"",r.runes?"+"+fmtN(r.runes)+" 💠":"",r.guar?"следующая карточка — эпик":"",r.card?"легендарный воин!":""].filter(Boolean).join(", "));renderAll();if(r.card&&typeof openCardView==="function")setTimeout(()=>openCardView(r.card,{mine:true}),400)}}

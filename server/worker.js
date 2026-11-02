@@ -695,6 +695,7 @@ const ACTIONS={
 
   /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
   hh_claim(G){const e=hhNow(G.ctx.now);if(!e||e.k!=="gift")fail("Сейчас нет Часа подарков");if(G.st.hhGot===e.at)fail("Подарок этого часа уже забран");G.st.hhGot=e.at;G.st.spins+=3;return {sp:3}},
+  seen(G){const k=String(G.p.k||"").slice(0,40);if(!k)fail("Нет ключа");const L=(G.st.seen||[]).filter(x=>x!==k);L.push(k);G.st.seen=L.slice(-60);return {}},
   open_multi(G){const {st,ctx}=G;refill(st,ctx.now);const want=Math.max(2,Math.min(10,G.p.n|0||5));if(st.spins<=0)fail("Прокрутки закончились");
     const free=capOf(st)-G.cards.length;if(free<=0)fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
     const n=Math.min(want,st.spins,free),cards=[];let wel=0;
@@ -2140,7 +2141,7 @@ async function winBack(env,now,h){if((h<11||h>=21)&&!env.NOTIFY_TEST)return 0;le
     const dn=u.dn||"Твой дракон",txt=u.dg_pow>0?(st===1?"🥺 "+dn+" скучает и ждёт тебя у входа… Он не ел со вчерашнего дня. Загляни — и забери +"+W.sp+" прокрутки в подарок.":st===3?"😢 "+dn+" грустит уже 3 дня и почти не поднимает голову. Вернись к нему — он обрадуется, а тебя ждут +"+W.sp+" прокруток.":"💔 "+dn+" ждёт тебя целую неделю… Каждый вечер смотрит на дверь. Вернись — +"+W.sp+" прокруток уже в игре."):W.t;
     if(await notify(env,u.id,txt,u.dg_pow>0?"🐉 Навестить дракона":"🎴 Забрать подарок",u.dg_pow>0?PAGE+"?dragon=1":undefined))sent++}
   if(h>=12){const td=dayNum(now);
-    const N=(await env.DB.prepare("SELECT id,created,COALESCE(json_extract(state,'$.nb.n'),0) AS n,COALESCE(json_extract(state,'$.nb.last'),'') AS last FROM users WHERE pm=1 AND created>? AND nb_note<? AND seen<? LIMIT 30").bind(now-8*D,td,(td*864e5)-TZ).all()).results;
+    const N=(await env.DB.prepare("SELECT id,created,COALESCE(json_extract(state,'$.nb.n'),0) AS n,COALESCE(json_extract(state,'$.nb.last'),'') AS last FROM users WHERE pm=1 AND created>? AND nb_note<? AND seen<? LIMIT 30").bind(Math.max(now-8*D,Date.UTC(2026,9,30,21)),td,(td*864e5)-TZ).all()).results;
     for(const u of N){await env.DB.prepare("UPDATE users SET nb_note=? WHERE id=?").bind(td,u.id).run();if(u.n>=NB.length)continue;
       const k=u.n,R2=NB[k],what=R2.leg?"легендарный воин":R2.guar?"гарантированная эпическая карточка":R2.runes?fmtR(R2.runes)+" рун":R2.cash?R2.cash+" монет":(R2.sp||0)+" прокруток";
       if(await notify(env,u.id,"🎁 Подарок новичка, день "+(k+1)+" из "+NB.length+": "+what+(R2.sp&&!/прокрут/.test(what)?" + "+R2.sp+" прокруток":"")+"!\n\nОн ждёт тебя в игре — заходи и забирай. Не забудешь каждый день — на 7-й день легендарный воин и 15 прокруток 👑","🎁 Забрать подарок"))sent++}}
