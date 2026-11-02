@@ -4,7 +4,7 @@
    Этот файл работает и в браузере (локальный режим), и на сервере (Cloudflare Worker).
    Здесь нет ничего про интерфейс: только данные игры и действия, которые меняют состояние игрока. */
 
-const CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LPITY=90, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
+const DUEL_CAP=15000,CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LPITY=90, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 const HT=[{k:"Обычный",c:"#8f9bb3",b:[1,3]},{k:"Редкий",c:"#34c759",b:[4,9]},{k:"Эпический",c:"#0a84ff",b:[15,30]},{k:"Легендарный",c:"#bf5af2",b:[60,120]},{k:"Мифический",c:"#ff9f0a",b:[300,500]}];
 const HEROES=[
@@ -755,7 +755,9 @@ const ACTIONS={
     else if(R.w>R.l){me.wins=(me.wins||0)+1;st.totalWins=(st.totalWins||0)+1;addXp(ctx,me,30);day(st,ctx.now).wins++;dg=dgWin(st,ctx);
       if(p.mode&&real){ctx.takeCard=real.id;gotCard=snap(real);addCard(G,gotCard)}   // забираем карточку игрока
       else if(p.mode&&G.cards.length<capOf(st)){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
-      else{reward=Math.round(opp.v*.3+5);earn(st,reward)}}
+      else{   // награда без ставки: не больше DUEL_CAP, а за повторные победы над одной и той же карточкой сегодня — вдвое меньше каждый раз
+        let base=Math.min(opp.v,DUEL_CAP);if(real){const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{}};const n=st.dw.m[real.id]||0;st.dw.m[real.id]=n+1;base*=Math.pow(.5,n)}
+        reward=Math.round(base*.3+5);earn(st,reward)}}
     else{addXp(ctx,me,10);if(p.mode){if(real)ctx.giveAway=me.id;burn(G,[me.id]);lostCard=true}}   // с игроком карточка уходит к нему
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null,dk,dg}},
 
