@@ -1081,7 +1081,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=39;
+const SCHEMA_V=40;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1156,7 +1156,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "ALTER TABLE users ADD COLUMN dg_exp INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN dg_exp_note INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)",
  "ALTER TABLE users ADD COLUMN hh_note INTEGER NOT NULL DEFAULT 0",
- "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)"];
+ "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
+ "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -2065,6 +2066,27 @@ async function tourApi(env,me,a,p){const now=Date.now();
     await env.DB.prepare("UPDATE tours SET start=?,reminded=1 WHERE id=?").bind(now+Math.max(0,+p.min||0)*60e3,T.id).run();return {}}
   fail("Неизвестное действие")}
 
+/* x2 к пополнению: сколько ещё бонусных звёзд даст активированный промокод (берём самый щедрый неиспользованный) */
+async function x2Left(env,uid){const r=await env.DB.prepare("SELECT code,x2 FROM promo_uses WHERE uid=? AND x2>0 AND x2d=0 ORDER BY x2 DESC LIMIT 1").bind(uid).first();return r?r.x2:0}
+/* ---------- 🎟 промокоды: админ создаёт, игрок вводит один раз. По кодам видно, из какого видео и с какой площадки пришли люди ---------- */
+const promoKey=c=>String(c||"").toUpperCase().replace(/Ё/g,"Е").replace(/[^A-ZА-Я0-9_-]/g,"").slice(0,24);
+async function promoApi(env,me,a,p){const now=Date.now();
+  if(a==="promo_use"){const code=promoKey(p.code);if(!code)fail("Введи промокод");const P=await env.DB.prepare("SELECT * FROM promo WHERE code=?").bind(code).first();
+    if(!P||P.off)fail("Такого промокода нет. Проверь, как он написан");if(P.until&&now>P.until)fail("Срок промокода закончился");
+    if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
+    const r=await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t) VALUES(?,?,?)").bind(code,me.id,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже активировал этот промокод");
+    if(P.x2)await env.DB.prepare("UPDATE promo_uses SET x2=? WHERE code=? AND uid=?").bind(P.x2,code,me.id).run();
+    if(P.sp||P.cash)await doAction(env,me,"tour_prize",{sp:P.sp,cash:P.cash},{tour:1});return {code,sp:P.sp,cash:P.cash,x2:P.x2||0}}
+  if(a==="promo_x2")return {x2:await x2Left(env,me.id)};
+  if(!isAdmin(env,me.id))fail("Нет доступа");
+  if(a==="pcode_set"){const code=promoKey(p.code);if(code.length<2)fail("Код — от 2 символов: буквы, цифры, _ и -");const sp=Math.max(0,Math.min(100,p.sp|0)),cash=Math.max(0,Math.min(1e6,p.cash|0)),x2=Math.max(0,Math.min(5000,p.x2|0));if(!sp&&!cash&&!x2)fail("Укажи награду");
+    const mx=Math.max(0,p.mx|0),until=(+p.days||0)>0?now+(+p.days)*864e5:0;
+    await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2) VALUES(?,?,?,?,?,?,0,?) ON CONFLICT(code) DO UPDATE SET sp=excluded.sp,cash=excluded.cash,mx=excluded.mx,until=excluded.until,off=0,x2=excluded.x2").bind(code,sp,cash,mx,until,now,x2).run();return {code}}
+  if(a==="pcode_off"){await env.DB.prepare("UPDATE promo SET off=1-off WHERE code=?").bind(promoKey(p.code)).run();return {}}
+  if(a==="pcode_list"){const L=(await env.DB.prepare("SELECT * FROM promo ORDER BY created DESC LIMIT 100").all()).results;
+    const S=(await env.DB.prepare("SELECT u.code,COUNT(*) AS n,SUM(CASE WHEN us.created>=u.t-864e5 THEN 1 ELSE 0 END) AS nw,SUM(CASE WHEN COALESCE(json_extract(us.state,'$.nOp'),0)>=3 THEN 1 ELSE 0 END) AS a3,SUM(CASE WHEN EXISTS(SELECT 1 FROM user_days d WHERE d.uid=u.uid AND d.d>CAST((u.t+10800000)/86400000 AS INTEGER)) THEN 1 ELSE 0 END) AS back,MAX(u.t) AS last FROM promo_uses u JOIN users us ON us.id=u.uid GROUP BY u.code").all()).results;
+    const m=new Map(S.map(r=>[r.code,r]));return {list:L.map(P=>({...P,...(m.get(P.code)||{n:0,nw:0,a3:0,back:0})}))}}
+  fail("Неизвестное действие")}
 /* ---------- подписка на канал (бот должен быть администратором канала) ---------- */
 const CHANNEL="@voinyepoh";
 async function subCheck(env,me){
@@ -2212,6 +2234,8 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(to.id).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
     let stars;if(w==="vip")stars=VIP_T[1].stars;else if(SHOP[w])stars=SHOP[w].stars;else{const [c,k]=w.split(":"),L=c==="t"?TITLES:c==="d"?DFX:PBG,own=c==="t"?st.titles:c==="d"?st.dfx:st.pbg;if((own||[]).includes(k))fail("У "+to.name+" это уже есть — выбери другой подарок");stars=L[k].stars}
     return {item,stars,title:("🎁 "+W.n+" для "+to.name).slice(0,32),desc:"Подарок игроку "+to.name+": "+W.ic+" "+W.n+". Он получит его сразу и узнает, что это от тебя",data:{to:to.id,w,tn:to.name}}}
+  if(item==="bal"){const n=Math.floor(+p.n||0);if(!(n>=50&&n<=2500))fail("Сумма — от 50 до 2500 ⭐");const x=await x2Left(env,uid),b=Math.min(n,x);
+    return {item,stars:n,title:"⭐ Пополнение баланса",desc:"+"+n+" ⭐ на игровой баланс «Воинов Эпох»"+(b?" и ещё +"+b+" ⭐ бонусом по промокоду (x2)":"")+". Тратятся на любые покупки в игре",data:{n}}}
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{}}}
   if(item==="sday"){const d=await sdayFree(env,Date.now());if(!d)fail("Все дни на 2 месяца вперёд заняты");return {item,stars:SDAY.stars,title:"🌟 Звезда дня",desc:"Твой ник и самая дорогая карточка весь день на главной у всех игроков. Ближайший свободный день: "+d.split("-").reverse().join("."),data:{}}}
@@ -2298,6 +2322,10 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       const fn=(me&&me.n)||"Друг";await doAction(env,to,"present_note",{f:fn,w},{grant:true});const W=PRESENT[w];res={to:d.to,tn:d.tn,w};
       msg="🎁 Подарок отправлен! "+d.tn+" получил "+W.ic+" "+W.n+" и узнает, что это от тебя.";
       await notify(env,d.to,"🎁 "+fn+" подарил тебе "+W.ic+" "+W.n+"!\n\nПодарок уже в игре — заходи посмотреть.","🎁 Открыть подарок")}
+    else if(P.item==="bal"){const n=d.n|0,r=await env.DB.prepare("SELECT code,x2 FROM promo_uses WHERE uid=? AND x2>0 AND x2d=0 ORDER BY x2 DESC LIMIT 1").bind(P.uid).first();let b=0;
+      if(r){b=Math.min(n,r.x2);await env.DB.prepare("UPDATE promo_uses SET x2d=1 WHERE code=? AND uid=?").bind(r.code,P.uid).run()}
+      await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(n+b,P.uid).run();res={n,b};
+      msg="⭐ Баланс пополнен: +"+n+" ⭐"+(b?" и +"+b+" ⭐ бонусом по промокоду — итого "+(n+b)+" ⭐!":"!")+"\n\nТрать на любые покупки в игре — при оплате выбирай «Оплатить с баланса»."}
     else if(P.item==="support"){const u=await env.DB.prepare("SELECT name,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       const tot=(((await env.DB.prepare("SELECT SUM(stars) AS s FROM payments WHERE uid=? AND item='support' AND (status='done' OR id=?)").bind(P.uid,P.id).first())||{}).s)||0;let ttl=0;
       if(tot>=SUP.title){const g=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"title_grant",{k:"patron",keep:1},{grant:true})).res;ttl=g.newT?1:0;
@@ -2926,7 +2954,7 @@ async function handle(req,env){{
       if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize"||a==="trader_take"||a==="trader_give"||a==="auc_win"||a==="cas_comp")fail("Неизвестное действие");
       if(a==="shop")return J({ok:true,res:await shopInfo(env,me)});
       if(a==="invoice")return J({ok:true,res:await invoice(env,me,p)});
-      if(a==="pay_bal"){const I=await payItem(env,me.id,p),now=Date.now();
+      if(a==="pay_bal"){if(p.item==="bal"||p.item==="support")fail("Это можно оплатить только звёздами Telegram");const I=await payItem(env,me.id,p),now=Date.now();
         const r=await env.DB.prepare("UPDATE users SET star_bal=star_bal-? WHERE id=? AND star_bal>=?").bind(I.stars,me.id,I.stars).run();
         if(r.meta.changes!==1){const u=await env.DB.prepare("SELECT star_bal FROM users WHERE id=?").bind(me.id).first();fail("На игровом балансе "+((u&&u.star_bal)||0)+" ⭐, а нужно "+I.stars+" ⭐")}
         const row=await env.DB.prepare("INSERT INTO payments(uid,item,p,stars,status,month,created,charge,paid) VALUES(?,?,?,?,'paid',?,?,'bal',?) RETURNING id").bind(me.id,I.item,JSON.stringify(I.data||{}),I.stars,monthOf(now),now,now).first();
@@ -2951,6 +2979,7 @@ async function handle(req,env){{
       if(a==="terms_ok"){const v=Math.max(1,Math.min(TERMS_V,p.v|0));await env.DB.prepare("UPDATE users SET terms_v=MAX(terms_v,?),terms_at=? WHERE id=?").bind(v,Date.now(),me.id).run();return J({ok:true,res:{v},S:await stateFor(env,me)})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
+      if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});
         if(r.res.gift){const g=await giftMint(env,me.id,r.res.gift,"case");

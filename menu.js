@@ -12,7 +12,8 @@ const MENU_GROUPS=[
   {k:"wheel",ic:"🎡",n:"Колесо",c:["#ffb84d","#d0302a"]},
   {k:"camp",ic:"🏕",n:"Лагерь",c:["#c9e86b","#4a7a1e"]},
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
-  {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]}]],
+  {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
+  {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]}]],
  ["Сражения",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
   {k:"clan",ic:"🛡",n:"Клан",c:["#b9a2ff","#4b2a9a"]},
@@ -26,6 +27,7 @@ const MENU_GROUPS=[
 function menuGo(k){menuClose();hap&&hap("light");
   if(k==="gold")return openGold();
   if(k==="don")return openGold("flex");
+  if(k==="promo")return promoOpen();
   if(k==="cas"){if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas");return}
   if(k==="prof"||k==="pass"||k==="conq"||k==="clan"||k==="camp")return goSub(k);
   if(k==="chat")return openChat();
@@ -121,7 +123,7 @@ function cGo(){menuClose();setTab("spin");setTimeout(()=>{const e=$("chal");if(e
 function cStrip(){const b=$("cstrip");if(!b)return;const on=cOn();b.hidden=!on;if(!on)return;const C=chData;
   if(C.gift){const fd=C.frOk>=C.fr;b.innerHTML='<i>🐉</i><span><b>Розыгрыш NFT-подарка</b><small>'+(C.me&&fd?"✅ ты участвуешь":(fd?"✅ друзья есть":"друзья "+C.frOk+"/"+C.fr)+" · "+(C.me?"✅ история":"📸 выложи историю"))+'</small></span><em>'+tleft(cLeft())+'</em>';return}
   const M=C.me,inn=M.n>=C.min;
-  b.innerHTML='<i>'+(C.vip?"👑":"🎟")+'</i><span><b>'+(C.vip?"Розыгрыш 3 VIP на месяц":"Розыгрыш "+C.prizes[0])+'</b><small>'+(inn?"🎟 у тебя "+M.n+" "+plural(M.n,"билет","билета","билетов"):"пригласи "+C.min+" друзей — и ты в игре ("+M.n+"/"+C.min+")")+'</small></span><em>'+tleft(cLeft())+'</em>'}
+  b.innerHTML='<i>'+(C.vip?"👑":"🎟")+'</i><span><b>'+(C.vip?"Розыгрыш 3 VIP на месяц":"Розыгрыш "+C.prizes[0])+'</b><small>'+(inn?"🎟 у тебя "+M.n+" "+plural(M.n,"билет","билета","билетов"):C.min===1?"позови друга — получи билет":"пригласи "+C.min+" "+plural(C.min,"друга","друзей","друзей")+" — и ты в игре ("+M.n+"/"+C.min+")")+'</small></span><em>'+tleft(cLeft())+'</em>'}
 setInterval(()=>{try{cStrip()}catch(e){}},1000);
 {const _dch=drawChal;drawChal=function(){_dch();try{cStrip();qTiles()}catch(e){}}}
 /* большая плитка розыгрыша на главной */
@@ -501,3 +503,33 @@ function vidOpen(){const R=stData;if(!R)return toast("Сначала обнов�
     const st=t=>{const k=Math.min(1,(t-t0)/10000),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;n.textContent=fmtN(Math.round(to*e));if(k<1)requestAnimationFrame(st)};requestAnimationFrame(st)};run();
   o.onclick=e=>{if(e.target.closest(".vx")){o.remove();return}run()}}
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vid-go"))return;const x=document.createElement("button");x.type="button";x.id="vid-go";x.className="craftbtn";x.textContent="🎬 Экран для видео: день и игроки";x.onclick=vidOpen;b.prepend(x)}catch(e){}}}
+/* ---------- 🎟 промокоды: окно для игрока + управление для админа ---------- */
+function promoOpen(){if(!ONLINE)return toast("Промокоды работают в игре через Telegram");const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box nickbox prbox"><div class="prtk">🎟</div><h3>Промокод</h3><p class="cln">Коды бывают в видео и постах канала. Введи — и забери награду</p><input id="pr-in" maxlength="24" autocomplete="off" autocapitalize="characters" placeholder="Например, ДЕНЬ1"><button type="button" class="craftbtn" id="pr-go">Активировать</button><button type="button" class="ghost" id="pr-x">Закрыть</button></div>';
+  const i=$("pr-in"),go=async()=>{const v=i.value.trim();if(!v){i.focus();return}$("pr-go").disabled=true;const r=await act("promo_use",{code:v});$("pr-go").disabled=false;
+    if(r){sfx.fanfare();burst(3);hapN("success");renderAll();sh.innerHTML='<div class="box nickbox prbox"><div class="prtk ok">🎁</div><h3>Код активирован!</h3><div class="prrw">'+(r.sp?'<b>+'+r.sp+' 🎴</b><span>прокруток</span>':'')+(r.cash?'<b>+'+fmtN(r.cash)+' 🪙</b><span>монет</span>':'')+(r.x2?'<b>x2 ⭐</b><span>к пополнению баланса (бонус до '+r.x2+' ⭐)</span>':'')+'</div><button type="button" class="craftbtn" id="pr-ok">'+(r.x2&&!r.sp&&!r.cash?"⭐ Пополнить с x2":"Крутить!")+'</button></div>';$("pr-ok").onclick=()=>{closeModal();if(r.x2&&!r.sp&&!r.cash)openGold("flex");else setTab("spin")}}
+    else{i.classList.remove("shk");void i.offsetWidth;i.classList.add("shk")}};
+  $("pr-go").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()};$("pr-x").onclick=closeModal;setTimeout(()=>i.focus(),200)}
+/* ссылка ?promo=КОД — сразу открывает окно с подставленным кодом */
+{const q=new URLSearchParams(location.search).get("promo");if(q){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(()=>{promoOpen();const i=$("pr-in");if(i)i.value=q},900)},400)}}
+let promoL=null;
+async function promoAdmin(box){const r=await act("pcode_list");if(!r)return;promoL=r.list;const pc=(a,b)=>b?Math.round(a/b*100)+"%":"—",dt=t=>t?new Date(t+3*3600e3).toISOString().slice(5,10).split("-").reverse().join("."):"∞";
+  box.innerHTML='<h4>🎟 Промокоды</h4><div class="prnew"><input id="pa-code" maxlength="24" placeholder="КОД, например ДЕНЬ1"><div class="prnr"><label>🎴<input id="pa-sp" type="number" value="3" min="0"></label><label>🪙<input id="pa-cash" type="number" value="0" min="0"></label><label title="x2 к пополнению: максимум бонусных звёзд">x2 ⭐<input id="pa-x2" type="number" value="0" min="0"></label><label>лимит<input id="pa-mx" type="number" value="0" min="0" title="0 — без лимита"></label><label>дней<input id="pa-days" type="number" value="0" min="0" title="0 — бессрочно"></label></div><button type="button" class="craftbtn" id="pa-go">Создать / изменить</button><small>x2 ⭐ — код удваивает следующее пополнение баланса звёздами (число — максимум бонуса, например 500). Лимит 0 — без ограничений, дней 0 — бессрочно. Ссылка с кодом: t.me/VoinyEpohBot?startapp=… не нужна — игрок вводит код в меню «Ещё → Промокод»</small></div>'+
+   (promoL.length?'<div class="prl"><div class="prr h"><b>код</b><b>награда</b><b>ввели</b><b>новые</b><b>3+ карт</b><b>вернулись</b><b>до</b></div>'+promoL.map((P,i)=>'<div class="prr'+(P.off?" off":"")+'"><span data-pi="'+i+'"></span><i>'+(P.sp?P.sp+"🎴":"")+(P.cash?" "+fmtN(P.cash)+"🪙":"")+(P.x2?" x2⭐ до "+P.x2:"")+'</i><b>'+P.n+(P.mx?"/"+P.mx:"")+'</b><i>'+(P.nw||0)+'</i><i>'+pc(P.a3||0,P.n)+'</i><i>'+pc(P.back||0,P.n)+'</i><i><button type="button" class="mini2" data-poff="'+i+'">'+(P.off?"вкл":"выкл")+'</button> '+dt(P.until)+'</i></div>').join("")+'</div>':'<small>Кодов пока нет</small>');
+  box.querySelectorAll("[data-pi]").forEach(e=>e.textContent=promoL[+e.dataset.pi].code);
+  $("pa-go").onclick=async()=>{const r=await act("pcode_set",{code:$("pa-code").value,sp:+$("pa-sp").value,cash:+$("pa-cash").value,x2:+$("pa-x2").value,mx:+$("pa-mx").value,days:+$("pa-days").value});if(r){toast("✅ Код "+r.code+" готов");promoAdmin(box)}};
+  box.querySelectorAll("[data-poff]").forEach(b=>b.onclick=async()=>{const P=promoL[+b.dataset.poff];if(await act("pcode_off",{code:P.code}))promoAdmin(box)})}
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("pr-adm"))return;const x=document.createElement("div");x.id="pr-adm";x.className="srcbox prad";const v=$("vid-go");if(v)v.after(x);else b.prepend(x);promoAdmin(x)}catch(e){}}}
+/* экран для видео: «из вчерашнего видео пришло» — по меткам и промокодам ДЕНЬ<N-1>… */
+{const _vo=vidOpen;vidOpen=async function(){const R=stData;if(R&&!promoL){try{const r=await act("pcode_list");if(r)promoL=r.list}catch(e){}}
+  if(R&&promoL){const day=Math.floor((NOW()-VID.start)/864e5)+1,k="ДЕНЬ"+(day-1),pn=promoL.filter(P=>P.code===k||P.code.startsWith(k)&&!/^\d/.test(P.code.slice(k.length))).reduce((a,P)=>a+(P.n||0),0);
+    if(pn){const src=(R.srcs||[]).find(r=>r.code==="d"+(day-1));R.srcs=(R.srcs||[]).filter(r=>r!==src).concat([{code:"d"+(day-1),fresh:((src&&src.fresh)||0)+pn}])}}
+  return _vo.apply(this,arguments)}}
+/* ---------- ⭐ пополнение игрового баланса (+ x2 по промокоду) ---------- */
+let myX2=0;
+{const _lg=loadGold;loadGold=async function(){try{if(ONLINE){const r=await act("promo_x2");if(r)myX2=r.x2||0}}catch(e){}return _lg.apply(this,arguments)}}
+function topupHTML(){return '<div class="tpb'+(myX2?" x2":"")+'"><div class="tph"><b>⭐ Пополнить игровой баланс</b>'+(myX2?'<em>x2 по промокоду · бонус до '+myX2+' ⭐</em>':'<small>звёзды на балансе тратятся на любые покупки в игре</small>')+'</div><div class="tpg">'+
+  [50,100,250,500,1000].map(n=>'<button type="button" class="tpc" data-topup="'+n+'"><b>'+n+' ⭐</b>'+(myX2?'<small>→ '+(n+Math.min(n,myX2))+' ⭐</small>':'')+'</button>').join("")+'</div></div>'}
+{const _ft=flexTop;flexTop=function(D){const h=_ft(D),i=h.indexOf('</div>',h.indexOf('class="dnhero"'))+6;return h.slice(0,i)+topupHTML()+h.slice(i)}}
+$("gold-body").addEventListener("click",e=>{const t=e.target.closest("[data-topup]");if(!t)return;hap("light");buyItem({item:"bal",n:+t.dataset.topup})});
+{const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&r.item==="bal"){const R=r.res||{};myX2=0;renderAll();loadGold();sfx.coin();burst(R.b?3:1);hapN("success");toast("⭐ Баланс пополнен: +"+R.n+(R.b?" и +"+R.b+" бонусом x2!":""));return}return _ps(r)}}

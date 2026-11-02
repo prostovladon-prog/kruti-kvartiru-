@@ -589,7 +589,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
 
 /* --- Сокровищница: звёзды, сундуки, половинки, свой номер, ник --- */
 {
-  const envP = { ...env, PAY_SIM: "1" };
+  const envP = { ...env, PAY_SIM: "1", ADMINS: "8" };
   const cp = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envP)).json();
   const buy = async (uid, p) => { const i = await cp(uid, "invoice", p); if (!i.ok) return i; return cp(uid, "pay_sim", { pid: i.res.pid }); };
   const U = 7001; await cp(U, "sync");
@@ -695,6 +695,24 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     q = await cp(V, "invoice", { item: "present", w: "t:emperor", uid: 7052 }); ok(!q.ok, "второй раз тот же титул не подарить");
     q = await buy(V, { item: "present", w: "small", uid: 7052 }); ok(q.ok && q.res.status === "done", "подарил сундук");
     q = await cp(7052, "present_seen"); ok(q.ok && !(q.S.prs || []).length, "записки о подарках прочитаны");
+    // промокоды
+    q = await cp(V, "pcode_set", { code: "ДЕНЬ1", sp: 3 }); ok(!q.ok, "игрок не может создать промокод");
+    q = await cp(8, "pcode_set", { code: "день1", sp: 3, mx: 2 }); ok(q.ok && q.res.code === "ДЕНЬ1", "админ создал промокод");
+    q = await cp(8, "pcode_set", { code: "X2BAL", x2: 300 }); ok(q.ok, "админ создал x2-промокод");
+    q = await cp(V, "promo_use", { code: "  день1 " }); ok(q.ok && q.res.sp === 3, "игрок активировал промокод +3 прокрутки");
+    q = await cp(V, "promo_use", { code: "ДЕНЬ1" }); ok(!q.ok, "второй раз нельзя");
+    q = await cp(V, "promo_use", { code: "НЕТТАКОГО" }); ok(!q.ok, "несуществующий код");
+    await cp(7052, "sync"); await cp(7052, "promo_use", { code: "ДЕНЬ1" }); await cp(7053, "sync");
+    q = await cp(7053, "promo_use", { code: "ДЕНЬ1" }); ok(!q.ok && /максимальн/.test(q.err), "лимит активаций");
+    q = await cp(V, "promo_use", { code: "X2BAL" }); ok(q.ok && q.res.x2 === 300, "x2-промокод активирован");
+    q = await cp(V, "promo_x2"); ok(q.res.x2 === 300, "x2 ждёт пополнения");
+    { const b0 = db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s;
+      q = await buy(V, { item: "bal", n: 500 }); const b1 = db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s;
+      ok(q.ok && q.res.status === "done" && b1 - b0 === 800, "пополнение 500 ⭐ с x2: +800 (бонус до 300)");
+      q = await buy(V, { item: "bal", n: 100 }); ok(db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s - b1 === 100, "x2 только один раз");
+      q = await cp(V, "pay_bal", { item: "bal", n: 100 }); ok(!q.ok, "пополнить баланс с баланса нельзя"); }
+    q = await cp(8, "pcode_list"); ok(q.ok && q.res.list.find(x => x.code === "ДЕНЬ1").n === 2, "статистика промокода");
+    q = await cp(8, "promo_set", { hours: 0 }); ok(q.ok || !/Неизвестное/.test(q.err || ""), "старая «акция» не сломана");
     q = await cp(V, "shop"); ok(q.ok && q.res.authLeft === 0 && q.res.donors.some(d => d.uid === V), "в топе донатеров и места Соавтора на месяц кончились"); }
 }
 
