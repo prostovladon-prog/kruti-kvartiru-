@@ -1111,5 +1111,10 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cd(8, "dm_send", { uid: 8112, text: "Поздравляем!" }); ok(q.ok, "админ пишет игроку");
   q = await cd(8, "st_give", { uid: 8112, amt: -1000 }); ok(!q.ok, "списать больше, чем есть, нельзя");
   q = await cd(8, "st_log"); ok(q.ok && q.res.sum === 250 && q.res.log[0].uid === 8112, "история начислений"); }
+{ const envG = { ...env, NOTIFY_TEST: "1" }; const cg = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envG)).json();
+  await cg(1025352541, "sync"); await worker.tick(envG);
+  const c = db.prepare("SELECT h,f,sn,v FROM cards WHERE owner=1025352541 AND f=4").get();
+  ok(c && c.h === 15 && c.sn === "200000" && Math.round(c.v) === 57529, "компенсация: игроку выдан Гоплит, ошибка печати № 200 000");
+  await worker.tick(envG); ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE owner=1025352541 AND f=4").get().n === 1, "выдача только один раз"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
