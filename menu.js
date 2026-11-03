@@ -552,21 +552,21 @@ function mapSVG(){const R=25,regs={};(MD.regs||[]).forEach(r=>regs[r.id]=r);cons
   let h=`<defs><radialGradient id="msea" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#1d4fa8"/><stop offset=".6" stop-color="#12307a"/><stop offset="1" stop-color="#0a1440"/></radialGradient>
   <pattern id="mwave" width="40" height="20" patternUnits="userSpaceOnUse"><path d="M0 10 q10 -8 20 0 t20 0" fill="none" stroke="#5ab0ff" stroke-opacity=".18" stroke-width="2"/></pattern>
   ${["#6fe39a:#22995a","#b48cff:#6a33d6","#ffd86b:#d08a12"].map((c,i)=>`<linearGradient id="mz${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.split(":")[0]}"/><stop offset="1" stop-color="${c.split(":")[1]}"/></linearGradient>`).join("")}
-  <filter id="mglow"><feGaussianBlur stdDeviation="6"/></filter><filter id="mfog"><feGaussianBlur stdDeviation="5"/></filter><filter id="msh"><feDropShadow dx="0" dy="2" stdDeviation="1.2" flood-color="#000" flood-opacity=".6"/></filter>
+  <radialGradient id="mglowg"><stop offset=".55" stop-color="#7fd4ff" stop-opacity="1"/><stop offset="1" stop-color="#7fd4ff" stop-opacity="0"/></radialGradient><radialGradient id="mfogg"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".6" stop-color="#ece8ff" stop-opacity=".7"/><stop offset="1" stop-color="#e8e4ff" stop-opacity="0"/></radialGradient>
   <clipPath id="mflagc"><path d="M0 0 h18 l-5 6 l5 6 h-18z"/></clipPath></defs>
-  <rect width="390" height="470" fill="url(#msea)"/><rect width="390" height="470" fill="url(#mwave)"/><ellipse cx="195" cy="232" rx="185" ry="175" fill="#7fd4ff" opacity=".18" filter="url(#mglow)"/>`;
+  <rect width="390" height="470" fill="url(#msea)"/><rect width="390" height="470" fill="url(#mwave)"/><ellipse cx="195" cy="232" rx="195" ry="185" fill="url(#mglowg)" opacity=".18"/>`;
   MCELLS.forEach(p=>{h+=`<polygon points="${hexP(p.x,p.y+3,R+7)}" fill="#f3e2b0" opacity=".9"/>`});
   MCELLS.forEach(p=>{h+=`<polygon points="${hexP(p.x,p.y+6,R)}" fill="${["#14603a","#3d1a8a","#7a4a06"][p.z]}"/>`});
   const lockZ=z=>z===1&&!MD.z1||z===2&&!MD.z2;let fl="";
   MCELLS.forEach((p,i)=>{const o=regs[i],lk=lockZ(p.z),M=MAP_R[i];
     h+=`<g data-rg="${i}" style="cursor:pointer"><polygon points="${hexP(p.x,p.y,R-1)}" fill="url(#mz${p.z})" stroke="${o&&o.owner?col(o.owner):"#fff"}" stroke-opacity="${o&&o.owner?1:.35}" stroke-width="${o&&o.owner?3.5:1.2}" opacity="${lk?.7:1}"/>
      <polygon points="${hexP(p.x,p.y-1,R-6)}" fill="none" stroke="#fff" stroke-opacity=".18"/>${i===mapSel?`<polygon points="${hexP(p.x,p.y,R+2)}" fill="none" stroke="#fff" stroke-width="4"/>`:""}
-     <text x="${p.x}" y="${p.y+2}" font-size="${o&&o.statue?20:p.z===2?17:14}" text-anchor="middle" filter="url(#msh)">${o&&o.statue?"🗿":M[1]}</text>
+     <text x="${p.x}" y="${p.y+2}" font-size="${o&&o.statue?20:p.z===2?17:14}" text-anchor="middle">${o&&o.statue?"🗿":M[1]}</text>
      <text x="${p.x}" y="${p.y+15}" font-size="6.6" font-weight="900" fill="#fff" stroke="#120a34" stroke-width="2.2" paint-order="stroke" text-anchor="middle">${M[0].slice(0,9)}</text>
-     ${lk?`<g opacity=".85"><circle cx="${p.x-8}" cy="${p.y-6}" r="11" fill="#fff" filter="url(#mfog)"/><circle cx="${p.x+7}" cy="${p.y-2}" r="12" fill="#e8e4ff" filter="url(#mfog)"/></g><text x="${p.x}" y="${p.y+1}" font-size="12" text-anchor="middle">🔒</text>`:""}
+     ${lk?`<g opacity=".85"><circle cx="${p.x-8}" cy="${p.y-6}" r="16" fill="url(#mfogg)"/><circle cx="${p.x+7}" cy="${p.y-2}" r="17" fill="url(#mfogg)"/></g><text x="${p.x}" y="${p.y+1}" font-size="12" text-anchor="middle">🔒</text>`:""}
      ${o&&o.shield?`<text x="${p.x-14}" y="${p.y-8}" font-size="10">🛡</text>`:""}<polygon points="${hexP(p.x,p.y,R)}" fill="transparent"/></g>`;
     if(o&&o.owner){const mine=o.owner===me,C=MFC[o.flag]||MFC[""],nm=mine?"🏰 ТЫ":String(o.oname||"?").slice(0,8),w=Math.max(26,nm.length*5+8);
-      fl+=`<g filter="url(#msh)" pointer-events="none"><line x1="${p.x+9}" y1="${p.y-27}" x2="${p.x+9}" y2="${p.y-8}" stroke="#3a2a10" stroke-width="2"/>
+      fl+=`<g pointer-events="none"><line x1="${p.x+9}" y1="${p.y-27}" x2="${p.x+9}" y2="${p.y-8}" stroke="#3a2a10" stroke-width="2"/>
        <g transform="translate(${p.x+10},${p.y-27})">${o.flag==="photo"&&o.ph?`<image href="${API_URL.replace(/\/$/,"")}/mp/${o.owner}" width="18" height="12" preserveAspectRatio="xMidYMid slice" clip-path="url(#mflagc)"/>`:`<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="${C[0]}"/><path d="M0 0 h9 v12 h-9z" fill="${C[1]}" opacity=".6"/>`}<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="none" stroke="#fff" stroke-width=".8"/></g>
        <rect x="${p.x-20}" y="${p.y-34}" width="${w}" height="11" rx="5.5" fill="${mine?"#ffd23f":"rgba(10,6,40,.85)"}"/><text x="${p.x-20+w/2}" y="${p.y-26}" font-size="6.8" font-weight="900" fill="${mine?"#1c0a4a":"#fff"}" text-anchor="middle">${escH(nm)}</text></g>`}});
   return h+fl+`<text x="30" y="455" font-size="20">⛵</text><text x="340" y="40" font-size="18">⛵</text><text x="345" y="455" font-size="22">🐙</text>`}
@@ -604,9 +604,7 @@ function mapSheet(){const i=mapSel,r=(MD.regs||[]).find(x=>x.id===i)||{id:i},M=M
   const stt=$("ms-statue");if(stt)stt.onclick=()=>{closeModal();buyItem({item:"mstatue",rid:i})}}
 async function mapAttack(i){const go=$("ms-go");if(go)go.disabled=true;const r=await act("map_attack",{rid:i,id:mapCard,stat:mapStat});if(!r){if(go)go.disabled=false;return}
   closeModal();if(r.empty){sfx.fanfare();burst(3);hapN("success");toast("🏰 "+MAP_R[i][0]+" твой! Воин встал на охрану");await mapLoad();mapDraw();return}
-  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML=`<div class="box nickbox mapfight"><h3>⚔️ Битва за ${MAP_R[i][0]}</h3><div class="mf-r">${r.rounds.map((x,k)=>`<div class="mf-row" style="animation-delay:${k*.6}s"><span>${STN[r.picks[k]]}</span><b class="${x.a>x.b?"w":"l"}">${x.a}</b><i>:</i><b class="${x.b>x.a?"w":"l"}">${x.b}</b></div>`).join("")}</div>
-   <div class="mf-res ${r.won?"win":"lose"}" style="animation-delay:1.9s">${r.won?"🏆 ПОБЕДА! "+MAP_R[i][0]+" теперь твой":"💥 Защитник выстоял"}</div><button type="button" class="craftbtn" id="mf-ok">${r.won?"🏰 На карту":"Ещё раз"}</button></div>`;
-  try{sfx.rumble(2)}catch(e){}setTimeout(()=>{if(r.won){sfx.fanfare();burst(4);hapN("success")}else{hapN("error")}},1900);$("mf-ok").onclick=async()=>{closeModal();await mapLoad();mapDraw();if(!r.won){mapSel=i;mapSheet()}}}
+  mapFightShow(r,i)}
 function mapPassOpen(){const P=S.mpass&&S.mpass.m===new Date(NOW()+3*3600e3).toISOString().slice(0,7)?S.mpass:{pts:0,prem:0,got:[],gotP:[]},lv=MPASS.th.filter(x=>P.pts>=x).length,m=$("modal"),sh=$("msheet");m.hidden=false;
   const rw=R=>R.sp?"+"+R.sp+" 🎴":R.cash?"+"+fmtN(R.cash)+" 🪙":R.runes?"+"+fmtN(R.runes)+" 💠":R.guar?"💎 эпик":R.leg?"⭐ легенда":"";
   sh.innerHTML=`<div class="box nickbox mpass"><h3>🎖 Пропуск завоевателя</h3><p class="cln">Очки: захват +5, отбитая атака +2, сбор дохода +1. У тебя <b>${P.pts}</b> очков · уровень ${lv}/10. Пропуск обновляется каждый месяц.</p>
@@ -684,17 +682,46 @@ function cmOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;cmLast=0;
 let MZ={s:1,x:0,y:0},mzMoved=false;
 function mzBox(){const w=$("mp-map");return w?w.getBoundingClientRect():null}
 function mzClamp(){const b=mzBox();if(!b)return;MZ.s=Math.max(1,Math.min(4,MZ.s));const mx=b.width*(MZ.s-1),my=b.height*(MZ.s-1);MZ.x=Math.min(0,Math.max(-mx,MZ.x));MZ.y=Math.min(0,Math.max(-my,MZ.y))}
-function mzApply(anim){const v=$("mp-svg");if(!v)return;mzClamp();v.style.transition=anim?"transform .28s cubic-bezier(.2,.8,.2,1)":"none";v.style.transform=`translate(${MZ.x}px,${MZ.y}px) scale(${MZ.s})`;const w=$("mp-map");if(w)w.classList.toggle("zoomed",MZ.s>1.02)}
+let mzRaf=0,mzIdle=0;function mzLive(on){const w=$("mp-map");if(!w)return;clearTimeout(mzIdle);if(on)w.classList.add("mzing");else mzIdle=setTimeout(()=>{const x=$("mp-map");if(x)x.classList.remove("mzing")},320)}
+function mzApply(anim){if(anim){cancelAnimationFrame(mzRaf);mzRaf=0;mzLive(true);mzDo(true);mzLive(false);return}if(mzRaf)return;mzLive(true);mzRaf=requestAnimationFrame(()=>{mzRaf=0;mzDo(false)})}
+function mzDo(anim){const v=$("mp-svg");if(!v)return;mzClamp();v.style.transition=anim?"transform .28s cubic-bezier(.2,.8,.2,1)":"none";v.style.transform=`translate(${MZ.x}px,${MZ.y}px) scale(${MZ.s})`;const w=$("mp-map");if(w)w.classList.toggle("zoomed",MZ.s>1.02)}
 function mzSet(s,x,y,anim){MZ={s,x,y};mzApply(anim)}
 function mzZoomAt(f,fx,fy,anim){const b=mzBox();if(!b)return;const px=b.width*fx,py=b.height*fy,ns=Math.max(1,Math.min(4,MZ.s*f)),r=ns/MZ.s;MZ.x=px-(px-MZ.x)*r;MZ.y=py-(py-MZ.y)*r;MZ.s=ns;mzApply(anim)}
-{const _md=mapDraw;mapDraw=function(){_md.apply(this,arguments);const w=$("mp-map");if(!w||w._mz)return;w._mz=1;mzApply(false);
+{const _md=mapDraw;mapDraw=function(){_md.apply(this,arguments);const w=$("mp-map");if(!w||w._mz)return;w._mz=1;mzDo(false);
   const pts=new Map();let st=null,lastTap=0;
   const snap=()=>{const a=[...pts.values()];const b=mzBox();if(a.length>=2){const cx=(a[0].x+a[1].x)/2-b.left,cy=(a[0].y+a[1].y)/2-b.top;st={pinch:1,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1,cx,cy,s:MZ.s,x:MZ.x,y:MZ.y}}else if(a.length===1)st={pinch:0,px:a[0].x,py:a[0].y,x:MZ.x,y:MZ.y,t0x:a[0].x,t0y:a[0].y};else st=null};
   w.addEventListener("pointerdown",e=>{if(e.target.closest(".mp-zm"))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});snap();if(pts.size===1)mzMoved=false},{passive:true});
   w.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId)||!st)return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});const a=[...pts.values()],b=mzBox();
     if(st.pinch&&a.length>=2){const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),cx=(a[0].x+a[1].x)/2-b.left,cy=(a[0].y+a[1].y)/2-b.top,ns=Math.max(1,Math.min(4,st.s*d/st.d)),r=ns/st.s;MZ.s=ns;MZ.x=cx-(st.cx-st.x)*r;MZ.y=cy-(st.cy-st.y)*r;mzMoved=true;mzApply(false)}
     else if(!st.pinch){const dx=e.clientX-st.px,dy=e.clientY-st.py;if(Math.abs(e.clientX-st.t0x)+Math.abs(e.clientY-st.t0y)>8)mzMoved=true;if(MZ.s>1.02&&mzMoved){MZ.x=st.x+dx;MZ.y=st.y+dy;mzApply(false)}}},{passive:true});
-  const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);snap();if(!pts.size&&!mzMoved){const now=Date.now(),b=mzBox();if(now-lastTap<300&&!e.target.closest("[data-rg]")){MZ.s>1.5?mzSet(1,0,0,true):mzZoomAt(2.2,(e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height,true);lastTap=0}else lastTap=now}};
+  const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);snap();if(!pts.size)mzLive(false);if(!pts.size&&!mzMoved){const now=Date.now(),b=mzBox();if(now-lastTap<300&&!e.target.closest("[data-rg]")){MZ.s>1.5?mzSet(1,0,0,true):mzZoomAt(2.2,(e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height,true);lastTap=0}else lastTap=now}};
   w.addEventListener("pointerup",up);w.addEventListener("pointercancel",up);
-  w.addEventListener("wheel",e=>{e.preventDefault();const b=mzBox();mzZoomAt(e.deltaY<0?1.15:1/1.15,(e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height,false)},{passive:false})}}
+  w.addEventListener("wheel",e=>{e.preventDefault();const b=mzBox();mzZoomAt(e.deltaY<0?1.15:1/1.15,(e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height,false);mzLive(false)},{passive:false})}}
 {const _om=openMap;openMap=function(){MZ={s:1,x:0,y:0};return _om.apply(this,arguments)}}
+
+/* ---------- ⚔️ битва за регион: красивый бой по раундам ---------- */
+function mapFightShow(r,i){const M=MAP_R[i],z=MAP_Z(i),m=$("modal"),sh=$("msheet");m.hidden=false;const reg=(MD&&MD.regs||[]).find(x=>x.id===i)||{},on=String(reg.oname||"Защитник").slice(0,14);
+  const B=r.bon||{},chips=[B.dk>0?`🐉 Дракон +${Math.round(B.dk*100)}%`:"",B.ddk>0?`🐲 Дракон врага +${Math.round(B.ddk*100)}%`:"",B.home>0?`🏛 Родная земля врага +${Math.round(B.home*100)}%`:"",B.fat>0?`😮‍💨 Защитник устал −${Math.round(B.fat*100)}%`:""].filter(Boolean);
+  const rows=r.rounds.map((x,k)=>`<div class="fx-rd" id="fx-rd${k}"><em>Раунд ${k+1}</em><span>${STN[r.picks[k]]}</span><b class="a">?</b><i>vs</i><b class="b">?</b></div>`).join("");
+  sh.innerHTML=`<div class="box mfb z${z}"><div class="fx-bg"></div><div class="fx-sparks"></div>
+   <div class="fx-h"><small>⚔️ БИТВА ЗА</small><b>${M[1]} ${M[0]}</b></div>
+   <div class="fx-ar"><div class="fx-s me" id="fx-me"><div class="fx-c">${r.me?miniSlot(r.me):""}</div><b>Ты</b><div class="fx-hp"><i id="fx-hpa"></i></div></div>
+    <div class="fx-vs"><span id="fx-vs">VS</span><em id="fx-sc">0 : 0</em></div>
+    <div class="fx-s op" id="fx-op"><div class="fx-c">${r.opp?miniSlot(r.opp):""}</div><b>${escH(on)}</b><div class="fx-hp"><i id="fx-hpb"></i></div></div><div class="fx-flash" id="fx-fl"></div></div>
+   <div class="fx-rds">${rows}</div>${chips.length?`<div class="fx-bon">${chips.map(c=>`<span>${c}</span>`).join("")}</div>`:""}
+   <div class="fx-res" id="fx-res"></div><div class="fx-bt"><button type="button" class="ghost" id="fx-skip">⏩ Пропустить</button><button type="button" class="craftbtn" id="mf-ok" hidden>${r.won?"🏰 На карту":"⚔️ Ещё раз"}</button></div></div>`;
+  const T=[];let done=false,sa=0,sb=0;const at=(ms,f)=>T.push(setTimeout(f,ms));const box=sh.querySelector(".mfb");
+  const count=(el,v)=>{const t0=performance.now(),d=480;const st=()=>{const k=Math.min(1,(performance.now()-t0)/d);el.textContent=Math.round(v*(1-Math.pow(1-k,3)));if(k<1&&!done)requestAnimationFrame(st);else el.textContent=v};st()};
+  const round=k=>{const x=r.rounds[k],row=$("fx-rd"+k);if(!row)return;row.classList.add("on");box.classList.remove("mf-hit");void box.offsetWidth;box.classList.add("mf-hit");try{sfx.clash()}catch(e){}hap("medium");
+    count(row.querySelector(".a"),x.a);count(row.querySelector(".b"),x.b);
+    at(520,()=>{const w=x.a>x.b;row.classList.add(w?"w":"l");w?sa++:sb++;$("fx-sc").textContent=sa+" : "+sb;$("fx-sc").classList.remove("pop");void $("fx-sc").offsetWidth;$("fx-sc").classList.add("pop");
+      const L=$(w?"fx-op":"fx-me");L.classList.remove("dmg");void L.offsetWidth;L.classList.add("dmg");$("fx-fl").className="fx-flash "+(w?"g":"r");
+      $("fx-hpa").style.width=Math.max(0,100-sb*50)+"%";$("fx-hpb").style.width=Math.max(0,100-sa*50)+"%";try{w?sfx.tick(1):sfx.lock()}catch(e){}})};
+  const finish=()=>{if(done)return;done=true;T.forEach(clearTimeout);
+    r.rounds.forEach((x,k)=>{const row=$("fx-rd"+k);if(!row)return;row.classList.add("on",x.a>x.b?"w":"l");row.querySelector(".a").textContent=x.a;row.querySelector(".b").textContent=x.b});
+    $("fx-sc").textContent=r.w+" : "+r.l;$("fx-hpa").style.width=Math.max(0,100-r.l*50)+"%";$("fx-hpb").style.width=Math.max(0,100-r.w*50)+"%";
+    box.classList.add(r.won?"mf-won":"mf-lost");$("fx-res").innerHTML=r.won?`<div class="fx-flag">🚩</div><b>ПОБЕДА!</b><small>${M[0]} теперь твой · воин встал на охрану</small>`:`<b>ЗАЩИТНИК ВЫСТОЯЛ</b><small>Попробуй другого воина или другую характеристику</small>`;
+    $("fx-skip").hidden=true;$("mf-ok").hidden=false;if(r.won){try{sfx.fanfare()}catch(e){}burst(4);hapN("success")}else{try{sfx.lose()}catch(e){}hapN("error")}};
+  box.classList.add("mf-in");try{sfx.rumble(2)}catch(e){}
+  at(650,()=>{box.classList.add("mf-vs");hap("heavy")});r.rounds.forEach((_,k)=>at(1300+k*1250,()=>round(k)));at(1300+r.rounds.length*1250+250,finish);
+  $("fx-skip").onclick=finish;$("mf-ok").onclick=async()=>{closeModal();await mapLoad();mapDraw();if(!r.won){mapSel=i;mapSheet()}}}
