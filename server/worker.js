@@ -2139,10 +2139,14 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
     if(await notify(env,u.id,"🍀 Счастливый час! "+T.ic+" "+T.n+": "+T.d+".\n\nДействует ещё "+left+" мин — потом обычные правила.","🍀 Успеть"))sent++}
   return sent}
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
-const ADM_GRANTS=[{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"}];
+const ADM_GRANTS=[{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
+  {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
   const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(G.uid).first();if(!u)continue;await kvSet(env,k,{t:Date.now()});
-  try{const r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",G,{grant:true})).res;
+  try{let r=null,err=null;const hs=G.rare?HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===G.rare).sort(()=>Math.random()-.5):[G.h];
+    for(const h of hs){try{r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",Object.assign({},G,{h}),{grant:true})).res;G.h=h;break}catch(e){err=e;if(!/Тираж/.test(e.message||""))break}}
+    if(!r&&G.sn&&err&&/Номер/.test(err.message||""))for(const h of hs){try{r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",Object.assign({},G,{h,sn:null}),{grant:true})).res;G.h=h;break}catch(e){err=e}}
+    if(!r)throw err||new Error("нет свободных карточек");
     await notify(env,G.uid,"🎁 "+G.why+"\n\n"+HEROES[G.h][0]+" · «"+FIN[G.f].k+"» № "+fmtSn(r.card.sn)+" уже в твоей коллекции!","🎴 Открыть игру");
     for(const a of ADMINS)await notify(env,a,"✅ Выдача "+G.id+": "+HEROES[G.h][0]+" ("+FIN[G.f].k+") выдана игроку "+G.uid,"⚔️ Открыть")}
   catch(e){console.error("grant",G.id,e&&e.message);for(const a of ADMINS)await notify(env,a,"⚠️ Выдача "+G.id+" не удалась: "+(e.message||e),"⚔️ Открыть")}}}
