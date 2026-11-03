@@ -572,14 +572,14 @@ function mapSVG(){const R=25,regs={};(MD.regs||[]).forEach(r=>regs[r.id]=r);cons
   return h+fl+`<text x="30" y="455" font-size="20">⛵</text><text x="340" y="40" font-size="18">⛵</text><text x="345" y="455" font-size="22">🐙</text>`}
 async function mapLoad(){const r=await act("map_get");if(r){MD=r;MD._t=NOW()}return r}
 async function openMap(){if(!ONLINE)return toast("Карта мира работает в игре через Telegram");let o=$("mapscr");if(!o){o=document.createElement("div");o.id="mapscr";o.className="mapscr";document.body.appendChild(o);
-    o.onclick=e=>{const g=e.target.closest("[data-rg]");if(g){hap("light");mapSel=+g.dataset.rg;mapCard=null;mapDraw();mapSheet();return}const b=e.target.closest("[data-mb]");if(!b)return;hap("light");const k=b.dataset.mb;
+    o.onclick=e=>{if(mzMoved){mzMoved=false;return}const zb=e.target.closest("[data-z]");if(zb){hap("light");const k=+zb.dataset.z;if(!k)mzSet(1,0,0,true);else mzZoomAt(k>0?1.6:1/1.6,.5,.5,true);return}const g=e.target.closest("[data-rg]");if(g){hap("light");mapSel=+g.dataset.rg;mapCard=null;mapDraw();mapSheet();return}const b=e.target.closest("[data-mb]");if(!b)return;hap("light");const k=b.dataset.mb;
       if(k==="x"){o.remove();return}if(k==="claim")return mapClaim();if(k==="pass")return mapPassOpen();if(k==="flags")return mapFlags();if(k==="pack")return buyItem({item:"mpack"});if(k==="help")return mapHelp()}}
   o.innerHTML='<div class="mp-load">🗺 Загружаю карту…</div>';await mapLoad();if(!MD){o.remove();return}mapDraw();try{if(!localStorage.getItem("we-maph")){localStorage.setItem("we-maph",1);mapHelp()}}catch(e){}}
 function mapDraw(){const o=$("mapscr");if(!o||!MD)return;const mine=MD.regs.filter(r=>r.owner===S.uid),P=S.mpass&&S.mpass.m===new Date(NOW()+3*3600e3).toISOString().slice(0,7)?S.mpass:{pts:0,prem:0,got:[],gotP:[]},lv=MPASS.th.filter(x=>P.pts>=x).length;
   const canClaim=P&&MPASS.th.some((t,i)=>i<lv&&(!P.got.includes(i)||P.prem&&!P.gotP.includes(i)));
   o.innerHTML=`<div class="mp-top"><button type="button" class="mp-x" data-mb="x">✕</button><b>🗺 Карта мира</b><span class="mp-pill">⚔️ ${Math.max(0,MD.att.left)} · 🏰 ${mine.length}/${MAP.max}</span></div>
    <div class="mp-leg"><span style="background:#22995a">🌱 Окраины${"" }</span><span style="background:#6a33d6">${MD.z1?"⚔️":"🔒"} Земли эпох${MD.z1?"":" · "+MAP.z1Spins+" 🎴"}</span><span style="background:#c07a10">${MD.z2?"👑":"🔒"} Сердце${MD.z2?"":" · 🐉 ст.3"}</span><button type="button" data-mb="help">❔</button></div>
-   <div class="mp-map"><svg viewBox="0 0 390 470" width="100%">${mapSVG()}</svg></div>
+   <div class="mp-map" id="mp-map"><svg id="mp-svg" viewBox="0 0 390 470" width="100%">${mapSVG()}</svg><div class="mp-zm"><button type="button" data-z="1">＋</button><button type="button" data-z="-1">－</button><button type="button" data-z="0" class="mp-z0">⤢</button></div></div>
    <div class="mp-act"><button type="button" data-mb="pass">🎖 Пропуск${canClaim?' <i class="mp-dot"></i>':""}<small>ур. ${lv}/10</small></button><button type="button" data-mb="flags">🚩 Флаги<small>${MFLAG[S.mflagOn]?MFLAG[S.mflagOn].ic:"обычный"}</small></button><button type="button" data-mb="pack">⚔️ +${MAP.pack} атаки<small>⭐ ${MAP.packStars}</small></button></div>
    <div class="mp-my">${mine.length?`<span>🏰 ${mine.map(r=>MAP_R[r.id][0]).join(" · ")}<br><small>доход: +${fmtN(MD.inc.cash)} 🪙 · +${fmtN(MD.inc.runes)} 💠</small></span><button type="button" data-mb="claim"${MD.inc.cash<1?" disabled":""}>Забрать</button>`:`<span>У тебя пока нет земель<br><small>нажми на свободный зелёный регион — и займи его воином</small></span>`}</div>`}
 async function mapClaim(){const r=await act("map_claim");if(r){sfx.coin();burst(2);hapN("success");toast("🏰 Доход с земель: +"+fmtN(r.cash)+" 🪙 · +"+fmtN(r.runes)+" 💠");await mapLoad();mapDraw()}}
@@ -679,3 +679,22 @@ function cmOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;cmLast=0;
     if(r.list.length)L.scrollTop=L.scrollHeight}
   pull();stop();cmTm=setInterval(()=>{if(document.hidden)return;if(!$("cm-l")){stop();return}pull()},4000)}
 {const _dc=drawClan;drawClan=function(){_dc.apply(this,arguments);try{const b=$("clan-body");if(!b||!clData||!clData.clan||b.querySelector("#cm-open"))return;const x=document.createElement("button");x.type="button";x.id="cm-open";x.className="cm-open";x.innerHTML="💬 Чат клана<small>пиши своим — видят только участники клана</small>";x.onclick=()=>{hap("light");cmOpen()};b.prepend(x)}catch(e){}}}
+
+/* ---------- 🔍 зум карты: щипок двумя пальцами, перетаскивание, двойной тап, кнопки ＋/－ ---------- */
+let MZ={s:1,x:0,y:0},mzMoved=false;
+function mzBox(){const w=$("mp-map");return w?w.getBoundingClientRect():null}
+function mzClamp(){const b=mzBox();if(!b)return;MZ.s=Math.max(1,Math.min(4,MZ.s));const mx=b.width*(MZ.s-1),my=b.height*(MZ.s-1);MZ.x=Math.min(0,Math.max(-mx,MZ.x));MZ.y=Math.min(0,Math.max(-my,MZ.y))}
+function mzApply(anim){const v=$("mp-svg");if(!v)return;mzClamp();v.style.transition=anim?"transform .28s cubic-bezier(.2,.8,.2,1)":"none";v.style.transform=`translate(${MZ.x}px,${MZ.y}px) scale(${MZ.s})`;const w=$("mp-map");if(w)w.classList.toggle("zoomed",MZ.s>1.02)}
+function mzSet(s,x,y,anim){MZ={s,x,y};mzApply(anim)}
+function mzZoomAt(f,fx,fy,anim){const b=mzBox();if(!b)return;const px=b.width*fx,py=b.height*fy,ns=Math.max(1,Math.min(4,MZ.s*f)),r=ns/MZ.s;MZ.x=px-(px-MZ.x)*r;MZ.y=py-(py-MZ.y)*r;MZ.s=ns;mzApply(anim)}
+{const _md=mapDraw;mapDraw=function(){_md.apply(this,arguments);const w=$("mp-map");if(!w||w._mz)return;w._mz=1;mzApply(false);
+  const pts=new Map();let st=null,lastTap=0;
+  const snap=()=>{const a=[...pts.values()];const b=mzBox();if(a.length>=2){const cx=(a[0].x+a[1].x)/2-b.left,cy=(a[0].y+a[1].y)/2-b.top;st={pinch:1,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1,cx,cy,s:MZ.s,x:MZ.x,y:MZ.y}}else if(a.length===1)st={pinch:0,px:a[0].x,py:a[0].y,x:MZ.x,y:MZ.y,t0x:a[0].x,t0y:a[0].y};else st=null};
+  w.addEventListener("pointerdown",e=>{if(e.target.closest(".mp-zm"))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});snap();if(pts.size===1)mzMoved=false},{passive:true});
+  w.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId)||!st)return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});const a=[...pts.values()],b=mzBox();
+    if(st.pinch&&a.length>=2){const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),cx=(a[0].x+a[1].x)/2-b.left,cy=(a[0].y+a[1].y)/2-b.top,ns=Math.max(1,Math.min(4,st.s*d/st.d)),r=ns/st.s;MZ.s=ns;MZ.x=cx-(st.cx-st.x)*r;MZ.y=cy-(st.cy-st.y)*r;mzMoved=true;mzApply(false)}
+    else if(!st.pinch){const dx=e.clientX-st.px,dy=e.clientY-st.py;if(Math.abs(e.clientX-st.t0x)+Math.abs(e.clientY-st.t0y)>8)mzMoved=true;if(MZ.s>1.02&&mzMoved){MZ.x=st.x+dx;MZ.y=st.y+dy;mzApply(false)}}},{passive:true});
+  const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);snap();if(!pts.size&&!mzMoved){const now=Date.now(),b=mzBox();if(now-lastTap<300&&!e.target.closest("[data-rg]")){MZ.s>1.5?mzSet(1,0,0,true):mzZoomAt(2.2,(e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height,true);lastTap=0}else lastTap=now}};
+  w.addEventListener("pointerup",up);w.addEventListener("pointercancel",up);
+  w.addEventListener("wheel",e=>{e.preventDefault();const b=mzBox();mzZoomAt(e.deltaY<0?1.15:1/1.15,(e.clientX-b.left)/b.width,(e.clientY-b.top)/b.height,false)},{passive:false})}}
+{const _om=openMap;openMap=function(){MZ={s:1,x:0,y:0};return _om.apply(this,arguments)}}
