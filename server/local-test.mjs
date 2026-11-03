@@ -34,7 +34,7 @@ async function call(uid, a, p = {}, start = "") {
   const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), env);
   return r.json();
 }
-const { classify, capOf, HEROES, isBase } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { classify, capOf, HEROES, isBase };").toString("base64"));
+const { hhIs, classify, capOf, HEROES, isBase } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { hhIs, classify, capOf, HEROES, isBase };").toString("base64"));
 let fails = 0;
 /* свободная карточка игрока; если всё проиграно в боях, тестовый игрок открывает новую */
 async function anyCard(uid, callf) { callf = callf || call; let s = await callf(uid, "sync"); let c = s.S.cards.find(c => !c.listed && !c.away && c.f !== 5 && !c.part);
@@ -721,7 +721,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
 /* --- продажа выбранных и герои дня --- */
 { const U = 7201; await call(U, "sync"); for (let i = 0; i < 3; i++) await call(U, "open");
   let s = await call(U, "sync"); const ids = s.S.cards.slice(0, 3).map(c => c.id), sum = s.S.cards.slice(0, 3).reduce((a, c) => a + c.v * .85, 0), cash0 = s.S.cash;
-  let r = await call(U, "sellmany", { ids }); ok(r.ok && r.res.n === 3 && Math.abs(r.S.cash - cash0 - sum) < .05 && r.S.cards.length === s.S.cards.length - 3, "продать выбранные: 3 карточки одним нажатием");
+  let r = await call(U, "sellmany", { ids }); ok(r.ok && r.res.n === 3 && Math.abs(r.S.cash - cash0 - Math.round(sum * (hhIs(Date.now(), "coin") ? 1.5 : 1) * 100) / 100) < .05 && r.S.cards.length === s.S.cards.length - 3, "продать выбранные: 3 карточки одним нажатием");
   r = await call(U, "sellmany", { ids: [999999] }); ok(!r.ok, "чужую карточку продать нельзя");
   await call(U, "camp_tap", { n: 30 });
   r = await call(U, "dtop"); const tap = r.ok && r.res.cats.find(c => c.k === "tap"); ok(tap && tap.me > 0 && tap.top.length > 0, "герои дня: тапы засчитаны (" + (tap && tap.me) + ")");
