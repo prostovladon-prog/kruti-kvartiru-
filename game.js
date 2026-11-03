@@ -2091,7 +2091,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
       v+=`<div class="cmpr"><div class="cmpm">${miniSlot(H.F[0]||demoComp(h))}</div><div class="cmpt"><h4>${HEROES[h][0]}</h4><small>${HEROES[h][3]}</small>
         <div class="cmph"><span class="${H.L.length?"y":""}">◧ левая ×${H.L.length}</span><span class="${H.R.length?"y":""}">◨ правая ×${H.R.length}</span>${H.F.length?'<span class="y">✦ собрано ×'+H.F.length+'</span>':""}</div>
         <div class="cmpl">правых осталось в мире: <b>${goldData?left+" / "+HALF_RUN:"…"}</b>${goldData?' · ошибки: '+(x.e[1]?"◧ ✗":"◧ свободна")+" "+(x.e[2]?"◨ ✗":"◨ свободна"):""}</div>
-        <button type="button" class="craftbtn cmpgo" data-asm="${h}"${H.ok?"":" disabled"}>${H.ok?"🧩 Собрать":"Нужна пара половинок"}</button></div></div>`});
+        <button type="button" class="craftbtn cmpgo" data-asm="${h}"${H.ok?"":" disabled"}>${H.ok?"🧩 Собрать":"Нужна пара половинок"}</button>${!H.ok&&(H.L.length||H.R.length)&&typeof compWhy==="function"?'<small class="cmp-why">'+escH(compWhy(h))+'</small>':""}</div></div>`});
     v+='<button type="button" class="linkbtn" data-goto="chest">🧩 Сундуки с половинками →</button>'}
   if(goldTab==="flex"){
     const top=D.donors||[];v+=flexTop(D);

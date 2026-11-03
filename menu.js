@@ -755,3 +755,16 @@ function kingDraw(){const r=KG,m=$("modal"),sh=$("msheet");m.hidden=false;const 
 /* бой: корона перешла */
 {const _mf=mapFightShow;mapFightShow=function(r,i){_mf.apply(this,arguments);if(r.crown){const t=setInterval(()=>{const x=$("fx-res");if(!x){clearInterval(t);return}if(x.innerHTML){clearInterval(t);x.insertAdjacentHTML("beforeend",'<div class="kg-won">👑 ТЫ ЗАБРАЛ КОРОНУ! Теперь ты — Король мира</div>');S.wking={uid:S.uid,name:S.name};burst(5)}},200)}}}
 {const _sh=mapSheet;mapSheet=function(){_sh.apply(this,arguments);try{if(mapSel!==0)return;const b=document.querySelector("#msheet .ms-h");if(b&&!document.querySelector(".kg-th"))b.insertAdjacentHTML("afterend",'<div class="kg-th">👑 <b>Тронный зал.</b> Король, который держит Рим, получает 10% казны вместо 5%. Отбей Рим у Короля — и корона твоя до конца недели!</div>')}catch(e){}}}
+
+/* ---------- 🧩 половинки: понятная причина, почему не собираются, и сборка прямо из меню карточки ---------- */
+function compBusy(c){if(c.listed)return "выставлена на рынке";if(c.lock)return "сейчас в бою на арене";if(c.away){const d=String(c.dest||"");if(d.startsWith("map:"))return "охраняет регион на карте";if(typeof DEST!=="undefined"&&DEST[d])return "в походе «"+DEST[d].k+"»";return "сейчас занята"}return ""}
+function compWhy(h){const H=compHave(h),n=HEROES[h][0];if(H.ok)return "";if(!H.L.length&&!H.R.length)return "Нет половинок воина «"+n+"»";
+  if(!H.L.length)return "Не хватает левой половинки «"+n+"» ◧";if(!H.R.length)return "Не хватает правой половинки «"+n+"» ◨";
+  const fl=H.L.filter(c=>!away(c)),fr=H.R.filter(c=>!away(c));
+  const tip=c=>c.listed?" — сними её с продажи на рынке, и сразу соберёшь":c.lock?" — дождись конца боя":String(c.dest||"").startsWith("map:")?" — уведи её из региона на карте, и сразу соберёшь":" — дождись, когда вернётся, и сразу соберёшь";
+  if(!fl.length)return "Левая половинка "+compBusy(H.L[0])+tip(H.L[0]);if(!fr.length)return "Правая половинка "+compBusy(H.R[0])+tip(H.R[0]);
+  return "Отделка не совпадает: «Ошибка печати» собирается только со второй «Ошибкой печати», обычная — с обычной"}
+async function compGo(h){const why=compWhy(h);if(why){hapN("error");toast("🧩 "+why);return false}const r=await act("assemble",{h});if(!r)return false;sfx.coin();burst(4);hapN("success");try{renderGold()}catch(e){}showGrant({cards:[r.card]},"🧩 Воин собран!");return true}
+{const _cm=cardMenu;cardMenu=function(c){_cm.apply(this,arguments);if(!c.part)return;const b=$("cm-view");if(!b)return;const why=compWhy(c.h);
+  b.textContent=why?"🧩 Как собрать воина":"🧩 Соединить половинки";if(why)b.insertAdjacentHTML("afterend",'<p class="cln cmp-why">'+escH(why)+'</p>');
+  b.onclick=async()=>{if(compWhy(c.h)){closeModal();openGold("comp");return}closeModal();await compGo(c.h)}}}

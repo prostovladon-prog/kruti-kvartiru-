@@ -2685,3 +2685,4 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .kg-won{margin-top:8px;padding:8px;border-radius:12px;background:#3a1600;color:#ffd23f;font-weight:900;font-size:14px;animation:fxres .55s cubic-bezier(.2,1.4,.4,1) both}
 .kg-bar{padding:5px 12px;margin:4px 0 6px;gap:8px}.kg-bar i{font-size:20px}.kg-bar b{font-size:14px}.kg-bar small{font-size:9px}
 .kg-th{margin:6px 0;padding:8px 10px;border-radius:12px;font-size:12.5px;line-height:1.4;background:linear-gradient(100deg,#fff6c8,#ffe08a);color:#3a1600;box-shadow:inset 0 0 0 1.5px #e0a020}
+.cmp-why{display:block;margin:6px 0 0;font-size:12px;font-weight:700;color:#c0392b;line-height:1.35}
