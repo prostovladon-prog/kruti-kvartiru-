@@ -3182,8 +3182,9 @@ async function handle(req,env){{
       if(/^rk_/.test(a)){const res=await rkApi(env,me,a,p);return J({ok:true,res,S:(a==="rk_get"&&res.phase==="done")||a==="rk_find"?await stateFor(env,me):undefined})}
       if(a==="terms_ok"){const v=Math.max(1,Math.min(TERMS_V,p.v|0));await env.DB.prepare("UPDATE users SET terms_v=MAX(terms_v,?),terms_at=? WHERE id=?").bind(v,Date.now(),me.id).run();return J({ok:true,res:{v},S:await stateFor(env,me)})}
       if(a==="pl_find"||a==="cm_get"||a==="cm_send")return J({ok:true,res:await socApi(env,me,a,p)});if(a.startsWith("king_"))return J({ok:true,res:await kingApi(env,me,a,p)});if(a==="adm_newbies"){if(!isAdmin(env,me.id))fail("Нет доступа");const D=864e5,off=Math.max(-30,Math.min(0,p.day|0)),d0=Math.floor((Date.now()+3*3600e3)/D)*D-3*3600e3+off*D;
-        const rows=(await env.DB.prepare("SELECT nick FROM users WHERE created>=? AND created<? ORDER BY created").bind(d0,d0+D).all()).results;
-        return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:rows.map(r=>r.nick).filter(Boolean)}})}
+        const rows=(await env.DB.prepare("SELECT id,nick FROM users WHERE created>=? AND created<? ORDER BY created").bind(d0,d0+D).all()).results,best=[];
+        for(const r of rows){if(!r.nick)continue;const c=await env.DB.prepare("SELECT h,f,v FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();best.push({nick:r.nick,hero:c?HEROES[c.h][0]:"",tier:c?HT[HEROES[c.h][2]].k:"",fin:c&&c.f?FIN[c.f].k:"",v:c?Math.round(c.v):0})}
+        return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
       if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
