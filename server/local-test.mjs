@@ -1155,5 +1155,55 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await call(P2, "cm_get", { after: 0 }); ok(q.ok && q.res.list.length === 1 && q.res.list[0].text === "Привет, клан!" && q.res.list[0].name === "Глава_Чата", "соклановец видит сообщение");
   const last = q.res.list[0].id; q = await call(P2, "cm_get", { after: last }); ok(q.ok && q.res.list.length === 0, "новых нет");
   q = await call(P3, "cm_send", { text: "я чужой" }); ok(!q.ok, "чужак не пишет в чат клана"); }
+// 👑 Король мира
+{ const cm = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
+  const K = 7961, P = 7962, V = 7963, X = 7964; for (const u of [K, P, V, X]) { await cm(u, "sync"); for (let i = 0; i < 3; i++) await cm(u, "open"); }
+  const wkOf = now => { const d = new Date(now + 3 * 3600e3), k = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - k)).toISOString().slice(0, 10) };
+  const wk = wkOf(Date.now()), pw = wkOf(Date.now() - 7 * 864e5);
+  db.prepare("DELETE FROM king").run(); db.prepare("DELETE FROM map_reg").run(); db.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%'").run();
+  db.prepare("INSERT INTO king(wk,uid,name,votes,tre,got,since) VALUES(?,?,?,?,0,0,?)").run(wk, K, "Король_Тест", 3, Date.now());
+  let q = await cm(P, "king_get"); ok(q.ok && q.res.king && q.res.king.uid === K && q.res.king.tre === undefined && q.res.phase, "король недели виден всем, казну видит только он");
+  q = await cm(P, "sync"); ok(q.S.wking && q.S.wking.uid === K, "король в состоянии игры");
+  // казна: 5% с дохода чужих земель
+  const pc = db.prepare("SELECT id FROM cards WHERE owner=? AND away=0").get(P).id; db.prepare("UPDATE cards SET away=1,dest='map:40' WHERE id=?").run(pc);
+  db.prepare("INSERT INTO map_reg(id,owner,card,since,claim_at,shield,def_n,statue) VALUES(40,?,?,?,?,0,0,0)").run(P, pc, Date.now() - 10 * 36e5, Date.now() - 10 * 36e5);
+  q = await cm(P, "map_claim"); const inc = q.res.cash; ok(q.ok && inc > 0, "игрок забрал доход с земли");
+  q = await cm(K, "king_get"); ok(q.res.king.tre === Math.floor(inc * .05), "в казну Короля упало 5% (" + q.res.king.tre + ")");
+  let c0 = db.prepare("SELECT cash FROM users WHERE id=?").get(K).cash; q = await cm(K, "king_claim"); ok(q.ok && q.res.cash === Math.floor(inc * .05) && db.prepare("SELECT cash FROM users WHERE id=?").get(K).cash === c0 + q.res.cash, "Король забрал казну");
+  q = await cm(K, "king_claim"); ok(!q.ok, "пустую казну не забрать"); q = await cm(P, "king_claim"); ok(!q.ok, "казна только Королю");
+  // указ
+  q = await cm(P, "king_decree", { k: "coin" }); ok(!q.ok, "указ только у Короля");
+  q = await cm(K, "king_decree", { k: "camp" }); ok(q.ok && q.res.k === "camp", "Король объявил указ");
+  q = await cm(K, "king_decree", { k: "coin" }); ok(!q.ok, "один указ в день");
+  q = await cm(V, "sync"); ok(q.S.kingHH && q.S.kingHH.k === "camp", "указ дошёл до игроков");
+  ok(db.prepare("SELECT 1 FROM chat WHERE uid=0 AND text LIKE '%Король_Тест объявил%'").get(), "указ в общем чате");
+  db.prepare("DELETE FROM kv WHERE k='king:dec'").run();
+  // голосование
+  db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)").run("king:cand:" + wk, JSON.stringify({ list: [{ uid: K, score: 10, name: "Король_Тест" }, { uid: P, score: 6, name: "Претендент" }] }));
+  q = await cm(V, "king_vote", { uid: P, dow: 2 }); ok(!q.ok, "голосование только в воскресенье");
+  db.prepare("UPDATE users SET state=json_set(state,'$.nOp',3) WHERE id=?").run(V);
+  q = await cm(V, "king_vote", { uid: P, dow: 6 }); ok(!q.ok && /20/.test(q.err), "голосовать после 20 прокруток");
+  db.prepare("UPDATE users SET state=json_set(state,'$.nOp',25) WHERE id IN (?,?)").run(V, X);
+  q = await cm(V, "king_vote", { uid: 12345, dow: 6 }); ok(!q.ok, "только за кандидата");
+  q = await cm(V, "king_vote", { uid: P, dow: 6 }); ok(q.ok, "голос принят"); q = await cm(V, "king_vote", { uid: K, dow: 6 }); ok(!q.ok, "второй раз не проголосовать");
+  q = await cm(X, "king_get", { dow: 6 }); ok(q.res.phase === "vote" && q.res.list.find(c => c.uid === P).votes === 1 && q.res.canVote, "кандидаты и голоса видны");
+  // коронация: итоги прошлой недели
+  db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)").run("king:cand:" + pw, JSON.stringify({ list: [{ uid: K, score: 20, name: "Король_Тест" }, { uid: P, score: 5, name: "Претендент" }] }));
+  db.prepare("INSERT INTO king_vote(wk,uid,cand,t) VALUES(?,?,?,?),(?,?,?,?)").run(pw, V, P, 1, pw, X, P, 1); db.prepare("DELETE FROM king WHERE wk=?").run(wk);
+  await worker.tick(env); const KR = db.prepare("SELECT * FROM king WHERE wk=?").get(wk); ok(KR && KR.uid === P && KR.votes === 2, "коронован тот, у кого больше голосов");
+  await worker.tick(env); ok(db.prepare("SELECT COUNT(*) AS n FROM king WHERE wk=?").get(wk).n === 1, "коронация один раз");
+  // гонка недели: очки за карту
+  for (let i = 0; i < 12; i++) db.prepare("INSERT INTO map_log(rid,att,def,win,t) VALUES(41,?,0,2,?),(42,?,?,1,?)").run(X, Date.now(), X, V, Date.now());
+  q = await cm(V, "king_get", { dow: 2 }); const xr = q.res.list.find(c => c.uid === X); ok(q.res.phase === "race" && xr && xr.score >= 40 && q.res.list[0].uid === X, "гонка завоевателей недели (" + (xr && xr.score) + ")");
+  // Тронный зал: отбил Рим у Короля — забрал корону, старому Королю выплачена казна
+  const kc = db.prepare("SELECT id FROM cards WHERE owner=? AND away=0").get(P).id, xc = db.prepare("SELECT id FROM cards WHERE owner=? AND away=0").get(X).id;
+  db.prepare("UPDATE cards SET stats='[1,1,1,1,1]',away=1,dest='map:0' WHERE id=?").run(kc); db.prepare("UPDATE cards SET stats='[9999,9999,9999,9999,9999]' WHERE id=?").run(xc);
+  db.prepare("INSERT INTO map_reg(id,owner,card,since,claim_at,shield,def_n,statue) VALUES(0,?,?,?,?,0,0,0)").run(P, kc, Date.now(), Date.now());
+  db.prepare("UPDATE king SET tre=500,got=0 WHERE wk=?").run(wk); db.prepare("UPDATE users SET state=json_set(state,'$.dg',json('{\"lv\":25}')) WHERE id=?").run(X);
+  const pc0 = db.prepare("SELECT cash FROM users WHERE id=?").get(P).cash;
+  q = await cm(X, "map_attack", { rid: 0, id: xc, stat: 0 }); ok(q.ok && q.res.won === 1 && q.res.crown === 1, "отбил Тронный зал — корона перешла" + (q.ok ? "" : " (" + q.err + ")"));
+  const K2 = db.prepare("SELECT * FROM king WHERE wk=?").get(wk); ok(K2.uid === X && K2.tre === 0, "новый Король, казна с нуля");
+  ok(db.prepare("SELECT cash FROM users WHERE id=?").get(P).cash === pc0 + 500, "прошлому Королю выплатили казну");
+  db.prepare("DELETE FROM map_reg").run(); db.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%'").run(); db.prepare("DELETE FROM king").run(); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

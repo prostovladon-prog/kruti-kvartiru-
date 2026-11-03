@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=42;
+const SCHEMA_V=43;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -107,7 +107,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
  "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
  "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)",
- "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)"];
+ "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -373,6 +373,7 @@ async function stateFor(env,me){
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
+  try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
   S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
   Object.assign(S,await nickFx(env));S.shopOn=1;try{S.sday=await sdayNow(env)}catch(e){S.sday=null}   // переливающиеся ники и «Король Эпох» месяца
@@ -407,7 +408,7 @@ function fixIds(o,cards,seen=new Set()){if(!o||typeof o!=="object"||seen.has(o))
 async function doAction(env,me,name,p,extra){
   for(let attempt=0;attempt<8;attempt++){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
-    const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");
+    const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");try{hhKingSet(await kingDec(env))}catch(e){}
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
     st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;ctx.created=u.created||Date.now();
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
@@ -649,7 +650,7 @@ const CHAT_BAD=/(?<![а-яёa-z])(х[уy][йеёяию]\S*|п[иi]зд\S*|[её]
 const CHAT_LINK=/(https?:\/\/|www\.|t\.me\/|telegram\.(me|dog)|\.(ru|com|net|org|me|io|gg|xyz|su|by|ua|info|site|online)\b)/i;
 async function chatGet(env,p){
   const rows=(await env.DB.prepare("SELECT c.id,c.uid,c.name,c.text,c.t,COALESCE(u.pioneer,0) AS pi,CASE WHEN u.vip_until>? THEN 1 ELSE 0 END AS vip FROM chat c LEFT JOIN users u ON u.id=c.uid WHERE c.id>? ORDER BY c.id DESC LIMIT 60").bind(Date.now(),p.after|0).all()).results.reverse();
-  return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0}))};
+  const K=await kingCur(env);return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0,k:K&&K.uid===r.uid?1:0}))};
 }
 /* 💬 чат клана и 🔍 поиск игроков */
 async function socApi(env,me,a,p){const now=Date.now();
@@ -1110,6 +1111,53 @@ async function mapSeason(env,now){const m=mapMon(now),k=await cached("mapseason"
   if(k&&k.m!==m){await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%'").run();await env.DB.prepare("DELETE FROM map_reg").run()}
   await kvSet(env,"map_season",{m});delete topCache.mapseason}
 async function mapRegions(env){return (await env.DB.prepare("SELECT r.*,COALESCE(u.nick,u.name) AS oname,json_extract(u.state,'$.mflagOn') AS flag,(SELECT st FROM map_photo p WHERE p.uid=r.owner) AS ph FROM map_reg r LEFT JOIN users u ON u.id=r.owner").all()).results}
+/* ---------- 👑 Король мира: кандидаты недели (топ-5 завоевателей) → голосование в воскресенье → корона на неделю ---------- */
+const KING={cand:5,minSpins:20,cut:.05,cutThrone:.10,throne:0,pts:{occ:3,cap:5,def:2,hold:3}};
+const mskDow=now=>(new Date(now+3*3600e3).getUTCDay()+6)%7;   // 0 — понедельник, 6 — воскресенье
+const weekStart=wk=>Date.parse(wk+"T00:00:00Z")-3*3600e3;
+async function kingCur(env){return cached("king",env.TEST==="1"?0:5e3,async()=>{const r=await env.DB.prepare("SELECT * FROM king WHERE wk=?").bind(mskWeek(Date.now())).first();return r&&r.uid?r:null})}
+async function kingDec(env){return cached("kdec",env.TEST==="1"?0:5e3,async()=>{const d=await kvGet(env,"king:dec");return d&&d.end>Date.now()?d:null})}
+async function kingRace(env,wk,upto){const t0=weekStart(wk),sc={};const add=(u,v)=>{if(u>0)sc[u]=(sc[u]||0)+v};
+  for(const r of (await env.DB.prepare("SELECT att,def,win FROM map_log WHERE t>=? AND t<=?").bind(t0,upto).all()).results){if(r.win===2)add(r.att,KING.pts.occ);else if(r.win===1)add(r.att,KING.pts.cap);else add(r.def,KING.pts.def)}
+  for(const r of (await env.DB.prepare("SELECT owner,COUNT(*) AS n FROM map_reg WHERE owner>0 GROUP BY owner").all()).results)add(r.owner,KING.pts.hold*r.n);
+  const top=Object.entries(sc).map(([u,v])=>({uid:+u,score:v})).sort((a,b)=>b.score-a.score).slice(0,KING.cand);
+  for(const c of top)c.name=(await nameOf(env,c.uid))||"Игрок";return top}
+async function kingTick(env){const now=Date.now(),wk=mskWeek(now),dow=mskDow(now);
+  if(dow===6){const k="king:cand:"+wk;if(!(await kvGet(env,k))){const list=await kingRace(env,wk,now);await kvSet(env,k,{list,t:now});delete topCache["kc"+wk];
+    for(const c of list)try{await notify(env,c.uid,"👑 Ты в пятёрке кандидатов в Короли мира!\n\nСегодня весь день идёт голосование. Позови друзей проголосовать за тебя — у Короля корона, казна с доходов всей карты и королевские указы.","👑 К выборам",PAGE+"?map=1")}catch(e){}}}
+  if(!(await env.DB.prepare("SELECT 1 FROM king WHERE wk=?").bind(wk).first())){const pw=mskWeek(now-7*864e5),C=(await kvGet(env,"king:cand:"+pw))||{list:[]};
+    const votes={};for(const r of (await env.DB.prepare("SELECT cand,COUNT(*) AS n FROM king_vote WHERE wk=? GROUP BY cand").bind(pw).all()).results)votes[r.cand]=r.n;
+    const w=C.list.slice().sort((a,b)=>(votes[b.uid]||0)-(votes[a.uid]||0)||b.score-a.score)[0];
+    const ins=await env.DB.prepare("INSERT OR IGNORE INTO king(wk,uid,name,votes,tre,got,since) VALUES(?,?,?,?,0,0,?)").bind(wk,w?w.uid:0,w?w.name:"",w?votes[w.uid]||0:0,now).run();delete topCache.king;
+    if(ins.meta.changes===1&&w){try{await notify(env,w.uid,"👑 ТЫ — КОРОЛЬ МИРА на эту неделю! Голосов: "+(votes[w.uid]||0)+"\n\n• корона у ника\n• "+Math.round(KING.cut*100)+"% с дохода всех земель капает в твою казну ("+Math.round(KING.cutThrone*100)+"%, если держишь Тронный зал — Рим)\n• раз в день — королевский указ: выбери счастливый час для всех\n\nНо берегись: кто отобьёт у тебя Рим — заберёт корону 🔥","👑 На трон",PAGE+"?map=1")}catch(e){}
+      for(const c of C.list)if(c.uid!==w.uid)try{await notify(env,c.uid,"👑 Выборы окончены: Королём мира стал "+w.name+". Отбей у него Тронный зал (Рим) — и корона твоя!","🗺 На карту",PAGE+"?map=1")}catch(e){}}}}
+async function kingCut(env,cash){const K=await kingCur(env);if(!K||cash<=0)return;const th=await env.DB.prepare("SELECT 1 FROM map_reg WHERE id=? AND owner=?").bind(KING.throne,K.uid).first();
+  const c=Math.floor(cash*(th?KING.cutThrone:KING.cut));if(c>0)await env.DB.prepare("UPDATE king SET tre=tre+? WHERE wk=?").bind(c,K.wk).run()}
+async function kingPay(env,K){const left=(K.tre||0)-(K.got||0);if(left<=0)return 0;const u=await env.DB.prepare("UPDATE king SET got=? WHERE wk=? AND got=?").bind(K.tre,K.wk,K.got||0).run();if(u.meta.changes!==1)return 0;
+  await doAction(env,{id:K.uid,name:K.name},"map_grant",{cash:left},{grant:true});return left}
+async function kingThrone(env,me,rid,oldOwner){if(rid!==KING.throne)return;const K=await kingCur(env);if(!K||K.uid!==oldOwner||K.uid===me.id)return;
+  try{await kingPay(env,K)}catch(e){}const nm=me.nick||me.name||"Игрок",u=await env.DB.prepare("UPDATE king SET uid=?,name=?,since=?,tre=0,got=0 WHERE wk=? AND uid=?").bind(me.id,nm,Date.now(),K.wk,K.uid).run();delete topCache.king;
+  if(u.meta.changes===1){try{await notify(env,K.uid,"💔 "+nm+" отбил Тронный зал и забрал твою корону! Казна уже выплачена тебе. Верни трон — захвати Рим обратно!","🗺 На карту",PAGE+"?map=1")}catch(e){}return true}}
+async function kingApi(env,me,a,p){const now=Date.now(),wk=mskWeek(now),dow=env.TEST==="1"&&p.dow!=null?+p.dow:mskDow(now);
+  if(a==="king_get"){const K=await kingCur(env),dec=await kingDec(env),vote=dow===6;let list,my=null;
+    if(vote){const C=(await kvGet(env,"king:cand:"+wk))||{list:[]},votes={};for(const r of (await env.DB.prepare("SELECT cand,COUNT(*) AS n FROM king_vote WHERE wk=? GROUP BY cand").bind(wk).all()).results)votes[r.cand]=r.n;
+      list=C.list.map(c=>Object.assign({},c,{votes:votes[c.uid]||0}));const v=await env.DB.prepare("SELECT cand FROM king_vote WHERE wk=? AND uid=?").bind(wk,me.id).first();my=v?v.cand:null}
+    else list=await cached("kc"+wk,env.TEST==="1"?0:60e3,()=>kingRace(env,wk,now));
+    const throne=await env.DB.prepare("SELECT owner FROM map_reg WHERE id=?").bind(KING.throne).first();
+    const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");
+    return {now,phase:vote?"vote":"race",ends:weekStart(wk)+(vote?7:6)*864e5,list,my,canVote:(st.nOp||0)>=KING.minSpins,
+      king:K?{uid:K.uid,name:K.name,votes:K.votes,since:K.since,throne:!!(throne&&throne.owner===K.uid),tre:K.uid===me.id?(K.tre||0)-(K.got||0):undefined,decDone:K.dec_day===mskDay(now)}:null,dec}}
+  if(a==="king_vote"){if(dow!==6)fail("Голосование идёт по воскресеньям");const C=(await kvGet(env,"king:cand:"+wk))||{list:[]},c=+p.uid;if(!C.list.some(x=>x.uid===c))fail("Такого кандидата нет");
+    const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");if((st.nOp||0)<KING.minSpins)fail("Голосовать можно после "+KING.minSpins+" прокруток");
+    const r=await env.DB.prepare("INSERT OR IGNORE INTO king_vote(wk,uid,cand,t) VALUES(?,?,?,?)").bind(wk,me.id,c,now).run();if(r.meta.changes!==1)fail("Ты уже проголосовал на этой неделе");return {cand:c}}
+  const K=await kingCur(env);if(!K||K.uid!==me.id)fail("Это может только Король");
+  if(a==="king_claim"){const got=await kingPay(env,K);delete topCache.king;if(!got)fail("Казна пока пуста");return {cash:got}}
+  if(a==="king_decree"){const k=String(p.k||"");if(!HH_T[k])fail("Нет такого указа");const day=mskDay(now);if(K.dec_day===day)fail("Указ сегодня уже был — новый завтра");
+    if(await kingDec(env))fail("Сейчас уже идёт счастливый час по указу");const u=await env.DB.prepare("UPDATE king SET dec_day=? WHERE wk=? AND uid=? AND (dec_day IS NULL OR dec_day<>?)").bind(day,K.wk,me.id,day).run();if(u.meta.changes!==1)fail("Указ сегодня уже был");
+    const d={k,at:now,end:now+HH_LEN,king:1,by:K.name};await kvSet(env,"king:dec",d);delete topCache.kdec;delete topCache.king;
+    try{const T=HH_T[k];await env.DB.prepare("INSERT INTO chat(uid,name,text,t) VALUES(?,?,?,?)").bind(0,"📜 Указ","👑 Король "+K.name+" объявил: "+T.ic+" "+T.n+" на 30 минут! "+T.d,now).run()}catch(e){}
+    return d}
+  fail("Неизвестное действие")}
 async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
   const U=async()=>{const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();return JSON.parse((u&&u.state)||"{}")};
   if(a==="map_get"){const R=await mapRegions(env),ids=R.filter(r=>r.card).map(r=>r.card),cards={};
@@ -1122,7 +1170,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
   if(a==="map_claim"){const mine=(await env.DB.prepare("SELECT * FROM map_reg WHERE owner=?").bind(me.id).all()).results;let cash=0,runes=0,n=0;
     for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=MAP.inc[MAP_Z(r.id)];const c=Math.floor(I.c*h),q=Math.floor(I.r*h);if(c<=0)continue;
       const u=await env.DB.prepare("UPDATE map_reg SET claim_at=? WHERE id=? AND owner=? AND COALESCE(claim_at,since)=?").bind(now,r.id,me.id,r.claim_at||r.since).run();if(u.meta.changes===1){cash+=c;runes+=q;if(h>=1)n++}}
-    if(!cash&&!runes)fail("Доход ещё не накопился");await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});return {cash,runes}}
+    if(!cash&&!runes)fail("Доход ещё не накопился");await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});try{await kingCut(env,cash)}catch(e){}return {cash,runes}}
   if(a==="map_leave"){const rid=p.rid|0,r=await env.DB.prepare("SELECT * FROM map_reg WHERE id=? AND owner=?").bind(rid,me.id).first();if(!r)fail("Это не твой регион");
     await env.DB.prepare("DELETE FROM map_reg WHERE id=? AND owner=?").bind(rid,me.id).run();await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=? AND owner=?").bind(r.card,me.id).run();return {rid}}
   if(a==="map_attack"){const rid=p.rid|0;if(rid<0||rid>=MAP_R.length)fail("Нет такого региона");const z=MAP_Z(rid),st=await U();
@@ -1141,11 +1189,12 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     const me_=rowToCard(c),op=rowToCard(D),dk=dgBonus(st,now)*1.5+(st.dg?.05:0),home=MAP_R[rid][2]===ERA_OF[op.h]?MAP.home:0,fat=Math.min(MAP.fatMax,MAP.fat*(R.def_n||0)),ddk=dgBonus(dst,now);
     const k=(1+dk)/(1+home+ddk-fat)-1,stat=Math.max(0,Math.min(4,p.stat|0)),p2=aiPick(op,[stat]),p3=rndPick([stat,p2]),F=fight3(me_,op,[stat,p2,p3],k),won=F.w>F.l;
     await env.DB.prepare("INSERT INTO map_log(rid,att,def,win,t) VALUES(?,?,?,?,?)").bind(rid,me.id,R.owner,won?1:0,now).run();
+    let crown=false;
     if(won){const g=await env.DB.prepare("UPDATE map_reg SET owner=NULL WHERE id=? AND owner=? AND card=?").bind(rid,R.owner,R.card).run();if(g.meta.changes!==1)fail("Регион только что сменил хозяина — обнови карту");
-      await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=?").bind(R.card).run();await occupy();await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true});
+      await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=?").bind(R.card).run();await occupy();await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true});try{crown=await kingThrone(env,me,rid,R.owner)}catch(e){}
       try{await notify(env,R.owner,"⚔️ "+(me.nick||me.name||"Игрок")+" захватил твой регион «"+MAP_R[rid][0]+"»! Твой "+HEROES[op.h][0]+" вернулся в коллекцию.\n\nОтбей регион обратно, пока не поздно 🔥","🗺 На карту",PAGE+"?map=1")}catch(e){}}
     else{await env.DB.prepare("UPDATE map_reg SET def_n=def_n+1 WHERE id=?").bind(rid).run();try{await doAction(env,{id:R.owner,name:R.oname||"Игрок"},"map_grant",{pts:MPASS.pts.def},{grant:true})}catch(e){}}
-    return {won:won?1:0,rid,rounds:F.rounds,w:F.w,l:F.l,picks:[stat,p2,p3],me:pub(me_),opp:pub(op),bon:{dk,home,fat,ddk}}}
+    return {won:won?1:0,rid,rounds:F.rounds,w:F.w,l:F.l,picks:[stat,p2,p3],me:pub(me_),opp:pub(op),bon:{dk,home,fat,ddk},crown:crown?1:0}}
   if(a==="map_photo"){const st=await U();if(!(st.mflags||[]).includes("photo"))fail("Сначала купи «Флаг со своим фото»");const img=String(p.img||"");
     if(!/^data:image\/(jpeg|png|webp);base64,/.test(img)||img.length>90000)fail("Картинка слишком большая");
     await env.DB.prepare("INSERT INTO map_photo(uid,img,st,t) VALUES(?,?,0,?) ON CONFLICT(uid) DO UPDATE SET img=excluded.img,st=0,t=excluded.t").bind(me.id,img,now).run();
@@ -1946,7 +1995,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -2026,7 +2075,7 @@ async function handle(req,env){{
       if(a==="trader_buy"||a==="trader_sell"){const r=await (a==="trader_buy"?traderBuy:traderSell)(env,me,p);return J({ok:true,...r})}
       if(/^rk_/.test(a)){const res=await rkApi(env,me,a,p);return J({ok:true,res,S:(a==="rk_get"&&res.phase==="done")||a==="rk_find"?await stateFor(env,me):undefined})}
       if(a==="terms_ok"){const v=Math.max(1,Math.min(TERMS_V,p.v|0));await env.DB.prepare("UPDATE users SET terms_v=MAX(terms_v,?),terms_at=? WHERE id=?").bind(v,Date.now(),me.id).run();return J({ok:true,res:{v},S:await stateFor(env,me)})}
-      if(a==="pl_find"||a==="cm_get"||a==="cm_send")return J({ok:true,res:await socApi(env,me,a,p)});
+      if(a==="pl_find"||a==="cm_get"||a==="cm_send")return J({ok:true,res:await socApi(env,me,a,p)});if(a.startsWith("king_"))return J({ok:true,res:await kingApi(env,me,a,p)});
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
       if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}

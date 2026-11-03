@@ -686,7 +686,8 @@ function hhDay(d){let h=2166136261;for(const ch of "hh"+d){h^=ch.charCodeAt(0);h
   const n=r()<.55?2:1,keys=Object.keys(HH_T),out=[],base=Date.parse(d+"T00:00:00Z")-3*3600e3;let used=-1;
   for(let i=0;i<n;i++){let slot=Math.floor(r()*20);if(slot===used||Math.abs(slot-used)<4)slot=(slot+8)%20;used=slot;const k=keys[Math.floor(r()*keys.length)];const at=base+12*3600e3+slot*30*60e3;out.push({k,at,end:at+HH_LEN})}
   return out.sort((a,b)=>a.at-b.at)}
-function hhNow(now){const d=new Date(now+3*3600e3).toISOString().slice(0,10);return hhDay(d).find(e=>now>=e.at&&now<e.end)||null}
+let HH_KING=null;function hhKingSet(x){HH_KING=x&&x.k&&HH_T[x.k]?x:null}   // 👑 указ Короля: свой счастливый час поверх расписания
+function hhNow(now){if(HH_KING&&now>=HH_KING.at&&now<HH_KING.end)return HH_KING;const d=new Date(now+3*3600e3).toISOString().slice(0,10);return hhDay(d).find(e=>now>=e.at&&now<e.end)||null}
 const hhIs=(now,k)=>{const e=hhNow(now);return !!(e&&e.k===k)};
 const ACTIONS={
   sync(){return {}},
