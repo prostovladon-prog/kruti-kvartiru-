@@ -1141,5 +1141,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cm(8, "map_stats"); ok(q.ok && q.res.season.fights >= 1 && q.res.season.occ >= 1 && q.res.occupied >= 1 && q.res.pay.length >= 3, "админ-статистика карты: бои, захваты, донат");
   q = await cm(A, "map_stats"); ok(!q.ok, "статистика карты только админу");
   q = await cm(own30, "map_leave", { rid: 30 }); ok(q.ok && !db.prepare("SELECT 1 FROM map_reg WHERE id=30").get(), "ушёл из региона — карточка вернулась"); }
+// поиск игрока и чат клана
+{ const P1 = 7951, P2 = 7952, P3 = 7953; for (const u of [P1, P2, P3]) { await call(u, "sync"); db.prepare("UPDATE users SET cash=50000 WHERE id=?").run(u); }
+  db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Искомый_Воин", "искомый_воин", P2);
+  db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Чужак", "чужак", P3);
+  db.prepare("UPDATE users SET nick=?,nick_key=? WHERE id=?").run("Глава_Чата", "глава_чата", P1);
+  let q = await call(P1, "pl_find", { q: "иском" }); ok(q.ok && q.res.list.some(x => x.uid === P2 && x.name === "Искомый_Воин"), "поиск игрока по началу ника");
+  q = await call(P1, "pl_find", { q: "и" }); ok(!q.ok, "поиск от 2 букв");
+  q = await call(P1, "cm_get", {}); ok(!q.ok, "чат клана только в клане");
+  q = await call(P1, "clan_create", { name: "Чатовый" }); const cid = q.res.id; await call(P2, "clan_join", { id: cid });
+  q = await call(P1, "cm_send", { text: "Привет, клан!" }); ok(q.ok, "сообщение в чат клана");
+  q = await call(P1, "cm_send", { text: "ещё" }); ok(!q.ok, "не чаще раза в 2 секунды");
+  q = await call(P2, "cm_get", { after: 0 }); ok(q.ok && q.res.list.length === 1 && q.res.list[0].text === "Привет, клан!" && q.res.list[0].name === "Глава_Чата", "соклановец видит сообщение");
+  const last = q.res.list[0].id; q = await call(P2, "cm_get", { after: last }); ok(q.ok && q.res.list.length === 0, "новых нет");
+  q = await call(P3, "cm_send", { text: "я чужой" }); ok(!q.ok, "чужак не пишет в чат клана"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

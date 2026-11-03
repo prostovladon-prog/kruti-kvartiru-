@@ -657,3 +657,25 @@ $("don-go").onclick=e=>{e.stopPropagation();hap("light");openGold("flex")};
       <div><h5>⚔️ Завоеватели сезона</h5>${r.topA.length?r.topA.map((u,i)=>`<p>${i+1}. <b>${escH(u.name||"?")}</b> — отжал ${u.caps||0} из ${u.fights||0} боёв</p>`).join(""):"<p>боёв ещё не было</p>"}</div></div>
      <h5>🔥 Самые горячие регионы</h5><p>${r.hot.length?r.hot.map(h=>escH(h.name)+": "+h.n+" боёв, сменил хозяина "+(h.caps||0)+" раз").join(" · "):"—"}</p>
      <p class="mst-p">📸 фото флагов: ждут проверки ${n(r.ph&&r.ph.wait)}, одобрено ${n(r.ph&&r.ph.ok)}</p>`})}catch(e){}}}
+/* ---------- 🔍 найти игрока по нику: витрина и «Написать» ---------- */
+MENU_GROUPS[1][1].push({k:"find",ic:"🔍",n:"Найти игрока",c:["#ffe9a8","#c08a0a"]});
+{const _mg=menuGo;menuGo=function(k){if(k==="find"){menuClose();hap("light");return findOpen()}return _mg.apply(this,arguments)}}
+function fnEsc(t){return String(t||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c])}
+function findOpen(){if(!ONLINE)return toast("Поиск работает в игре через Telegram");const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box nickbox fnd"><h3>🔍 Найти игрока</h3><p class="cln">Напиши ник — откроешь витрину игрока и сможешь написать ему</p><input id="fn-q" maxlength="30" autocomplete="off" placeholder="Ник игрока"><div id="fn-l" class="fn-l"></div><button type="button" class="ghost" id="fn-x">Закрыть</button></div>';
+  $("fn-x").onclick=closeModal;const i=$("fn-q"),L=$("fn-l");let tm=0,seq=0;
+  i.oninput=()=>{clearTimeout(tm);const q=i.value.trim();if(q.length<2){L.innerHTML="";return}tm=setTimeout(async()=>{const my=++seq;const r=await act("pl_find",{q});if(my!==seq||!r)return;
+    L.innerHTML=r.list.length?r.list.map(u=>`<button type="button" class="fn-r" data-fu="${u.uid}"><b>${u.vip?"👑 ":""}${fnEsc(u.name)}</b><small>🃏 ${u.n}</small><i>→</i></button>`).join(""):'<p class="cln">Никого не нашли 🤷</p>'},350)};
+  L.onclick=async e=>{const b=e.target.closest("[data-fu]");if(!b)return;hap("light");const uid=+b.dataset.fu,r=await act("profile",{uid});if(r){closeModal();openShowcase(Object.assign(r,{p:"u_"+uid}))}};setTimeout(()=>i.focus(),200)}
+/* ---------- 💬 чат клана ---------- */
+let cmLast=0,cmTm=0;
+function cmOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;cmLast=0;
+  sh.innerHTML='<div class="box nickbox cmbox"><div class="cm-h"><h3>💬 Чат клана</h3><button type="button" class="mp-x" id="cm-x">✕</button></div><div class="cm-l" id="cm-l"><p class="cln">Загружаю…</p></div><div class="cm-in"><input id="cm-t" maxlength="200" placeholder="Сообщение клану" autocomplete="off"><button type="button" class="craftbtn" id="cm-go">➤</button></div></div>';
+  const stop=()=>{clearInterval(cmTm);cmTm=0};$("cm-x").onclick=()=>{stop();closeModal()};
+  const send=async()=>{const t=$("cm-t"),v=t.value.trim();if(!v)return;t.value="";const r=await act("cm_send",{text:v});if(r){hap("light");pull()}else t.value=v};
+  $("cm-go").onclick=send;$("cm-t").onkeydown=e=>{if(e.key==="Enter")send()};
+  async function pull(){if(!$("cm-l")){stop();return}const r=await act("cm_get",{after:cmLast});if(!$("cm-l"))return;if(!r){if(!cmLast){$("cm-l").innerHTML='<p class="cln">Чат доступен только участникам клана</p>';stop()}return}const L=$("cm-l");if(!cmLast)L.innerHTML=r.list.length?"":'<p class="cln">Пока тихо. Напиши первым! 👋</p>';
+    if(r.list.length&&cmLast===0)L.innerHTML="";r.list.forEach(x=>{cmLast=Math.max(cmLast,x.id);const d=document.createElement("div");d.className="cm-m"+(x.uid===r.me?" me":"");d.innerHTML='<b></b><span></span><small>'+new Date(x.t+3*3600e3).toISOString().slice(11,16)+'</small>';d.children[0].textContent=x.name||"?";d.children[1].textContent=x.text;L.appendChild(d)});
+    if(r.list.length)L.scrollTop=L.scrollHeight}
+  pull();stop();cmTm=setInterval(()=>{if(document.hidden)return;if(!$("cm-l")){stop();return}pull()},4000)}
+{const _dc=drawClan;drawClan=function(){_dc.apply(this,arguments);try{const b=$("clan-body");if(!b||!clData||!clData.clan||b.querySelector("#cm-open"))return;const x=document.createElement("button");x.type="button";x.id="cm-open";x.className="cm-open";x.innerHTML="💬 Чат клана<small>пиши своим — видят только участники клана</small>";x.onclick=()=>{hap("light");cmOpen()};b.prepend(x)}catch(e){}}}

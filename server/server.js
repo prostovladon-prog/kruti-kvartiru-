@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=41;
+const SCHEMA_V=42;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -106,7 +106,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "ALTER TABLE users ADD COLUMN hh_note INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
  "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
- "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)"];
+ "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)",
+ "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -650,6 +651,18 @@ async function chatGet(env,p){
   const rows=(await env.DB.prepare("SELECT c.id,c.uid,c.name,c.text,c.t,COALESCE(u.pioneer,0) AS pi,CASE WHEN u.vip_until>? THEN 1 ELSE 0 END AS vip FROM chat c LEFT JOIN users u ON u.id=c.uid WHERE c.id>? ORDER BY c.id DESC LIMIT 60").bind(Date.now(),p.after|0).all()).results.reverse();
   return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0}))};
 }
+/* 💬 чат клана и 🔍 поиск игроков */
+async function socApi(env,me,a,p){const now=Date.now();
+  if(a==="pl_find"){const q=String(p.q||"").trim().replace(/^@/,"").slice(0,30);if(q.length<2)fail("Напиши хотя бы 2 буквы ника");const k=nickKey(q.replace(/\s+/g,"_"))||q.toLowerCase();
+    const L=(await env.DB.prepare("SELECT id,nick,vip_until,(SELECT COUNT(*) FROM cards c WHERE c.owner=u.id) AS n FROM users u WHERE nick_key LIKE ? ORDER BY (nick_key=?) DESC,seen DESC LIMIT 12").bind(k+"%",k).all()).results;
+    return {list:L.map(u=>({uid:u.id,name:u.nick,vip:(u.vip_until||0)>now?1:0,n:u.n||0}))}}
+  const u=await env.DB.prepare("SELECT clan,nick,muted FROM users WHERE id=?").bind(me.id).first();if(!u||!u.clan)fail("Ты не в клане");
+  if(a==="cm_get"){const after=Math.max(0,p.after|0);const L=(await env.DB.prepare("SELECT id,uid,name,text,t FROM clan_msg WHERE clan=? AND id>? ORDER BY id DESC LIMIT 60").bind(u.clan,after).all()).results.reverse();return {list:L,me:me.id}}
+  if(a==="cm_send"){if(!u.nick)fail("Чтобы писать, выбери ник во вкладке «Топ»");if((u.muted||0)>now)fail("Тебе запрещено писать в чат ещё "+Math.ceil((u.muted-now)/36e5)+" ч");
+    let t=String(p.text||"").replace(/\s+/g," ").trim();if(!t)fail("Пустое сообщение");if(t.length>200)fail("Не длиннее 200 символов");if(CHAT_LINK.test(t))fail("Ссылки в чате запрещены");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
+    const last=await env.DB.prepare("SELECT t FROM clan_msg WHERE uid=? ORDER BY id DESC LIMIT 1").bind(me.id).first();if(last&&now-last.t<2000)fail("Не так быстро");
+    await env.DB.prepare("INSERT INTO clan_msg(clan,uid,name,text,t) VALUES(?,?,?,?,?)").bind(u.clan,me.id,u.nick,t,now).run();return {ok:1}}
+  fail("Неизвестное действие")}
 async function chatSend(env,me,p){
   const {u}=await loadUser(env,me);
   if(!u.nick)fail("Чтобы писать в чат, выбери ник во вкладке «Топ»");
@@ -2013,6 +2026,7 @@ async function handle(req,env){{
       if(a==="trader_buy"||a==="trader_sell"){const r=await (a==="trader_buy"?traderBuy:traderSell)(env,me,p);return J({ok:true,...r})}
       if(/^rk_/.test(a)){const res=await rkApi(env,me,a,p);return J({ok:true,res,S:(a==="rk_get"&&res.phase==="done")||a==="rk_find"?await stateFor(env,me):undefined})}
       if(a==="terms_ok"){const v=Math.max(1,Math.min(TERMS_V,p.v|0));await env.DB.prepare("UPDATE users SET terms_v=MAX(terms_v,?),terms_at=? WHERE id=?").bind(v,Date.now(),me.id).run();return J({ok:true,res:{v},S:await stateFor(env,me)})}
+      if(a==="pl_find"||a==="cm_get"||a==="cm_send")return J({ok:true,res:await socApi(env,me,a,p)});
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
       if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
