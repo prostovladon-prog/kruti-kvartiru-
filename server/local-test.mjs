@@ -1138,6 +1138,8 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await buyM(own30, { item: "mpass" }); ok(q.ok && q.S.mpass.prem === 1, "пропуск завоевателя");
   q = await cm(own30, "mpass_claim", { i: 0, prem: 1 }); ok(q.ok && q.res.sp === 5, "премиум-награда 1 уровня");
   q = await cm(own30, "mpass_claim", { i: 9, prem: 1 }); ok(!q.ok, "закрытый уровень не взять");
+  q = await cm(8, "map_stats"); ok(q.ok && q.res.season.fights >= 1 && q.res.season.occ >= 1 && q.res.occupied >= 1 && q.res.pay.length >= 3, "админ-статистика карты: бои, захваты, донат");
+  q = await cm(A, "map_stats"); ok(!q.ok, "статистика карты только админу");
   q = await cm(own30, "map_leave", { rid: 30 }); ok(q.ok && !db.prepare("SELECT 1 FROM map_reg WHERE id=30").get(), "ушёл из региона — карточка вернулась"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

@@ -646,3 +646,14 @@ document.querySelectorAll("nav.tabs button").forEach(b=>{if(b.id!=="tab-map")b.a
 {const _om=openMap;openMap=async function(){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.id==="tab-map"?"true":"false"));return _om.apply(this,arguments)}}
 document.addEventListener("click",e=>{if(e.target.closest('[data-mb="x"]')){$("tab-map").setAttribute("aria-selected","false");try{setTab("spin")}catch(x){}}},true);
 $("don-go").onclick=e=>{e.stopPropagation();hap("light");openGold("flex")};
+/* админ: статистика карты мира */
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("mapst"))return;const x=document.createElement("div");x.id="mapst";x.className="srcbox mapst";const ph=$("mph-adm");if(ph)ph.before(x);else b.appendChild(x);
+  act("map_stats").then(r=>{if(!r)return;const n=v=>fmtN(v||0),row=(t,P)=>`<div class="mst-r"><b>${t}</b><span>${n(P.fights)}<small>боёв</small></span><span>${n(P.caps)}<small>отжато</small></span><span>${n(P.held)}<small>отбито</small></span><span>${n(P.occ)}<small>занято пустых</small></span><span>${n(P.players)}<small>игроков</small></span></div>`;
+    const IT={mflag:"🚩 флаги",mpack:"⚔️ +3 атаки",mpass:"🎖 пропуск",mstatue:"🗿 статуи"},stars=(r.pay||[]).reduce((a,p)=>a+(p.s||0),0);
+    x.innerHTML=`<h4>🗺 Карта мира</h4>${row("Сегодня",r.today)}${row("7 дней",r.week)}${row("Сезон",r.season)}
+     <div class="mst-g"><div><b>${r.occupied}/50</b><small>регионов занято</small></div><div><b>${r.zones[0]} · ${r.zones[1]} · ${r.zones[2]}</b><small>🌱 окраины · ⚔️ эпохи · 👑 сердце</small></div><div><b>${r.statues}</b><small>🗿 статуй</small></div><div><b>${n(stars)} ⭐</b><small>донат с карты за сезон</small></div></div>
+     ${(r.pay||[]).length?`<p class="mst-p">${r.pay.map(p=>IT[p.item]+": "+p.n+" шт · "+n(p.s)+" ⭐").join(" · ")}</p>`:""}
+     <div class="mst-cols"><div><h5>👑 Правители сейчас</h5>${r.rulers.length?r.rulers.map((u,i)=>`<p>${i+1}. <b>${escH(u.name||"?")}</b> — ${u.n} (${escH(u.reg.join(", "))})</p>`).join(""):"<p>никого</p>"}</div>
+      <div><h5>⚔️ Завоеватели сезона</h5>${r.topA.length?r.topA.map((u,i)=>`<p>${i+1}. <b>${escH(u.name||"?")}</b> — отжал ${u.caps||0} из ${u.fights||0} боёв</p>`).join(""):"<p>боёв ещё не было</p>"}</div></div>
+     <h5>🔥 Самые горячие регионы</h5><p>${r.hot.length?r.hot.map(h=>escH(h.name)+": "+h.n+" боёв, сменил хозяина "+(h.caps||0)+" раз").join(" · "):"—"}</p>
+     <p class="mst-p">📸 фото флагов: ждут проверки ${n(r.ph&&r.ph.wait)}, одобрено ${n(r.ph&&r.ph.ok)}</p>`})}catch(e){}}}

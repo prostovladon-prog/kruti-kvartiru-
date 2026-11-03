@@ -1121,7 +1121,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     if(R&&R.shield>now)fail("Регион под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
     const occupy=async()=>{const ok=await env.DB.prepare("UPDATE cards SET away=1,dest=? WHERE id=? AND owner=? AND away=0 AND list_price IS NULL AND room_id IS NULL").bind("map:"+rid,c.id,me.id).run();if(ok.meta.changes!==1)fail("Карточка занята");
       await env.DB.prepare("INSERT INTO map_reg(id,owner,card,since,claim_at,shield,def_n,statue) VALUES(?,?,?,?,?,?,0,0) ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,card=excluded.card,since=excluded.since,claim_at=excluded.claim_at,shield=excluded.shield,def_n=0,statue=0").bind(rid,me.id,c.id,now,now,now+MAP.shield).run()};
-    if(!R||!R.owner){await occupy();await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true});return {won:1,empty:1,rid}}
+    if(!R||!R.owner){await occupy();await env.DB.prepare("INSERT INTO map_log(rid,att,def,win,t) VALUES(?,?,0,2,?)").bind(rid,me.id,now).run();await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true});return {won:1,empty:1,rid}}
     await doAction(env,me,"map_use",{},{grant:true});
     const D=await env.DB.prepare("SELECT * FROM cards WHERE id=?").bind(R.card).first();if(!D){await env.DB.prepare("DELETE FROM map_reg WHERE id=?").bind(rid).run();fail("Защитник исчез — регион свободен, попробуй ещё раз")}
     const du=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(R.owner).first(),dst=JSON.parse((du&&du.state)||"{}");
@@ -1138,6 +1138,15 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     await env.DB.prepare("INSERT INTO map_photo(uid,img,st,t) VALUES(?,?,0,?) ON CONFLICT(uid) DO UPDATE SET img=excluded.img,st=0,t=excluded.t").bind(me.id,img,now).run();
     for(const ad of ADMINS)await notify(env,ad,"📸 Новое фото для флага на модерации (игрок "+me.id+"). Проверь: Статистика → «Фото флагов».","⚔️ Открыть");return {st:0}}
   if(!isAdmin(env,me.id))fail("Нет доступа");
+  if(a==="map_stats"){const D=864e5,d0=Math.floor((now+TZ)/D)*D-TZ,w0=now-7*D,m0=Date.parse(mapMon(now)+"-01T00:00:00Z")-TZ,one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
+    const per=async t=>one("SELECT SUM(win=2) AS occ,SUM(win IN (0,1)) AS fights,SUM(win=1) AS caps,SUM(win=0) AS held,COUNT(DISTINCT att) AS players FROM map_log WHERE t>=?",t);
+    const R=(await env.DB.prepare("SELECT r.id,r.owner,r.statue,r.def_n,r.since,COALESCE(u.nick,u.name) AS name FROM map_reg r LEFT JOIN users u ON u.id=r.owner WHERE r.owner IS NOT NULL").all()).results;
+    const z=[0,0,0];R.forEach(r=>z[MAP_Z(r.id)]++);const rul={};R.forEach(r=>{const k=r.owner;rul[k]=rul[k]||{name:r.name,n:0,reg:[]};rul[k].n++;rul[k].reg.push(MAP_R[r.id][0])});
+    const topA=(await env.DB.prepare("SELECT l.att AS uid,COALESCE(u.nick,u.name) AS name,SUM(l.win=1) AS caps,SUM(l.win IN (0,1)) AS fights FROM map_log l LEFT JOIN users u ON u.id=l.att WHERE l.t>=? GROUP BY l.att ORDER BY caps DESC,fights DESC LIMIT 7").bind(m0).all()).results;
+    const hot=(await env.DB.prepare("SELECT rid,COUNT(*) AS n,SUM(win=1) AS caps FROM map_log WHERE t>=? AND win IN (0,1) GROUP BY rid ORDER BY n DESC LIMIT 5").bind(m0).all()).results.map(r=>({...r,name:MAP_R[r.rid][0]}));
+    const pay=(await env.DB.prepare("SELECT item,COUNT(*) AS n,SUM(stars) AS s FROM payments WHERE item IN ('mflag','mpack','mpass','mstatue') AND status='done' AND created>=? GROUP BY item").bind(m0).all()).results;
+    const ph=await one("SELECT SUM(st=0) AS wait,SUM(st=1) AS ok FROM map_photo");
+    return {today:await per(d0),week:await per(w0),season:await per(m0),occupied:R.length,zones:z,statues:R.filter(r=>r.statue).length,rulers:Object.values(rul).sort((a,b)=>b.n-a.n).slice(0,7),topA,hot,pay,ph}}
   if(a==="mph_list")return {list:(await env.DB.prepare("SELECT p.uid,p.img,p.st,p.t,COALESCE(u.nick,u.name) AS name FROM map_photo p LEFT JOIN users u ON u.id=p.uid WHERE p.st=0 ORDER BY p.t LIMIT 20").all()).results};
   if(a==="mph_ok"||a==="mph_no"){const ok=a==="mph_ok";await env.DB.prepare("UPDATE map_photo SET st=? WHERE uid=?").bind(ok?1:2,p.uid|0).run();
     await notify(env,p.uid|0,ok?"✅ Твоё фото одобрено — теперь оно на флаге над твоими регионами!":"❌ Фото для флага не прошло проверку. Загрузи другое — без чужих лиц, рекламы и неприличного.","🗺 На карту",PAGE+"?map=1");return {}}
@@ -2007,7 +2016,7 @@ async function handle(req,env){{
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
       if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
-      if(/^map_|^mph_/.test(a)){const res=await mapApi(env,me,a,p);return J({ok:true,res,S:a==="map_get"||a==="mph_list"?undefined:await stateFor(env,me)})}
+      if(/^map_|^mph_/.test(a)){const res=await mapApi(env,me,a,p);return J({ok:true,res,S:a==="map_get"||a==="mph_list"||a==="map_stats"?undefined:await stateFor(env,me)})}
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});
         if(r.res.gift){const g=await giftMint(env,me.id,r.res.gift,"case");
