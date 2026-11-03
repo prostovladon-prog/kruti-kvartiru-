@@ -2530,3 +2530,4 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .tph{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}.tph b{font-size:15px}.tph small{font-size:11px;opacity:.7}.tph em{font-style:normal;font-size:12px;font-weight:900;color:#5df28a}
 .tpg{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.tpc{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 2px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff;font:inherit;cursor:pointer}
 .tpc b{font-size:13px}.tpc small{font-size:10.5px;color:#5df28a;font-weight:900}
+.demob{position:sticky;top:0;z-index:9999;display:block;padding:10px 14px;background:#ff3b30;color:#fff;font-weight:700;font-size:13px;line-height:1.35;text-align:center;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.4)}

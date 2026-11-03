@@ -539,3 +539,6 @@ function topupHTML(){return '<div class="tpb'+(myX2?" x2":"")+'"><div class="tph
 {const _ft=flexTop;flexTop=function(D){const h=_ft(D),i=h.indexOf('</div>',h.indexOf('class="dnhero"'))+6;return h.slice(0,i)+topupHTML()+h.slice(i)}}
 $("gold-body").addEventListener("click",e=>{const t=e.target.closest("[data-topup]");if(!t)return;hap("light");buyItem({item:"bal",n:+t.dataset.topup})});
 {const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&r.item==="bal"){const R=r.res||{};myX2=0;renderAll();loadGold();sfx.coin();burst(R.b?3:1);hapN("success");toast("⭐ Баланс пополнен: +"+R.n+(R.b?" и +"+R.b+" бонусом x2!":""));return}return _ps(r)}}
+/* ---------- игра открыта без данных Telegram: прогресс не сохранится — говорим об этом прямо ---------- */
+if(!ONLINE&&!DEV_USER){const b=document.createElement("a");b.className="demob";b.href="https://t.me/VoinyEpohBot";
+  b.innerHTML=IN_TG?"⚠️ Telegram не передал данные входа — прогресс <b>не сохранится</b>. Закрой игру и открой снова через @VoinyEpohBot (если включён VPN — выключи его на минуту)":"⚠️ Это демо: прогресс <b>не сохраняется</b>. Играй в Telegram — <b>@VoinyEpohBot</b>";document.body.prepend(b)}

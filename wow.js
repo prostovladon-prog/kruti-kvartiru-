@@ -510,7 +510,7 @@ function drawClan(){const b=$("clan-body");if(!b||$("sec-clan").hidden||!clData)
         toast((r.crit?"💥 КРИТ! ":"⚔️ ")+"−"+fmtN(r.dmg)+" боссу");if(r.kill){sfx.fanfare();burst(4);hapN("success");toast("🏆 Босс повержен! Сундук клана: +"+r.kill.sp+" прокруток и +"+r.kill.cash+" монет");renderAll()}await loadClan()}else t.disabled=false}}finally{clBusy=false}}}
 let clConfirm=0;function confirmLeave(){if(NOW()-clConfirm<4000)return true;clConfirm=NOW();toast("Нажми ещё раз, чтобы выйти из клана");return false}
 /* приглашение в клан по ссылке ?startapp=c_<id> */
-(function(){const sp=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param)||"";const m=/^c_(\d+)$/.exec(sp);
+(function(){const sp=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param"))||"";const m=/^c_(\d+)$/.exec(sp);
   const go=new URLSearchParams(location.search).get("clan");if(!m&&!go)return;const t=setInterval(async()=>{if(!S)return;clearInterval(t);await openClan();
     if(m&&clData&&!clData.clan){const id=+m[1],c=(clData.top||[]).find(x=>x.id===id);if(c){const r=await act("clan_join",{id});if(r){toast("🛡 Ты вступил в клан «"+c.name+"»!");await loadClan()}}}},400)})();
 

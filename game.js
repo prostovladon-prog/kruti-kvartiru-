@@ -17,7 +17,10 @@ const fmtK=n=>{n=+n||0;const a=Math.abs(n),k=(v,u)=>{let t=v<10?v.toFixed(2):v<1
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const tg=window.Telegram&&window.Telegram.WebApp;
 const DEV_USER=new URLSearchParams(location.search).get("dev");
-const ONLINE=!!API_URL&&!!((tg&&tg.initData)||DEV_USER);
+/* initData берём у Telegram, а если его скрипт не загрузился (VPN, плохая сеть) — из адреса: Telegram кладёт его в #tgWebAppData */
+const INIT=(tg&&tg.initData)||(()=>{try{return new URLSearchParams(location.hash.slice(1)).get("tgWebAppData")||""}catch(e){return ""}})();
+const INITP=new URLSearchParams(INIT);const IN_TG=!!INIT||/tgWebApp/.test(location.hash);
+const ONLINE=!!API_URL&&!!(INIT||DEV_USER);
 const NOW=()=>Date.now();
 const todayL=()=>today(NOW());
 
@@ -44,7 +47,7 @@ function issuedOfUI(h,f){if(FIN[f].run===Infinity)return 0;return ONLINE?((S.pri
 async function act(name,p){
   try{let out;
     if(ONLINE){
-      const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":(tg&&tg.initData)||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:name,p:p||{}})});
+      const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:name,p:p||{}})});
       let j;try{j=await r.json()}catch(e){throw new GameError(r.status===429||r.status>=500?"Сервер перегружен, попробуй через пару минут":"Нет связи с сервером. Попробуй ещё раз")}
       if(!j.ok)throw new GameError(j.err||"Ошибка сервера");if(j.S)S=j.S;out=j.res||{};
     }else{
@@ -1729,7 +1732,7 @@ function renderStory(){const b=$("story-go"),t=$("story-t");if(!b)return;const d
 $("story-go").onclick=async()=>{
   if(!storyStep){
     if(!(tg&&tg.shareToStory&&(!tg.isVersionAtLeast||tg.isVersionAtLeast("7.8")))){toast("Истории работают в игре через Telegram на телефоне. Обнови Telegram, если не открывается");return}
-    const link=ONLINE?linkFor("r_"+S.uid):BOT_LINK,premium=!!(tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.is_premium);
+    const link=ONLINE?linkFor("r_"+S.uid):BOT_LINK,premium=!!(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.is_premium);
     const opt={text:"Крути карточки воинов и выбей легенду ⚔️ "+link};if(premium)opt.widget_link={url:link,name:"Играть"};
     try{tg.shareToStory(PAGE_URL+"assets/story.jpg",opt)}catch(e){toast("Не получилось открыть истории");return}
     storyStep=1;renderStory();return}
@@ -1750,7 +1753,7 @@ function renderFriends(){const box=$("friends");if(!box)return;box.innerHTML="";
   names.forEach(n=>{const d=document.createElement("div");d.className="fr";d.innerHTML='<span><b></b><br><small></small></span><button type="button" class="mini2">Открыть</button>';
     d.querySelector("b").textContent=n;d.querySelector("small").textContent=(F[n].p.startsWith("u_")?"последний раз ":"витрина от ")+new Date(F[n].t).toLocaleDateString("ru-RU");
     d.querySelector("button").onclick=()=>openParam(F[n].p);box.appendChild(d)})}
-function handleStart(){let p=null;try{p=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param}catch(e){}
+function handleStart(){let p=null;try{p=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param"))}catch(e){}
   if(!p){const q=new URLSearchParams(location.search).get("startapp");if(q)p=q}
   if(p)openParam(p)}
 
@@ -2399,7 +2402,7 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   if(new URLSearchParams(location.search).get("camp"))setTimeout(()=>{try{openCamp()}catch(e){}},600);
   {const _sq=new URLSearchParams(location.search).get("shop");if(_sq)setTimeout(()=>{try{openGold(_sq==="flex"?"flex":undefined)}catch(e){}},600)}
   setTimeout(()=>{try{newsUpd()}catch(e){}},2500);
-  const fromLink=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param);
+  const fromLink=new URLSearchParams(location.search).get("startapp")||((tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")));
   if(!fromLink)setTimeout(()=>{if(!startOnb()&&!(S.cards.length&&startWhatsNew()))askNick()},600);
 })();
 
