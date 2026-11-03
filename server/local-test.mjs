@@ -34,7 +34,7 @@ async function call(uid, a, p = {}, start = "") {
   const r = await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), env);
   return r.json();
 }
-const { hhIs, classify, capOf, HEROES, isBase } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { hhIs, classify, capOf, HEROES, isBase };").toString("base64"));
+const { hhIs, classify, capOf, HEROES, isBase, COMP } = await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "..", "rules.js"), "utf8") + "\nexport { COMP, hhIs, classify, capOf, HEROES, isBase };").toString("base64"));
 let fails = 0;
 /* свободная карточка игрока; если всё проиграно в боях, тестовый игрок открывает новую */
 async function anyCard(uid, callf) { callf = callf || call; let s = await callf(uid, "sync"); let c = s.S.cards.find(c => !c.listed && !c.away && c.f !== 5 && !c.part);
@@ -627,6 +627,8 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   ok(full && full.h === 32 && full.part === 0 && full.no === 7 && full.sn === "410002" && full.f === 0, "сборка: целый Дракон забирает номер тиража 7/300 и номер правой половинки");
   ok(r.S.cards.filter(c => c.h === 32).length === 1, "половинки ушли, остался один целый воин");
   r = await cp(U2, "assemble", { h: 32 }); ok(!r.ok, "без половинок собрать нельзя");
+  for (const h of COMP) { const UU = 7300 + h; await cp(UU, "sync"); ins.run(UU, h, 0, 1700000 + h, "52" + String(h).padStart(4, "0"), 1); ins.run(UU, h, 0, 250 + (h % 40), "53" + String(h).padStart(4, "0"), 2);
+    const rr = await cp(UU, "assemble", { h }); ok(rr.ok && rr.res.card.h === h && rr.res.card.part === 0, "собирается каждый составной: " + HEROES[h][0] + (rr.ok ? "" : " (" + rr.err + ")")); db.prepare("DELETE FROM cards WHERE owner=?").run(UU); }
   ins.run(U2, 34, 4, 1001, "410003", 1); ins.run(U2, 34, 0, 9, "410004", 2);
   r = await cp(U2, "assemble", { h: 34 }); ok(!r.ok && /Ошибка печати/.test(r.err), "«ошибка» собирается только с «ошибкой»");
   ins.run(U2, 34, 4, 2001, "410005", 2);
