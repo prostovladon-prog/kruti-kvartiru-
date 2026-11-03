@@ -776,3 +776,11 @@ async function compGo(h){const why=compWhy(h);if(why){hapN("error");toast("🧩 
 {const _cv=openCardView;openCardView=function(c,o){_cv.apply(this,arguments);try{if(!c||!c.part||!(o&&o.mine))return;const info=document.querySelector("#msheet .cv-info");if(!info)return;const why=compWhy(c.h);
   const w=document.createElement("div");w.className="cv-asm";if(!why){w.innerHTML='<button type="button" class="craftbtn">🧩 Соединить половинки</button>';w.firstChild.onclick=async()=>{closeModal();if(await compGo(c.h))try{renderCol()}catch(e){}}}
   else w.innerHTML='<p class="cmp-why">🧩 '+escH(why)+'</p>';info.prepend(w)}catch(e){}}}
+
+/* 🎬 админ: ники новичков за день — для видео */
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("nbx"))return;const x=document.createElement("div");x.id="nbx";x.className="srcbox nbx";b.prepend(x);
+  const load=async day=>{x.innerHTML='<b>🎬 Ники новичков</b><p class="cln">Загружаю…</p>';const r=await act("adm_newbies",{day});if(!r){x.innerHTML='<b>🎬 Ники новичков</b><p class="cln">Не загрузилось</p>';return}
+    x.innerHTML=`<div class="nb-h"><b>🎬 Ники новичков · ${r.day}</b><span><button type="button" data-nd="-1">Вчера</button><button type="button" data-nd="0">Сегодня</button></span></div><p class="cln">Пришло ${r.total}, с ником ${r.nicks.length}${r.total>r.nicks.length?" (остальные ещё не выбрали ник)":""}</p><textarea readonly rows="5"></textarea><button type="button" class="craftbtn" id="nb-cp">📋 Скопировать список</button>`;
+    const t=x.querySelector("textarea");t.value=r.nicks.join("\n");x.querySelectorAll("[data-nd]").forEach(z=>z.onclick=()=>load(+z.dataset.nd));
+    $("nb-cp").onclick=async()=>{try{await navigator.clipboard.writeText(t.value);toast("📋 Скопировано: "+r.nicks.length+" ников")}catch(e){t.select();document.execCommand("copy");toast("📋 Скопировано")}}};
+  load(-1)}catch(e){}}}
