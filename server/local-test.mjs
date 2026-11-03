@@ -953,15 +953,10 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await call(U, "cap_buy", { max: 20000 }); ok(!q.ok, "за монеты — только один раз");
   db.prepare("UPDATE users SET vip_until=?,vip_t=1 WHERE id=?").run(Date.now() + 864e5, U); q = await call(U, "sync"); ok(capOf(q.S) === 360, "с VIP — 360 мест"); }
 // 🐉 дракон: тайное яйцо, 3 живых друга, уход, гнездо, сундуки, снаряжение
-{ const U = 7960; await call(U, "sync"); let q = await call(U, "dg_hatch"); ok(!q.ok && /друзей/.test(q.err), "без друзей яйцо не разбить");
-  q = await call(U, "sync"); ok(q.S.dgFr === 0 && !q.S.dg, "видно, сколько друзей согрели яйцо (0)");
-  for (const f of [7961, 7962, 7963]) await call(f, "sync", {}, "r_" + U);
-  db.prepare("UPDATE users SET state=json_set(state,'$.nOp',6) WHERE id IN (7961,7962)").run();
-  q = await call(U, "dg_hatch"); ok(!q.ok, "два живых друга — ещё рано (третий без прокруток не считается)");
-  db.prepare("UPDATE users SET state=json_set(state,'$.nOp',5) WHERE id=7963").run();
-  db.prepare("UPDATE users SET created=? WHERE id=7963").run(Date.UTC(2026, 9, 1)); q = await call(U, "dg_hatch"); ok(!q.ok, "друг, пришедший до выхода дракона, не считается");
-  db.prepare("UPDATE users SET created=? WHERE id=7963").run(Date.now());
-  q = await call(U, "dg_hatch"); ok(q.ok && q.S.dg && q.S.dg.lv === 1 && q.S.dg.inv.length === 1, "3 живых друга — дракон вылупился, у него стартовый шлем");
+{ const U = 7960; await call(U, "sync"); let q = await call(U, "dg_hatch"); ok(q.ok && q.S.dg && q.S.dg.lv === 1 && q.S.dg.inv.length === 1, "дракон для всех: яйцо разбивается сразу, у дракона стартовый шлем");
+  q = await call(U, "dg_play", { hits: 99 }); ok(q.ok && q.res.hits === 8 && q.res.xp > 0 && q.res.left === 4, "игра в мячик: не больше 8 попаданий, осталось 4 игры");
+  for (let i = 0; i < 4; i++) await call(U, "dg_play", { hits: 3 }); q = await call(U, "dg_play", { hits: 3 }); ok(!q.ok, "больше 5 игр в день нельзя");
+  q = await call(U, "sync"); { const W = q.S.dg.wish; ok(W && W.l.length === 3, "у дракона 3 желания на сегодня"); }
   q = await call(U, "dg_hatch"); ok(!q.ok, "второй раз не вылупляется");
   q = await call(U, "dg_name", { name: "Искра<script>" }); ok(q.ok && q.res.name === "Искраscript", "имя дракона очищается");
   q = await call(U, "dg_tap", { n: 60 }); ok(q.ok && q.res.n === 60 && q.S.dg.tp === 60, "ласка: 60 касаний");
@@ -1036,10 +1031,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cr(8, "stats"); ok(q.ok && Array.isArray(q.res.retC) && q.res.retC.length > 0, "статистика: удержание D1/D3/D7 по дням"); }
 // 🥚 дракон за историю
 { const cs = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
-  await cs(8501, "sync"); let q = await cs(8501, "dg_hatch"); ok(!q.ok, "без друзей и истории яйцо не разбить");
-  q = await cs(8501, "dg_story", { tg: "" }); ok(!q.ok, "история: нужен ник");
-  q = await cs(8501, "dg_story", { ig: "https://instagram.com/voin_8501/" }); ok(q.ok && q.res.ig === "voin_8501", "история засчитана (ник из ссылки)");
-  q = await cs(8501, "dg_hatch"); ok(q.ok && q.S.dg, "после истории яйцо разбивается — дракон вылупился"); }
+  await cs(8501, "sync"); let q = await cs(8501, "dg_hatch"); ok(q.ok && q.S.dg, "яйцо без друзей и истории — сразу"); }
 // 🐉 сообщение в игре всем без дракона (без бота)
 { db.prepare("DELETE FROM kv WHERE k='dmb:dgst3110'").run(); const n0 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n; const RN = Date.now; Date.now = () => Date.UTC(2026, 9, 31, 10); try { await worker.tick({ ...env }) } finally { Date.now = RN }
   const n1 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n, nd = db.prepare("SELECT COUNT(*) n FROM users WHERE json_extract(state,'$.dg') IS NULL AND id<>6724818967").get().n;

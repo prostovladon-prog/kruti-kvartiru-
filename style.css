@@ -2531,3 +2531,21 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .tpg{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.tpc{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 2px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff;font:inherit;cursor:pointer}
 .tpc b{font-size:13px}.tpc small{font-size:10.5px;color:#5df28a;font-weight:900}
 .demob{position:sticky;top:0;z-index:9999;display:block;padding:10px 14px;background:#ff3b30;color:#fff;font-weight:700;font-size:13px;line-height:1.35;text-align:center;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+/* 🎾 игра с драконом */
+.dgplay{margin:10px 0}.dgpb{width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px;border:0;border-radius:18px;font:inherit;font-weight:900;font-size:17px;color:#06301b;background:linear-gradient(180deg,#8dffb4,#2fd47e);box-shadow:0 5px 0 #1a7a4a;cursor:pointer}
+.dgpb small{font-weight:600;font-size:12px;opacity:.85}.dgpb:disabled{background:rgba(255,255,255,.12);color:#cfd3e6;box-shadow:none}
+.dgpb.wake{color:#1c0a4a;background:linear-gradient(180deg,#ffe680,#ffb92e);box-shadow:0 5px 0 #b77a00}
+#dg-stage{position:relative}.dggame{position:absolute;inset:0;z-index:30;border-radius:inherit;background:rgba(5,10,30,.25)}
+.dgg-h{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-weight:900;font-size:18px;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff}.dgg-h b{color:#5df28a}
+.dgg-c{position:absolute;inset:0;display:grid;place-items:center;font-size:90px;font-weight:900;color:#fff;text-shadow:0 6px 0 #3a1580;animation:hhin .5s}
+.dgball{position:absolute;width:62px;height:62px;margin:-31px;border:0;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.35),transparent 70%);font-size:44px;line-height:62px;cursor:pointer;animation:dgbin .25s cubic-bezier(.2,1.6,.4,1),dgbob .6s ease-in-out .25s infinite alternate;touch-action:manipulation}
+.dgball.got{animation:dgbgot .3s forwards;pointer-events:none}
+@keyframes dgbin{from{transform:scale(0)}}@keyframes dgbob{to{transform:translateY(-8px)}}@keyframes dgbgot{to{transform:scale(1.8);opacity:0}}
+.dgjump{animation:dgjmp .35s}@keyframes dgjmp{40%{transform:translateY(-14px) scale(1.03)}}
+.dgwk{animation:dgjmp .5s 2}
+.dgg-end{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(10,6,40,.7);border-radius:inherit;color:#fff;animation:hhfade .3s}.dgg-end b{font-size:30px}.dgg-end em{font-style:normal;color:#5df28a;font-weight:900}
+.dgwish{margin:10px 0;padding:12px;border-radius:18px;background:rgba(122,60,255,.14);border:1px solid rgba(160,120,255,.4)}
+.dgw-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}.dgw-h b{font-size:15px}.dgw-h small{font-size:11px;opacity:.75}
+.dgw{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}.dgw i{font-style:normal;font-size:22px}.dgw span{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}.dgw b{font-size:13px}
+.dgw u{display:block;height:6px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}.dgw s{display:block;height:100%;background:linear-gradient(90deg,#a66bff,#ff7ad9)}
+.dgw em{font-style:normal;font-size:12px;font-weight:900;opacity:.8}.dgw.ok{background:rgba(93,242,138,.08);border-radius:10px}.dgw.done{opacity:.55}

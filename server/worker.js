@@ -596,7 +596,7 @@ const conqPow=(c,weak)=>Math.round(cpow(c)*(ERA_OF[c.h]===weak?CONQ.bonus:1));
    Тайное яйцо открывается, когда 3 приглашённых друга сделали хотя бы по 5 прокруток.
    Дракон растёт 60 уровней (7 стадий), его надо кормить и гладить. Снаряжение 5 слотов, 6 редкостей, комплекты дают бонус.
    Сила дракона помогает в боях, завоевании и клановом боссе, а взрослый дракон каждый день приносит прокрутки. */
-const DG={fr:3,frSpins:5,since:Date.UTC(2026,9,28,17,0),max:60,satH:4,tapCap:200,feedMax:6,winXp:10,winSh:2,winCap:15,spinXp:2,taskXp:50,conqXp:40,conqSh:10,nestTaps:50,invMax:60,upMax:10,nameMax:16,hungry:20};
+const DG_PLAY=5,DG={fr:0,frSpins:5,since:Date.UTC(2026,9,28,17,0),max:60,satH:4,tapCap:200,feedMax:6,winXp:10,winSh:2,winCap:15,spinXp:2,taskXp:50,conqXp:40,conqSh:10,nestTaps:50,invMax:60,upMax:10,nameMax:16,hungry:20};
 const DG_STAGE=[{n:"Детёныш",lv:1,gift:0},{n:"Юный дракон",lv:10,gift:1},{n:"Взрослый дракон",lv:20,gift:2},{n:"Старший дракон",lv:30,gift:3},{n:"Древний дракон",lv:40,gift:4},{n:"Владыка эпох",lv:50,gift:5},{n:"Легенда эпох",lv:60,gift:7}];
 const dgStage=lv=>{let i=0;DG_STAGE.forEach((S,k)=>{if(lv>=S.lv)i=k});return i};
 const dgCum=L=>Math.round(250000*Math.pow(Math.max(0,L-1)/59,2.1));   // сколько опыта нужно всего, чтобы дойти до уровня L
@@ -999,6 +999,10 @@ const ACTIONS={
     const old=D.sock[i]||null,g=G.p.g?String(G.p.g):null;if(g&&!(D.gems[g]>0))fail("Такого гема нет");if(old)dgGemAdd(D,old);if(g){D.gems[g]--;if(!D.gems[g])delete D.gems[g]}D.sock[i]=g;return {sock:D.sock}},
   dg_gem_merge(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");const m=/^([a-z]+)([12])$/.exec(String(G.p.g||""));if(!m||!DG_GEM[m[1]])fail("Этот гем нельзя улучшить");D.gems=D.gems||{};
     if((D.gems[G.p.g]||0)<DG_GEM_MERGE)fail("Нужно "+DG_GEM_MERGE+" одинаковых гема");D.gems[G.p.g]-=DG_GEM_MERGE;if(!D.gems[G.p.g])delete D.gems[G.p.g];const ng=m[1]+(+m[2]+1);dgGemAdd(D,ng);return {g:ng}},
+  /* 🎾 игра с драконом: ловим мячики, до DG_PLAY раз в день. Опыт и чешуя зависят от числа пойманных (0–8) */
+  dg_play(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала нужен дракон");if(dgAway(D,ctx.now))fail("Дракон в походе");const d=today(ctx.now);if(!D.pl||D.pl.d!==d)D.pl={d,n:0};
+    if(D.pl.n>=DG_PLAY)fail("Дракон наигрался — приходи завтра 😴");D.pl.n++;const hits=Math.max(0,Math.min(8,G.p.hits|0)),xp=dgAddXp(st,ctx,30+hits*25),sh=hits>=6?3+hits:hits;D.sh=(D.sh||0)+sh;
+    return {xp,sh,hits,left:DG_PLAY-D.pl.n}},
   dg_morning(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала нужен дракон");const h=new Date(ctx.now+3*3600e3).getUTCHours();if(h<7||h>=12)fail("«Доброе утро» — с 7 до 12 часов");
     if(D.morn===today(ctx.now))fail("Сегодня уже здоровались 😊");D.morn=today(ctx.now);const xp=dgAddXp(st,ctx,200)||200;st.spins+=1;return {xp,sp:1}},
   dg_evo(G){const D=G.st.dg;if(!D)fail("Сначала нужен дракон");if(D.evo)fail("Путь уже выбран");if(D.lv<DG_EVO_LV)fail("Эволюция открывается с "+DG_EVO_LV+" уровня");const k=String(G.p.k||"");if(!DG_EVO[k])fail("Нет такого пути");D.evo=k;return {evo:k}},
@@ -1031,6 +1035,19 @@ const ACTIONS={
   topup(G){if(!G.ctx.test&&!G.ctx.admin)fail("Только в тестовом режиме");G.st.spins+=3;return {}}
 };
 /* выполнить действие: проверки времени, затем само действие */
+/* ---------- 🐉 желания дракона: каждый день он просит 3 вещи. Выполнил — опыт и чешуя, все три — бонус ---------- */
+const DG_WISH={tap:{n:"Погладь меня 30 раз",ic:"💜",need:30},feed:{n:"Покорми меня",ic:"🍖",need:1},fight:{n:"Сразись на арене",ic:"⚔️",need:1},spin:{n:"Открой 5 карточек",ic:"🎴",need:5},exp:{n:"Своди меня в поход",ic:"🎒",need:1},play:{n:"Поиграй со мной в мячик",ic:"🎾",need:1}};
+const DG_WISH_R={xp:150,sh:5},DG_WISH_ALL={sp:2,xp:300};
+function dgWishes(D,now){const d=today(now);if(!D.wish||D.wish.d!==d){let h=7;for(const ch of d+(D.name||"дракон"))h=(h*31+ch.charCodeAt(0))>>>0;const ks=Object.keys(DG_WISH),L=[];
+    while(L.length<3){h=(Math.imul(h,1103515245)+12345)>>>0;const k=ks[(h>>>8)%ks.length];if(!L.includes(k))L.push(k)}D.wish={d,l:L,p:{},got:[],all:0}}return D.wish}
+function dgWishAdd(st,now,k,n){const D=st.dg;if(!D||!n)return;const W=dgWishes(D,now);if(!W.l.includes(k)||W.got.includes(k))return;W.p[k]=Math.min(DG_WISH[k].need,(W.p[k]||0)+n)}
+ACTIONS.dg_wish=function(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала нужен дракон");const W=dgWishes(D,ctx.now),k=String(G.p.k||"");
+  if(!W.l.includes(k))fail("Сегодня дракон этого не просил");if(W.got.includes(k))fail("Уже выполнено");if((W.p[k]||0)<DG_WISH[k].need)fail("Ещё не выполнено");
+  W.got.push(k);D.sh=(D.sh||0)+DG_WISH_R.sh;let xp=dgAddXp(st,ctx,DG_WISH_R.xp),all=null;
+  if(W.got.length===3&&!W.all){W.all=1;st.spins+=DG_WISH_ALL.sp;xp+=dgAddXp(st,ctx,DG_WISH_ALL.xp);all=DG_WISH_ALL}return {k,xp,sh:DG_WISH_R.sh,all}};
+/* прогресс желаний — от обычных действий */
+{const H={dg_tap:(r,p)=>["tap",r&&r.n||0],dg_feed:()=>["feed",1],dga_apply:()=>["fight",1],open:()=>["spin",1],open_multi:r=>["spin",r&&r.cards?r.cards.length:0],dg_exp:()=>["exp",1],dg_play:()=>["play",1]};
+  for(const k in H){const f=ACTIONS[k];if(!f)continue;ACTIONS[k]=function(G){const r=f.apply(this,arguments);try{const [w,n]=H[k](r,G.p);dgWishAdd(G.st,G.ctx.now,w,n)}catch(e){}return r}}}
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};
   const D0=day(st,ctx.now),o0=D0.opened,w0=st.totalWins||0,c0=st.crafted||0;const res=A(G)||{};
   try{const D=day(st,ctx.now);passAdd(st,ctx,"open",Math.max(0,D.opened-o0));passAdd(st,ctx,"win",Math.max(0,(st.totalWins||0)-w0));
@@ -1054,7 +1071,7 @@ const SDAY={stars:250,ahead:60};
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.

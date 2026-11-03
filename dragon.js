@@ -162,7 +162,7 @@ function dgInfo(D){const now=NOW(),s=dgStage(D.lv),sat=dgSat(D,now),pw=dgPower(D
   return {s,sat,pw,bon,g,giftOk:g>0&&!D.gift&&sat>=DG.hungry,nestOk:!D.nest&&D.fd>=1&&(D.tp||0)>=DG.nestTaps,hungry:sat<DG.hungry,cur:dgCum(D.lv),next:dgCum(D.lv+1)}}
 function dgTile(){if(!S)return null;const D=dgOf();if(!D){const fr=dgFr(),r=fr>=DG.fr||!!S.dgStory;return {ic:"🥚",n:"Тайное яйцо",s:r?"оно треснуло! загляни":"разбуди его: "+fr+"/"+DG.fr+" друзей",dot:r?1:0,c:["#2a1a5a","#7a5ad8"],cls:"egg"}}
   const I=dgInfo(D);return {ic:"🐉",n:D.name||dgBr(D).n+" дракон",s:I.hungry?"🍖 голоден — покорми!":I.giftOk?"🎁 принёс "+I.g+" 🎴":I.nestOk?"🪺 в гнезде чешуя":"ур. "+D.lv+" · мощь "+dgFmt(I.pw),dot:I.hungry||I.giftOk||I.nestOk?1:0,c:[dgBr(D).c[2],dgBr(D).c[0]]}}
-function dgNav(){const D=dgOf(),i=$("tab-dragon-i"),t=$("tab-dragon-t"),d=$("dg-dot");if(!i)return;i.textContent=D?"🐉":"🥚";t.textContent=D?"Дракон":"Тайна";const T=dgTile();if(d)d.hidden=!(T&&T.dot)}
+function dgNav(){const D=dgOf(),i=$("tab-dragon-i"),t=$("tab-dragon-t"),d=$("dg-dot");if(!i)return;i.textContent=D?"🐉":"🥚";t.textContent="Дракон";const T=dgTile();if(d)d.hidden=!(T&&T.dot)}
 function renderDragon(){const R=$("dg-root");if(!R||!S)return;dgNav();if($("sec-dragon").hidden)return;const D=dgOf();
   if(!D){const k="egg"+dgFr()+(S.admin?1:0)+(S.dgStory?1:0);if(dgKey!==k){dgKey=k;R.innerHTML=dgEggHTML();$("dge-go").onclick=dgEggGo;dgStoryBind();try{dgEggEnhance()}catch(e){console.error(e)}}return}
   const I=dgInfo(D),B=dgLook(D),kk="dg"+D.b+"_"+(D.skin||"")+(D.evo||"")+(D.sock||[]).join(",")+"_"+I.s+"_"+JSON.stringify(D.eq||{})+"_"+dgEq(D).map(x=>x.lv).join(",");
@@ -341,7 +341,7 @@ $("cash-sw").onclick=e=>{e.stopPropagation();dgSub="chest";dgKey="";setTab("drag
 try{dgCash()}catch(e){}
 
 /* объявление в игре: дракон теперь за историю — один раз тем, у кого нет дракона */
-function dgAnn(){try{if(!S||!ONLINE||S.dg||S.dgStory||NOW()>Date.UTC(2026,10,7,21)||!$("modal").hidden||document.querySelector(".onb,#onb,.terms,.wsheet"))return;if(typeof isPathNewbie==="function"&&isPathNewbie())return;
+function dgAnn(){return;try{if(!S||!ONLINE||S.dg||S.dgStory||NOW()>Date.UTC(2026,10,7,21)||!$("modal").hidden||document.querySelector(".onb,#onb,.terms,.wsheet"))return;if(typeof isPathNewbie==="function"&&isPathNewbie())return;
   if(localStorage.getItem("we-dgann1"))return;localStorage.setItem("we-dgann1","1")}catch(e){return}
   const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox newsb"><h3>🐉 Дракон — за историю!</h3><img src="assets/post-dgstory.jpg?v=1" alt="" style="width:100%;border-radius:14px;border:3px solid var(--ink);margin:4px 0 8px"><p>Тайное яйцо теперь можно разбудить <b>без друзей</b>: выложи историю с игрой в Telegram или Instagram, нажми «Я выложил» — и яйцо треснет сразу. Внутри твой собственный дракон!</p><button type="button" class="craftbtn" id="dga-go">🥚 Разбудить дракона</button><button type="button" class="ghost" id="dga-x">Позже</button></div>';
   $("dga-go").onclick=()=>{closeModal();setTab("dragon")};$("dga-x").onclick=closeModal}
@@ -426,7 +426,8 @@ setInterval(()=>{try{dgFlyMain()}catch(e){}},3000);
 
 /* ===================== 💬 настроение, речь, сон и утро ===================== */
 const mskH=()=>new Date(NOW()+3*3600e3).getUTCHours();
-const dgSleeping=()=>{const h=mskH();return h>=23||h<7};
+const dgWakeU=()=>{try{return +localStorage.getItem("we-dgwake")||0}catch(e){return 0}};
+const dgSleeping=()=>{const h=mskH();return (h>=23||h<7)&&NOW()>dgWakeU()};
 function dgMood(D,I){if(dgAway(D,NOW()))return {ic:"🧭",n:"в походе",k:"away"};if(dgSleeping())return {ic:"😴",n:"спит",k:"sleep"};
   if(I.hungry)return {ic:"😫",n:"голодный",k:"hungry"};const tp=(D.tp||0)+dgPend;
   if(I.sat>=60&&tp>=50)return {ic:"🥰",n:"счастлив",k:"happy"};if(I.sat>=40&&(tp>=10||(D.fd||0)>0))return {ic:"😊",n:"доволен",k:"ok"};return {ic:"🥺",n:"скучает",k:"sad"}}
@@ -476,15 +477,50 @@ function dgGemHTML(){const D=dgOf(),n=dgSockN(D),so=D.sock||[],G=D.gems||{},keys
   return h}
 
 /* ===================== 🥚 яйцо само просит: «одна история в Telegram — и я вылуплюсь» ===================== */
-const EGG_SAY=n=>["Выпусти меня! 🥺","Всего ОДНА история в Telegram — и я вылуплюсь! 📲","Мне тут темно и тесно… помоги, "+n+"! 🥚","Нажми «Выложить в Telegram» — это 10 секунд 👇","Я уже чувствую тебя… Выложи историю — и мы встретимся! 🐉","Другие драконы уже летают… а я жду тебя 😢"];
+const EGG_SAY=n=>["Выпусти меня! 🥺","Разбей скорлупу — я уже готов! 🔨","Мне тут темно и тесно… помоги, "+n+"! 🥚","Один тап — и мы встретимся! 🐉","Другие драконы уже летают… а я жду тебя 😢"];
 function dgEggEnhance(){const st=document.querySelector(".dge-st"),sty=document.querySelector(".dge-sty"),prog=document.querySelector(".dge-prog"),or=document.querySelector(".dge-or");if(!st)return;
-  if(sty&&prog){const h=document.createElement("div");h.className="dge-hero";h.innerHTML='<b>📲 Всего 1 история в Telegram — и дракон твой!</b><small>Яйцо треснет сразу. Друзей звать не обязательно.</small>';prog.parentNode.insertBefore(h,prog);prog.parentNode.insertBefore(sty,prog);if(or){or.querySelector("span").textContent="или позови друзей";prog.parentNode.insertBefore(or,prog)}
+  if(sty&&prog&&DG.fr){const h=document.createElement("div");h.className="dge-hero";h.innerHTML='<b>📲 Всего 1 история в Telegram — и дракон твой!</b><small>Яйцо треснет сразу. Друзей звать не обязательно.</small>';prog.parentNode.insertBefore(h,prog);prog.parentNode.insertBefore(sty,prog);if(or){or.querySelector("span").textContent="или позови друзей";prog.parentNode.insertBefore(or,prog)}
     const tgb=$("dgs-tg");if(tgb){tgb.classList.add("dge-big");tgb.textContent="📲 Выложить историю в Telegram"}}
   let b=st.querySelector(".dge-say");if(!b){b=document.createElement("div");b.className="dge-say";st.appendChild(b)}
   const nm=S&&S.nick?S.nick:"друг",L=EGG_SAY(nm);let i=0;const show=()=>{if(!document.body.contains(b))return clearInterval(tm);b.textContent=L[i++%L.length];b.classList.remove("pop");void b.offsetWidth;b.classList.add("pop")};show();const tm=setInterval(show,4500)}
 function dgEggFly(){let f=$("eggfly");const sec=$("sec-spin");const off=!S||!ONLINE||S.dg||S.dgStory||!sec||sec.hidden||!$("modal").hidden||document.querySelector(".onb,#onb")||(typeof isPathNewbie==="function"&&isPathNewbie());
   if(off){if(f)f.hidden=true;return}
   if(!f){f=document.createElement("button");f.type="button";f.id="eggfly";f.className="dgmf eggf";f.setAttribute("aria-label","Тайное яйцо");document.body.appendChild(f);f.innerHTML='<span>'+dgEggSVG(2)+'</span><em class="dgfb"></em>';
-    f.onclick=()=>{hap("light");setTab("dragon");setTimeout(()=>{const t=$("dgs-tg")||document.querySelector(".dge-sty");if(t)t.scrollIntoView({block:"center",behavior:"smooth"})},400)}}
+    f.onclick=()=>{hap("light");setTab("dragon");setTimeout(()=>{const t=$("dge-go");if(t)t.scrollIntoView({block:"center",behavior:"smooth"})},400)}}
   f.hidden=false;const now=NOW();if(!f._t||now-f._t>10e3){f._t=now;const b=f.querySelector(".dgfb"),L=EGG_SAY(S.nick||"друг");b.textContent=L[Math.floor(Math.random()*L.length)];b.hidden=false;setTimeout(()=>{b.hidden=true},5000)}}
 setInterval(()=>{try{if(!dgOf())dgEggFly()}catch(e){}},2500);
+/* ---------- 🎾 игра с драконом и ⏰ разбудить ночью ---------- */
+function dgPlayBar(){const D=dgOf(),stg=$("dg-stage");let b=$("dgplay");if(!D||!stg||$("sec-dragon").hidden){return}
+  if(!b){b=document.createElement("div");b.id="dgplay";b.className="dgplay";stg.after(b);
+    b.onclick=e=>{const t=e.target.closest("[data-dp]");if(!t)return;hap("light");if(t.dataset.dp==="wake")dgWake();else dgGame()}}
+  const d=today(NOW()),n=D.pl&&D.pl.d===d?D.pl.n:0,left=DG_PLAY-n,sleep=dgSleeping(),away=dgAway(D,NOW());
+  const k=[left,sleep,away].join();if(b.dataset.k===k)return;b.dataset.k=k;
+  b.innerHTML=away?"":sleep?'<button type="button" class="dgpb wake" data-dp="wake">⏰ Разбудить дракона<small>ночью он спит, но ради тебя проснётся</small></button>':
+    '<button type="button" class="dgpb" data-dp="play"'+(left<=0?" disabled":"")+'>🎾 Поиграть с драконом<small>'+(left>0?"лови мячики — опыт и чешуя · осталось "+left+" из "+DG_PLAY:"на сегодня наигрался — приходи завтра")+'</small></button>'}
+function dgWake(){try{localStorage.setItem("we-dgwake",NOW()+2*3600e3)}catch(e){}const st=$("dg-stage");if(st){st.classList.remove("sleep");st.classList.add("dgwk");setTimeout(()=>st.classList.remove("dgwk"),1400)}
+  try{sfx.reveal(2)}catch(e){}hapN("success");const tip=$("dg-tip");if(tip){tip.textContent=["*зевает* Ммм… ладно, поиграем! 🥱","Ты чего не спишь? 😄 Ну давай!","Я проснулся! Что будем делать? 🐉"][Math.floor(Math.random()*3)];tip.classList.remove("pop");void tip.offsetWidth;tip.classList.add("pop")}
+  dgKey="";renderAll()}
+let dgGameOn=false;
+function dgGame(){if(dgGameOn)return;const st=$("dg-stage");if(!st)return;dgGameOn=true;st.scrollIntoView({block:"center",behavior:"smooth"});
+  const o=document.createElement("div");o.className="dggame";o.innerHTML='<div class="dgg-h"><b id="dgg-n">0</b> / 8 🎾</div><div class="dgg-c" id="dgg-c">3</div>';st.appendChild(o);
+  let hits=0,i=0,ball=null;const N=8,cnt=$("dgg-c");
+  const step=()=>{if(ball)ball.remove();if(i>=N)return end();i++;ball=document.createElement("button");ball.type="button";ball.className="dgball";ball.textContent=["🎾","🍎","⚽","🔥"][i%4];
+    ball.style.left=(10+Math.random()*70)+"%";ball.style.top=(12+Math.random()*60)+"%";o.appendChild(ball);
+    ball.onpointerdown=ev=>{ev.stopPropagation();hits++;$("dgg-n").textContent=hits;try{sfx.coin()}catch(e){}hap("light");const b=ball;b.classList.add("got");ball=null;
+      const hd=st.querySelector(".dghd")||st;st.classList.remove("dgjump");void st.offsetWidth;st.classList.add("dgjump");setTimeout(()=>b.remove(),300);clearTimeout(tm);tm=setTimeout(step,280)};
+    tm=setTimeout(step,Math.max(650,1100-i*55))};
+  let tm=null,c=3;cnt.textContent=c;const cd=setInterval(()=>{c--;if(c>0){cnt.textContent=c;try{sfx.rumble(1)}catch(e){}}else{clearInterval(cd);cnt.remove();step()}},600);
+  async function end(){const r=await act("dg_play",{hits});o.innerHTML='<div class="dgg-end"><b>'+(hits>=7?"🏆 Супер!":hits>=4?"👍 Неплохо!":"😅 Ещё разок?")+'</b><span>'+hits+' из 8 пойманы</span>'+(r?'<em>+'+r.xp+' опыта · +'+r.sh+' 🪶 чешуи</em>':'')+'</div>';
+    if(r){try{sfx.fanfare()}catch(e){}burst(hits>=6?3:1);hapN("success")}setTimeout(()=>{o.remove();dgGameOn=false;dgKey="";renderAll()},2200)}}
+setInterval(()=>{try{dgPlayBar()}catch(e){}},1500);
+{const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{dgPlayBar()}catch(e){}}}
+/* ---------- 💭 желания дракона на сегодня ---------- */
+function dgWishBar(){const D=dgOf(),pb=$("dgplay");let b=$("dgwish");if(!D||!pb||$("sec-dragon").hidden)return;
+  if(!b){b=document.createElement("div");b.id="dgwish";b.className="dgwish";pb.after(b);
+    b.onclick=async e=>{const t=e.target.closest("[data-wk]");if(!t)return;t.disabled=true;hap("light");const r=await act("dg_wish",{k:t.dataset.wk});
+      if(r){try{sfx.coin()}catch(x){}hapN("success");burst(r.all?3:1);toast(DG_WISH[r.k].ic+" Желание исполнено! +"+r.xp+" опыта · +"+r.sh+" 🪶"+(r.all?" · все три: +"+r.all.sp+" 🎴":""));b.dataset.k="";renderAll()}else t.disabled=false}}
+  const W=dgWishes(D,NOW()),k=JSON.stringify(W);if(b.dataset.k===k)return;b.dataset.k=k;
+  b.innerHTML='<div class="dgw-h"><b>💭 Желания дракона</b><small>'+W.got.length+' из 3'+(W.all?' · бонус получен ✅':' · все три — +'+DG_WISH_ALL.sp+' 🎴')+'</small></div>'+W.l.map(x=>{const Q=DG_WISH[x],p=Math.min(Q.need,W.p[x]||0),done=W.got.includes(x),ok=p>=Q.need;
+    return '<div class="dgw'+(done?" done":ok?" ok":"")+'"><i>'+Q.ic+'</i><span><b>'+Q.n+'</b><u><s style="width:'+(p/Q.need*100)+'%"></s></u></span>'+(done?'<em>✅</em>':ok?'<button type="button" class="mini2" data-wk="'+x+'">Забрать</button>':'<em>'+p+'/'+Q.need+'</em>')+'</div>'}).join("")}
+setInterval(()=>{try{dgWishBar()}catch(e){}},1500);
+{const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{dgWishBar()}catch(e){}}}
