@@ -527,6 +527,25 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   await cc(8, "chal_set", { cfg: { id: "lot1", lot: 1, min: 3, start: n0 - 36e5, end: Date.now() - 1, prizes: ["$20"], slots: [] } });
   await worker.tick(envC); await worker.tick(envC);
   { const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:lot1'").get().v); ok(fin.winner && fin.winner.uid === 6200 && fin.players === 1 && fin.tickets === 3, "победитель выбран по билетам"); }
+  // 💎 розыгрыш сундуков: друг = билет, TikTok после проверки = +1 билет, победителям сундуки сами
+  { const n1 = Date.now(); await cc(8, "chal_set", { cfg: { id: "chest1", lot: 1, chest: 1, tt: 1, noL2: 1, min: 1, start: n1 - 36e5, end: n1 + 36e5, prizes: ["a", "b", "c"], slots: [] } });
+    await cc(6301, "sync", {}, "r_6300"); for (let k = 0; k < 3; k++) await cc(6301, "open"); await cc(6300, "sync"); await cc(6310, "sync");
+    r = await cc(6300, "chal_get"); ok(r.ok && r.res.chest === 1 && r.res.me.n === 1 && r.res.chests.length === 3 && r.res.tt.st === -1, "сундуки: друг = билет, описание сундуков в игре");
+    r = await cc(6310, "tt_send", { url: "https://example.com/x" }); ok(!r.ok, "TikTok: только ссылка tiktok.com");
+    r = await cc(6310, "tt_send", { url: "https://vm.tiktok.com/ZMabc123/" }); ok(r.ok && r.res.st === 0, "TikTok: ссылка на проверке");
+    r = await cc(6310, "tt_send", { url: "https://vm.tiktok.com/ZMabc124/" }); ok(!r.ok, "TikTok: повторно, пока на проверке, нельзя");
+    r = await cc(6310, "chal_get"); ok(r.res.me.n === 0 && r.res.tt.st === 0, "до проверки билета нет");
+    r = await cc(6300, "tt_ok", { uid: 6310 }); ok(!r.ok, "проверяет только админ");
+    r = await cc(8, "tt_list"); ok(r.ok && r.res.list.some(x => x.uid === 6310 && x.st === 0), "админ видит заявки");
+    r = await cc(8, "tt_ok", { uid: 6310 }); ok(r.ok, "админ засчитал видео");
+    r = await cc(6310, "chal_get"); ok(r.res.me.n === 1 && r.res.tt.st === 1 && r.res.me.place > 0, "TikTok = +1 билет, без друзей тоже участник");
+    const cnt = () => Object.fromEntries(db.prepare("SELECT owner,COUNT(*) n FROM cards GROUP BY owner").all().map(x => [x.owner, x.n])), c0 = cnt();
+    await cc(8, "chal_set", { cfg: { id: "chest1", lot: 1, chest: 1, tt: 1, noL2: 1, min: 1, start: n1 - 36e5, end: Date.now() - 1, prizes: ["a", "b", "c"], slots: [] } });
+    await worker.tick(envC); await worker.tick(envC);
+    const fin = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:chest1'").get().v); ok(fin.winners && fin.winners.length === 3, "три победителя");
+    const c1 = cnt(), W = fin.winners, dc = W.map(w => (c1[w.uid] || 0) - (c0[w.uid] || 0)), vip = W.map(w => db.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").get(w.uid));
+    ok(dc[0] >= 26 && dc[1] >= 21 && dc[2] >= 16 && vip[0].vip_until > Date.now() + 29 * 864e5 && vip[2].vip_until > Date.now() + 6 * 864e5, "сундуки выданы: карточки и VIP (" + dc.join("/") + ")");
+    const st1 = JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(fin.winners[0].uid).state); ok(Object.values(st1.mpass || {}).length >= 0 && (st1.mpass ? st1.mpass.prem === 1 : false), "1 место: премиум-пропуск завоевателя"); }
   // секретный приз: победитель получает бесценную карточку-коллаборацию
   await cc(8, "chal_set", { cfg: { id: "sec1", lot: 1, secret: 1, min: 3, start: n0 - 36e5, end: Date.now() - 1, prizes: ["секретного приза"], slots: [] } });
   await worker.tick(envC); await worker.tick(envC);
