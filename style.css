@@ -2550,7 +2550,7 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .dgw u{display:block;height:6px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}.dgw s{display:block;height:100%;background:linear-gradient(90deg,#a66bff,#ff7ad9)}
 .dgw em{font-style:normal;font-size:12px;font-weight:900;opacity:.8}.dgw.ok{background:rgba(93,242,138,.08);border-radius:10px}.dgw.done{opacity:.55}
 /* 🗺 карта мира */
-.mapscr{position:fixed;inset:0;z-index:45;overflow-y:auto;background:radial-gradient(circle at 50% 20%,#2a2470,#0e0a36 70%);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 12px 110px;box-sizing:border-box}
+.mapscr{position:fixed;inset:0;overflow-y:auto;background:radial-gradient(circle at 50% 20%,#2a2470,#0e0a36 70%);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 12px 110px;box-sizing:border-box}
 .mp-load{padding:40vh 0;text-align:center;font-weight:900}
 .mp-top{display:flex;align-items:center;gap:10px;margin:4px 0 8px}.mp-top b{flex:1;font-size:20px}.mp-x{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:16px}
 .mp-pill{font-size:12px;font-weight:800;padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.12)}
@@ -2580,3 +2580,13 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .maptile{display:flex;align-items:center;gap:12px;width:100%;margin:10px 0;padding:12px 14px;border-radius:18px;border:2px solid #7fd4ff;background:linear-gradient(110deg,#12307a,#1d4fa8 60%,#2a2470);color:#fff;font:inherit;text-align:left;box-shadow:0 0 22px rgba(127,212,255,.35);cursor:pointer}
 .mt-i{font-size:32px}.maptile span:nth-child(2){flex:1;display:flex;flex-direction:column}.maptile b{font-size:16px}.maptile em{font-style:normal;font-size:10px;padding:2px 7px;border-radius:6px;background:#ff2d55;margin-left:6px;vertical-align:middle}.maptile small{font-size:12px;opacity:.8}.maptile i{font-style:normal;font-size:20px}
 .mphr{display:flex;align-items:center;gap:8px;padding:6px 0}.mphr img{width:72px;height:48px;object-fit:cover;border-radius:8px}.mphr span{flex:1;font-size:12px}
+/* 💰 кошелёк сверху */
+#cash-box{background:linear-gradient(160deg,#3a1d8a 0%,#1a0f4a 60%,#120a34 100%);color:#fff;border:2px solid #ffd23f;border-radius:16px;padding:6px 7px;box-shadow:0 0 0 3px #120a34,0 8px 18px rgba(0,0,0,.45),0 0 18px rgba(255,210,63,.25),inset 0 1px 0 rgba(255,255,255,.25);display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;min-width:104px;text-align:left}
+#cash-box:before{content:"";position:absolute;inset:-40% -60%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.16) 50%,transparent 60%);animation:cbsh 5s ease-in-out infinite;pointer-events:none}
+@keyframes cbsh{0%,60%{transform:translateX(-60%)}100%{transform:translateX(60%)}}
+#cash-box .cur{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 8px 3px 4px;border-radius:10px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+#cash-box .cur[hidden]{display:none}#cash-box .cur b{font-size:14px;letter-spacing:.3px;text-shadow:0 2px 0 rgba(0,0,0,.4);color:#ffd23f}#cash-box .cur-r b{color:#7fd4ff}#cash-box .cur-s b{color:#5df28a}
+#cash-box .ci{filter:drop-shadow(0 0 6px rgba(255,210,63,.5))}
+.donb{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:2px;padding:6px 8px;border:0;border-radius:10px;font:inherit;font-weight:900;font-size:12px;color:#2a1500;background:linear-gradient(110deg,#ffe680,#ffb21a 40%,#ff7a1a 60%,#ffe680);background-size:220% 100%;animation:donsh 3s linear infinite;box-shadow:0 3px 0 #b55a00,0 0 14px rgba(255,180,0,.55);cursor:pointer;white-space:nowrap}
+@keyframes donsh{to{background-position:-220% 0}}.donb i{font-style:normal;display:inline-block;animation:hhbob 1.4s ease-in-out infinite}
+.mapscr{z-index:15;padding-bottom:160px}.mp-my{bottom:calc(76px + env(safe-area-inset-bottom))}

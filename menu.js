@@ -629,7 +629,7 @@ function mapHelp(){const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML
 {const _ps=payShow;payShow=function(r){if(r&&r.status==="done"&&/^(mflag|mpack|mpass|mstatue)$/.test(r.item)){renderAll();sfx.fanfare();burst(3);hapN("success");
   toast(r.item==="mflag"?"🚩 Флаг поднят над твоими землями!":r.item==="mpack"?"⚔️ +"+MAP.pack+" атаки!":r.item==="mpass"?"🎖 Пропуск завоевателя открыт!":"🗿 Статуя стоит!");if($("mapscr"))mapLoad().then(mapDraw);if(r.item==="mflag"&&r.res&&r.res.k==="photo")setTimeout(mapFlags,600);return}return _ps(r)}}
 /* вход: меню «Ещё», плитка на главной, ссылка ?map=1 */
-MENU_GROUPS[0][1].unshift({k:"map",ic:"🗺",n:"Карта мира",c:["#7fd4ff","#1d4fa8"]});
+MENU_GROUPS[0][1].unshift({k:"shop",ic:"🛒",n:"Рынок",c:["#9ff7d6","#1a8a7a"]});
 {const _mg=menuGo;menuGo=function(k){if(k==="map"){menuClose();hap&&hap("light");return openMap()}return _mg.apply(this,arguments)}}
 function mapTile(){let t=$("maptile");const o=$("open");if(!S||!ONLINE||!o){if(t)t.remove();return}if(!t){t=document.createElement("button");t.type="button";t.id="maptile";t.className="maptile";t.onclick=()=>{hap("light");openMap()};
   t.innerHTML='<span class="mt-i">🗺</span><span><b>Карта мира <em>НОВОЕ</em></b><small>захватывай земли воинами · драконы помогают</small></span><i>→</i>';const g=$("gold-go");if(g)g.before(t);else o.parentElement.after(t)}}
@@ -639,3 +639,10 @@ if(new URLSearchParams(location.search).get("map")){const t=setInterval(()=>{if(
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("mph-adm"))return;const x=document.createElement("div");x.id="mph-adm";x.className="srcbox";b.appendChild(x);
   act("mph_list").then(r=>{if(!r)return;x.innerHTML='<h4>📸 Фото флагов на проверке ('+r.list.length+')</h4>'+(r.list.length?r.list.map(p=>`<div class="mphr"><img src="${p.img}"><span>${escH(p.name||"?")}<br><small>id ${p.uid}</small></span><button type="button" class="mini2" data-pok="${p.uid}">✅</button><button type="button" class="mini2" data-pno="${p.uid}">❌</button></div>`).join(""):"<small>Пусто</small>");
     x.onclick=async e=>{const a=e.target.closest("[data-pok],[data-pno]");if(!a)return;const ok=!!a.dataset.pok;if(await act(ok?"mph_ok":"mph_no",{uid:+(a.dataset.pok||a.dataset.pno)})){a.closest(".mphr").remove()}}})}catch(e){}}}
+
+/* нижнее меню: «Карта» вместо «Рынка»; кнопка «Донат» под балансом */
+$("tab-map").onclick=()=>{hap("light");openMap()};
+document.querySelectorAll("nav.tabs button").forEach(b=>{if(b.id!=="tab-map")b.addEventListener("click",()=>{const o=$("mapscr");if(o)o.remove();$("tab-map").setAttribute("aria-selected","false")})});
+{const _om=openMap;openMap=async function(){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.id==="tab-map"?"true":"false"));return _om.apply(this,arguments)}}
+document.addEventListener("click",e=>{if(e.target.closest('[data-mb="x"]')){$("tab-map").setAttribute("aria-selected","false");try{setTab("spin")}catch(x){}}},true);
+$("don-go").onclick=e=>{e.stopPropagation();hap("light");openGold("flex")};
