@@ -2580,13 +2580,12 @@ button.dgsk{width:100%;text-align:left;color:#fff;font:inherit;cursor:pointer}bu
 .maptile{display:flex;align-items:center;gap:12px;width:100%;margin:10px 0;padding:12px 14px;border-radius:18px;border:2px solid #7fd4ff;background:linear-gradient(110deg,#12307a,#1d4fa8 60%,#2a2470);color:#fff;font:inherit;text-align:left;box-shadow:0 0 22px rgba(127,212,255,.35);cursor:pointer}
 .mt-i{font-size:32px}.maptile span:nth-child(2){flex:1;display:flex;flex-direction:column}.maptile b{font-size:16px}.maptile em{font-style:normal;font-size:10px;padding:2px 7px;border-radius:6px;background:#ff2d55;margin-left:6px;vertical-align:middle}.maptile small{font-size:12px;opacity:.8}.maptile i{font-style:normal;font-size:20px}
 .mphr{display:flex;align-items:center;gap:8px;padding:6px 0}.mphr img{width:72px;height:48px;object-fit:cover;border-radius:8px}.mphr span{flex:1;font-size:12px}
-/* 💰 кошелёк сверху */
-#cash-box{background:linear-gradient(160deg,#3a1d8a 0%,#1a0f4a 60%,#120a34 100%);color:#fff;border:2px solid #ffd23f;border-radius:16px;padding:6px 7px;box-shadow:0 0 0 3px #120a34,0 8px 18px rgba(0,0,0,.45),0 0 18px rgba(255,210,63,.25),inset 0 1px 0 rgba(255,255,255,.25);display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;min-width:104px;text-align:left}
-#cash-box:before{content:"";position:absolute;inset:-40% -60%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.16) 50%,transparent 60%);animation:cbsh 5s ease-in-out infinite;pointer-events:none}
-@keyframes cbsh{0%,60%{transform:translateX(-60%)}100%{transform:translateX(60%)}}
-#cash-box .cur{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 8px 3px 4px;border-radius:10px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-#cash-box .cur[hidden]{display:none}#cash-box .cur b{font-size:14px;letter-spacing:.3px;text-shadow:0 2px 0 rgba(0,0,0,.4);color:#ffd23f}#cash-box .cur-r b{color:#7fd4ff}#cash-box .cur-s b{color:#5df28a}
-#cash-box .ci{filter:drop-shadow(0 0 6px rgba(255,210,63,.5))}
-.donb{position:relative;display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:2px;padding:6px 8px;border:0;border-radius:10px;font:inherit;font-weight:900;font-size:12px;color:#2a1500;background:linear-gradient(110deg,#ffe680,#ffb21a 40%,#ff7a1a 60%,#ffe680);background-size:220% 100%;animation:donsh 3s linear infinite;box-shadow:0 3px 0 #b55a00,0 0 14px rgba(255,180,0,.55);cursor:pointer;white-space:nowrap}
-@keyframes donsh{to{background-position:-220% 0}}.donb i{font-style:normal;display:inline-block;animation:hhbob 1.4s ease-in-out infinite}
+/* 💰 кошелёк сверху: компактный, монеты сверху, руны и чешуя рядом, кнопка «Донат» */
+#cash-box{display:grid;grid-template-columns:1fr 1fr;gap:3px 4px;min-width:0;max-width:44vw;padding:5px;border:1.5px solid rgba(255,210,63,.75);border-radius:14px;background:rgba(14,8,44,.88);box-shadow:0 6px 16px rgba(0,0,0,.35);color:#fff;text-align:left}
+#cash-box .cur{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:5px;padding:2px 7px 2px 3px;border-radius:8px;background:rgba(255,255,255,.07)}
+#cash-box .cur[hidden]{display:none}#cash-box .cur-r,#cash-box .cur-s{grid-column:auto}#cash-box:has(.cur-s[hidden]) .cur-r{grid-column:1/-1}
+#cash-box .cur b{font-family:inherit;font-weight:800;font-size:13px;letter-spacing:0;text-shadow:none;-webkit-text-stroke:0;color:#fff;-webkit-text-fill-color:#fff;background:none}
+#cash-box .cur:first-child b{color:#ffe27a;-webkit-text-fill-color:#ffe27a}#cash-box .ci{transform:scale(.85)}
+.donb{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:1px;padding:4px 6px;border:0;border-radius:8px;font:inherit;font-weight:900;font-size:11.5px;color:#2a1500;background:linear-gradient(180deg,#ffe680,#ffb21a);box-shadow:0 2px 0 #b55a00;cursor:pointer;white-space:nowrap}
+.donb i{font-style:normal}
 .mapscr{z-index:15;padding-bottom:160px}.mp-my{bottom:calc(76px + env(safe-area-inset-bottom))}
