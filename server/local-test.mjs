@@ -1108,5 +1108,36 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const c = db.prepare("SELECT h,f,sn,v FROM cards WHERE owner=1025352541 AND f=4 AND h=15").get();
   ok(c && c.h === 15 && Math.round(c.v) === 57529, "компенсация: игроку выдан Гоплит, ошибка печати № 200 000");
   await worker.tick(envG); { const L = db.prepare("SELECT h,v FROM cards WHERE owner=1025352541 AND f=4").all(); ok(L.length === 2 && L.some(x => x.h !== 15 && Math.round(x.v) === 57529), "запасная выдача: другой редкий воин с ошибкой печати той же цены, без повторов"); } }
+// 🗺 карта мира
+{ const envM = { ...env, PAY_SIM: "1", ADMINS: "8" }; const cm = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envM)).json();
+  const buyM = async (uid, p) => { const i = await cm(uid, "invoice", p); if (!i.ok) return i; return cm(uid, "pay_sim", { pid: i.res.pid }); };
+  const A = 9101, B = 9102; await cm(A, "sync"); await cm(B, "sync"); for (let i = 0; i < 4; i++) { await cm(A, "open"); await cm(B, "open"); }
+  const low = uid => db.prepare("SELECT id,h FROM cards WHERE owner=? AND away=0").all(uid).find(c => HEROES[c.h][2] <= 1);
+  let q = await cm(A, "map_get"); ok(q.ok && q.res.regs.length === 0 && q.res.att.left === 3 && !q.res.z1, "карта пустая, 3 атаки, средняя зона закрыта");
+  const ca = low(A); q = await cm(A, "map_attack", { rid: 30, id: ca.id }); ok(q.ok && q.res.empty, "занял пустой регион на окраинах");
+  ok(db.prepare("SELECT away,dest FROM cards WHERE id=?").get(ca.id).dest === "map:30", "карточка ушла охранять регион");
+  q = await cm(A, "sell", { id: ca.id }); ok(!q.ok, "охранника нельзя продать");
+  q = await cm(A, "map_attack", { rid: 10, id: low(A).id }); ok(!q.ok && /Земли эпох/.test(q.err), "средняя зона закрыта до 50 прокруток");
+  q = await cm(B, "map_attack", { rid: 30, id: low(B).id }); ok(!q.ok && /щитом/.test(q.err), "щит после захвата");
+  db.prepare("UPDATE map_reg SET shield=0,claim_at=?,since=? WHERE id=30").run(Date.now() - 3 * 36e5, Date.now() - 3 * 36e5);
+  const cb = low(B); q = await cm(B, "map_attack", { rid: 30, id: cb.id, stat: 0 }); ok(q.ok && (q.res.won === 0 || q.res.won === 1) && q.res.rounds.length === 3, "бой за регион: 3 раунда");
+  const own30 = db.prepare("SELECT owner FROM map_reg WHERE id=30").get().owner; ok(own30 === (q.res.won ? B : A), "регион у победителя");
+  if (!q.res.won) { q = await cm(A, "map_claim"); ok(q.ok && q.res.cash >= 170, "доход за 3 часа (" + (q.res && q.res.cash) + ")"); } else ok(db.prepare("SELECT away FROM cards WHERE id=?").get(ca.id).away === 0, "проигравший защитник вернулся владельцу");
+  db.prepare("UPDATE users SET state=json_set(state,'$.mp',json('{\"d\":\"" + new Date().toISOString().slice(0, 10) + "\",\"used\":3,\"extra\":0,\"packs\":0}')) WHERE id=?").run(B);
+  db.prepare("UPDATE map_reg SET shield=0 WHERE id=30").run();
+  const att = own30 === B ? A : B; if (att === B) { q = await cm(B, "map_attack", { rid: 30, id: low(B).id }); ok(!q.ok && /закончились/.test(q.err), "атаки кончились"); } else ok(true, "атаки кончились (пропуск)");
+  q = await buyM(B, { item: "mpack" }); ok(q.ok && q.res.status === "done", "купил +3 атаки");
+  q = await cm(B, "map_get"); ok(q.res.att.left >= 3, "атак стало больше");
+  q = await buyM(A, { item: "mflag", k: "fire" }); ok(q.ok && q.S.mflagOn === "fire", "огненный флаг");
+  q = await cm(A, "map_photo", { img: "data:image/jpeg;base64,AAAA" }); ok(!q.ok, "фото без покупки флага нельзя");
+  q = await buyM(A, { item: "mflag", k: "photo" }); q = await cm(A, "map_photo", { img: "data:image/jpeg;base64,/9j/AAAA" }); ok(q.ok && q.res.st === 0, "фото на модерации");
+  q = await cm(8, "mph_list"); ok(q.ok && q.res.list.some(x => x.uid === A), "админ видит фото");
+  await cm(8, "mph_ok", { uid: A }); { const r = await worker.fetch(new Request("https://x/mp/" + A), envM); ok(r.status === 200, "одобренное фото отдаётся картинкой"); }
+  const mine = db.prepare("SELECT id FROM map_reg WHERE owner=?").all(own30);
+  q = await buyM(own30, { item: "mstatue", rid: 30 }); ok(q.ok && q.res.status === "done" && db.prepare("SELECT statue FROM map_reg WHERE id=30").get().statue === 1, "статуя в своём регионе");
+  q = await buyM(own30, { item: "mpass" }); ok(q.ok && q.S.mpass.prem === 1, "пропуск завоевателя");
+  q = await cm(own30, "mpass_claim", { i: 0, prem: 1 }); ok(q.ok && q.res.sp === 5, "премиум-награда 1 уровня");
+  q = await cm(own30, "mpass_claim", { i: 9, prem: 1 }); ok(!q.ok, "закрытый уровень не взять");
+  q = await cm(own30, "map_leave", { rid: 30 }); ok(q.ok && !db.prepare("SELECT 1 FROM map_reg WHERE id=30").get(), "ушёл из региона — карточка вернулась"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

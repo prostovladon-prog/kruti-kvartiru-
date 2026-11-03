@@ -471,7 +471,7 @@ function noteCard(st,c){st.best=Math.max(st.best||0,HEROES[c.h][2]);st.bestFin=M
 
 /* ---------- помощники для действий ---------- */
 function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточка не найдена");return c}
-function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail("Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
+function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail(/^map:/.test(String(c.dest||""))?"Этот воин охраняет регион на карте мира":"Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 /* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
 function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(FIN[c.f].collab?"Бесценная карточка коллекционная: в боях не участвует":TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
@@ -781,10 +781,10 @@ const ACTIONS={
     return {card,t:M.t}},
 
   exp_start(G){const {st,ctx,p}=G;const c=notHalf(freeCard(G,p.id)),d=p.dest|0;if(!DEST[d])fail("Нет такого похода");
-    const slots=EX_SLOTS+(st.mapDay===today(ctx.now)?1:0);if(G.cards.filter(x=>x.away).length>=slots)fail("Все места для походов заняты");
+    const slots=EX_SLOTS+(st.mapDay===today(ctx.now)?1:0);if(G.cards.filter(x=>x.away&&!/^map:/.test(String(x.dest||""))).length>=slots)fail("Все места для походов заняты");
     c.away=ctx.now+DEST[d].ms;c.dest=d;return {}},
-  exp_rush(G){if(!G.ctx.test&&!G.ctx.admin)fail("Ускорение доступно только в тестовом режиме");const c=own(G,G.p.id);if(!c.away)fail("Воин не в походе");c.away=G.ctx.now-1;return {}},
-  exp_claim(G){const {st,ctx}=G;const c=own(G,G.p.id);if(!c.away)fail("Воин не в походе");if(c.away>ctx.now)fail("Воин ещё в пути");
+  exp_rush(G){if(!G.ctx.test&&!G.ctx.admin)fail("Ускорение доступно только в тестовом режиме");const c=own(G,G.p.id);if(/^map:/.test(String(c.dest||"")))fail("Этот воин охраняет регион");if(!c.away)fail("Воин не в походе");c.away=G.ctx.now-1;return {}},
+  exp_claim(G){const {st,ctx}=G;const c=own(G,G.p.id);if(!c.away)fail("Воин не в походе");if(/^map:/.test(String(c.dest||"")))fail("Этот воин охраняет регион на карте мира");if(c.away>ctx.now)fail("Воин ещё в пути");
     const D=DEST[c.dest]||DEST[0],money=rint(D.m[0],D.m[1]),sp=Math.floor(D.sp)+(Math.random()<D.sp%1?1:0);
     earn(st,money);addXp(ctx,c,D.xp);st.spins+=sp;c.away=0;c.dest=null;let card=null;
     if(Math.random()<D.card&&G.cards.length<capOf(st)){card=rollCard(ctx,false);addCard(G,card)}
@@ -1069,4 +1069,33 @@ const SDAY={stars:250,ahead:60};
 /* аукцион дня: с 8:00 до 20:00 по Минску одна редкая карточка, ставка в последние 30 секунд продлевает торги */
 const AUC_HOUR=8, AUC_MS=12*3600e3, AUC_EXT=30e3, AUC_STEP=.05;
 const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WANT_N=5;
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+
+/* ===================== 🗺 КАРТА МИРА: 50 регионов, бои карточками за землю ===================== */
+const MAP_R=[["Рим","🏛","ant"],["Спарта","⚔️","troy"],["Троя","🐴","troy"],["Вавилон","🦁","emp"],["Мемфис","🐫","emp"],["Карфаген","⛵","ant"],["Персеполь","🔥","emp"],["Олимп","⚡","myth"],
+ ["Афины","🏺","troy"],["Микены","👑","troy"],["Фивы","🗡","troy"],["Киото","🌸","jap"],["Эдо","🏯","jap"],["Ниппон","🗾","jap"],["Осло","❄️","nor"],["Упсала","🪓","nor"],["Валгалла","🌈","myth"],["Новгород","🛡","mid"],["Киев","⛪","mid"],["Париж","🗼","mid"],["Лондон","🏰","mid"],["Толедо","🤺","mid"],["Самарканд","🕌","nor"],["Каракорум","🐎","nor"],["Акрополь","🏛","ant"],["Александрия","📜","emp"],
+ ["Вена","🎻","mid"],["Прага","🍺","mid"],["Краков","🦅","mid"],["Москва","❄️","mid"],["Казань","🌾","nor"],["Тула","🐻","mid"],["Сибирь","🌨","nor"],["Альпы","⛰","mid"],["Галлия","🍇","ant"],["Британия","☂️","mid"],["Дели","🐘","emp"],["Пекин","🐉","emp"],
+ ["Лхаса","🏔","jap"],["Тибет","🧘","jap"],["Сиам","🐅","jap"],["Ангкор","🛕","jap"],["Майя","🗿","myth"],["Ацтеки","🌞","myth"],["Инки","🦙","myth"],["Сахара","🏜","emp"],["Нил","🐊","emp"],["Мекка","🌙","emp"],["Багдад","🌴","emp"],["Иерусалим","⭐","ant"]];
+const MAP_Z=i=>i<8?2:i<26?1:0;
+const MAP={att:3,max:3,shield:2*3600e3,home:.15,fat:.08,fatMax:.4,pack:3,packMax:2,packStars:49,z1Spins:50,z2Stage:2,capH:24,
+  inc:[{c:60,r:10},{c:150,r:25},{c:400,r:60}],zn:["Окраины","Земли эпох","Сердце мира"],zc:["#22995a","#6a33d6","#d08a12"],statue:249};
+const MFLAG={fire:{n:"Огненный флаг",ic:"🔥",stars:99},gold:{n:"Золотой флаг",ic:"👑",stars:149},skull:{n:"Пиратский флаг",ic:"☠️",stars:149},dragon:{n:"Флаг дракона",ic:"🐉",stars:199},photo:{n:"Флаг со своим фото",ic:"📸",stars:199},conq:{n:"Флаг завоевателя",ic:"🎖",stars:0,pass:1}};
+const MPASS={stars:299,th:[5,12,20,30,42,56,72,90,110,135],pts:{cap:5,def:2,claim:1},
+  free:[{sp:2},{cash:500},{sp:3},{runes:2000},{sp:4},{cash:2000},{sp:5},{runes:5000},{sp:6},{sp:10}],
+  prem:[{sp:5},{cash:3000},{sp:8},{guar:1},{sp:10},{runes:15000},{sp:12},{leg:1},{sp:15},{sp:20,flag:"conq"}]};
+const mapMon=now=>new Date(now+3*3600e3).toISOString().slice(0,7);
+function mapPass(st,now){const m=mapMon(now);if(!st.mpass||st.mpass.m!==m)st.mpass={m,pts:0,prem:0,got:[],gotP:[]};return st.mpass}
+const mapLv=P=>MPASS.th.filter(x=>P.pts>=x).length;
+function mapAtt(st,now){const d=today(now);if(!st.mp||st.mp.d!==d)st.mp={d,used:0,extra:0,packs:0};return st.mp}
+function mapGive(G,R){const {st,ctx}=G,o={};if(R.sp){st.spins+=R.sp;o.sp=R.sp}if(R.cash){earn(st,R.cash);o.cash=R.cash}if(R.runes){camp(st,ctx.now).runes+=R.runes;o.runes=R.runes}if(R.guar){st.guar=(st.guar||0)+R.guar;o.guar=1}
+  if(R.leg){const pool=HEROES.map((H,k)=>k).filter(k=>isBase(k)&&HEROES[k][2]===3);const c=makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],0);c.how="pass";G.cards.push(c);noteCard(st,c);o.card=c}
+  if(R.flag){st.mflags=st.mflags||[];if(!st.mflags.includes(R.flag))st.mflags.push(R.flag);st.mflagOn=R.flag;o.flag=R.flag}return o}
+Object.assign(ACTIONS,{
+  map_use(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);if(A.used>=MAP.att+A.extra)fail("Атаки на сегодня закончились"+(A.packs<MAP.packMax?" — можно купить ещё "+MAP.pack:" — новые завтра"));A.used++;return {left:MAP.att+A.extra-A.used}},
+  map_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.cash)earn(st,p.cash);if(p.runes)camp(st,ctx.now).runes+=p.runes;if(p.pts){const P=mapPass(st,ctx.now);P.pts+=p.pts}return {}},
+  mpack_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);A.extra+=MAP.pack;A.packs++;return {extra:A.extra}},
+  mpass_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const P=mapPass(G.st,G.ctx.now);P.prem=1;return {}},
+  mpass_claim(G){const {st,ctx,p}=G,P=mapPass(st,ctx.now),i=p.i|0,prem=!!p.prem;if(i<0||i>=MPASS.th.length)fail("Нет такого уровня");if(mapLv(P)<=i)fail("Уровень ещё не открыт");
+    if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
+  mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
+  mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
+if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MAP_R,MAP_Z,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

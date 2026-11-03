@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=40;
+const SCHEMA_V=41;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -105,7 +105,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS star_grants (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, amt INTEGER NOT NULL, note TEXT, t INTEGER, by INTEGER)",
  "ALTER TABLE users ADD COLUMN hh_note INTEGER NOT NULL DEFAULT 0",
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
- "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))"];
+ "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
+ "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1091,6 +1092,56 @@ async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;i
     await notify(env,G.uid,"🎁 "+G.why+"\n\n"+HEROES[G.h][0]+" · «"+FIN[G.f].k+"» № "+fmtSn(r.card.sn)+" уже в твоей коллекции!","🎴 Открыть игру");
     for(const a of ADMINS)await notify(env,a,"✅ Выдача "+G.id+": "+HEROES[G.h][0]+" ("+FIN[G.f].k+") выдана игроку "+G.uid,"⚔️ Открыть")}
   catch(e){console.error("grant",G.id,e&&e.message);for(const a of ADMINS)await notify(env,a,"⚠️ Выдача "+G.id+" не удалась: "+(e.message||e),"⚔️ Открыть")}}}
+/* ===================== 🗺 карта мира ===================== */
+async function mapSeason(env,now){const m=mapMon(now),k=await cached("mapseason",60e3,()=>kvGet(env,"map_season"));if(k&&k.m===m)return;
+  if(k&&k.m!==m){await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%'").run();await env.DB.prepare("DELETE FROM map_reg").run()}
+  await kvSet(env,"map_season",{m});delete topCache.mapseason}
+async function mapRegions(env){return (await env.DB.prepare("SELECT r.*,COALESCE(u.nick,u.name) AS oname,json_extract(u.state,'$.mflagOn') AS flag,(SELECT st FROM map_photo p WHERE p.uid=r.owner) AS ph FROM map_reg r LEFT JOIN users u ON u.id=r.owner").all()).results}
+async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
+  const U=async()=>{const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();return JSON.parse((u&&u.state)||"{}")};
+  if(a==="map_get"){const R=await mapRegions(env),ids=R.filter(r=>r.card).map(r=>r.card),cards={};
+    for(let i=0;i<ids.length;i+=90){const part=ids.slice(i,i+90);for(const c of (await env.DB.prepare("SELECT * FROM cards WHERE id IN ("+part.map(()=>"?").join(",")+")").bind(...part).all()).results)cards[c.id]=pub(rowToCard(c))}
+    const st=await U(),A=mapAtt(st,now),mine=R.filter(r=>r.owner===me.id);let cash=0,runes=0;
+    for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=MAP.inc[MAP_Z(r.id)];cash+=Math.floor(I.c*h);runes+=Math.floor(I.r*h)}
+    const ph=await env.DB.prepare("SELECT st FROM map_photo WHERE uid=?").bind(me.id).first();
+    return {now,regs:R.map(r=>({id:r.id,owner:r.owner,oname:r.oname,flag:r.flag||"",ph:r.ph===1?1:0,card:cards[r.card]||null,shield:r.shield>now?r.shield:0,def_n:r.def_n,statue:r.statue?1:0,since:r.since})),
+      att:{left:MAP.att+A.extra-A.used,packs:A.packs},inc:{cash,runes},z1:(st.nOp||0)>=MAP.z1Spins,z2:!!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage),ph:ph?ph.st:-1}}
+  if(a==="map_claim"){const mine=(await env.DB.prepare("SELECT * FROM map_reg WHERE owner=?").bind(me.id).all()).results;let cash=0,runes=0,n=0;
+    for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=MAP.inc[MAP_Z(r.id)];const c=Math.floor(I.c*h),q=Math.floor(I.r*h);if(c<=0)continue;
+      const u=await env.DB.prepare("UPDATE map_reg SET claim_at=? WHERE id=? AND owner=? AND COALESCE(claim_at,since)=?").bind(now,r.id,me.id,r.claim_at||r.since).run();if(u.meta.changes===1){cash+=c;runes+=q;if(h>=1)n++}}
+    if(!cash&&!runes)fail("Доход ещё не накопился");await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});return {cash,runes}}
+  if(a==="map_leave"){const rid=p.rid|0,r=await env.DB.prepare("SELECT * FROM map_reg WHERE id=? AND owner=?").bind(rid,me.id).first();if(!r)fail("Это не твой регион");
+    await env.DB.prepare("DELETE FROM map_reg WHERE id=? AND owner=?").bind(rid,me.id).run();await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=? AND owner=?").bind(r.card,me.id).run();return {rid}}
+  if(a==="map_attack"){const rid=p.rid|0;if(rid<0||rid>=MAP_R.length)fail("Нет такого региона");const z=MAP_Z(rid),st=await U();
+    if(z===1&&(st.nOp||0)<MAP.z1Spins)fail("«Земли эпох» откроются после "+MAP.z1Spins+" прокруток");if(z===2&&!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage))fail("«Сердце мира» откроется, когда дракон дорастёт до 3-й стадии");
+    const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();if(!c)fail("Выбери свою карточку");
+    if(c.away||c.list_price!=null||c.room_id||c.part||c.f>=5)fail("Эта карточка сейчас недоступна для боя");if(z===0&&HEROES[c.h][2]>1)fail("На «Окраины» можно только обычных и редких воинов — дай шанс новичкам");
+    const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner===me.id)fail("Это уже твой регион");
+    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=?").bind(me.id).first())||{}).n||0;if(myN>=MAP.max)fail("У тебя уже "+MAP.max+" региона — это максимум. Оставь один, чтобы занять новый");
+    if(R&&R.shield>now)fail("Регион под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
+    const occupy=async()=>{const ok=await env.DB.prepare("UPDATE cards SET away=1,dest=? WHERE id=? AND owner=? AND away=0 AND list_price IS NULL AND room_id IS NULL").bind("map:"+rid,c.id,me.id).run();if(ok.meta.changes!==1)fail("Карточка занята");
+      await env.DB.prepare("INSERT INTO map_reg(id,owner,card,since,claim_at,shield,def_n,statue) VALUES(?,?,?,?,?,?,0,0) ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,card=excluded.card,since=excluded.since,claim_at=excluded.claim_at,shield=excluded.shield,def_n=0,statue=0").bind(rid,me.id,c.id,now,now,now+MAP.shield).run()};
+    if(!R||!R.owner){await occupy();await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true});return {won:1,empty:1,rid}}
+    await doAction(env,me,"map_use",{},{grant:true});
+    const D=await env.DB.prepare("SELECT * FROM cards WHERE id=?").bind(R.card).first();if(!D){await env.DB.prepare("DELETE FROM map_reg WHERE id=?").bind(rid).run();fail("Защитник исчез — регион свободен, попробуй ещё раз")}
+    const du=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(R.owner).first(),dst=JSON.parse((du&&du.state)||"{}");
+    const me_=rowToCard(c),op=rowToCard(D),dk=dgBonus(st,now)*1.5+(st.dg?.05:0),home=MAP_R[rid][2]===ERA_OF[op.h]?MAP.home:0,fat=Math.min(MAP.fatMax,MAP.fat*(R.def_n||0)),ddk=dgBonus(dst,now);
+    const k=(1+dk)/(1+home+ddk-fat)-1,stat=Math.max(0,Math.min(4,p.stat|0)),p2=aiPick(op,[stat]),p3=rndPick([stat,p2]),F=fight3(me_,op,[stat,p2,p3],k),won=F.w>F.l;
+    await env.DB.prepare("INSERT INTO map_log(rid,att,def,win,t) VALUES(?,?,?,?,?)").bind(rid,me.id,R.owner,won?1:0,now).run();
+    if(won){const g=await env.DB.prepare("UPDATE map_reg SET owner=NULL WHERE id=? AND owner=? AND card=?").bind(rid,R.owner,R.card).run();if(g.meta.changes!==1)fail("Регион только что сменил хозяина — обнови карту");
+      await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=?").bind(R.card).run();await occupy();await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true});
+      try{await notify(env,R.owner,"⚔️ "+(me.nick||me.name||"Игрок")+" захватил твой регион «"+MAP_R[rid][0]+"»! Твой "+HEROES[op.h][0]+" вернулся в коллекцию.\n\nОтбей регион обратно, пока не поздно 🔥","🗺 На карту",PAGE+"?map=1")}catch(e){}}
+    else{await env.DB.prepare("UPDATE map_reg SET def_n=def_n+1 WHERE id=?").bind(rid).run();try{await doAction(env,{id:R.owner,name:R.oname||"Игрок"},"map_grant",{pts:MPASS.pts.def},{grant:true})}catch(e){}}
+    return {won:won?1:0,rid,rounds:F.rounds,w:F.w,l:F.l,picks:[stat,p2,p3],me:pub(me_),opp:pub(op),bon:{dk,home,fat,ddk}}}
+  if(a==="map_photo"){const st=await U();if(!(st.mflags||[]).includes("photo"))fail("Сначала купи «Флаг со своим фото»");const img=String(p.img||"");
+    if(!/^data:image\/(jpeg|png|webp);base64,/.test(img)||img.length>90000)fail("Картинка слишком большая");
+    await env.DB.prepare("INSERT INTO map_photo(uid,img,st,t) VALUES(?,?,0,?) ON CONFLICT(uid) DO UPDATE SET img=excluded.img,st=0,t=excluded.t").bind(me.id,img,now).run();
+    for(const ad of ADMINS)await notify(env,ad,"📸 Новое фото для флага на модерации (игрок "+me.id+"). Проверь: Статистика → «Фото флагов».","⚔️ Открыть");return {st:0}}
+  if(!isAdmin(env,me.id))fail("Нет доступа");
+  if(a==="mph_list")return {list:(await env.DB.prepare("SELECT p.uid,p.img,p.st,p.t,COALESCE(u.nick,u.name) AS name FROM map_photo p LEFT JOIN users u ON u.id=p.uid WHERE p.st=0 ORDER BY p.t LIMIT 20").all()).results};
+  if(a==="mph_ok"||a==="mph_no"){const ok=a==="mph_ok";await env.DB.prepare("UPDATE map_photo SET st=? WHERE uid=?").bind(ok?1:2,p.uid|0).run();
+    await notify(env,p.uid|0,ok?"✅ Твоё фото одобрено — теперь оно на флаге над твоими регионами!":"❌ Фото для флага не прошло проверку. Загрузи другое — без чужих лиц, рекламы и неприличного.","🗺 На карту",PAGE+"?map=1");return {}}
+  fail("Неизвестное действие")}
 /* возвращаем пропавших: через 1, 3 и 7 дней тишины — сообщение с подарком (прокрутки ждут в игре). Новичкам — напоминание о подарке дня */
 const WB={1:{sp:3,t:"⚔️ Твои воины заскучали! Мы оставили тебе подарок: +3 прокрутки уже в игре. Вдруг сегодня выпадет легенда?"},3:{sp:5,t:"🎁 Тебя не было 3 дня — держи +5 прокруток! Пока тебя не было, игроки выбили новые редкие карточки. Твоя очередь?"},7:{sp:10,t:"👑 Неделя без тебя! Возвращайся — в игре ждут +10 прокруток в подарок, новые воины и розыгрыши каждый день."}};
 async function winBack(env,now,h){if((h<11||h>=21)&&!env.NOTIFY_TEST)return 0;let sent=0;const D=864e5;
@@ -1194,6 +1245,14 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(to.id).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
     let stars;if(w==="vip")stars=VIP_T[1].stars;else if(SHOP[w])stars=SHOP[w].stars;else{const [c,k]=w.split(":"),L=c==="t"?TITLES:c==="d"?DFX:PBG,own=c==="t"?st.titles:c==="d"?st.dfx:st.pbg;if((own||[]).includes(k))fail("У "+to.name+" это уже есть — выбери другой подарок");stars=L[k].stars}
     return {item,stars,title:("🎁 "+W.n+" для "+to.name).slice(0,32),desc:"Подарок игроку "+to.name+": "+W.ic+" "+W.n+". Он получит его сразу и узнает, что это от тебя",data:{to:to.id,w,tn:to.name}}}
+  if(item==="mflag"){const k=String(p.k||""),F=MFLAG[k];if(!F||!F.stars)fail("Нет такого флага");const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
+    if((st.mflags||[]).includes(k))fail("Этот флаг уже твой");return {item,stars:F.stars,title:F.ic+" "+F.n,desc:F.n+" над твоими регионами на карте мира — навсегда"+(k==="photo"?". Фото проходит проверку модератором":""),data:{k}}}
+  if(item==="mpack"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}const A=mapAtt(st,Date.now());
+    if(A.packs>=MAP.packMax)fail("Сегодня больше нельзя — максимум "+MAP.packMax+" пакета в день");return {item,stars:MAP.packStars,title:"⚔️ +"+MAP.pack+" атаки",desc:"+"+MAP.pack+" атаки на карте мира сегодня",data:{}}}
+  if(item==="mpass"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}if(mapPass(st,Date.now()).prem)fail("Пропуск этого месяца уже твой");
+    return {item,stars:MPASS.stars,title:"🎖 Пропуск завоевателя",desc:"Премиум-награды карты мира на весь месяц: прокрутки, руны, гарантированный эпик, легендарная карточка и «Флаг завоевателя»",data:{m:mapMon(Date.now())}}}
+  if(item==="mstatue"){const rid=p.rid|0,r=await env.DB.prepare("SELECT statue FROM map_reg WHERE id=? AND owner=?").bind(rid,uid).first();if(!r)fail("Статую можно поставить только в своём регионе");if(r.statue)fail("Статуя здесь уже стоит");
+    return {item,stars:MAP.statue,title:"🗿 Статуя: "+MAP_R[rid][0],desc:"Статуя твоего воина в регионе «"+MAP_R[rid][0]+"» — её видят все на карте, пока ты держишь регион",data:{rid}}}
   if(item==="bal"){const n=Math.floor(+p.n||0);if(!(n>=50&&n<=2500))fail("Сумма — от 50 до 2500 ⭐");const x=await x2Left(env,uid),b=Math.min(n,x);
     return {item,stars:n,title:"⭐ Пополнение баланса",desc:"+"+n+" ⭐ на игровой баланс «Воинов Эпох»"+(b?" и ещё +"+b+" ⭐ бонусом по промокоду (x2)":"")+". Тратятся на любые покупки в игре",data:{n}}}
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
@@ -1282,6 +1341,10 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       const fn=(me&&me.n)||"Друг";await doAction(env,to,"present_note",{f:fn,w},{grant:true});const W=PRESENT[w];res={to:d.to,tn:d.tn,w};
       msg="🎁 Подарок отправлен! "+d.tn+" получил "+W.ic+" "+W.n+" и узнает, что это от тебя.";
       await notify(env,d.to,"🎁 "+fn+" подарил тебе "+W.ic+" "+W.n+"!\n\nПодарок уже в игре — заходи посмотреть.","🎁 Открыть подарок")}
+    else if(P.item==="mflag"||P.item==="mpack"||P.item==="mpass"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},P.item==="mflag"?"mflag_grant":P.item==="mpack"?"mpack_grant":"mpass_grant",d,{grant:true})).res;delete res.events;
+      msg=P.item==="mflag"?MFLAG[d.k].ic+" «"+MFLAG[d.k].n+"» поднят над твоими регионами!"+(d.k==="photo"?" Загрузи фото на карте мира — после проверки оно появится на флаге.":""):P.item==="mpack"?"⚔️ +"+MAP.pack+" атаки на карте мира — вперёд!":"🎖 Пропуск завоевателя активирован! Забирай премиум-награды на карте мира."}
+    else if(P.item==="mstatue"){const r=await env.DB.prepare("UPDATE map_reg SET statue=1 WHERE id=? AND owner=?").bind(d.rid,P.uid).run();if(r.meta.changes!==1)fail("Регион уже не твой — статую поставить нельзя");res={rid:d.rid};msg="🗿 Статуя твоего воина стоит в регионе «"+MAP_R[d.rid][0]+"» — её видят все!"}
     else if(P.item==="bal"){const n=d.n|0,r=await env.DB.prepare("SELECT code,x2 FROM promo_uses WHERE uid=? AND x2>0 AND x2d=0 ORDER BY x2 DESC LIMIT 1").bind(P.uid).first();let b=0;
       if(r){b=Math.min(n,r.x2);await env.DB.prepare("UPDATE promo_uses SET x2d=1 WHERE code=? AND uid=?").bind(r.code,P.uid).run()}
       await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(n+b,P.uid).run();res={n,b};
@@ -1801,8 +1864,9 @@ async function cbTick(env){if(cbBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY
       await notify(env,u.id,"🎁 Твой сундук готов!\n\nВчера ты начал собирать воинов — а сегодня тебя ждёт подарок: "+CB.sp+" прокруток и "+CB.cash+" 🪙.\n\nЗаходи и забирай, пока не остыл 🔥","🎁 Забрать сундук")}}finally{cbBusy=false}}
 /* ---------- разовая рассылка о большом обновлении 24.10: пост в канал + всем в бота (окно 20:30–22:50 по Минску, если не успели — завтра 9:30–12:00) ---------- */
 const TERMS_V=1;
-const UPD={id:"upd2810",cut:Date.UTC(2026,9,28,18,30),noChan:1,win:[[Date.UTC(2026,9,28,17,50),Date.UTC(2026,9,28,19,50)],[Date.UTC(2026,9,29,7,0),Date.UTC(2026,9,29,10,0)]],photo:"assets/post-upd2810.jpg?v=1",btn:"🥚 Что внутри яйца?",link:"?dragon=1",chan:"",
- dm:"🐉 ДРАКОН ТЕПЕРЬ ОТКРЫВАЕТСЯ ЗА ИСТОРИЮ!\n\nРаньше тайное яйцо будили только друзья. Теперь есть второй путь — быстрее:\n\n📲 Выложи историю с игрой в Telegram или Instagram со ссылкой на бота\n✅ Нажми «Я выложил» — и яйцо треснет сразу\n\nВнутри — твой личный дракон: растёт вместе с тобой, усиливает воинов в боях, носит снаряжение и каждый день приносит подарки 🎁\n\n🔥 Бонус: эта же история участвует в розыгрыше NFT-подарка «Дракончик» с ошибкой печати (ещё нужно пригласить 2 друзей). Итоги завтра в 22:00!\n\nФото и твоя ссылка уже готовы — во вкладке «Тайна» 👇"};
+const UPD={id:"upd0311map",cut:Date.UTC(2026,10,3,6,0),win:[[Date.UTC(2026,10,3,7,0),Date.UTC(2026,10,3,11,0)]],photo:"assets/post-map.jpg?v=1",btn:"🗺 Открыть карту мира",link:"?map=1",
+ chan:"🗺 КРУПНОЕ ОБНОВЛЕНИЕ: КАРТА МИРА!\n\n50 земель от Рима до Киото — захватывай их своими воинами ⚔️\n\n🏰 Твои земли приносят монеты и руны каждый час\n🐉 Дракон помогает в бою — чем он сильнее, тем больше бонус\n🏛 Воин своей эпохи защищает «родную землю» сильнее\n🌱 Окраины открыты всем, 👑 Сердце мира — только для сильнейших\n🚩 Флаг со своим фото и статуи над твоими землями\n🎖 Пропуск завоевателя с наградами каждый месяц\n\n🥚 И главное: ДРАКОН ТЕПЕРЬ У ВСЕХ — яйцо разбивается сразу, без друзей и историй! А ещё с ним можно играть в мячик и исполнять его желания.\n\nКарта только открылась — все земли свободны. Успей занять свою первым 🔥\n\n👉 @VoinyEpohBot",
+ dm:"🗺 КРУПНОЕ ОБНОВЛЕНИЕ: КАРТА МИРА!\n\n50 земель — захватывай их своими воинами ⚔️\n🏰 Земли приносят монеты и руны каждый час\n🐉 Твой дракон помогает в бою\n🚩 Флаги со своим фото и статуи над землями\n\n🥚 А ещё дракон теперь у всех — яйцо разбивается сразу!\n\nВсе земли пока свободны — займи свою первым 🔥"};
 /* ---------- разовое сообщение в игре (раздел «Сообщения», от администрации) — без рассылки в бота ---------- */
 const DMB={id:"dgst3110",from:Date.UTC(2026,9,31,9,0),to:Date.UTC(2026,10,7,21,0),where:"json_extract(state,'$.dg') IS NULL",
   text:"🐉 ДРАКОН ТЕПЕРЬ ОТКРЫВАЕТСЯ ЗА ИСТОРИЮ!\n\nРаньше тайное яйцо будили только друзья. Теперь есть второй путь — быстрее:\n\n📲 Выложи историю с игрой в Telegram или Instagram со ссылкой на бота\n✅ Нажми «Я выложил» во вкладке «Тайна»\n🔨 Яйцо треснет сразу — и внутри твой дракон!\n\nДракон растёт 60 уровней, помогает в боях и каждый день приносит подарки. Не удаляй историю 24 часа 😉\n\nP.S. Эта же история участвует в розыгрыше NFT-подарка «Дракончик» — итоги 1.11 в 22:00."};
@@ -1868,6 +1932,9 @@ async function handle(req,env){{
     if(req.method==="OPTIONS")return new Response(null,{headers:CORS});
     const url=new URL(req.url);
     if(req.method==="GET"&&url.pathname==="/setup"){await ensureSchema(env);return setup(env,url.origin)}
+    if(req.method==="GET"&&url.pathname.startsWith("/mp/")){await ensureSchema(env);const r=await env.DB.prepare("SELECT img FROM map_photo WHERE uid=? AND st=1").bind(Math.floor(+url.pathname.slice(4).replace(/\D/g,""))||0).first();
+      if(!r)return new Response("",{status:404,headers:CORS});const m=/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(r.img||"");if(!m)return new Response("",{status:404,headers:CORS});
+      return new Response(Uint8Array.from(atob(m[2]),c=>c.charCodeAt(0)),{headers:{...CORS,"Content-Type":m[1],"Cache-Control":"public, max-age=600"}})}
     if(req.method==="GET"&&url.pathname.startsWith("/go/")){await ensureSchema(env);return adGo(env,req,decodeURIComponent(url.pathname.slice(4)))}
     if(req.method==="GET"&&url.pathname==="/remind"&&env.DEV==="1")return J(await reminders(env));   // только для проверки
     if(req.method==="GET"&&url.pathname==="/export"){await ensureSchema(env);if(req.headers.get("X-Export-Key")!==await exportKey(env))return J({ok:false,err:"нет доступа"},403);return exportChunk(env,url)}
@@ -1940,6 +2007,7 @@ async function handle(req,env){{
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
       if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^map_|^mph_/.test(a)){const res=await mapApi(env,me,a,p);return J({ok:true,res,S:a==="map_get"||a==="mph_list"?undefined:await stateFor(env,me)})}
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});
         if(r.res.gift){const g=await giftMint(env,me.id,r.res.gift,"case");
