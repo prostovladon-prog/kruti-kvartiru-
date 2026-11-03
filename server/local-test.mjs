@@ -1208,7 +1208,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   ok(db.prepare("SELECT cash FROM users WHERE id=?").get(P).cash === pc0 + 500, "прошлому Королю выплатили казну");
   db.prepare("DELETE FROM map_reg").run(); db.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%'").run(); db.prepare("DELETE FROM king").run(); }
 { const envA = { ...env, ADMINS: "8" }; const ca = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envA)).json();
-  let q = await ca(8, "adm_newbies", { day: 0 }); ok(q.ok && q.res.total > 0 && Array.isArray(q.res.nicks) && q.res.best.every(b => b.nick && b.hero), "админ: ники новичков за день (" + (q.ok ? q.res.total : q.err) + ")");
+  let q = await ca(8, "adm_newbies", { day: 0 }); ok(q.ok && q.res.total > 0 && Array.isArray(q.res.nicks) && q.res.best.every(b => b.nick && typeof b.hero === "string") && q.res.best.some(b => b.hero), "админ: ники новичков за день (" + (q.ok ? q.res.total : q.err) + ")");
   q = await ca(7001, "adm_newbies", {}); ok(!q.ok, "ники новичков — только админу"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);
