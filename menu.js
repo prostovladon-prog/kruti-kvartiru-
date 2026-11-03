@@ -768,3 +768,11 @@ async function compGo(h){const why=compWhy(h);if(why){hapN("error");toast("🧩 
 {const _cm=cardMenu;cardMenu=function(c){_cm.apply(this,arguments);if(!c.part)return;const b=$("cm-view");if(!b)return;const why=compWhy(c.h);
   b.textContent=why?"🧩 Как собрать воина":"🧩 Соединить половинки";if(why)b.insertAdjacentHTML("afterend",'<p class="cln cmp-why">'+escH(why)+'</p>');
   b.onclick=async()=>{if(compWhy(c.h)){closeModal();openGold("comp");return}closeModal();await compGo(c.h)}}}
+
+/* 🧩 баннер над коллекцией и кнопка в окне карточки, когда есть пара половинок */
+{const _rc=renderCol;renderCol=function(){_rc.apply(this,arguments);try{const box=$("col");if(!box||colPick)return;const old=$("asm-ban");if(old)old.remove();const rd=COMP.filter(h=>compHave(h).ok);if(!rd.length)return;
+  const b=document.createElement("div");b.id="asm-ban";b.className="asm-ban";b.innerHTML='<i>🧩</i><span><b>Можно собрать воина!</b><small>'+rd.map(h=>escH(HEROES[h][0])).join(", ")+' — есть обе половинки</small></span>';
+  const go=document.createElement("button");go.type="button";go.textContent="Собрать";go.onclick=async()=>{hap("medium");go.disabled=true;if(await compGo(rd[0]))renderCol();else go.disabled=false};b.appendChild(go);box.before(b)}catch(e){}}}
+{const _cv=openCardView;openCardView=function(c,o){_cv.apply(this,arguments);try{if(!c||!c.part||!(o&&o.mine))return;const info=document.querySelector("#msheet .cv-info");if(!info)return;const why=compWhy(c.h);
+  const w=document.createElement("div");w.className="cv-asm";if(!why){w.innerHTML='<button type="button" class="craftbtn">🧩 Соединить половинки</button>';w.firstChild.onclick=async()=>{closeModal();if(await compGo(c.h))try{renderCol()}catch(e){}}}
+  else w.innerHTML='<p class="cmp-why">🧩 '+escH(why)+'</p>';info.prepend(w)}catch(e){}}}

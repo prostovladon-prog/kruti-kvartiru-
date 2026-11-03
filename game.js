@@ -853,7 +853,8 @@ function renderCol(){
       el.insertAdjacentHTML("beforeend",'<span class="pk">'+(colSel.has(c.id)?"✓":"")+'</span>');
       el.onclick=e=>{e.stopPropagation();if(!ok){toast(c.listed?"Карточка на рынке":away(c)?"Карточка занята":"Эту карточку нельзя продать системе");return}if(colSel.has(c.id))colSel.delete(c.id);else colSel.add(c.id);sfx.tick&&sfx.tick();renderCol()};
       el.querySelectorAll("button").forEach(b=>b.onclick=null)}
-    if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";cb.appendChild(fb)}
+    if(c.part&&!colPick&&!away(c)&&compHave(c.h).ok){el.classList.add("cmp-rdy");const ab=document.createElement("button");ab.type="button";ab.className="asmb";ab.textContent="🧩 Собрать";ab.onclick=async e=>{e.stopPropagation();hap("medium");ab.disabled=true;if(typeof compGo==="function"&&await compGo(c.h))renderCol();else ab.disabled=false};el.appendChild(ab)}
+    else if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";cb.appendChild(fb)}
     const m=el.querySelector(".more");
     if(away(c)){m.textContent=c.listed?"🏷":c.lock?"⚔️":"🧭";m.title=c.listed?"На рынке":c.lock?"В бою на арене":"В походе"}else if(FIN[c.f].excl){m.textContent="🏆";m.title="Трофей"}
     if(!colPick)m.onclick=()=>cardMenu(c);box.appendChild(el)});
