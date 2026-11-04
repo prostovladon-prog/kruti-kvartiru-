@@ -700,6 +700,10 @@ const ACTIONS={
     const n=Math.min(want,st.spins,free),cards=[];let wel=0;
     for(let i=0;i<n;i++){try{const r=ACTIONS.open(G);cards.push(r.card);if(r.wel)wel=1}catch(e){if(!cards.length)throw e;break}}
     return {cards,wel,asked:want}},
+  /* 🎥 эфир: карточка для зрителя — обычные шансы, без прокруток и без удачи; карточка уходит «в ожидание» по коду */
+  live_roll(G){if(!G.ctx.grant||!G.ctx.admin)fail("Неизвестное действие");const {ctx}=G;ctx.luck=false;let c=null;
+    if(Math.random()<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}
+    if(!c)c=rollCard(ctx,false);c.how="live";G.cards.push(c);return {card:c}},
   open(G){const {st,ctx}=G;refill(st,ctx.now);
     if(st.spins<=0)fail("Прокрутки закончились");
     if(G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");

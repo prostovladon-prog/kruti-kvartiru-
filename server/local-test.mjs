@@ -1229,5 +1229,22 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
 { const envA = { ...env, ADMINS: "8" }; const ca = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envA)).json();
   let q = await ca(8, "adm_newbies", { day: 0 }); ok(q.ok && q.res.total > 0 && Array.isArray(q.res.nicks) && q.res.best.every(b => b.nick && typeof b.hero === "string") && q.res.best.some(b => b.hero), "админ: ники новичков за день (" + (q.ok ? q.res.total : q.err) + ")");
   q = await ca(7001, "adm_newbies", {}); ok(!q.ok, "ники новичков — только админу"); }
+// 🎥 эфир: карточка зрителю по коду
+{ const envA = { ...env, ADMINS: "8" }; const ca = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envA)).json();
+  await ca(8, "sync"); const V = 7971, W = 7972; await ca(V, "sync"); await ca(W, "sync");
+  let q = await ca(V, "live_open", { name: "Зритель" }); ok(!q.ok, "открывать для зрителей — только админ");
+  const adm0 = db.prepare("SELECT COUNT(*) n FROM cards WHERE owner=8").get().n, sp8 = JSON.parse(db.prepare("SELECT state FROM users WHERE id=8").get().state).spins;
+  q = await ca(8, "live_open", { name: "@Dark_Wolf" }); ok(q.ok && /^\d{6}$/.test(q.res.code) && q.res.card && q.res.name === "Dark_Wolf" && q.res.sp >= 3, "эфир: карточка для зрителя, код из 6 цифр и прокрутки (+" + (q.ok && q.res.sp) + ")");
+  const code = q.res.code, cid = q.res.card.id, sp0 = q.res.sp;
+  ok(db.prepare("SELECT owner FROM cards WHERE id=?").get(cid).owner === -5 && db.prepare("SELECT COUNT(*) n FROM cards WHERE owner=8").get().n === adm0, "карточка в ожидании, не у админа");
+  ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=8").get().state).spins === sp8, "прокрутки админа не тратятся");
+  q = await ca(8, "live_list"); ok(q.ok && q.res.list[0].code === code && !q.res.list[0].got, "список кодов эфира");
+  const s0 = (await ca(V, "sync")).S.spins;
+  q = await ca(V, "promo_use", { code }); ok(q.ok && q.res.live === 1 && q.res.card.id === cid && db.prepare("SELECT owner FROM cards WHERE id=?").get(cid).owner === V, "зритель ввёл код — карточка его");
+  ok(q.S.spins === s0 + sp0, "и прокрутки начислены (+" + sp0 + ")");
+  q = await ca(W, "promo_use", { code }); ok(!q.ok && /забрали/.test(q.err), "второй раз код не работает");
+  q = await ca(8, "live_open", { name: "Old" }); db.prepare("UPDATE live_drop SET t=? WHERE code=?").run(Date.now() - 49 * 36e5, q.res.code);
+  q = await ca(W, "promo_use", { code: q.res.code }); ok(!q.ok && /48/.test(q.err), "код живёт 48 часов");
+  q = await ca(W, "promo_use", { code: "123456" }); ok(!q.ok, "несуществующий код — как обычный промокод"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

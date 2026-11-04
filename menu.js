@@ -513,6 +513,7 @@ function vidOpen(){const R=stData;if(!R)return toast("Сначала обнов�
 function promoOpen(){if(!ONLINE)return toast("Промокоды работают в игре через Telegram");const m=$("modal"),sh=$("msheet");m.hidden=false;
   sh.innerHTML='<div class="box nickbox prbox"><div class="prtk">🎟</div><h3>Промокод</h3><p class="cln">Коды бывают в видео и постах канала. Введи — и забери награду</p><input id="pr-in" maxlength="24" autocomplete="off" autocapitalize="characters" placeholder="Например, ДЕНЬ1"><button type="button" class="craftbtn" id="pr-go">Активировать</button><button type="button" class="ghost" id="pr-x">Закрыть</button></div>';
   const i=$("pr-in"),go=async()=>{const v=i.value.trim();if(!v){i.focus();return}$("pr-go").disabled=true;const r=await act("promo_use",{code:v});$("pr-go").disabled=false;
+    if(r&&r.live){closeModal();sfx.fanfare();burst(4);hapN("success");renderAll();showGrant({cards:[r.card]},"🎥 Карточка с эфира"+(r.sp?" + "+r.sp+" 🎴":""));return}
     if(r){sfx.fanfare();burst(3);hapN("success");renderAll();sh.innerHTML='<div class="box nickbox prbox"><div class="prtk ok">🎁</div><h3>Код активирован!</h3><div class="prrw">'+(r.sp?'<b>+'+r.sp+' 🎴</b><span>прокруток</span>':'')+(r.cash?'<b>+'+fmtN(r.cash)+' 🪙</b><span>монет</span>':'')+(r.x2?'<b>x2 ⭐</b><span>к пополнению баланса (бонус до '+r.x2+' ⭐)</span>':'')+'</div><button type="button" class="craftbtn" id="pr-ok">'+(r.x2&&!r.sp&&!r.cash?"⭐ Пополнить с x2":"Крутить!")+'</button></div>';$("pr-ok").onclick=()=>{closeModal();if(r.x2&&!r.sp&&!r.cash)openGold("flex");else setTab("spin")}}
     else{i.classList.remove("shk");void i.offsetWidth;i.classList.add("shk")}};
   $("pr-go").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()};$("pr-x").onclick=closeModal;setTimeout(()=>i.focus(),200)}
@@ -814,3 +815,26 @@ setInterval(()=>{try{const C=chData;if(!C||!C.chest||C.phase!=="on"||!S||!ONLINE
     x.querySelectorAll("a").forEach(a=>a.onclick=e=>{e.preventDefault();try{tg&&tg.openLink?tg.openLink(a.href):open(a.href)}catch(_){open(a.href)}});
     x.onclick=async e=>{const o=e.target.closest("[data-tok],[data-tno]");if(!o)return;o.disabled=true;const ok=o.dataset.tok;if(await act(ok?"tt_ok":"tt_no",{uid:+(ok||o.dataset.tno)})){toast(ok?"✅ Засчитано — игроку +1 билет":"❌ Отклонено");load()}else o.disabled=false}};
   load()}catch(e){}}}
+
+/* ---------- 🎥 режим эфира: «открываю за тебя» (только админ) ---------- */
+MENU_GROUPS[0][1].push({k:"live",ic:"🎥",n:"Эфир",c:["#ff7a8a","#c0102a"]});
+{const _mo=menuOpen;menuOpen=function(){_mo.apply(this,arguments);if(!(S&&S.admin))document.querySelectorAll('.drw-i[data-go="live"]').forEach(b=>b.remove())}}
+{const _mg=menuGo;menuGo=function(k){if(k==="live"){menuClose();return liveOpen()}return _mg.apply(this,arguments)}}
+let LV=null;
+function liveOpen(){if(!S||!S.admin)return;let o=$("lvscr");if(!o){o=document.createElement("div");o.id="lvscr";o.className="lvscr";document.body.appendChild(o)}o.hidden=false;liveForm()}
+function liveForm(last){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button type="button" class="lv-x" id="lv-x">✕</button><b><i class="lv-rec"></i> РЕЖИМ ЭФИРА</b></div>
+  <div class="lv-hero"><div class="lv-ic">🎁</div><h2>Открываю за тебя</h2><p>Напиши ник в комментариях — открою карточку для тебя</p></div>
+  <div class="lv-in"><input id="lv-nm" maxlength="32" placeholder="Ник зрителя из комментариев" autocomplete="off"><button type="button" id="lv-go">🎁 Открыть для него</button></div>
+  <div class="lv-hl"><b>Выдано за эфир</b><div id="lv-list"><p class="lv-mut">Загружаю…</p></div></div>`;
+  $("lv-x").onclick=()=>{o.hidden=true};const i=$("lv-nm"),go=async()=>{const n=i.value.trim();if(!n){i.focus();return}$("lv-go").disabled=true;const r=await act("live_open",{name:n});$("lv-go").disabled=false;if(r)liveShow(r)};
+  $("lv-go").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()};liveList()}
+async function liveList(){const r=await act("live_list"),L=$("lv-list");if(!r||!L)return;
+  L.innerHTML=r.list.length?r.list.map(x=>`<div class="lv-r${x.got?" got":x.exp?" exp":""}"><span><b>@${fnEsc(x.name)}</b><small>${x.h!=null?HEROES[x.h][0]+" · "+HT[HEROES[x.h][2]].k+(x.f?" · "+FIN[x.f].k:""):"?"}${x.sp?" · +"+x.sp+" 🎴":""}</small></span><em>${x.got?"✅ "+fnEsc(x.who||"забрал"):x.exp?"⌛ истёк":x.code}</em></div>`).join(""):'<p class="lv-mut">Пока никому не открывали</p>'}
+function liveShow(r){const o=$("lvscr"),t=HEROES[r.card.h][2],rar=HT[t].k,col=HT[t].c,big=t>=3;
+  o.innerHTML=`<div class="lv-show t${t}" style="--rc:${col}"><div class="lv-rays"></div><div class="lv-for">🎁 Карточка для</div><div class="lv-nick">@${fnEsc(r.name)}</div>
+   <div class="lv-stage"><div class="lv-back">⚔️<small>ВОИНЫ ЭПОХ</small></div><div class="lv-card">${miniSlot(r.card)}</div></div>
+   <div class="lv-rar">${rar.toUpperCase()}${r.card.f?" · "+FIN[r.card.f].k:""}</div><div class="lv-sp">+${r.sp} 🎴 прокруток</div>
+   <div class="lv-code"><small>КОД — введи в игре → «Промокод»</small><b>${r.code}</b><span>действует 48 часов · @VoinyEpohBot</span></div>
+   <button type="button" class="lv-next" id="lv-next">Следующий зритель →</button></div>`;
+  const s=o.querySelector(".lv-show");sfx.rumble&&sfx.rumble(2);setTimeout(()=>{s.classList.add("flip");big?(sfx.fanfare(),burst(5)):sfx.coin();hapN("success")},1300);setTimeout(()=>s.classList.add("info"),2100);
+  $("lv-next").onclick=()=>liveForm()}

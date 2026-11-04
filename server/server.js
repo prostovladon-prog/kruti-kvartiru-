@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=44;
+const SCHEMA_V=45;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -107,7 +107,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
  "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
  "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)",
- "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))"];
+ "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1033,7 +1033,29 @@ async function tourApi(env,me,a,p){const now=Date.now();
 async function x2Left(env,uid){const r=await env.DB.prepare("SELECT code,x2 FROM promo_uses WHERE uid=? AND x2>0 AND x2d=0 ORDER BY x2 DESC LIMIT 1").bind(uid).first();return r?r.x2:0}
 /* ---------- 🎟 промокоды: админ создаёт, игрок вводит один раз. По кодам видно, из какого видео и с какой площадки пришли люди ---------- */
 const promoKey=c=>String(c||"").toUpperCase().replace(/Ё/g,"Е").replace(/[^A-ZА-Я0-9_-]/g,"").slice(0,24);
+/* ---------- 🎥 эфир: «открываю за тебя» — карточка зрителю по одноразовому коду (48 ч) ---------- */
+const LIVE_OWNER=-5,LIVE_TTL=48*36e5,LIVE_SP=[[3,22],[5,22],[7,16],[10,16],[15,10],[20,7],[30,5],[50,2]];
+const liveSp=()=>{let r=Math.random()*LIVE_SP.reduce((a,x)=>a+x[1],0);for(const [n,w] of LIVE_SP){r-=w;if(r<0)return n}return 3};
+async function liveApi(env,me,a,p){if(!isAdmin(env,me.id))fail("Нет доступа");const now=Date.now();
+  if(a==="live_open"){const name=String(p.name||"").trim().replace(/^@/,"").slice(0,32);if(!name)fail("Напиши ник зрителя");
+    const r=(await doAction(env,me,"live_roll",{},{grant:true})).res,c=r&&r.card;if(!c||!c.id)fail("Не получилось открыть");
+    const mv=await env.DB.prepare("UPDATE cards SET owner=?,away=0,dest=NULL WHERE id=? AND owner=?").bind(LIVE_OWNER,c.id,me.id).run();if(mv.meta.changes!==1)fail("Карточка не отложилась");
+    let code="";for(let i=0;i<20;i++){const b=new Uint32Array(1);crypto.getRandomValues(b);code=String(100000+b[0]%900000);if(!(await env.DB.prepare("SELECT 1 FROM live_drop WHERE code=?").bind(code).first()))break}
+    const sp=liveSp();await env.DB.prepare("INSERT INTO live_drop(code,card,name,t,sp) VALUES(?,?,?,?,?)").bind(code,c.id,name,now,sp).run();
+    const row=await env.DB.prepare("SELECT * FROM cards WHERE id=?").bind(c.id).first();return {code,name,sp,card:pub(rowToCard(row)),until:now+LIVE_TTL}}
+  if(a==="live_list"){const L=(await env.DB.prepare("SELECT d.*,c.h,c.f,c.v,COALESCE(u.nick,u.name) AS who FROM live_drop d LEFT JOIN cards c ON c.id=d.card LEFT JOIN users u ON u.id=d.by_uid ORDER BY d.t DESC LIMIT 60").all()).results;
+    return {list:L.map(x=>({code:x.code,name:x.name,sp:x.sp||0,t:x.t,h:x.h,f:x.f,v:x.v,who:x.who||null,got:x.got_t||0,exp:!x.got_t&&now>x.t+LIVE_TTL?1:0}))}}
+  fail("Неизвестное действие")}
+async function liveClaim(env,me,code){const D=await env.DB.prepare("SELECT * FROM live_drop WHERE code=?").bind(code).first();if(!D)return null;const now=Date.now();
+  if(D.by_uid)fail(D.by_uid===me.id?"Эта карточка уже твоя 😉":"Эту карточку уже забрали");if(now>D.t+LIVE_TTL)fail("Код с эфира действовал 48 часов — срок закончился");
+  const g=await env.DB.prepare("UPDATE live_drop SET by_uid=?,got_t=? WHERE code=? AND by_uid IS NULL").bind(me.id,now,code).run();if(g.meta.changes!==1)fail("Эту карточку уже забрали");
+  await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=?").bind(me.id,D.card,LIVE_OWNER).run();
+  if(D.sp)try{await doAction(env,me,"tour_prize",{sp:D.sp},{tour:1})}catch(e){console.error("livesp",e)}
+  const row=await env.DB.prepare("SELECT * FROM cards WHERE id=?").bind(D.card).first();
+  for(const ad of ADMINS)try{await notify(env,ad,"🎥 Карточку с эфира забрали: код "+code+" («"+D.name+"») → "+(me.nick||me.name||me.id)+" (id "+me.id+"), "+(row?HEROES[row.h][0]:"?"),"⚔️ Открыть")}catch(e){}
+  return {live:1,card:row?pub(rowToCard(row)):null,name:D.name,sp:D.sp||0}}
 async function promoApi(env,me,a,p){const now=Date.now();
+  if(a==="promo_use"&&/^\d{6}$/.test(promoKey(p.code))){const L=await liveClaim(env,me,promoKey(p.code));if(L)return L}
   if(a==="promo_use"){const code=promoKey(p.code);if(!code)fail("Введи промокод");const P=await env.DB.prepare("SELECT * FROM promo WHERE code=?").bind(code).first();
     if(!P||P.off)fail("Такого промокода нет. Проверь, как он написан");if(P.until&&now>P.until)fail("Срок промокода закончился");
     if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
@@ -2136,7 +2158,7 @@ async function handle(req,env){{
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
-      if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(/^map_|^mph_/.test(a)){const res=await mapApi(env,me,a,p);return J({ok:true,res,S:a==="map_get"||a==="mph_list"||a==="map_stats"?undefined:await stateFor(env,me)})}
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});
