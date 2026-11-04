@@ -911,3 +911,13 @@ setInterval(()=>{try{const R=S&&S.ref3;if(!R||R.got||R.end<=NOW()||!ONLINE||(S.n
       (r.adm?`<p class="cln">Прошлая: выполнили ${r.adm.done}, пришло по приглашениям ${r.adm.fresh}</p>`:"")+`<p class="cln">Пригласил 3 друзей за время акции → VIP Золото на ${r.days||7} дней + x2 к пополнению (до ${r.x2||500} ⭐). Выдаётся автоматически.</p><button type="button" class="craftbtn" id="r3-go3">🚀 Запустить на 3 часа</button>`);
     const g=$("r3-go3");if(g)g.onclick=async()=>{if(!confirm("Запустить акцию на 3 часа? Игроки увидят баннер сразу."))return;g.disabled=true;const q=await act("ref3_start",{h:3});if(q){toast("🔥 Акция запущена до "+new Date(q.end+3*3600e3).toISOString().slice(11,16));const s2=await act("sync");load()}else g.disabled=false};
     const st=$("r3-stop");if(st)st.onclick=async()=>{if(!confirm("Остановить акцию?"))return;if(await act("ref3_stop")){toast("Акция остановлена");await act("sync");load()}}};load()}catch(e){}}}
+/* ---------- 🔔 «разреши сообщения»: просим в хорошие моменты — после редкой карточки и раз в день при входе ---------- */
+function pmAsk2(why){try{if(!canPmAsk()||!S||!$("modal").hidden||$("onb")||document.querySelector(".hhpop,#lvscr:not([hidden]),.drw:not([hidden])"))return;
+  let st={n:0,t:0};try{st=JSON.parse(localStorage.getItem("we-pm2")||'{"n":0,"t":0}')}catch(e){}if(st.n>=5||Date.now()-st.t<20*36e5)return;st.n++;st.t=Date.now();try{localStorage.setItem("we-pm2",JSON.stringify(st))}catch(e){}
+  const m=$("modal"),sh=$("msheet");m.hidden=false;hap("medium");
+  sh.innerHTML=`<div class="box nickbox pmpop"><div class="kg-rays"></div><div class="pm-bell">🔔</div><h3>${why==="drop"?"Вот это выпало! 🔥":"Не пропускай главное"}</h3><p class="pm-sub">Разреши боту писать тебе — и узнавай первым:</p>
+   <ul class="pm-ul"><li>🎁 о розыгрышах и акциях с призами</li><li>🎴 когда готовы новые прокрутки</li><li>⚔️ если кто-то напал на твой регион</li><li>💰 когда купили твою карточку</li></ul>
+   <div class="pm-gift">+5 🎴 прокруток сразу</div><button type="button" class="hhbtn" id="pm2-yes">🔔 Разрешить сообщения</button><button type="button" class="hhx" id="pm2-no">Не сейчас</button><small class="pm-note">Ночью бот не пишет. Отключить можно в любой момент</small></div>`;
+  $("pm2-yes").onclick=()=>{closeModal();enablePm()};$("pm2-no").onclick=closeModal}catch(e){}}
+{const _act=act;act=async function(n,p){const r=await _act.apply(this,arguments);try{if(n==="open"&&r&&r.card&&HEROES[r.card.h][2]>=2)setTimeout(()=>pmAsk2("drop"),3800)}catch(e){}return r}}
+setTimeout(()=>pmAsk2("day"),35000);

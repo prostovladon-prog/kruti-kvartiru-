@@ -2028,7 +2028,7 @@ async function clanWeekTick(env){if(clanWBusy)return;const now=Date.now(),prev=m
       for(const m of await clanMembers(env,top[i].clan)){await env.DB.prepare("UPDATE users SET gift_spins=gift_spins+? WHERE id=?").bind(CLAN.week[i],m.id).run();
         await notify(env,m.id,["🥇","🥈","🥉"][i]+" Клан «"+C.name+"» — "+(i+1)+" место за неделю! Каждому участнику +"+CLAN.week[i]+" прокруток.","⚔️ Клан",PAGE+"?clan=1")}}}finally{clanWBusy=false}}
 /* удержание: +3 прокрутки за включённые напоминания; сундук возвращения на следующий день после регистрации, бот зовёт за ним с 12:00 до 21:00 */
-const PM_BONUS=3, CB={sp:5,cash:300};
+const PM_BONUS=5, CB={sp:5,cash:300};
 let cbBusy=false;
 async function cbTick(env){if(cbBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now(),h=new Date(now+TZ).getUTCHours();if(h<12||h>=21)return;
   cbBusy=true;try{const d0=dayNum(now)*864e5-TZ,y0=d0-864e5;
