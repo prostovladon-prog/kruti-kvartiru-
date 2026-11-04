@@ -823,7 +823,7 @@ MENU_GROUPS[0][1].push({k:"live",ic:"🎥",n:"Эфир",c:["#ff7a8a","#c0102a"]}
 let LV=null;
 function liveOpen(){if(!S||!S.admin)return;let o=$("lvscr");if(!o){o=document.createElement("div");o.id="lvscr";o.className="lvscr";document.body.appendChild(o)}o.hidden=false;liveForm()}
 function liveForm(last){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button type="button" class="lv-x" id="lv-x">✕</button><b><i class="lv-rec"></i> РЕЖИМ ЭФИРА</b></div>
-  <div class="lv-hero"><div class="lv-ic">🎁</div><h2>Открываю за тебя</h2><p>Напиши ник в комментариях — открою карточку для тебя</p></div>
+  <div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div><div class="lv-hero"><div class="lv-ic">🎁</div><h2>Открываю за тебя</h2><p>Напиши ник в комментариях — открою карточку для тебя</p></div>
   <div class="lv-in"><input id="lv-nm" maxlength="32" placeholder="Ник зрителя из комментариев" autocomplete="off"><button type="button" id="lv-go">🎁 Открыть для него</button></div>
   <div class="lv-hl"><b>Выдано за эфир</b><div id="lv-list"><p class="lv-mut">Загружаю…</p></div></div>`;
   $("lv-x").onclick=()=>{o.hidden=true};const i=$("lv-nm"),go=async()=>{const n=i.value.trim();if(!n){i.focus();return}$("lv-go").disabled=true;const r=await act("live_open",{name:n});$("lv-go").disabled=false;if(r)liveShow(r)};
@@ -831,7 +831,7 @@ function liveForm(last){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><but
 async function liveList(){const r=await act("live_list"),L=$("lv-list");if(!r||!L)return;
   L.innerHTML=r.list.length?r.list.map(x=>`<div class="lv-r${x.got?" got":x.exp?" exp":""}"><span><b>@${fnEsc(x.name)}</b><small>${x.h!=null?HEROES[x.h][0]+" · "+HT[HEROES[x.h][2]].k+(x.f?" · "+FIN[x.f].k:""):"?"}${x.sp?" · +"+x.sp+" 🎴":""}</small></span><em>${x.got?"✅ "+fnEsc(x.who||"забрал"):x.exp?"⌛ истёк":x.code}</em></div>`).join(""):'<p class="lv-mut">Пока никому не открывали</p>'}
 function liveShow(r){const o=$("lvscr"),t=HEROES[r.card.h][2],rar=HT[t].k,col=HT[t].c,big=t>=3;
-  o.innerHTML=`<div class="lv-show t${t}" style="--rc:${col}"><div class="lv-rays"></div><div class="lv-for">🎁 Карточка для</div><div class="lv-nick">@${fnEsc(r.name)}</div>
+  o.innerHTML=`<div class="lv-show t${t}" style="--rc:${col}"><div class="lv-rays"></div><div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div><div class="lv-for">🎁 Карточка для</div><div class="lv-nick">@${fnEsc(r.name)}</div>
    <div class="lv-stage"><div class="lv-back">⚔️<small>ВОИНЫ ЭПОХ</small></div><div class="lv-card">${miniSlot(r.card)}</div></div>
    <div class="lv-rar">${rar.toUpperCase()}${r.card.f?" · "+FIN[r.card.f].k:""}</div><div class="lv-sp">+${r.sp} 🎴 прокруток</div>
    <div class="lv-code"><small>КОД — введи в игре → «Промокод»</small><b>${r.code}</b><span>действует 48 часов · @VoinyEpohBot</span></div>

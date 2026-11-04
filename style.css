@@ -2738,3 +2738,5 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .lv-code{margin:16px auto 0;max-width:360px;padding:14px;border-radius:18px;background:#fff;color:#1c0a4a;transition-delay:.5s}.lv-code small{display:block;font-weight:800;font-size:12px;opacity:.7}.lv-code b{display:block;font-family:var(--display);font-size:46px;letter-spacing:.12em;margin:4px 0}.lv-code span{font-size:12px;font-weight:700;opacity:.7}
 .lv-next{margin-top:18px;padding:14px 24px;border:0;border-radius:14px;font:inherit;font-weight:900;font-size:17px;background:rgba(255,255,255,.14);color:#fff;transition-delay:.7s}
 .lv-back{z-index:2}.lv-card{opacity:0;transition:transform .7s cubic-bezier(.3,1.3,.5,1),opacity .15s .2s}.lv-show.flip .lv-card{opacity:1}.lv-show.flip .lv-back{opacity:0;transition:transform .7s,opacity .2s .25s}
+.lv-brand{display:inline-block;margin:14px auto 0;padding:7px 16px;border-radius:999px;background:rgba(42,171,238,.22);border:1.5px solid #2aabee;font-size:14px;font-weight:700;color:#d8f1ff;text-align:center}.lv-brand b{color:#fff}
+.lvscr>.lv-brand{display:block;width:max-content;max-width:100%}.lv-show .lv-brand{margin:0 auto 10px}
