@@ -39,6 +39,7 @@ export async function loadWorker() {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const env = { DB: openDB(process.env.DB_PATH || "/var/lib/voiny/game.db"), BOT_TOKEN: process.env.BOT_TOKEN || "", ADMINS: process.env.ADMINS || "", TEST: process.env.TEST || "", DEV: process.env.DEV || "" };
+  try { const { makeBridge } = await import("./tt-bridge.mjs"); env.TT = makeBridge(env.DB) } catch (e) { console.error("tt-bridge", e) }   // 🎥 чтение чата эфира TikTok
   if (!env.BOT_TOKEN) console.warn("⚠️  BOT_TOKEN не задан: вход из Telegram работать не будет");
   const worker = await loadWorker();
   const port = +process.env.PORT || 8787;

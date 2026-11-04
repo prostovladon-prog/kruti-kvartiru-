@@ -1246,5 +1246,26 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await ca(8, "live_open", { name: "Old" }); db.prepare("UPDATE live_drop SET t=? WHERE code=?").run(Date.now() - 49 * 36e5, q.res.code);
   q = await ca(W, "promo_use", { code: q.res.code }); ok(!q.ok && /48/.test(q.err), "код живёт 48 часов");
   q = await ca(W, "promo_use", { code: "123456" }); ok(!q.ok, "несуществующий код — как обычный промокод"); }
+// 🎥 мост чата TikTok (подделка подключения)
+{ const { makeBridge } = await import("./tt-bridge.mjs"); const { EventEmitter } = await import("node:events");
+  let last = null; class FakeConn extends EventEmitter { constructor(u) { super(); this.u = u; last = this } async connect() { if (this.u === "offline_guy") throw new Error("UserOfflineError: LIVE has ended"); return { roomId: 1 } } disconnect() {} }
+  const envT = { ...env, ADMINS: "8", TT: makeBridge(env.DB, async () => ({ TikTokLiveConnection: FakeConn })) };
+  const ct = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envT)).json();
+  let q = await ct(7001, "live_tt", { op: "start", user: "x" }); ok(!q.ok, "чат TikTok — только админ");
+  q = await ct(8, "live_tt", { op: "start", user: "@prostovladon" }); ok(q.ok && q.res.state === "on" && q.res.user === "prostovladon", "подключились к эфиру");
+  q = await ct(8, "live_feed", {}); const L0 = q.res.last;
+  last.emit("chat", { user: { uniqueId: "dark_wolf", nickname: "Dark Wolf", profilePicture: { url: ["https://p/1.jpg"] } }, comment: "привет! кручу колесо?" });
+  last.emit("chat", { uniqueId: "old_ver", nickname: "Старая версия", comment: "v1 формат", profilePictureUrl: "https://p/2.jpg" });
+  last.emit("gift", { user: { uniqueId: "rich", nickname: "Богач" }, giftName: "Rose", repeatCount: 5, giftType: 1, repeatEnd: true });
+  last.emit("gift", { user: { uniqueId: "rich", nickname: "Богач" }, giftName: "Rose", repeatCount: 3, giftType: 1, repeatEnd: false });
+  await new Promise(r => setTimeout(r, 30));
+  q = await ct(8, "live_feed", { after: L0 }); const R = q.res.rows;
+  ok(R.length === 3 && R[0].nick === "Dark Wolf" && R[0].text === "привет! кручу колесо?" && R[0].pic === "https://p/1.jpg" && R[1].uid === "old_ver" && R[2].kind === "gift" && /Rose ×5/.test(R[2].text), "комментарии и подарки в ленте (оба формата библиотеки)");
+  ok(q.res.tt.n === 3, "счётчик сообщений");
+  q = await ct(8, "live_tt", { op: "start", user: "offline_guy" }); ok(q.ok && q.res.state === "error" && /не идёт/.test(q.res.err), "эфир не запущен — понятная ошибка");
+  q = await ct(8, "live_tt", { op: "stop" }); ok(q.ok && q.res.state === "off", "отключились");
+  const envN = { ...env, ADMINS: "8", TT: makeBridge(env.DB, async () => { throw new Error("Cannot find package") }) };
+  q = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "live_tt", p: { op: "start", user: "a" } }) }), envN)).json();
+  ok(q.ok && q.res.state === "nolib" && /npm i tiktok-live-connector/.test(q.res.err), "нет библиотеки — подсказка, что установить"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

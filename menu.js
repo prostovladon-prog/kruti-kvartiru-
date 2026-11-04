@@ -825,8 +825,8 @@ function liveOpen(){if(!S||!S.admin)return;let o=$("lvscr");if(!o){o=document.cr
 function liveForm(last){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button type="button" class="lv-x" id="lv-x">✕</button><b><i class="lv-rec"></i> РЕЖИМ ЭФИРА</b></div>
   <div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div><div class="lv-hero"><div class="lv-ic">🎁</div><h2>Открываю за тебя</h2><p>Напиши ник в комментариях — открою карточку для тебя</p></div>
   <div class="lv-in"><input id="lv-nm" maxlength="32" placeholder="Ник зрителя из комментариев" autocomplete="off"><button type="button" id="lv-go">🎁 Открыть для него</button></div>
-  <button type="button" class="lv-wbtn" id="lv-wh">🎡 Колесо зрителей</button>
-  <div class="lv-hl"><b>Выдано за эфир</b><div id="lv-list"><p class="lv-mut">Загружаю…</p></div></div>`;$("lv-wh").onclick=()=>{hap("light");wheelForm()};
+  <button type="button" class="lv-wbtn" id="lv-wh">🎡 Колесо зрителей</button><div class="tt-box2" id="tt-box2"></div>
+  <div class="lv-hl"><b>Выдано за эфир</b><div id="lv-list"><p class="lv-mut">Загружаю…</p></div></div>`;$("lv-wh").onclick=()=>{hap("light");wheelForm()};ttBox();
   $("lv-x").onclick=()=>{o.hidden=true};const i=$("lv-nm"),go=async()=>{const n=i.value.trim();if(!n){i.focus();return}$("lv-go").disabled=true;const r=await act("live_open",{name:n});$("lv-go").disabled=false;if(r)liveShow(r)};
   $("lv-go").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()};liveList()}
 async function liveList(){const r=await act("live_list"),L=$("lv-list");if(!r||!L)return;
@@ -849,12 +849,12 @@ function wheelForm(){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button
   <div class="lv-hero"><div class="lv-ic">🎡</div><h2>Пиши в чат — попадёшь на колесо</h2><p>Победитель получит карточку и прокрутки</p></div>
   <div class="lv-in"><input id="w-nm" maxlength="32" placeholder="Ник из чата → Enter" autocomplete="off"><button type="button" id="w-add">➕ Добавить</button></div>
   <div class="w-chips" id="w-chips"></div><div class="w-cnt" id="w-cnt"></div>
-  <button type="button" class="lv-wbtn big" id="w-go">🎡 КРУТИТЬ</button><button type="button" class="lv-next w-clr" id="w-clr">Очистить список</button>`;
+  <label class="w-auto"><input type="checkbox" id="w-auto"${WAUTO?" checked":""}> 🤖 Сам добавлять всех, кто пишет в чат TikTok</label><div class="tt-feed" id="tt-feed"></div><button type="button" class="lv-wbtn big" id="w-go">🎡 КРУТИТЬ</button><button type="button" class="lv-next w-clr" id="w-clr">Очистить список</button>`;
   $("lv-bk").onclick=()=>liveForm();const i=$("w-nm");
   const draw=()=>{$("w-chips").innerHTML=WN.map((n,k)=>`<span class="w-chip" style="--c:${WHC[k%WHC.length]}">@${fnEsc(n)}<button type="button" data-wr="${k}">✕</button></span>`).join("")||'<p class="lv-mut">Добавь хотя бы 2 ника</p>';$("w-cnt").textContent=WN.length?"На колесе: "+WN.length:"";$("w-go").disabled=WN.length<2};
   const add=()=>{const v=i.value.trim().replace(/^@/,"").slice(0,32);if(!v)return;if(!WN.some(x=>x.toLowerCase()===v.toLowerCase())&&WN.length<40)WN.push(v);i.value="";wSave();draw();i.focus()};
   $("w-add").onclick=add;i.onkeydown=e=>{if(e.key==="Enter")add()};$("w-chips").onclick=e=>{const b=e.target.closest("[data-wr]");if(b){WN.splice(+b.dataset.wr,1);wSave();draw()}};
-  $("w-clr").onclick=()=>{if(confirm("Очистить список ников?")){WN=[];wSave();draw()}};$("w-go").onclick=()=>wheelSpin();draw();setTimeout(()=>i.focus(),200)}
+  $("w-clr").onclick=()=>{if(confirm("Очистить список ников?")){WN=[];wSave();draw()}};$("w-auto").onchange=e=>{WAUTO=e.target.checked;try{localStorage.setItem("we-wauto",WAUTO?"1":"0")}catch(_){}};window.__wdraw=draw;ttFeedDraw();$("w-go").onclick=()=>wheelSpin();draw();setTimeout(()=>i.focus(),200)}
 function wheelSpin(){const o=$("lvscr"),N=WN.slice(),n=N.length;if(n<2)return;
   o.innerHTML=`<div class="w-stage"><div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div><div class="w-title">🎡 КОЛЕСО ЗРИТЕЛЕЙ</div><div class="w-wrap"><div class="w-ptr"></div><canvas id="w-cv" width="720" height="720"></canvas><div class="w-hub">⚔️</div></div><div class="w-win" id="w-win"></div><div class="w-btns" id="w-btns"></div></div>`;
   const cv=$("w-cv"),x=cv.getContext("2d"),R=350,seg=Math.PI*2/n,rnd=new Uint32Array(1);crypto.getRandomValues(rnd);const win=rnd[0]%n;
@@ -871,3 +871,20 @@ function wheelSpin(){const o=$("lvscr"),N=WN.slice(),n=N.length;if(n<2)return;
     $("w-open").onclick=async()=>{$("w-open").disabled=true;const r=await act("live_open",{name:N[win]});if(r){WN=WN.filter(z=>z!==N[win]);wSave();liveShow(r);const nb=$("lv-next");if(nb){nb.textContent="🎡 К колесу →";nb.onclick=()=>wheelForm()}}else $("w-open").disabled=false};
     $("w-again").onclick=()=>{WN=WN.filter(z=>z!==N[win]);wSave();WN.length>=2?wheelSpin():wheelForm()};$("w-back").onclick=()=>wheelForm()};
   paint(0);setTimeout(()=>requestAnimationFrame(fr),400)}
+
+/* ---------- 🎥 чат TikTok в режиме эфира: лента + автодобавление на колесо ---------- */
+let WAUTO=true;try{WAUTO=localStorage.getItem("we-wauto")!=="0"}catch(e){}
+let TT={st:null,last:0,feed:[],tm:0,busy:false};
+function ttUser(){try{return localStorage.getItem("we-tt")||""}catch(e){return ""}}
+function ttBox(){const b=$("tt-box2");if(!b)return;const st=TT.st||{state:"off"},on=st.state==="on",cl={on:"#3bdc7a",connecting:"#ffb020",error:"#ff4d5d",nolib:"#ff4d5d",lost:"#ffb020",ended:"#8f9bb3",off:"#8f9bb3"}[st.state]||"#8f9bb3";
+  const tx={on:"читаю чат @"+st.user+" · "+(st.n||0)+" сообщ.",connecting:"подключаюсь к @"+st.user+"…",error:"ошибка",nolib:"не установлена библиотека",lost:"связь потеряна — подключи снова",ended:"эфир закончился",off:"чат не подключён"}[st.state]||st.state;
+  b.innerHTML=`<b>💬 Чат TikTok</b><div class="tt-row"><input id="tt-u" placeholder="твой ник в TikTok" value="${fnEsc(ttUser())}" autocomplete="off"><button type="button" id="tt-go">${on?"Отключить":"Подключить"}</button></div>
+   <div class="tt-st"><i style="background:${cl};box-shadow:0 0 8px ${cl}"></i>${fnEsc(tx)}</div>${st.err&&!on?`<div class="tt-err">${fnEsc(st.err)}</div>`:""}<div class="tt-feed" id="tt-feed"></div>`;
+  $("tt-go").onclick=async()=>{const u=$("tt-u").value.trim().replace(/^@/,"");try{localStorage.setItem("we-tt",u)}catch(e){}$("tt-go").disabled=true;
+    const r=await act("live_tt",on?{op:"stop"}:{op:"start",user:u});if(r){TT.st=r;if(r.state==="on"){hapN("success");toast("🟢 Чат @"+r.user+" подключён")}}ttBox()};ttFeedDraw()}
+function ttFeedDraw(){const f=$("tt-feed");if(!f)return;const L=TT.feed.slice(-7);f.innerHTML=L.length?L.map(m=>`<div class="tt-m ${m.kind}">${m.pic?`<img src="${fnEsc(m.pic)}" alt="">`:`<i>${fnEsc((m.nick||"?")[0])}</i>`}<span><b>${fnEsc(m.nick)}</b> ${m.kind==="gift"?"🎁 "+fnEsc(m.text):m.kind==="join"?"зашёл на эфир":fnEsc(m.text)}</span></div>`).join(""):'<p class="lv-mut">Здесь появятся комментарии с эфира</p>'}
+async function ttPoll(){const o=$("lvscr");if(!o||o.hidden||!S||!S.admin){clearInterval(TT.tm);TT.tm=0;return}if(TT.busy)return;TT.busy=true;
+  try{const r=await act("live_feed",{after:TT.last});if(r){const pst=TT.st&&TT.st.state;TT.st=r.tt;if(r.last!=null&&!TT.last){TT.last=r.last;TT.feed=r.rows||[]}else for(const m of r.rows||[]){TT.last=Math.max(TT.last,m.id);TT.feed.push(m);
+      if(WAUTO&&(m.kind==="chat"||m.kind==="gift")){const nm=(m.nick||m.uid||"").trim().slice(0,32);if(nm&&!WN.some(x=>x.toLowerCase()===nm.toLowerCase())&&WN.length<40){WN.push(nm);wSave();if(window.__wdraw&&$("w-chips"))window.__wdraw()}}}
+    if(TT.feed.length>60)TT.feed=TT.feed.slice(-60);ttFeedDraw();const sb=$("tt-box2");if(sb&&r.tt&&r.tt.state!==pst)ttBox();else if(sb){const s2=sb.querySelector(".tt-st");if(s2&&r.tt&&r.tt.state==="on")s2.lastChild.textContent="читаю чат @"+r.tt.user+" · "+(r.tt.n||0)+" сообщ."}}}catch(e){}TT.busy=false}
+{const _lo=liveOpen;liveOpen=function(){_lo.apply(this,arguments);if(!TT.tm){TT.last=0;TT.tm=setInterval(ttPoll,1500);ttPoll()}}}
