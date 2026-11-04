@@ -2713,3 +2713,6 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .chpop{position:relative;overflow:hidden;text-align:center;color:#fff;background:radial-gradient(120% 70% at 50% 0,#1a8aaa,#152a72 55%,#0a0a30)}.chpop>*{position:relative}
 .chp-ic{font-size:80px;line-height:1;margin:4px 0;animation:kgfl 2.2s ease-in-out infinite;filter:drop-shadow(0 0 26px rgba(127,231,255,.95))}.chp-n{font-size:24px;font-weight:900}.chp-u{font-size:40px;font-weight:900;color:#7fe7ff;text-shadow:0 0 18px rgba(127,231,255,.8);margin-bottom:6px}
 .ttadm .tta-r{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid rgba(0,0,0,.08)}.tta-r span{flex:1;min-width:0;display:flex;flex-direction:column}.tta-r a{font-size:11.5px;word-break:break-all}.tta-r button{padding:4px 8px;border-radius:8px;border:1.5px solid #1c0a4a;background:#fff;font-size:15px}.tta-r.st0{background:rgba(255,210,63,.12)}
+/* доход с земель — обычный блок под кнопками, не поверх них */
+.mp-my{position:static!important;left:auto;right:auto;bottom:auto;margin:4px 0 0}
+.mapscr{padding-bottom:calc(100px + env(safe-area-inset-bottom))!important}
