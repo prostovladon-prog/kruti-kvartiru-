@@ -1300,6 +1300,12 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=4 AND sn='000010'").get().n === 1, "второй раз не выдаётся");
   ok(sent.some(m => m.chat_id === 9100 && /000010/.test(m.text || m.caption || "")), "игроку ушло сообщение о призе");
   ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=5").get().n === 3 || true, "«Основатели» не затронуты");
+  const pid = c[0] && c[0].id;
+  let rr = await call(9100, "sell", { id: pid }); ok(!rr.ok && /нельзя продать/.test(rr.err || ""), "призовую карточку нельзя продать системе: " + rr.err);
+  rr = await call(9100, "list", { id: pid, price: 1000 }); ok(!rr.ok, "призовую карточку нельзя выставить на рынок: " + rr.err);
+  rr = await call(9100, "duel", { id: pid, stat: 0, mode: 1 }); ok(!rr.ok && /на карточку/.test(rr.err || ""), "в бой на карточку призовую не взять: " + rr.err);
+  rr = await call(9100, "duel", { id: pid, stat: 0, mode: 0 }); ok(rr.ok, "в обычный бой призовую взять можно: " + (rr.err || ""));
+  ok(db.prepare("SELECT owner FROM cards WHERE id=?").get(pid).owner === 9100, "карточка осталась у владельца");
 }
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
