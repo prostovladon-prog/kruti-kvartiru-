@@ -835,7 +835,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await call(B, "gift_send", { id: gid, to: A }); ok(!r.ok, "чужой подарок не подарить");
   r = await call(A, "gift_send", { id: gid, to: B }); ok(r.ok && !r.S.gifts.length, "подарил другу");
   r = await call(B, "sync"); ok(r.S.gifts.length === 2 && r.S.gifts.some(g => g.id === gid && g.shelf === 0 && g.from_uid === A), "друг получил подарок");
-  { const sp0 = (await call(A, "sync")).S.spins; let q = await call(A, "pm_on"); ok(q.ok && q.res.bonus === 3 && q.S.spins === sp0 + 3, "напоминания включены: +3 прокрутки");
+  { const sp0 = (await call(A, "sync")).S.spins; let q = await call(A, "pm_on"); ok(q.ok && q.res.bonus === 5 && q.S.spins === sp0 + 5, "напоминания включены: +5 прокруток");
     q = await call(A, "pm_on"); ok(q.ok && q.res.bonus === 0, "бонус за напоминания — только один раз");
     q = await call(A, "cb_claim"); ok(!q.ok && /завтра/.test(q.err), "сундук возвращения в день регистрации закрыт");
     db.prepare("UPDATE users SET created=created-90000000 WHERE id=?").run(A); const c0 = (await call(A, "sync")).S;
