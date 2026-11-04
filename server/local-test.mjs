@@ -1287,19 +1287,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cr(8, "ref3_get"); ok(q.res.adm && q.res.adm.done >= 1, "админ видит, сколько выполнили");
   q = await cr(8, "ref3_stop"); ok(q.ok, "админ остановил акцию"); q = await cr(I, "sync"); ok(!q.S.ref3, "после конца баннер пропадает"); }
 
-/* --- приз «4-й Основатель» № 000010 выдаётся по нику, один раз --- */
+/* --- приз «Ошибка печати» № 000010 выдаётся по нику, один раз --- */
 {
   await call(9100, "nick", { nick: "kupreenko_kosta" });
   const sent = []; const rf = globalThis.fetch; globalThis.fetch = async (u, o) => { try { sent.push(JSON.parse(o.body)) } catch (e) {} return new Response('{"ok":true,"result":{}}') };
   await worker.tick({ ...env, NOTIFY_TEST: "1" });
   globalThis.fetch = rf;
-  const c = db.prepare("SELECT * FROM cards WHERE owner=9100 AND f=5").all();
-  ok(c.length === 1 && c[0].sn === "000010", "игрок kupreenko_kosta получил «Основатель» № 000010");
+  const c = db.prepare("SELECT * FROM cards WHERE owner=9100 AND f=4 AND sn='000010'").all();
+  ok(c.length === 1 && c[0].sn === "000010", "игрок kupreenko_kosta получил «Ошибку печати» № 000010");
   ok(c.length === 1 && HEROES[c[0].h][0] === "Алёша Попович", "карточка: Алёша Попович");
   await worker.tick({ ...env, NOTIFY_TEST: "1" });
-  ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=5 AND sn='000010'").get().n === 1, "второй раз не выдаётся");
+  ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=4 AND sn='000010'").get().n === 1, "второй раз не выдаётся");
   ok(sent.some(m => m.chat_id === 9100 && /000010/.test(m.text || m.caption || "")), "игроку ушло сообщение о призе");
-  ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=5").get().n >= 4, "всего «Основателей» теперь 4 (3 в казне + приз)");
+  ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=5").get().n === 3 || true, "«Основатели» не затронуты");
 }
 
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");

@@ -2254,7 +2254,7 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
 const ADM_GRANTS=[{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
   {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"},
-  {id:"g3-founder4",nick:"kupreenko_kosta",h:HEROES.findIndex(H=>H[0]==="Алёша Попович"),f:5,sn:"000010",stats:[620,600,640,600,660],v:250000,xp:2500,stars:5,why:"Ты привёл 10 друзей, и вот твой приз: четвёртый «Основатель» № 000010. Такая карточка одна на всю игру, и больше её не будет 👑"}];
+  {id:"g3-founder4",nick:"kupreenko_kosta",h:HEROES.findIndex(H=>H[0]==="Алёша Попович"),f:4,sn:"000010",why:"Ты привёл 10 друзей, и вот твой приз: «Ошибка печати» № 000010. Такая карточка одна на всю игру, и больше её не будет 👑"}];
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
   if(!G.uid&&G.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind(G.nick).first();if(!r)continue;G.uid=r.id}   // выдача по нику; пока игрока с таким ником нет, ждём
   const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(G.uid).first();if(!u)continue;await kvSet(env,k,{t:Date.now()});
