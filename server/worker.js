@@ -896,7 +896,7 @@ const ACTIONS={
   /* выдача конкретной карточки администратором (компенсации). Тираж и номер проверяются как обычно */
   adm_card(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Нет такой карточки");
     const c=makeCard(ctx,h,f,p.stats?{stats:p.stats}:null);if(p.sn){const s=String(p.sn).replace(/\D/g,"").padStart(6,"0");if(!ctx.snFree(s))fail("Номер "+s+" уже занят");c.sn=s;ctx.takeSn(s)}
-    if(p.v)c.v=+p.v;c.how="prize";G.cards.push(c);noteCard(st,c);return {card:c}},
+    if(p.v)c.v=+p.v;if(p.xp)c.xp=+p.xp;if(p.stars)c.stars=+p.stars;c.how="prize";G.cards.push(c);noteCard(st,c);return {card:c}},
   grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,I=SHOP[p.item];if(!I)fail("Нет такого товара");
     st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     const got=[],add=c=>{c.how="chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
@@ -2253,8 +2253,10 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
   return sent}
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
 const ADM_GRANTS=[{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
-  {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];
+  {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"},
+  {id:"g3-founder4",nick:"kupreenko_kosta",h:HEROES.findIndex(H=>H[0]==="Алёша Попович"),f:5,sn:"000010",stats:[620,600,640,600,660],v:250000,xp:2500,stars:5,why:"Ты привёл 10 друзей, и вот твой приз: четвёртый «Основатель» № 000010. Такая карточка одна на всю игру, и больше её не будет 👑"}];
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
+  if(!G.uid&&G.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind(G.nick).first();if(!r)continue;G.uid=r.id}   // выдача по нику; пока игрока с таким ником нет, ждём
   const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(G.uid).first();if(!u)continue;await kvSet(env,k,{t:Date.now()});
   try{let r=null,err=null;const hs=G.rare?HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===G.rare).sort(()=>Math.random()-.5):[G.h];
     for(const h of hs){try{r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",Object.assign({},G,{h}),{grant:true})).res;G.h=h;break}catch(e){err=e;if(!/Тираж/.test(e.message||""))break}}

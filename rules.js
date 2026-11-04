@@ -894,7 +894,7 @@ const ACTIONS={
   /* выдача конкретной карточки администратором (компенсации). Тираж и номер проверяются как обычно */
   adm_card(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Нет такой карточки");
     const c=makeCard(ctx,h,f,p.stats?{stats:p.stats}:null);if(p.sn){const s=String(p.sn).replace(/\D/g,"").padStart(6,"0");if(!ctx.snFree(s))fail("Номер "+s+" уже занят");c.sn=s;ctx.takeSn(s)}
-    if(p.v)c.v=+p.v;c.how="prize";G.cards.push(c);noteCard(st,c);return {card:c}},
+    if(p.v)c.v=+p.v;if(p.xp)c.xp=+p.xp;if(p.stars)c.stars=+p.stars;c.how="prize";G.cards.push(c);noteCard(st,c);return {card:c}},
   grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,I=SHOP[p.item];if(!I)fail("Нет такого товара");
     st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     const got=[],add=c=>{c.how="chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
