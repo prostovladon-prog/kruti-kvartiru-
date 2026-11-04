@@ -825,7 +825,8 @@ function liveOpen(){if(!S||!S.admin)return;let o=$("lvscr");if(!o){o=document.cr
 function liveForm(last){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button type="button" class="lv-x" id="lv-x">✕</button><b><i class="lv-rec"></i> РЕЖИМ ЭФИРА</b></div>
   <div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div><div class="lv-hero"><div class="lv-ic">🎁</div><h2>Открываю за тебя</h2><p>Напиши ник в комментариях — открою карточку для тебя</p></div>
   <div class="lv-in"><input id="lv-nm" maxlength="32" placeholder="Ник зрителя из комментариев" autocomplete="off"><button type="button" id="lv-go">🎁 Открыть для него</button></div>
-  <div class="lv-hl"><b>Выдано за эфир</b><div id="lv-list"><p class="lv-mut">Загружаю…</p></div></div>`;
+  <button type="button" class="lv-wbtn" id="lv-wh">🎡 Колесо зрителей</button>
+  <div class="lv-hl"><b>Выдано за эфир</b><div id="lv-list"><p class="lv-mut">Загружаю…</p></div></div>`;$("lv-wh").onclick=()=>{hap("light");wheelForm()};
   $("lv-x").onclick=()=>{o.hidden=true};const i=$("lv-nm"),go=async()=>{const n=i.value.trim();if(!n){i.focus();return}$("lv-go").disabled=true;const r=await act("live_open",{name:n});$("lv-go").disabled=false;if(r)liveShow(r)};
   $("lv-go").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()};liveList()}
 async function liveList(){const r=await act("live_list"),L=$("lv-list");if(!r||!L)return;
@@ -838,3 +839,35 @@ function liveShow(r){const o=$("lvscr"),t=HEROES[r.card.h][2],rar=HT[t].k,col=HT
    <button type="button" class="lv-next" id="lv-next">Следующий зритель →</button></div>`;
   const s=o.querySelector(".lv-show");sfx.rumble&&sfx.rumble(2);setTimeout(()=>{s.classList.add("flip");big?(sfx.fanfare(),burst(5)):sfx.coin();hapN("success")},1300);setTimeout(()=>s.classList.add("info"),2100);
   $("lv-next").onclick=()=>liveForm()}
+
+/* ---------- 🎡 колесо зрителей ---------- */
+let WN=[];try{WN=JSON.parse(localStorage.getItem("we-wheel")||"[]")}catch(e){}
+const wSave=()=>{try{localStorage.setItem("we-wheel",JSON.stringify(WN))}catch(e){}};
+const WHC=["#ff4d6d","#ffb020","#3bdc7a","#2aabee","#a66bff","#ff7ad9","#20c9b0","#ff8a3d"];
+function wheelForm(){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button type="button" class="lv-x" id="lv-bk">←</button><b><i class="lv-rec"></i> КОЛЕСО ЗРИТЕЛЕЙ</b></div>
+  <div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div>
+  <div class="lv-hero"><div class="lv-ic">🎡</div><h2>Пиши в чат — попадёшь на колесо</h2><p>Победитель получит карточку и прокрутки</p></div>
+  <div class="lv-in"><input id="w-nm" maxlength="32" placeholder="Ник из чата → Enter" autocomplete="off"><button type="button" id="w-add">➕ Добавить</button></div>
+  <div class="w-chips" id="w-chips"></div><div class="w-cnt" id="w-cnt"></div>
+  <button type="button" class="lv-wbtn big" id="w-go">🎡 КРУТИТЬ</button><button type="button" class="lv-next w-clr" id="w-clr">Очистить список</button>`;
+  $("lv-bk").onclick=()=>liveForm();const i=$("w-nm");
+  const draw=()=>{$("w-chips").innerHTML=WN.map((n,k)=>`<span class="w-chip" style="--c:${WHC[k%WHC.length]}">@${fnEsc(n)}<button type="button" data-wr="${k}">✕</button></span>`).join("")||'<p class="lv-mut">Добавь хотя бы 2 ника</p>';$("w-cnt").textContent=WN.length?"На колесе: "+WN.length:"";$("w-go").disabled=WN.length<2};
+  const add=()=>{const v=i.value.trim().replace(/^@/,"").slice(0,32);if(!v)return;if(!WN.some(x=>x.toLowerCase()===v.toLowerCase())&&WN.length<40)WN.push(v);i.value="";wSave();draw();i.focus()};
+  $("w-add").onclick=add;i.onkeydown=e=>{if(e.key==="Enter")add()};$("w-chips").onclick=e=>{const b=e.target.closest("[data-wr]");if(b){WN.splice(+b.dataset.wr,1);wSave();draw()}};
+  $("w-clr").onclick=()=>{if(confirm("Очистить список ников?")){WN=[];wSave();draw()}};$("w-go").onclick=()=>wheelSpin();draw();setTimeout(()=>i.focus(),200)}
+function wheelSpin(){const o=$("lvscr"),N=WN.slice(),n=N.length;if(n<2)return;
+  o.innerHTML=`<div class="w-stage"><div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div><div class="w-title">🎡 КОЛЕСО ЗРИТЕЛЕЙ</div><div class="w-wrap"><div class="w-ptr"></div><canvas id="w-cv" width="720" height="720"></canvas><div class="w-hub">⚔️</div></div><div class="w-win" id="w-win"></div><div class="w-btns" id="w-btns"></div></div>`;
+  const cv=$("w-cv"),x=cv.getContext("2d"),R=350,seg=Math.PI*2/n,rnd=new Uint32Array(1);crypto.getRandomValues(rnd);const win=rnd[0]%n;
+  // указатель сверху (угол -90°). Конечный поворот: центр сектора победителя под указателем + несколько оборотов
+  const target=Math.PI*2*(6+Math.floor(Math.random()*3))-(win+.5+(Math.random()-.5)*.6)*seg,T=6200;let t0=null,lastSeg=-1;
+  const paint=a=>{x.clearRect(0,0,720,720);x.save();x.translate(360,360);for(let k=0;k<n;k++){x.beginPath();x.moveTo(0,0);x.arc(0,0,R,a+k*seg-Math.PI/2,a+(k+1)*seg-Math.PI/2);x.closePath();x.fillStyle=WHC[k%WHC.length];x.fill();x.strokeStyle="#1a0c30";x.lineWidth=4;x.stroke();
+      x.save();x.rotate(a+(k+.5)*seg-Math.PI/2);x.textAlign="right";x.textBaseline="middle";x.fillStyle="#fff";x.font=`900 ${Math.max(18,Math.min(38,260/Math.max(6,N[k].length)+(n<8?6:0)))}px Rubik,system-ui,sans-serif`;x.shadowColor="rgba(0,0,0,.6)";x.shadowBlur=6;x.fillText(N[k].slice(0,16),R-26,0);x.restore()}
+    x.beginPath();x.arc(0,0,R,0,Math.PI*2);x.lineWidth=14;x.strokeStyle="#ffd23f";x.stroke();x.restore()};
+  const fr=ts=>{if(t0==null)t0=ts;const k=Math.min(1,(ts-t0)/T),e=1-Math.pow(1-k,4),a=target*e;paint(a);
+    const cur=Math.floor(((((-a)%(Math.PI*2))+Math.PI*2)%(Math.PI*2))/seg);if(cur!==lastSeg){lastSeg=cur;try{sfx.tick&&sfx.tick(k>.8)}catch(_){}if(k>.85)hap("light")}
+    if(k<1)requestAnimationFrame(fr);else done()};
+  const done=()=>{const fin=Math.floor(((((-target)%(Math.PI*2))+Math.PI*2)%(Math.PI*2))/seg);if(fin!==win)console.warn("wheel mismatch",fin,win);sfx.fanfare();burst(5);hapN("success");$("w-win").innerHTML=`<small>ПОБЕДИТЕЛЬ</small><b>@${fnEsc(N[win])}</b>`;$("w-win").classList.add("on");
+    $("w-btns").innerHTML=`<button type="button" class="lv-wbtn big" id="w-open">🎁 Открыть карточку для @${fnEsc(N[win])}</button><button type="button" class="lv-next" id="w-again">🎡 Ещё раз (без победителя)</button><button type="button" class="lv-next" id="w-back">← К списку</button>`;
+    $("w-open").onclick=async()=>{$("w-open").disabled=true;const r=await act("live_open",{name:N[win]});if(r){WN=WN.filter(z=>z!==N[win]);wSave();liveShow(r);const nb=$("lv-next");if(nb){nb.textContent="🎡 К колесу →";nb.onclick=()=>wheelForm()}}else $("w-open").disabled=false};
+    $("w-again").onclick=()=>{WN=WN.filter(z=>z!==N[win]);wSave();WN.length>=2?wheelSpin():wheelForm()};$("w-back").onclick=()=>wheelForm()};
+  paint(0);setTimeout(()=>requestAnimationFrame(fr),400)}
