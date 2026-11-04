@@ -1267,5 +1267,24 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const envN = { ...env, ADMINS: "8", TT: makeBridge(env.DB, async () => { throw new Error("Cannot find package") }) };
   q = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "live_tt", p: { op: "start", user: "a" } }) }), envN)).json();
   ok(q.ok && q.res.state === "nolib" && /npm i tiktok-live-connector/.test(q.res.err), "нет библиотеки — подсказка, что установить"); }
+// 🔥 акция «3 друга → VIP + x2»
+{ const envA = { ...env, ADMINS: "8" }; const cr = async (uid, a, p = {}, start = "") => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), envA)).json();
+  const I = 7981; await cr(I, "sync"); await cr(7990, "sync", {}, "r_" + I);   // друг ДО акции — не считается
+  let q = await cr(I, "ref3_start", { h: 3 }); ok(!q.ok, "акцию включает только админ");
+  q = await cr(8, "ref3_start", { h: 3 }); ok(q.ok && q.res.end > Date.now() + 2.9 * 36e5, "админ включил акцию на 3 часа");
+  q = await cr(8, "ref3_start", { h: 3 }); ok(!q.ok, "вторую одновременно не включить");
+  for (const f of [7991, 7992]) { await cr(f, "sync", {}, "r_" + I); for (let k = 0; k < 3; k++) await cr(f, "open") }
+  for (let k = 0; k < 3; k++) await cr(7990, "open");
+  await worker.tick(envA); q = await cr(I, "ref3_get"); ok(q.ok && q.res.on === 1 && q.res.n === 2 && !q.res.got, "2 друга за акцию — ещё не выполнено (старый друг не считается)");
+  ok((db.prepare("SELECT vip_until FROM users WHERE id=?").get(I).vip_until || 0) < Date.now(), "VIP пока нет");
+  await cr(7993, "sync", {}, "r_" + I); await worker.tick(envA); q = await cr(I, "ref3_get"); ok(q.res.n === 2, "друг без 3 открытий не считается");
+  for (let k = 0; k < 3; k++) await cr(7993, "open"); await worker.tick(envA);
+  q = await cr(I, "ref3_get"); const u = db.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").get(I);
+  ok(q.res.n === 3 && q.res.got === 1 && u.vip_until > Date.now() + 6.9 * 864e5 && u.vip_until < Date.now() + 7.1 * 864e5 && u.vip_t === 2, "3 друга — VIP Золото на 7 дней");
+  q = await cr(I, "promo_x2"); ok(q.ok && q.res.x2 === 500, "и x2 к пополнению (до 500 ⭐)");
+  const v0 = u.vip_until; await worker.tick(envA); ok(db.prepare("SELECT vip_until FROM users WHERE id=?").get(I).vip_until === v0, "награда выдаётся один раз");
+  q = await cr(I, "sync"); ok(q.S.ref3 && q.S.ref3.n === 3 && q.S.ref3.got === 1, "акция видна в игре");
+  q = await cr(8, "ref3_get"); ok(q.res.adm && q.res.adm.done >= 1, "админ видит, сколько выполнили");
+  q = await cr(8, "ref3_stop"); ok(q.ok, "админ остановил акцию"); q = await cr(I, "sync"); ok(!q.S.ref3, "после конца баннер пропадает"); }
 console.log(fails ? `\nОшибок: ${fails}` : "\nВсё работает");
 process.exit(fails ? 1 : 0);

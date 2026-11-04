@@ -888,3 +888,26 @@ async function ttPoll(){const o=$("lvscr");if(!o||o.hidden||!S||!S.admin){clearI
       if(WAUTO&&(m.kind==="chat"||m.kind==="gift")){const nm=(m.nick||m.uid||"").trim().slice(0,32);if(nm&&!WN.some(x=>x.toLowerCase()===nm.toLowerCase())&&WN.length<40){WN.push(nm);wSave();if(window.__wdraw&&$("w-chips"))window.__wdraw()}}}
     if(TT.feed.length>60)TT.feed=TT.feed.slice(-60);ttFeedDraw();const sb=$("tt-box2");if(sb&&r.tt&&r.tt.state!==pst)ttBox();else if(sb){const s2=sb.querySelector(".tt-st");if(s2&&r.tt&&r.tt.state==="on")s2.lastChild.textContent="читаю чат @"+r.tt.user+" · "+(r.tt.n||0)+" сообщ."}}}catch(e){}TT.busy=false}
 {const _lo=liveOpen;liveOpen=function(){_lo.apply(this,arguments);if(!TT.tm){TT.last=0;TT.tm=setInterval(ttPoll,1500);ttPoll()}}}
+/* ---------- 🔥 акция «3 друга → VIP + x2» ---------- */
+function r3Left(){const R=S&&S.ref3;if(!R)return "";const ms=Math.max(0,R.end-NOW()),h=Math.floor(ms/36e5),m=Math.floor(ms/6e4)%60,s=Math.floor(ms/1e3)%60;return h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")}
+function r3Invite(){hap("light");sendLink("Залетай в «Воины Эпох» — открывай карточки воинов, собирай легенды и сражайся! Это игра прямо в Telegram 👇",linkFor("r_"+S.uid))}
+function r3Strip(){let b=$("r3strip");const R=S&&ONLINE?S.ref3:null;if(!R||R.end<=NOW()){if(b)b.remove();return}
+  if(!b){const hd=$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="r3strip";b.className="r3strip";hd.after(b);b.onclick=()=>{if(S.ref3&&S.ref3.got)return toast("✅ Акция выполнена: VIP уже у тебя, x2 ждёт пополнения");r3Invite()}}
+  const n=Math.min(3,R.n||0);b.classList.toggle("done",!!R.got);
+  b.innerHTML=R.got?`<i>🎉</i><span><b>Акция выполнена!</b><small>👑 VIP включён · ⭐ x2 к пополнению ждёт тебя</small></span><em>${r3Left()}</em>`:
+    `<i>🔥</i><span><b>3 друга → 👑 VIP + ⭐ x2</b><small><u>${[0,1,2].map(k=>`<s class="${k<n?"y":""}"></s>`).join("")}</u> друзья ${n}/3 · жми, чтобы позвать</small></span><em>${r3Left()}</em>`}
+setInterval(()=>{try{r3Strip()}catch(e){}},1000);
+/* один раз — окно про акцию */
+setInterval(()=>{try{const R=S&&S.ref3;if(!R||R.got||R.end<=NOW()||!ONLINE||(S.nOp||0)<3||document.hidden||$("onb")||document.querySelector(".modal:not([hidden]),.hhpop,#lvscr:not([hidden])"))return;const key="we-r3-"+R.end;let seen="";try{seen=localStorage.getItem(key)}catch(e){}if(seen)return;try{localStorage.setItem(key,1)}catch(e){}
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sfx.fanfare();burst(3);
+  sh.innerHTML=`<div class="box nickbox r3pop"><div class="kg-rays"></div><div class="r3-fire">🔥</div><h3>АКЦИЯ ТОЛЬКО ${Math.max(1,Math.round((R.end-NOW())/36e5))} ${plural(Math.max(1,Math.round((R.end-NOW())/36e5)),"ЧАС","ЧАСА","ЧАСОВ")}</h3><p class="r3-big">Пригласи 3 друзей</p>
+    <div class="r3-gifts"><div><b>👑</b><span>VIP-статус</span><small>корона у ника, больше прокруток и места</small></div><div><b>⭐ x2</b><span>к пополнению</span><small>пополняешь звёзды — получаешь вдвое больше</small></div></div>
+    <p class="cln">Друг засчитывается, когда откроет 3 карточки</p><button type="button" class="hhbtn" id="r3-go">👥 Позвать друзей</button><button type="button" class="hhx" id="r3-x">Позже</button></div>`;
+  $("r3-go").onclick=()=>{closeModal();r3Invite()};$("r3-x").onclick=closeModal}catch(e){}},4000);
+/* админ: кнопка в статистике */
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("r3adm"))return;const x=document.createElement("div");x.id="r3adm";x.className="srcbox r3adm";b.prepend(x);
+  const load=async()=>{const r=await act("ref3_get");if(!r)return;const on=r.on;const left=on?Math.max(0,r.end-Date.now()):0;
+    x.innerHTML=`<b>🔥 Акция «3 друга → VIP + x2»</b>`+(on?`<p class="cln">Идёт · осталось ${Math.floor(left/36e5)} ч ${Math.floor(left/6e4)%60} мин<br>новых по приглашениям: <b>${r.adm.fresh}</b> · выполнили акцию: <b>${r.adm.done}</b></p><button type="button" class="ghost" id="r3-stop">⏹ Остановить</button>`:
+      (r.adm?`<p class="cln">Прошлая: выполнили ${r.adm.done}, пришло по приглашениям ${r.adm.fresh}</p>`:"")+`<p class="cln">Пригласил 3 друзей за время акции → VIP Золото на ${r.days||7} дней + x2 к пополнению (до ${r.x2||500} ⭐). Выдаётся автоматически.</p><button type="button" class="craftbtn" id="r3-go3">🚀 Запустить на 3 часа</button>`);
+    const g=$("r3-go3");if(g)g.onclick=async()=>{if(!confirm("Запустить акцию на 3 часа? Игроки увидят баннер сразу."))return;g.disabled=true;const q=await act("ref3_start",{h:3});if(q){toast("🔥 Акция запущена до "+new Date(q.end+3*3600e3).toISOString().slice(11,16));const s2=await act("sync");load()}else g.disabled=false};
+    const st=$("r3-stop");if(st)st.onclick=async()=>{if(!confirm("Остановить акцию?"))return;if(await act("ref3_stop")){toast("Акция остановлена");await act("sync");load()}}};load()}catch(e){}}}

@@ -2759,3 +2759,13 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .tt-m img,.tt-m>i{width:26px;height:26px;border-radius:50%;flex:none;object-fit:cover}.tt-m>i{display:grid;place-items:center;font-style:normal;font-weight:900;background:#5a2ad0}.tt-m span{min-width:0;word-break:break-word}.tt-m b{color:#ffd23f}
 .tt-m.gift{background:linear-gradient(90deg,rgba(254,44,85,.35),rgba(0,0,0,.3))}.tt-m.join{opacity:.6;font-size:12px}
 .w-auto{display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:700;font-size:14px}.w-auto input{width:20px;height:20px}
+/* 🔥 акция 3 друга */
+.r3strip{display:flex;align-items:center;gap:10px;width:calc(100% - 24px);margin:8px 12px 0;padding:9px 12px;border:0;border-radius:16px;font:inherit;text-align:left;color:#fff;cursor:pointer;background:linear-gradient(100deg,#ff3d3d,#ff9f0a);box-shadow:0 4px 0 #8a2a00,0 0 20px rgba(255,90,40,.45);position:relative;overflow:hidden;box-sizing:border-box}
+.r3strip:after{content:"";position:absolute;top:0;bottom:0;width:35%;left:-50%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);animation:kgsh 2.6s ease-in-out infinite}
+.r3strip i{font-style:normal;font-size:24px}.r3strip span{flex:1;min-width:0;display:flex;flex-direction:column}.r3strip b{font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.r3strip small{font-size:11px;font-weight:700;opacity:.95;display:flex;align-items:center;gap:6px}
+.r3strip u{display:inline-flex;gap:3px;text-decoration:none}.r3strip s{display:block;width:14px;height:6px;border-radius:3px;background:rgba(255,255,255,.35)}.r3strip s.y{background:#fff;box-shadow:0 0 6px #fff}
+.r3strip em{font-style:normal;font-weight:900;font-size:14px;padding:4px 8px;border-radius:10px;background:rgba(0,0,0,.25);font-variant-numeric:tabular-nums}.r3strip.done{background:linear-gradient(100deg,#1a9a4a,#3bdc7a);box-shadow:0 4px 0 #0a5a2a}
+.r3pop{position:relative;overflow:hidden;text-align:center;color:#fff;background:radial-gradient(120% 70% at 50% 0,#c0301a,#4a0a3a 60%,#14041e)}.r3pop>*{position:relative}.r3pop h3{color:#ffd23f;letter-spacing:.06em;margin:4px 0}
+.r3-fire{font-size:64px;line-height:1;animation:kgfl 1.6s ease-in-out infinite}.r3-big{font-family:var(--display);font-size:26px;margin:6px 0 12px}
+.r3-gifts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.r3-gifts div{padding:10px 8px;border-radius:14px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1.5px rgba(255,210,63,.5);display:flex;flex-direction:column;gap:2px}.r3-gifts b{font-size:28px}.r3-gifts span{font-weight:900}.r3-gifts small{font-size:11px;opacity:.8;line-height:1.25}
+.r3pop .cln{color:rgba(255,255,255,.8)}
