@@ -2777,3 +2777,4 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .pm-note{display:block;margin-top:8px;font-size:11px;opacity:.6}
 .pmpop .pm-sub{color:#fff!important;font-weight:700}.pmpop h3{font-size:22px}.pmpop .pm-ul li{color:#fff}
 .chz-x{margin-top:2px;padding:7px 10px;border-radius:12px;background:rgba(255,255,255,.07);font-size:12.5px;font-weight:700;color:#d8f6ff;text-align:center}
+.r3-gifts.one{grid-template-columns:1fr}

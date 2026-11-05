@@ -1292,26 +1292,20 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   for (let k = 0; k < 3; k++) await cr(7993, "open"); await worker.tick(envA);
   q = await cr(I, "ref3_get"); const u = db.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").get(I);
   ok(q.res.n === 3 && q.res.got === 1 && u.vip_until > Date.now() + 6.9 * 864e5 && u.vip_until < Date.now() + 7.1 * 864e5 && u.vip_t === 2, "3 друга — VIP Золото на 7 дней");
-  q = await cr(I, "promo_x2"); ok(q.ok && q.res.x2 === 500, "и x2 к пополнению (до 500 ⭐)");
+  q = await cr(I, "promo_x2"); ok(q.ok && q.res.x2 === 0, "x2 к пополнению за акцию больше не даётся");
   const v0 = u.vip_until; await worker.tick(envA); ok(db.prepare("SELECT vip_until FROM users WHERE id=?").get(I).vip_until === v0, "награда выдаётся один раз");
   q = await cr(I, "sync"); ok(q.S.ref3 && q.S.ref3.n === 3 && q.S.ref3.got === 1, "акция видна в игре");
   q = await cr(8, "ref3_get"); ok(q.res.adm && q.res.adm.done >= 1, "админ видит, сколько выполнили");
   q = await cr(8, "ref3_stop"); ok(q.ok, "админ остановил акцию"); q = await cr(I, "sync"); ok(!q.S.ref3, "после конца баннер пропадает"); }
 
-/* --- приз «Ошибка печати» № 000010 выдаётся по нику, один раз --- */
+/* --- приз «Ошибка печати» № 000010: уже выдан вручную — авто-выдачи нет; карточка защищена --- */
 {
   await call(9100, "nick", { nick: "kupreenko_kosta" });
-  const sent = []; const rf = globalThis.fetch; globalThis.fetch = async (u, o) => { try { sent.push(JSON.parse(o.body)) } catch (e) {} return new Response('{"ok":true,"result":{}}') };
+  const before = db.prepare("SELECT COUNT(*) n FROM cards WHERE f=4 AND sn='000010'").get().n;
   await worker.tick({ ...env, NOTIFY_TEST: "1" });
-  globalThis.fetch = rf;
-  const c = db.prepare("SELECT * FROM cards WHERE owner=9100 AND f=4 AND sn='000010'").all();
-  ok(c.length === 1 && c[0].sn === "000010", "игрок kupreenko_kosta получил «Ошибку печати» № 000010");
-  ok(c.length === 1 && HEROES[c[0].h][0] === "Алёша Попович", "карточка: Алёша Попович");
-  await worker.tick({ ...env, NOTIFY_TEST: "1" });
-  ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=4 AND sn='000010'").get().n === 1, "второй раз не выдаётся");
-  ok(sent.some(m => m.chat_id === 9100 && /000010/.test(m.text || m.caption || "")), "игроку ушло сообщение о призе");
-  ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=5").get().n === 3 || true, "«Основатели» не затронуты");
-  const pid = c[0] && c[0].id;
+  ok(db.prepare("SELECT COUNT(*) n FROM cards WHERE f=4 AND sn='000010'").get().n === before, "приз за 10 друзей больше автоматически не выдаётся");
+  const hA = HEROES.findIndex(H => H[0] === "Алёша Попович");
+  const pid = db.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part) VALUES(9100,?,4,1,'000010',0,0,250000,'[620,600,640,600,660]',2500,0,5,0,0)").run(hA).lastInsertRowid;
   let rr = await call(9100, "sell", { id: pid }); ok(!rr.ok && /нельзя продать/.test(rr.err || ""), "призовую карточку нельзя продать системе: " + rr.err);
   rr = await call(9100, "list", { id: pid, price: 1000 }); ok(!rr.ok, "призовую карточку нельзя выставить на рынок: " + rr.err);
   rr = await call(9100, "duel", { id: pid, stat: 0, mode: 1 }); ok(!rr.ok && /на карточку/.test(rr.err || ""), "в бой на карточку призовую не взять: " + rr.err);

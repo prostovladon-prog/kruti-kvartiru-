@@ -2181,8 +2181,8 @@ async function ref3Tick(env){const C=await ref3Cur(env),now=Date.now();if(!C||no
   for(const r of rows){if(isAdmin(env,r.uid))continue;const g=await env.DB.prepare("INSERT OR IGNORE INTO ref3_got(camp,uid,t) VALUES(?,?,?)").bind(C.id,r.uid,now).run();if(g.meta.changes!==1)continue;
     const u=await env.DB.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").bind(r.uid).first()||{},act=(u.vip_until||0)>now;
     await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(Math.max(now,u.vip_until||0)+REF3.days*864e5,act?Math.max(u.vip_t||1,REF3.vip):REF3.vip,r.uid).run();
-    await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t,x2) VALUES(?,?,?,?)").bind("АКЦИЯ-"+C.id,r.uid,now,REF3.x2).run();delete topCache.nfx;
-    try{await notify(env,r.uid,"🎉 Ты пригласил "+r.n+" друзей — акция выполнена!\n\n👑 VIP уже включён: корона у ника, больше прокруток и места для карточек.\n⭐ x2 к одному пополнению звёзд: пополни баланс один раз — получишь вдвое больше (бонус до "+REF3.x2+" ⭐).","⭐ Пополнить баланс",PAGE+"?shop=1")}catch(e){}}}
+    delete topCache.nfx;
+    try{await notify(env,r.uid,"🎉 Ты пригласил "+r.n+" друзей — акция выполнена!\n\n👑 VIP уже включён: корона у ника, больше прокруток и места для карточек.","👑 Открыть игру")}catch(e){}}}
 async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_get"){const C=await ref3Cur(env);if(!C)return {on:0};const got=!!(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C.id,me.id).first());
     return {on:now<C.end?1:0,start:C.start,end:C.end,n:await ref3Count(env,C,me.id),need:REF3.need,got:got?1:0,days:REF3.days,x2:REF3.x2,
@@ -2256,8 +2256,7 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
   return sent}
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
 const ADM_GRANTS=[{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
-  {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"},
-  {id:"g3-founder4",nick:"kupreenko_kosta",h:HEROES.findIndex(H=>H[0]==="Алёша Попович"),f:4,sn:"000010",why:"Ты привёл 10 друзей, и вот твой приз: «Ошибка печати» № 000010. Такая карточка одна на всю игру, и больше её не будет 👑"}];
+  {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];   // приз за 10 друзей (№ 000010) уже выдан вручную — авто-выдачу убрали
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
   if(!G.uid&&G.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind(G.nick).first();if(!r)continue;G.uid=r.id}   // выдача по нику; пока игрока с таким ником нет, ждём
   const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(G.uid).first();if(!u)continue;await kvSet(env,k,{t:Date.now()});
