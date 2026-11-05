@@ -1144,10 +1144,6 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
 const ADM_GRANTS=[{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
   {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];   // приз за 10 друзей (№ 000010) уже выдан вручную — авто-выдачу убрали
-/* 1 место розыгрыша №1 ждал боевой пропуск сезона — выдаём один раз */
-async function spassFix(env){const k="spfix:2026-11-04";if(await kvGet(env,k))return;const R=await kvGet(env,"chal_res:2026-11-04");const w=R&&R.winners&&R.winners[0];if(!w)return;await kvSet(env,k,{t:Date.now(),uid:w.uid});
-  await doAction(env,{id:w.uid,name:w.name||"Игрок"},"pass_grant",{s:passSeason(Date.now())},{grant:true});
-  await notify(env,w.uid,"🎖 Боевой пропуск сезона открыт!\n\nК Сундуку Императора добавили ещё и боевой пропуск — теперь в «Награды сезона» открыты обе колонки. Забирай премиум-награды всех уровней 🔥","🎖 Забрать награды")}
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
   if(!G.uid&&G.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind(G.nick).first();if(!r)continue;G.uid=r.id}   // выдача по нику; пока игрока с таким ником нет, ждём
   const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(G.uid).first();if(!u)continue;await kvSet(env,k,{t:Date.now()});
@@ -1579,8 +1575,8 @@ const CHAL_BIG={id:"2026-11-02",lot:1,big:1,noL2:1,min:1,start:Date.UTC(2026,10,
   pnote:["на баланс в игре + карточка, которую сделаем специально для тебя, с твоей подписью ✍️","на баланс в игре + 10 прокруток","на баланс в игре + 5 прокруток"],usd:[750,400,100],sp:[0,10,5],
   img:"assets/post-big.jpg?v=1",slots:[8,10,13,17,20,21],chanSlots:[8,10,13,17,20,21],lastOnly:21,chan:"@voinyepoh"};
 /* 💎 розыгрыш сундуков 04–05.11: каждый друг = билет, видео в TikTok с игрой = +1 билет (после проверки). Три победителя получают сундуки */
-const LCH=[{k:"emperor",n:"Сундук Императора",ic:"💎",usd:"$40",items:[{shop:"mythic"},{shop:"legend"},{shop:"royal"},{vip:2,days:30},{mpass:1},{spass:1}],
-    d:["🐉 Мифический сундук — гарантированный мифический воин + легенда","⭐ Легендарный сундук — 10 карточек, легенда внутри","👑 Королевский сундук — 60 прокруток и 6 половинок","👑 VIP Золото на 30 дней","🎖 Боевой пропуск сезона — обе награды каждого уровня","🎖 Премиум-пропуск завоевателя"]},
+const LCH=[{k:"emperor",n:"Сундук Императора",ic:"💎",usd:"$40",items:[{shop:"mythic"},{shop:"legend"},{shop:"royal"},{vip:2,days:30},{mpass:1}],
+    d:["🐉 Мифический сундук — гарантированный мифический воин + легенда","⭐ Легендарный сундук — 10 карточек, легенда внутри","👑 Королевский сундук — 60 прокруток и 6 половинок","👑 VIP Золото на 30 дней","🎖 Премиум-пропуск завоевателя"]},
   {k:"general",n:"Сундук Полководца",ic:"🏆",usd:"$20",items:[{shop:"legend"},{shop:"royal"},{vip:2,days:30},{shop:"warrior"},{shop:"small"}],
     d:["⭐ Легендарный сундук — 10 карточек, легенда внутри","👑 Королевский сундук — 60 прокруток и 6 половинок","👑 VIP Золото на 30 дней","⚔️ Сундук воина — 5 карточек, эпик внутри","🧩 Малый сундук — 10 прокруток + половинка"]},
   {k:"warrior",n:"Сундук Воина",ic:"🎁",usd:"$10",items:[{shop:"legend"},{shop:"warrior"},{shop:"small"},{vip:1,days:7}],
@@ -1595,8 +1591,7 @@ async function chestGive(env,uid,name,k,C){const X=LCH[k],me={id:uid,name:name||
     if(it.shop){const r=(await doAction(env,me,"grant",{item:it.shop,pid:"chest:"+C.id+":"+k+":"+n},{grant:true})).res||{};got.push(SHOP[it.shop].n+(r.cards&&r.cards.length?" ("+r.cards.length+" карт.)":""))}
     else if(it.vip){const now=Date.now(),u=await env.DB.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").bind(uid).first()||{},act=(u.vip_until||0)>now,until=Math.max(now,u.vip_until||0)+it.days*864e5,t=act?Math.max(u.vip_t||1,it.vip):it.vip;
       await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(until,t,uid).run();got.push(VIP_T[it.vip].n+" "+it.days+" дн.")}
-    else if(it.mpass){await doAction(env,me,"mpass_grant",{},{grant:true});got.push("Премиум-пропуск завоевателя")}
-    else if(it.spass){const sn=passSeason(Date.now());await doAction(env,me,"pass_grant",{s:sn},{grant:true});got.push("Боевой пропуск сезона")}}catch(e){console.error("chest",k,it,e);got.push("⚠️ не выдано: "+JSON.stringify(it))}}
+    else if(it.mpass){await doAction(env,me,"mpass_grant",{},{grant:true});got.push("Премиум-пропуск завоевателя")}}catch(e){console.error("chest",k,it,e);got.push("⚠️ не выдано: "+JSON.stringify(it))}}
   return got}
 /* розыгрыш 3 VIP 29–30.10: 2 друга — участник, каждый друг — билет, три победителя получают VIP Золото на 30 дней автоматически */
 const VIPL="👑 3 победителя — каждому VIP на целый месяц:\n🎴 16 прокруток каждые 4 часа вместо 10\n💱 +3 обмена рун в день, 📦 360 мест для карточек\n👑 корона у ника в топах и чате";
@@ -2108,7 +2103,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await spassFix(env)}catch(e){console.error("spfix",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
