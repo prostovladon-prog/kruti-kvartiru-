@@ -556,7 +556,9 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
     const fin2 = JSON.parse(db.prepare("SELECT v FROM kv WHERE k='chal_res:chest2'").get().v), W2 = fin2.winners, b1 = sb();
     ok(W2 && W2.length === 5 && new Set(W2.map(w => w.uid)).size === 5, "пять разных победителей");
     ok(b1[W2[3].uid] - (b0[W2[3].uid] || 0) === 100 && b1[W2[4].uid] - (b0[W2[4].uid] || 0) === 100, "4 и 5 место — по 100 ⭐ на баланс");
-    ok((db.prepare("SELECT vip_until FROM users WHERE id=?").get(W2[0].uid).vip_until || 0) > Date.now() + 29 * 864e5, "1 место — сундук Императора (VIP на месяц)"); }
+    ok((db.prepare("SELECT vip_until FROM users WHERE id=?").get(W2[0].uid).vip_until || 0) > Date.now() + 29 * 864e5, "1 место — сундук Императора (VIP на месяц)");
+    const st0 = JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(W2[0].uid).state);
+    ok(st0.mpass && st0.mpass.prem === 1, "1 место — премиум-пропуск завоевателя включён"); }
   // секретный приз: победитель получает бесценную карточку-коллаборацию
   await cc(8, "chal_set", { cfg: { id: "sec1", lot: 1, secret: 1, min: 3, start: n0 - 36e5, end: Date.now() - 1, prizes: ["секретного приза"], slots: [] } });
   await worker.tick(envC); await worker.tick(envC);
