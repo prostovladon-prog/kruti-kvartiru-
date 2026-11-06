@@ -2836,3 +2836,13 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .vt-adm input[type=number]{font-size:16px!important;padding:6px 8px!important;height:auto!important}
 .vt-adm label{font-size:12px}.vt-adm .craftbtn{font-size:15px;padding:12px}
 .vt-soc,.vt-adm{max-width:100%;overflow:hidden}
+/* выбор серии: окно всегда начинается сверху (под шапкой Telegram), варианты — рядом, компактно */
+.modal:has(.vtbox){align-items:flex-start;padding-top:calc(14px + max(env(safe-area-inset-top,0px),var(--tg-safe-area-inset-top,0px)) + var(--tg-content-safe-area-inset-top,0px))}
+.vtbox .vt-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;margin:10px 0 8px}
+.vtbox .vt-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:40px;height:40px;border-radius:50%;background:#fff;border:3px solid #0d1030;display:flex;align-items:center;justify-content:center;font-size:14px;letter-spacing:0;color:#d0301a;box-shadow:0 3px 0 #0d1030}
+.vtbox .vt-o{padding:12px 8px 14px;justify-content:flex-start;min-height:150px}
+.vtbox .vt-o i{font-size:34px}.vtbox .vt-o b{font-size:15px;line-height:1.15}.vtbox .vt-o small{font-size:11px;line-height:1.25}
+.vtbox .vt-o em{position:static;margin-top:4px;font-size:20px}
+.vtbox .rd-q{font-size:14px;margin:6px 0}.vtbox h3{margin:2px 0}
+.vt-play{margin-bottom:4px}.vt-play span{min-width:0}
+.vt-sgot{display:block;margin:14px 0 2px!important;clear:both}
