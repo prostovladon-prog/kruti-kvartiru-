@@ -744,7 +744,16 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
       q = await buy(V, { item: "bal", n: 500 }); const b1 = db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s;
       ok(q.ok && q.res.status === "done" && b1 - b0 === 800, "пополнение 500 ⭐ с x2: +800 (бонус до 300)");
       q = await buy(V, { item: "bal", n: 100 }); ok(db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s - b1 === 100, "x2 только один раз");
-      q = await cp(V, "pay_bal", { item: "bal", n: 100 }); ok(!q.ok, "пополнить баланс с баланса нельзя"); }
+      q = await cp(V, "pay_bal", { item: "bal", n: 100 }); ok(!q.ok, "пополнить баланс с баланса нельзя");
+      db.prepare("INSERT OR REPLACE INTO promo(code,sp,cash,mx,until,created,off,x2,bon) VALUES('ТЕСТ200',0,0,0,?,?,0,0,200)").run(Date.now() + 36e5, Date.now());
+      q = await cp(V, "promo_use", { code: "тест200" }); ok(q.ok && q.res.bon === 200, "промокод +200 ⭐ активирован");
+      q = await cp(V, "promo_x2"); ok(q.res.bon === 200, "+200 ждёт пополнения");
+      const b2 = db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s; q = await buy(V, { item: "bal", n: 50 }); const b3 = db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s;
+      ok(q.ok && b3 - b2 === 250, "пополнение 50 ⭐ + 200 в подарок = 250");
+      q = await buy(V, { item: "bal", n: 50 }); ok(db.prepare("SELECT star_bal s FROM users WHERE id=?").get(V).s - b3 === 50, "+200 только один раз");
+      db.prepare("INSERT OR REPLACE INTO promo(code,sp,cash,mx,until,created,off,x2,bon) VALUES('СТАР200',0,0,0,?,?,0,0,200)").run(Date.now() + 36e5, Date.now());
+      await cp(7052, "promo_use", { code: "СТАР200" }); db.prepare("UPDATE promo_uses SET bon_until=? WHERE code='СТАР200'").run(Date.now() - 1000);
+      q = await cp(7052, "promo_x2"); ok(q.res.bon === 0, "после окончания акции бонус не действует"); }
     q = await cp(8, "pcode_list"); ok(q.ok && q.res.list.find(x => x.code === "ДЕНЬ1").n === 2, "статистика промокода");
     q = await cp(8, "promo_set", { hours: 0 }); ok(q.ok || !/Неизвестное/.test(q.err || ""), "старая «акция» не сломана");
     q = await cp(V, "shop"); ok(q.ok && q.res.authLeft === 0 && q.res.donors.some(d => d.uid === V), "в топе донатеров и места Соавтора на месяц кончились"); }

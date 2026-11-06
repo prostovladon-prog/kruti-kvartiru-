@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=50;
+const SCHEMA_V=51;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -107,7 +107,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
  "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
  "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)",
- "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)","CREATE TABLE IF NOT EXISTS ep_vote (vid TEXT NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER, PRIMARY KEY(vid,uid))","CREATE TABLE IF NOT EXISTS ep_vote_soc (vid TEXT NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(vid,uid))"];
+ "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)","CREATE TABLE IF NOT EXISTS ep_vote (vid TEXT NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER, PRIMARY KEY(vid,uid))","CREATE TABLE IF NOT EXISTS ep_vote_soc (vid TEXT NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(vid,uid))","ALTER TABLE promo ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon_until INTEGER NOT NULL DEFAULT 0"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1033,6 +1033,8 @@ async function tourApi(env,me,a,p){const now=Date.now();
   fail("Неизвестное действие")}
 
 /* x2 к пополнению: сколько ещё бонусных звёзд даст активированный промокод (берём самый щедрый неиспользованный) */
+/* +N ⭐ сверху к следующему пополнению (промокод с bon), действует до bon_until */
+async function bonLeft(env,uid){const r=await env.DB.prepare("SELECT bon FROM promo_uses WHERE uid=? AND bon>0 AND bon_until>? ORDER BY bon DESC LIMIT 1").bind(uid,Date.now()).first();return r?r.bon:0}
 async function x2Left(env,uid){const r=await env.DB.prepare("SELECT code,x2 FROM promo_uses WHERE uid=? AND x2>0 AND x2d=0 ORDER BY x2 DESC LIMIT 1").bind(uid).first();return r?r.x2:0}
 /* ---------- 🎟 промокоды: админ создаёт, игрок вводит один раз. По кодам видно, из какого видео и с какой площадки пришли люди ---------- */
 const promoKey=c=>String(c||"").toUpperCase().replace(/Ё/g,"Е").replace(/[^A-ZА-Я0-9_-]/g,"").slice(0,24);
@@ -1141,8 +1143,9 @@ async function promoApi(env,me,a,p){const now=Date.now();
     if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
     const r=await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t) VALUES(?,?,?)").bind(code,me.id,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже активировал этот промокод");
     if(P.x2)await env.DB.prepare("UPDATE promo_uses SET x2=? WHERE code=? AND uid=?").bind(P.x2,code,me.id).run();
-    if(P.sp||P.cash)await doAction(env,me,"tour_prize",{sp:P.sp,cash:P.cash},{tour:1});return {code,sp:P.sp,cash:P.cash,x2:P.x2||0}}
-  if(a==="promo_x2")return {x2:await x2Left(env,me.id)};
+    if(P.bon)await env.DB.prepare("UPDATE promo_uses SET bon=?,bon_until=? WHERE code=? AND uid=?").bind(P.bon,P.until||9e15,code,me.id).run();
+    if(P.sp||P.cash)await doAction(env,me,"tour_prize",{sp:P.sp,cash:P.cash},{tour:1});return {code,sp:P.sp,cash:P.cash,x2:P.x2||0,bon:P.bon||0,until:P.until||0}}
+  if(a==="promo_x2")return {x2:await x2Left(env,me.id),bon:await bonLeft(env,me.id)};
   if(!isAdmin(env,me.id))fail("Нет доступа");
   if(a==="pcode_set"){const code=promoKey(p.code);if(code.length<2)fail("Код — от 2 символов: буквы, цифры, _ и -");const sp=Math.max(0,Math.min(100,p.sp|0)),cash=Math.max(0,Math.min(1e6,p.cash|0)),x2=Math.max(0,Math.min(5000,p.x2|0));if(!sp&&!cash&&!x2)fail("Укажи награду");
     const mx=Math.max(0,p.mx|0),until=(+p.days||0)>0?now+(+p.days)*864e5:0;
@@ -1427,8 +1430,8 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     return {item,stars:MPASS.stars,title:"🎖 Пропуск завоевателя",desc:"Премиум-награды карты мира на весь месяц: прокрутки, руны, гарантированный эпик, легендарная карточка и «Флаг завоевателя»",data:{m:mapMon(Date.now())}}}
   if(item==="mstatue"){const rid=p.rid|0,r=await env.DB.prepare("SELECT statue FROM map_reg WHERE id=? AND owner=?").bind(rid,uid).first();if(!r)fail("Статую можно поставить только в своём регионе");if(r.statue)fail("Статуя здесь уже стоит");
     return {item,stars:MAP.statue,title:"🗿 Статуя: "+MAP_R[rid][0],desc:"Статуя твоего воина в регионе «"+MAP_R[rid][0]+"» — её видят все на карте, пока ты держишь регион",data:{rid}}}
-  if(item==="bal"){const n=Math.floor(+p.n||0);if(!(n>=50&&n<=2500))fail("Сумма — от 50 до 2500 ⭐");const x=await x2Left(env,uid),b=Math.min(n,x);
-    return {item,stars:n,title:"⭐ Пополнение баланса",desc:"+"+n+" ⭐ на игровой баланс «Воинов Эпох»"+(b?" и ещё +"+b+" ⭐ бонусом по промокоду (x2)":"")+". Тратятся на любые покупки в игре",data:{n}}}
+  if(item==="bal"){const n=Math.floor(+p.n||0);if(!(n>=50&&n<=2500))fail("Сумма — от 50 до 2500 ⭐");const x=await x2Left(env,uid),b=Math.min(n,x),bn=await bonLeft(env,uid);
+    return {item,stars:n,title:"⭐ Пополнение баланса",desc:"+"+n+" ⭐ на игровой баланс «Воинов Эпох»"+(b?" и ещё +"+b+" ⭐ бонусом по промокоду (x2)":"")+(bn?" и +"+bn+" ⭐ в подарок по промокоду":"")+". Тратятся на любые покупки в игре",data:{n}}}
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{}}}
   if(item==="sday"){const d=await sdayFree(env,Date.now());if(!d)fail("Все дни на 2 месяца вперёд заняты");return {item,stars:SDAY.stars,title:"🌟 Звезда дня",desc:"Твой ник и самая дорогая карточка весь день на главной у всех игроков. Ближайший свободный день: "+d.split("-").reverse().join("."),data:{}}}
@@ -1521,8 +1524,11 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
     else if(P.item==="mstatue"){const r=await env.DB.prepare("UPDATE map_reg SET statue=1 WHERE id=? AND owner=?").bind(d.rid,P.uid).run();if(r.meta.changes!==1)fail("Регион уже не твой — статую поставить нельзя");res={rid:d.rid};msg="🗿 Статуя твоего воина стоит в регионе «"+MAP_R[d.rid][0]+"» — её видят все!"}
     else if(P.item==="bal"){const n=d.n|0,r=await env.DB.prepare("SELECT code,x2 FROM promo_uses WHERE uid=? AND x2>0 AND x2d=0 ORDER BY x2 DESC LIMIT 1").bind(P.uid).first();let b=0;
       if(r){b=Math.min(n,r.x2);await env.DB.prepare("UPDATE promo_uses SET x2d=1 WHERE code=? AND uid=?").bind(r.code,P.uid).run()}
+      /* +N ⭐ сверху по промокоду: один раз, если пополнил до конца срока (оплата пришла чуть позже — всё равно засчитываем, срок проверяем по времени счёта) */
+      const rb=await env.DB.prepare("SELECT code,bon FROM promo_uses WHERE uid=? AND bon>0 AND bon_until>? ORDER BY bon DESC LIMIT 1").bind(P.uid,Math.min(Date.now(),(P.t||P.created||Date.now())+36e5)).first();
+      if(rb){const u=await env.DB.prepare("UPDATE promo_uses SET bon=0 WHERE code=? AND uid=? AND bon>0").bind(rb.code,P.uid).run();if(u.meta&&u.meta.changes===1)b+=rb.bon}
       await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(n+b,P.uid).run();res={n,b};
-      msg="⭐ Баланс пополнен: +"+n+" ⭐"+(b?" и +"+b+" ⭐ бонусом по промокоду — итого "+(n+b)+" ⭐!":"!")+"\n\nТрать на любые покупки в игре — при оплате выбирай «Оплатить с баланса»."}
+      msg="⭐ Баланс пополнен: +"+n+" ⭐"+(b?" и +"+b+" ⭐ в подарок по промокоду — итого "+(n+b)+" ⭐!":"!")+"\n\nТрать на любые покупки в игре — при оплате выбирай «Оплатить с баланса»."}
     else if(P.item==="support"){const u=await env.DB.prepare("SELECT name,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       const tot=(((await env.DB.prepare("SELECT SUM(stars) AS s FROM payments WHERE uid=? AND item='support' AND (status='done' OR id=?)").bind(P.uid,P.id).first())||{}).s)||0;let ttl=0;
       if(tot>=SUP.title){const g=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"title_grant",{k:"patron",keep:1},{grant:true})).res;ttl=g.newT?1:0;
@@ -2127,6 +2133,25 @@ async function chPostOnce(env){if(!env.BOT_TOKEN||env.DEV==="1")return;const now
   if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+CHPOST.photo+"&t="+st.n,caption:CHPOST.text.slice(0,1024),reply_markup:kb});
   if(!r.ok&&st.n>=6)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:CHPOST.text,reply_markup:kb});   // совсем без картинки — лишь бы пост вышел
   if(r.ok){st.ok=1;await kvSet(env,k,st);delete topCache["chp"+CHPOST.id]}else console.error("chpost",st.n,r.description)}
+/* ⭐ акция 06.11: промокод ВОИН200 — +200 ⭐ сверху к любому пополнению, до 23:59 МСК. Включается сам, пост в канал + рассылка в бота */
+const P200={code:"ВОИН200",bon:200,until:Date.UTC(2026,10,6,20,59,59),id:"p200_0611",photo:"assets/post-promo200.jpg",btn:"⭐ Пополнить баланс",link:"?shop=flex",
+  chan:"⭐ ТОЛЬКО СЕГОДНЯ: +200 ЗВЁЗД В ПОДАРОК!\n\nПополни игровой баланс на любую сумму — и получи сверху ещё 200 ⭐ бесплатно.\n\n🎟 Промокод: ВОИН200\nДействует до 23:59 — потом всё 🔥\n\n👉 @VoinyEpohBot",
+  dm:"⭐ Воин, сегодня подарок!\n\nПополняешь игровой баланс на любую сумму — получаешь +200 ⭐ сверху бесплатно.\n\n🎟 Вводи промокод ВОИН200 в «Ещё → Промокод», потом пополняй баланс в «Донат и понт».\n⏳ Только до 23:59!"};
+let p200Busy=false;
+async function p200Tick(env){const now=Date.now();if(now>=P200.until)return;if(!(await cached("p200c",60e3,()=>kvGet(env,"p200code")))){
+    await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon) VALUES(?,0,0,0,?,?,0,0,?)").bind(P200.code,P200.until,now,P200.bon).run();await kvSet(env,"p200code",{t:now});delete topCache.p200c}
+  if(p200Busy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;p200Busy=true;
+  try{const k="blast:"+P200.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(st.done&&st.ch)return;
+    if(!st.ch&&st.chn<20&&now-st.cht>30e3){st.chn++;st.cht=now;await kvSet(env,k,st);const kb={inline_keyboard:[[{text:P200.btn,url:"https://t.me/VoinyEpohBot"}]]};
+      let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+P200.photo+"?t="+st.chn,caption:P200.chan,reply_markup:kb});
+      if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+P200.photo+"?t="+st.chn,caption:P200.chan,reply_markup:kb});
+      if(!r.ok&&st.chn>=6)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:P200.chan,reply_markup:kb});
+      if(r.ok){st.ch=1;await kvSet(env,k,st)}else console.error("p200 chan",st.chn,r.description)}
+    if(st.done)return;
+    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
+    for(const u of us){if(await notify(env,u.id,P200.dm,P200.btn,PAGE+P200.link))st.n++;st.after=u.id}
+    if(us.length<25){st.done=1;for(const a of ADMINS)await notify(env,a,"✅ Промокод ВОИН200 включён. Рассылка: "+st.n+" игрокам в бота"+(st.ch?", пост в канале вышел":", пост в канал пока не вышел — пробую ещё")+".","⚔️ Открыть")}
+    await kvSet(env,k,st)}finally{p200Busy=false}}
 let updBusy=false;
 async function updBlast(env){if(updBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();if(!UPD.win.some(([a,b])=>now>=a&&now<b))return;
   updBusy=true;try{const st=(await kvGet(env,"blast:"+UPD.id))||{ch:0,after:0,done:0,n:0};if(st.done&&st.ch)return;
@@ -2170,7 +2195,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
