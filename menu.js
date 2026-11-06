@@ -947,7 +947,7 @@ function rdDraw(r,fx){const sh=$("msheet");if(!sh)return;
 /* полоска под шапкой, пока загадка не разгадана */
 function rdStrip(){let b=$("rdstrip");const R=S&&ONLINE?S.rd:null;if(!R||R.ok){if(b)b.remove();return}
   if(!b){const hd=$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="rdstrip";b.className="r3strip rdstrip";hd.after(b);b.onclick=()=>{hap("light");rdOpen()}
-    b.innerHTML=`<i>🧩</i><span><b>Загадка серии ${R.ep} — разгадай!</b><small>Ответ на вопрос из мультика «Хроники Эпох» · +🎴 и твой ник в серии</small></span><em>▶</em>`}}
+    b.innerHTML=`<i>🧩</i><span><b>Загадка серии — разгадай!</b><small>Ответ на вопрос из мультика «Хроники Эпох» · +🎴 и твой ник в серии</small></span><em>▶</em>`}}
 setInterval(()=>{try{rdStrip()}catch(e){}},1500);
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="rd"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(rdOpen,1200)},400)}}
 /* админ: кто разгадал */
@@ -967,7 +967,7 @@ function vtDraw(r){const sh=$("msheet");if(!sh)return;const shown=r.my||!r.on;
     sh.querySelectorAll(".vt-o").forEach(x=>x.disabled=true);const q=await act("vt_vote",{ch:o.k});if(!q){vtDraw(r);return}sfx.fanfare();burst(3);hapN("success");vtDraw(q)})}
 function vtStrip(){let b=$("vtstrip");const R=S&&ONLINE?S.vt:null;if(!R||R.ch){if(b)b.remove();return}
   if(!b){const hd=$("rdstrip")||$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="vtstrip";b.className="r3strip vtstrip";hd.after(b);b.onclick=()=>{hap("light");vtOpen()}
-    b.innerHTML=`<i>⚔️</i><span><b>Выбор серии ${R.ep} — голосуй!</b><small>🤝 к Ксерксу или 🔥 огонь? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
+    b.innerHTML=`<i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🤝 к Ксерксу или 🔥 огонь? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
 setInterval(()=>{try{vtStrip()}catch(e){}},1500);
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="vt"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(vtOpen,1200)},400)}}
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vtadm"))return;const x=document.createElement("div");x.id="vtadm";x.className="srcbox r3adm";b.prepend(x);
