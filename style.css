@@ -2830,3 +2830,9 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .drw-ban.vt{background:linear-gradient(120deg,#d0201a,#ff8a1a 60%,#ffb02a);position:relative;overflow:hidden}
 .drw-ban.vt:after{content:"";position:absolute;top:0;bottom:0;width:35%;left:-50%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);animation:kgsh 2.6s ease-in-out infinite}
 .drw-ban.vt.pulse{animation:vtpl 1.6s ease-in-out infinite}@keyframes vtpl{50%{transform:scale(1.025)}}
+
+.vt-sgot{font-size:13px!important;line-height:1.3}.vt-sgot b{white-space:nowrap}
+.vt-adm input:not([type=number]){font-size:13px!important;padding:10px 12px!important;height:auto!important;min-height:0!important;border-radius:12px;text-overflow:ellipsis;letter-spacing:0}
+.vt-adm input[type=number]{font-size:16px!important;padding:6px 8px!important;height:auto!important}
+.vt-adm label{font-size:12px}.vt-adm .craftbtn{font-size:15px;padding:12px}
+.vt-soc,.vt-adm{max-width:100%;overflow:hidden}

@@ -975,7 +975,7 @@ setInterval(()=>{try{vtStrip()}catch(e){}},1500);
 
 /* видео с голосованием: ссылка + награда за лайк и комментарий */
 function vtSocHtml(r){if(!r.url&&!r.urlIg)return "";const S2=r.soc||{};
-  const claim=S2.got?`<p class="cln vt-sgot">✅ Награда за лайк и комментарий получена · +${r.socSp} 🎴</p>`:S2.open?`<button type="button" class="craftbtn vt-like" id="vt-like" ${S2.left>0?"disabled":""}>${S2.left>0?`⏳ Смотри видео… ${S2.left} сек`:`❤️ Я лайкнул и написал комментарий · +${r.socSp} 🎴`}</button>`:"";
+  const claim=S2.got?`<p class="cln vt-sgot">✅ Награда получена <b>+${r.socSp}&nbsp;🎴</b></p>`:S2.open?`<button type="button" class="craftbtn vt-like" id="vt-like" ${S2.left>0?"disabled":""}>${S2.left>0?`⏳ Смотри видео… ${S2.left} сек`:`❤️ Я лайкнул и написал комментарий · +${r.socSp} 🎴`}</button>`:"";
   return `<div class="vt-soc"><b>🎬 Смотри серию и голосуй вместе со всеми</b><button type="button" class="vt-play" id="vt-play"><i>▶</i><span>Смотреть видео<small>поставь ❤️ лайк и напиши в комментариях свой выбор</small></span></button>${claim}${!S2.open&&!S2.got&&r.socSp?`<small class="vt-sh">🎁 За лайк и комментарий: <b>+${r.socSp} 🎴</b></small>`:""}</div>`}
 let vtTick=null;
 function vtGo(r,u){hap("light");try{tg&&tg.openLink?tg.openLink(u):open(u)}catch(e){open(u)}
