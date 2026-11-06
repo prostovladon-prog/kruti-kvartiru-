@@ -973,14 +973,19 @@ setInterval(()=>{try{vtStrip()}catch(e){}},1500);
   (async()=>{const r=await act("vt_get");if(!r)return;const R=r.my||!r.on?r.opts:null;x.innerHTML=`<b>⚔️ Голосование: ${rdEsc(r.title)}</b>`+(R?`<p class="cln">${R.map(o=>`${o.ic} ${rdEsc(o.n)}: <b>${o.c}</b> (${o.pc}%)`).join("<br>")}<br>всего: ${r.tot}</p>`:`<p class="cln">Проголосовало: <b>${r.tot}</b>. Проценты видны после твоего голоса</p>`)})()}catch(e){}}}
 
 /* видео с голосованием: ссылка + награда за лайк и комментарий */
-function vtSocHtml(r){if(!r.url)return "";const S2=r.soc||{};
+function vtSocHtml(r){if(!r.url&&!r.urlIg)return "";const S2=r.soc||{};
   const claim=S2.got?`<p class="cln vt-sgot">✅ Награда за лайк и комментарий получена · +${r.socSp} 🎴</p>`:S2.open?`<button type="button" class="craftbtn vt-like" id="vt-like" ${S2.left>0?"disabled":""}>${S2.left>0?`⏳ Смотри видео… ${S2.left} сек`:`❤️ Я лайкнул и написал комментарий · +${r.socSp} 🎴`}</button>`:"";
   return `<div class="vt-soc"><b>🎬 Смотри серию и голосуй вместе со всеми</b><button type="button" class="vt-play" id="vt-play"><i>▶</i><span>Смотреть видео<small>поставь ❤️ лайк и напиши в комментариях свой выбор</small></span></button>${claim}${!S2.open&&!S2.got&&r.socSp?`<small class="vt-sh">🎁 За лайк и комментарий: <b>+${r.socSp} 🎴</b></small>`:""}</div>`}
 let vtTick=null;
-function vtSocBind(r){clearInterval(vtTick);const pl=$("vt-play");if(pl)pl.onclick=async()=>{hap("light");const u=r.url;try{tg&&tg.openLink?tg.openLink(u):open(u)}catch(e){open(u)}
-    if(!(r.soc&&r.soc.open)){const q=await act("vt_open");if(q){r.soc=q.soc;vtDraw(r)}}};
+function vtGo(r,u){hap("light");try{tg&&tg.openLink?tg.openLink(u):open(u)}catch(e){open(u)}
+  if(!(r.soc&&r.soc.open))act("vt_open").then(q=>{if(q){r.soc=q.soc;vtDraw(r)}})}
+function vtPick(r){const L=[r.url&&["tt","TikTok",r.url],r.urlIg&&["ig","Instagram",r.urlIg]].filter(Boolean);if(L.length===1)return vtGo(r,L[0][2]);
+  let w=$("vt-pick");if(w)w.remove();w=document.createElement("div");w.id="vt-pick";w.className="vt-pick";
+  w.innerHTML=`<div class="vt-pk"><b>Где смотреть видео?</b><button type="button" class="vt-pt tt" data-u="tt"><i>♪</i>TikTok</button><button type="button" class="vt-pt ig" data-u="ig"><i>◎</i>Instagram</button><button type="button" class="ghost" id="vt-pkx">Отмена</button></div>`;
+  document.body.appendChild(w);w.onclick=e=>{if(e.target===w||e.target.id==="vt-pkx")w.remove()};w.querySelectorAll(".vt-pt").forEach(b=>b.onclick=()=>{w.remove();vtGo(r,b.dataset.u==="tt"?r.url:r.urlIg)})}
+function vtSocBind(r){clearInterval(vtTick);const pl=$("vt-play");if(pl)pl.onclick=()=>vtPick(r);
   const lk=$("vt-like");if(lk&&r.soc&&r.soc.left>0){let left=r.soc.left;vtTick=setInterval(()=>{const b=$("vt-like");if(!b){clearInterval(vtTick);return}left--;if(left<=0){clearInterval(vtTick);r.soc.left=0;vtDraw(r);return}b.textContent="⏳ Смотри видео… "+left+" сек"},1000)}
   if(lk&&!(r.soc.left>0))lk.onclick=async()=>{lk.disabled=true;const q=await act("vt_soc");if(!q){lk.disabled=false;return}sfx.fanfare();burst(2);hapN("success");toast("❤️ +"+q.socSp+" 🎴 за поддержку видео!");vtDraw(q)};
-  const sv=$("vt-ssave");if(sv)sv.onclick=async()=>{const url=($("vt-surl").value||"").trim();sv.disabled=true;const q=await act("vt_set",{url,socSp:+$("vt-ssp").value||0});sv.disabled=false;if(q){toast(url?"✅ Ссылка сохранена — игроки уже видят кнопку":"Ссылка убрана");vtDraw(q)}}}
+  const sv=$("vt-ssave");if(sv)sv.onclick=async()=>{const url=($("vt-surl").value||"").trim(),urlIg=($("vt-sig").value||"").trim();sv.disabled=true;const q=await act("vt_set",{url,urlIg,socSp:+$("vt-ssp").value||0});sv.disabled=false;if(q){toast(url||urlIg?"✅ Ссылки сохранены — игроки уже видят кнопку":"Ссылки убраны");vtDraw(q)}}}
 function vtAdmHtml(r){const A=r.adm||{};const c=A.cnt||{};return `<div class="vt-adm"><b>👑 Только для тебя</b><small>Голоса: ${r.opts.map(o=>`${o.ic} ${c[o.k]||0}`).join(" · ")} · всего ${r.tot}<br>Открыли видео: ${A.opened||0} · забрали награду за лайк: ${A.soc||0}</small>
-  <input id="vt-surl" placeholder="https://www.tiktok.com/@…/video/…" value="${rdEsc(r.url)}"><label>🎴 за лайк и комментарий <input id="vt-ssp" type="number" min="0" max="20" value="${r.socSp||0}"></label><button type="button" class="craftbtn" id="vt-ssave">💾 Сохранить ссылку на видео</button></div>`}
+  <small>🎵 TikTok</small><input id="vt-surl" placeholder="https://www.tiktok.com/@…/video/…" value="${rdEsc(r.url)}"><small>📸 Instagram</small><input id="vt-sig" placeholder="https://www.instagram.com/reel/…" value="${rdEsc(r.urlIg)}"><label>🎴 за лайк и комментарий <input id="vt-ssp" type="number" min="0" max="20" value="${r.socSp||0}"></label><button type="button" class="craftbtn" id="vt-ssave">💾 Сохранить ссылки на видео</button></div>`}

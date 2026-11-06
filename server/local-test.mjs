@@ -1294,7 +1294,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await ca(U, "vt_open"); ok(!q.ok, "без ссылки видео не открыть");
   q = await ca(U, "vt_set", { url: "https://www.tiktok.com/@x/video/1" }); ok(!q.ok, "ссылку ставит только админ");
   q = await ca(8, "vt_set", { url: "ftp://bad" }); ok(!q.ok, "неправильная ссылка не сохраняется");
-  q = await ca(8, "vt_set", { url: "https://www.tiktok.com/@voiny/video/123", socSp: 4 }); ok(q.ok && q.res.url === "https://www.tiktok.com/@voiny/video/123" && q.res.socSp === 4 && q.res.adm, "админ сохранил ссылку на видео");
+  q = await ca(8, "vt_set", { url: "https://www.tiktok.com/@voiny/video/123", urlIg: "https://www.instagram.com/reel/abc", socSp: 4 }); ok(q.ok && q.res.url === "https://www.tiktok.com/@voiny/video/123" && q.res.urlIg === "https://www.instagram.com/reel/abc" && q.res.socSp === 4 && q.res.adm, "админ сохранил ссылки TikTok и Instagram");
   q = await ca(U, "vt_get"); ok(q.res.url && !q.res.adm && q.res.my === "f" && q.res.tot === 2, "игрок видит ссылку, голоса сохранились");
   q = await ca(U, "vt_soc"); ok(!q.ok, "без открытия видео награды нет");
   q = await ca(U, "vt_open"); ok(q.ok && q.res.soc.open > 0 && q.res.soc.left > 0, "видео открыто — таймер пошёл");
