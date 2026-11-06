@@ -18,7 +18,8 @@ const MENU_GROUPS=[
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
   {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
   {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]},
-  {k:"riddle",ic:"🧩",n:"Загадка серии",c:["#e3c8ff","#6a2ad0"]}]],
+  {k:"riddle",ic:"🧩",n:"Загадка серии",c:["#e3c8ff","#6a2ad0"]},
+  {k:"vote",ic:"⚔️",n:"Выбор серии",c:["#ffd0c0","#d03a1a"]}]],
  ["Сражения",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
   {k:"clan",ic:"🛡",n:"Клан",c:["#b9a2ff","#4b2a9a"]},
@@ -34,6 +35,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="don")return openGold("flex");
   if(k==="promo")return promoOpen();
   if(k==="riddle")return rdOpen();
+  if(k==="vote")return vtOpen();
   if(k==="cas"){if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas");return}
   if(k==="prof"||k==="pass"||k==="conq"||k==="clan"||k==="camp")return goSub(k);
   if(k==="chat")return openChat();
@@ -952,3 +954,21 @@ setInterval(()=>{try{rdStrip()}catch(e){}},1500);
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("rdadm"))return;const x=document.createElement("div");x.id="rdadm";x.className="srcbox r3adm";b.prepend(x);
   (async()=>{const r=await act("rd_list");if(!r)return;x.innerHTML=`<b>🧩 Загадка: ${rdEsc(r.title)}</b><p class="cln">Пытались: <b>${r.all}</b> · разгадали: <b>${r.ok}</b></p>`+(r.list.length?`<p class="cln rd-adl">${r.list.map((u,i)=>`${i+1}. ${rdEsc(u.name||u.uid)} <small>(${u.tries} поп.)</small>`).join("<br>")}</p><button type="button" class="ghost" id="rd-copy">📋 Скопировать первых 10 для видео</button>`:"");
     const c=$("rd-copy");if(c)c.onclick=()=>{const t=r.list.slice(0,10).map((u,i)=>`${i+1}. ${u.name||u.uid}`).join("\n");try{navigator.clipboard.writeText(t);toast("Скопировано")}catch(e){prompt("Скопируй",t)}}})()}catch(e){}}}
+
+/* ---------- ⚔️ «Выбор серии» ---------- */
+async function vtOpen(){if(!ONLINE)return toast("Голосование работает в игре через Telegram");const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox vtbox"><div class="rd-load">⚔️</div></div>';
+  const r=await act("vt_get");if(!r){closeModal();return}vtDraw(r)}
+function vtDraw(r){const sh=$("msheet");if(!sh)return;const shown=r.my||!r.on;
+  const opts=r.opts.map((o,i)=>`<button type="button" class="vt-o vt-o${i}${r.my===o.k?" on":""}" data-k="${o.k}" ${shown?"disabled":""}><i>${o.ic}</i><b>${rdEsc(o.n)}</b><small>${rdEsc(o.d)}</small>${shown?`<u style="width:${o.pc}%"></u><em>${o.pc}%</em>`:""}</button>`).join(`<div class="vt-vs">VS</div>`);
+  sh.innerHTML=`<div class="box nickbox vtbox"><div class="kg-rays"></div><div class="rd-ep">🎬 ХРОНИКИ ЭПОХ · ${rdEsc(r.title)}</div><h3>⚔️ Выбор серии</h3><p class="rd-q">${rdEsc(r.q)}</p><div class="vt-opts">${opts}</div>
+   ${r.my?`<p class="cln">✅ Твой голос принят${r.sp?` · +${r.sp} 🎴 уже у тебя`:""}. Проголосовало: <b>${r.tot}</b>. Как решит большинство — так и будет в следующей серии!</p>`:r.on?`<p class="cln">Один голос с аккаунта${r.sp?` · за голос <b>+${r.sp} 🎴</b>`:""}. Как решит большинство — так и будет в следующей серии</p>`:`<p class="cln">Голосование закончено — смотри, что выбрали, в следующей серии!</p>`}
+   <button type="button" class="ghost" id="vt-x">Закрыть</button></div>`;
+  $("vt-x").onclick=closeModal;sh.querySelectorAll(".vt-o:not([disabled])").forEach(b=>b.onclick=async()=>{const o=r.opts.find(x=>x.k===b.dataset.k);if(!confirm("Твой выбор: «"+o.n+"»? Переголосовать нельзя"))return;
+    sh.querySelectorAll(".vt-o").forEach(x=>x.disabled=true);const q=await act("vt_vote",{ch:o.k});if(!q){vtDraw(r);return}sfx.fanfare();burst(3);hapN("success");vtDraw(q)})}
+function vtStrip(){let b=$("vtstrip");const R=S&&ONLINE?S.vt:null;if(!R||R.ch){if(b)b.remove();return}
+  if(!b){const hd=$("rdstrip")||$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="vtstrip";b.className="r3strip vtstrip";hd.after(b);b.onclick=()=>{hap("light");vtOpen()}
+    b.innerHTML=`<i>⚔️</i><span><b>Выбор серии ${R.ep} — голосуй!</b><small>🤝 к Ксерксу или 🔥 огонь? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
+setInterval(()=>{try{vtStrip()}catch(e){}},1500);
+{const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="vt"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(vtOpen,1200)},400)}}
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vtadm"))return;const x=document.createElement("div");x.id="vtadm";x.className="srcbox r3adm";b.prepend(x);
+  (async()=>{const r=await act("vt_get");if(!r)return;const R=r.my||!r.on?r.opts:null;x.innerHTML=`<b>⚔️ Голосование: ${rdEsc(r.title)}</b>`+(R?`<p class="cln">${R.map(o=>`${o.ic} ${rdEsc(o.n)}: <b>${o.c}</b> (${o.pc}%)`).join("<br>")}<br>всего: ${r.tot}</p>`:`<p class="cln">Проголосовало: <b>${r.tot}</b>. Проценты видны после твоего голоса</p>`)})()}catch(e){}}}

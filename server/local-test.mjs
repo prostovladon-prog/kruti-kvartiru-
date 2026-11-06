@@ -1280,6 +1280,16 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const envN = { ...env, ADMINS: "8", TT: makeBridge(env.DB, async () => { throw new Error("Cannot find package") }) };
   q = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "live_tt", p: { op: "start", user: "a" } }) }), envN)).json();
   ok(q.ok && q.res.state === "nolib" && /npm i tiktok-live-connector/.test(q.res.err), "нет библиотеки — подсказка, что установить"); }
+// ⚔️ выбор серии
+{ const cr = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
+  const U = 7781; let q = await cr(U, "sync"); ok(q.S.vt && q.S.vt.id === "ep2" && q.S.vt.ch === "", "голосование видно в игре");
+  q = await cr(U, "vt_get"); ok(q.ok && q.res.opts.length === 2 && q.res.opts[0].pc === undefined, "до голоса проценты скрыты");
+  q = await cr(U, "vt_vote", { ch: "zz" }); ok(!q.ok, "чужой вариант не принять");
+  const sp0 = JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins;
+  q = await cr(U, "vt_vote", { ch: "f" }); ok(q.ok && q.res.my === "f" && q.res.tot === 1 && q.res.opts[1].pc === 100, "голос принят, видно 100%");
+  ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins === sp0 + 3, "+3 прокрутки за голос");
+  q = await cr(U, "vt_vote", { ch: "x" }); ok(!q.ok, "переголосовать нельзя");
+  await cr(7782, "sync"); q = await cr(7782, "vt_vote", { ch: "x" }); ok(q.ok && q.res.tot === 2 && q.res.opts[0].pc === 50, "второй голос — 50/50"); }
 // 🧩 загадка серии
 { const envA = { ...env, ADMINS: "8" }; const cr = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envA)).json();
   const U = 7881; await cr(U, "sync");

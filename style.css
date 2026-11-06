@@ -2798,3 +2798,14 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .rd-top b{font-size:12px}.rd-top ol{margin:6px 0 0;padding-left:22px;columns:2;column-gap:14px}.rd-top li{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rd-top small{display:block;opacity:.7;margin-top:4px}
 .rd-win h4{margin:4px 0;font-size:20px}.rd-wbig{font-size:60px;animation:rdbob 1.2s ease-in-out infinite}
 .rd-shake{animation:rdsh .4s}@keyframes rdsh{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+/* ⚔️ выбор серии */
+.vtstrip{background:linear-gradient(100deg,#d0301a,#6a2ad0);box-shadow:0 4px 0 #5a1010,0 0 20px rgba(255,80,60,.4)}.vtstrip em{font-style:normal;font-weight:900;font-size:16px}
+.vtbox{position:relative;overflow:hidden;text-align:center}.vtbox>*{position:relative}
+.vt-opts{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.vt-o{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 12px;border-radius:18px;border:0;font:inherit;color:#fff;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.vt-o0{background:linear-gradient(135deg,#7a3ad0,#3a1080)}.vt-o1{background:linear-gradient(135deg,#ff5a2a,#a01a0a)}
+.vt-o i{font-style:normal;font-size:36px}.vt-o b{font-size:18px;font-weight:900}.vt-o small{font-size:12px;opacity:.9}
+.vt-o:disabled{cursor:default;opacity:1}.vt-o.on{outline:4px solid #ffd75a;outline-offset:-4px}
+.vt-o u{position:absolute;left:0;bottom:0;height:6px;background:#ffd75a;text-decoration:none}.vt-o em{position:absolute;right:14px;top:12px;font-style:normal;font-weight:900;font-size:22px;color:#ffe58a}
+.vt-vs{font:900 20px/1 sans-serif;color:#d0301a;letter-spacing:.1em}
