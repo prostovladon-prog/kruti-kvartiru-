@@ -2116,11 +2116,17 @@ async function donBlast(env){if(!env.BOT_TOKEN&&!env.NOTIFY_TEST)return 0;const 
   for(const r of L){st.last=r.uid;if(isAdmin(env,r.uid))continue;if(await notify(env,r.uid,DONB.text,"👑 Посмотреть",PAGE+"?shop=flex"))sent++}
   st.n+=sent;await kvSet(env,k,st);return sent}
 /* разовый пост в канал: акция «3 друга → VIP» (06.11). Уходит один раз в первом тике после обновления */
-const CHPOST={id:"vip3_0611",from:Date.UTC(2026,10,6,13,0),to:Date.UTC(2026,10,6,21,0),photo:"assets/post-vip3.jpg?v=1",btn:"👑 Забрать VIP",
+const CHPOST={id:"vip3_0611b",from:Date.UTC(2026,10,6,13,0),to:Date.UTC(2026,10,6,21,0),photo:"assets/post-vip3.jpg?v=1",btn:"👑 Забрать VIP",
   text:"👑 ХОЧЕШЬ ВЫДЕЛЯТЬСЯ? ТОГДА ЧИТАЙ.\n\nВ «Воины Эпох» уже сотни новых игроков. Все крутят карты, все в топах, все в чате…\nНо одних замечают сразу, а других — никогда.\n\nРазница — в короне у ника 👑\n\n🔥 ЗАПУСКАЕМ АКЦИЮ: ПРИГЛАСИ 3 ДРУЗЕЙ — ПОЛУЧИ VIP-СТАТУС\n\nС VIP ты:\n👑 с короной у ника — в топах, в чате, в бою. Все видят, кто тут главный\n🎴 крутишь 16 карт вместо 10 — пока другие ждут, ты уже собираешь мифики\n📦 держишь 360 карт в коллекции — есть чем похвастаться\n\nПока остальные просто играют — ты играешь с понтом 😎\n\nКак забрать:\n1️⃣ Игра → «Друзья» → копируешь свою ссылку\n2️⃣ Кидаешь трём друзьям\n3️⃣ Они открывают первые карточки — и корона твоя. Сама. Автоматически.\n\n⏳ Акция не навсегда. Выключим — и VIP снова только за звёзды.\n\n👉 t.me/VoinyEpohBot\n\nБудь тем, на кого смотрят. А не тем, кто смотрит 👑"};
 async function chPostOnce(env){if(!env.BOT_TOKEN||env.DEV==="1")return;const now=Date.now();if(now<CHPOST.from||now>=CHPOST.to)return;const k="chpost:"+CHPOST.id;
-  if(await cached("chp"+CHPOST.id,60e3,()=>kvGet(env,k)))return;await kvSet(env,k,{t:now});delete topCache["chp"+CHPOST.id];
-  try{await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+CHPOST.photo,caption:CHPOST.text.slice(0,1024),reply_markup:{inline_keyboard:[[{text:CHPOST.btn,url:"https://t.me/VoinyEpohBot"}]]}})}catch(e){console.error("chpost",e)}}
+  const st=(await cached("chp"+CHPOST.id,20e3,()=>kvGet(env,k)))||{n:0,t:0};if(st.ok||st.n>=40||now-st.t<30e3)return;
+  st.n++;st.t=now;await kvSet(env,k,st);delete topCache["chp"+CHPOST.id];
+  /* картинку берём с raw.githubusercontent — она доступна сразу после push, а GitHub Pages обновляется с задержкой */
+  const kb={inline_keyboard:[[{text:CHPOST.btn,url:"https://t.me/VoinyEpohBot"}]]};
+  let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+CHPOST.photo.split("?")[0]+"?t="+st.n,caption:CHPOST.text.slice(0,1024),reply_markup:kb});
+  if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+CHPOST.photo+"&t="+st.n,caption:CHPOST.text.slice(0,1024),reply_markup:kb});
+  if(!r.ok&&st.n>=6)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:CHPOST.text,reply_markup:kb});   // совсем без картинки — лишь бы пост вышел
+  if(r.ok){st.ok=1;await kvSet(env,k,st);delete topCache["chp"+CHPOST.id]}else console.error("chpost",st.n,r.description)}
 let updBusy=false;
 async function updBlast(env){if(updBusy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();if(!UPD.win.some(([a,b])=>now>=a&&now<b))return;
   updBusy=true;try{const st=(await kvGet(env,"blast:"+UPD.id))||{ch:0,after:0,done:0,n:0};if(st.done&&st.ch)return;
