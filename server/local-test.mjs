@@ -1289,22 +1289,24 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cr(U, "vt_vote", { ch: "f" }); ok(q.ok && q.res.my === "f" && q.res.tot === 1 && q.res.opts[1].pc === 100, "голос принят, видно 100%");
   ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins === sp0 + 3, "+3 прокрутки за голос");
   q = await cr(U, "vt_vote", { ch: "x" }); ok(!q.ok, "переголосовать нельзя");
-  await cr(7782, "sync"); q = await cr(7782, "vt_vote", { ch: "x" }); ok(q.ok && q.res.tot === 2 && q.res.opts[0].pc === 50, "второй голос — 50/50"); }
-// 🧩 загадка серии
-{ const envA = { ...env, ADMINS: "8" }; const cr = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envA)).json();
-  const U = 7881; await cr(U, "sync");
-  let q = await cr(U, "sync"); ok(q.S.rd && q.S.rd.id === "ep1" && q.S.rd.ok === 0, "загадка видна в игре");
-  q = await cr(U, "rd_get"); ok(q.ok && q.res.on === 1 && q.res.hints.length === 1 && q.res.next === 3 && q.res.ans === undefined, "сначала одна подсказка, ответа не видно");
-  const sp0 = q.res && JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins;
-  for (const w of ["не знаю", "спарта", "сдавайтесь"]) q = await cr(U, "rd_try", { a: w });
-  ok(q.ok && !q.res.hit && q.res.hints.length === 2 && q.res.left === 7, "после 3 ошибок — вторая подсказка, осталось 7 попыток");
-  q = await cr(U, "rd_try", { a: "  ПРИДИ и Возьми!!! " }); ok(q.ok && q.res.hit === 1 && q.res.ok === 1 && q.res.place === 1 && q.res.ans === "Приди и возьми", "ответ принят без учёта регистра и знаков");
-  ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins === sp0 + 5 && q.S, "+5 прокруток за ответ");
-  q = await cr(U, "rd_try", { a: "приди и возьми" }); ok(!q.ok, "второй раз не наградят");
-  const V = 7882; await cr(V, "sync"); for (let k = 0; k < 10; k++) q = await cr(V, "rd_try", { a: "вариант " + k });
-  ok(q.ok && q.res.left === 0 && q.res.ans, "10 ошибок — попытки кончились, ответ показан"); q = await cr(V, "rd_try", { a: "приди и возьми" }); ok(!q.ok, "после 10 попыток не ответить");
-  q = await cr(7883, "rd_try", { a: "Придите и возьмите" }); ok(q.ok && q.res.place === 2 && q.res.top.length === 2, "второй разгадавший — 2 место, оба в топе");
-  q = await cr(U, "rd_list"); ok(!q.ok, "список — только админу"); q = await cr(8, "rd_list"); ok(q.ok && q.res.ok === 2 && q.res.all === 3 && q.res.list[0].uid === U, "админ видит, кто разгадал первым"); }
+  await cr(7782, "sync"); q = await cr(7782, "vt_vote", { ch: "x" }); ok(q.ok && q.res.tot === 2 && q.res.opts[0].pc === 50, "второй голос — 50/50");
+  const ca = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), { ...env, ADMINS: "8" })).json();
+  q = await ca(U, "vt_open"); ok(!q.ok, "без ссылки видео не открыть");
+  q = await ca(U, "vt_set", { url: "https://www.tiktok.com/@x/video/1" }); ok(!q.ok, "ссылку ставит только админ");
+  q = await ca(8, "vt_set", { url: "ftp://bad" }); ok(!q.ok, "неправильная ссылка не сохраняется");
+  q = await ca(8, "vt_set", { url: "https://www.tiktok.com/@voiny/video/123", socSp: 4 }); ok(q.ok && q.res.url === "https://www.tiktok.com/@voiny/video/123" && q.res.socSp === 4 && q.res.adm, "админ сохранил ссылку на видео");
+  q = await ca(U, "vt_get"); ok(q.res.url && !q.res.adm && q.res.my === "f" && q.res.tot === 2, "игрок видит ссылку, голоса сохранились");
+  q = await ca(U, "vt_soc"); ok(!q.ok, "без открытия видео награды нет");
+  q = await ca(U, "vt_open"); ok(q.ok && q.res.soc.open > 0 && q.res.soc.left > 0, "видео открыто — таймер пошёл");
+  q = await ca(U, "vt_soc"); ok(!q.ok && /сек/.test(q.err), "сразу награду не забрать");
+  db.prepare("UPDATE ep_vote_soc SET open_t=open_t-30000 WHERE uid=?").run(U); const s1 = JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins;
+  q = await ca(U, "vt_soc"); ok(q.ok && q.res.soc.got === 1 && q.S, "через 20 сек — награда за лайк и комментарий");
+  ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins === s1 + 4, "+4 прокрутки за лайк");
+  q = await ca(U, "vt_soc"); ok(!q.ok, "второй раз не дадут");
+  q = await ca(8, "vt_get"); ok(q.res.adm.soc === 1 && q.res.adm.opened === 1 && q.res.adm.cnt.f === 1, "админ видит голоса и лайки"); }
+// 🧩 загадку убрали из игры — осталось только голосование
+{ const cr = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), env)).json();
+  let q = await cr(7881, "sync"); ok(!q.S.rd, "загадки в игре больше нет"); q = await cr(7881, "rd_try", { a: "приди и возьми" }); ok(!q.ok, "ответить на загадку нельзя"); }
 // 🔥 акция «3 друга → VIP + x2»
 { const envA = { ...env, ADMINS: "8" }; const cr = async (uid, a, p = {}, start = "") => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), envA)).json();
   const I = 7981; await cr(I, "sync"); await cr(7990, "sync", {}, "r_" + I);   // друг ДО акции — не считается

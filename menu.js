@@ -18,7 +18,6 @@ const MENU_GROUPS=[
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
   {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
   {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]},
-  {k:"riddle",ic:"🧩",n:"Загадка серии",c:["#e3c8ff","#6a2ad0"]},
   {k:"vote",ic:"⚔️",n:"Выбор серии",c:["#ffd0c0","#d03a1a"]}]],
  ["Сражения",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
@@ -948,10 +947,10 @@ function rdDraw(r,fx){const sh=$("msheet");if(!sh)return;
 function rdStrip(){let b=$("rdstrip");const R=S&&ONLINE?S.rd:null;if(!R||R.ok){if(b)b.remove();return}
   if(!b){const hd=$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="rdstrip";b.className="r3strip rdstrip";hd.after(b);b.onclick=()=>{hap("light");rdOpen()}
     b.innerHTML=`<i>🧩</i><span><b>Загадка серии — разгадай!</b><small>Ответ на вопрос из мультика «Хроники Эпох» · +🎴 и твой ник в серии</small></span><em>▶</em>`}}
-setInterval(()=>{try{rdStrip()}catch(e){}},1500);
-{const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="rd"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(rdOpen,1200)},400)}}
+try{const b=$("rdstrip");if(b)b.remove()}catch(e){}   // загадку убрали — осталось голосование
+{const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="rd"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(vtOpen,1200)},400)}}
 /* админ: кто разгадал */
-{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("rdadm"))return;const x=document.createElement("div");x.id="rdadm";x.className="srcbox r3adm";b.prepend(x);
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("rdadm")||1)return;const x=document.createElement("div");x.id="rdadm";x.className="srcbox r3adm";b.prepend(x);
   (async()=>{const r=await act("rd_list");if(!r)return;x.innerHTML=`<b>🧩 Загадка: ${rdEsc(r.title)}</b><p class="cln">Пытались: <b>${r.all}</b> · разгадали: <b>${r.ok}</b></p>`+(r.list.length?`<p class="cln rd-adl">${r.list.map((u,i)=>`${i+1}. ${rdEsc(u.name||u.uid)} <small>(${u.tries} поп.)</small>`).join("<br>")}</p><button type="button" class="ghost" id="rd-copy">📋 Скопировать первых 10 для видео</button>`:"");
     const c=$("rd-copy");if(c)c.onclick=()=>{const t=r.list.slice(0,10).map((u,i)=>`${i+1}. ${u.name||u.uid}`).join("\n");try{navigator.clipboard.writeText(t);toast("Скопировано")}catch(e){prompt("Скопируй",t)}}})()}catch(e){}}}
 
@@ -962,8 +961,8 @@ function vtDraw(r){const sh=$("msheet");if(!sh)return;const shown=r.my||!r.on;
   const opts=r.opts.map((o,i)=>`<button type="button" class="vt-o vt-o${i}${r.my===o.k?" on":""}" data-k="${o.k}" ${shown?"disabled":""}><i>${o.ic}</i><b>${rdEsc(o.n)}</b><small>${rdEsc(o.d)}</small>${shown?`<u style="width:${o.pc}%"></u><em>${o.pc}%</em>`:""}</button>`).join(`<div class="vt-vs">VS</div>`);
   sh.innerHTML=`<div class="box nickbox vtbox"><div class="kg-rays"></div><div class="rd-ep">🎬 ХРОНИКИ ЭПОХ · ${rdEsc(r.title)}</div><h3>⚔️ Выбор серии</h3><p class="rd-q">${rdEsc(r.q)}</p><div class="vt-opts">${opts}</div>
    ${r.my?`<p class="cln">✅ Твой голос принят${r.sp?` · +${r.sp} 🎴 уже у тебя`:""}. Проголосовало: <b>${r.tot}</b>. Как решит большинство — так и будет в следующей серии!</p>`:r.on?`<p class="cln">Один голос с аккаунта${r.sp?` · за голос <b>+${r.sp} 🎴</b>`:""}. Как решит большинство — так и будет в следующей серии</p>`:`<p class="cln">Голосование закончено — смотри, что выбрали, в следующей серии!</p>`}
-   <button type="button" class="ghost" id="vt-x">Закрыть</button></div>`;
-  $("vt-x").onclick=closeModal;sh.querySelectorAll(".vt-o:not([disabled])").forEach(b=>b.onclick=async()=>{const o=r.opts.find(x=>x.k===b.dataset.k);if(!confirm("Твой выбор: «"+o.n+"»? Переголосовать нельзя"))return;
+   ${vtSocHtml(r)}${r.adm?vtAdmHtml(r):""}<button type="button" class="ghost" id="vt-x">Закрыть</button></div>`;
+  $("vt-x").onclick=closeModal;vtSocBind(r);sh.querySelectorAll(".vt-o:not([disabled])").forEach(b=>b.onclick=async()=>{const o=r.opts.find(x=>x.k===b.dataset.k);if(!confirm("Твой выбор: «"+o.n+"»? Переголосовать нельзя"))return;
     sh.querySelectorAll(".vt-o").forEach(x=>x.disabled=true);const q=await act("vt_vote",{ch:o.k});if(!q){vtDraw(r);return}sfx.fanfare();burst(3);hapN("success");vtDraw(q)})}
 function vtStrip(){let b=$("vtstrip");const R=S&&ONLINE?S.vt:null;if(!R||R.ch){if(b)b.remove();return}
   if(!b){const hd=$("rdstrip")||$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="vtstrip";b.className="r3strip vtstrip";hd.after(b);b.onclick=()=>{hap("light");vtOpen()}
@@ -972,3 +971,16 @@ setInterval(()=>{try{vtStrip()}catch(e){}},1500);
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="vt"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(vtOpen,1200)},400)}}
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vtadm"))return;const x=document.createElement("div");x.id="vtadm";x.className="srcbox r3adm";b.prepend(x);
   (async()=>{const r=await act("vt_get");if(!r)return;const R=r.my||!r.on?r.opts:null;x.innerHTML=`<b>⚔️ Голосование: ${rdEsc(r.title)}</b>`+(R?`<p class="cln">${R.map(o=>`${o.ic} ${rdEsc(o.n)}: <b>${o.c}</b> (${o.pc}%)`).join("<br>")}<br>всего: ${r.tot}</p>`:`<p class="cln">Проголосовало: <b>${r.tot}</b>. Проценты видны после твоего голоса</p>`)})()}catch(e){}}}
+
+/* видео с голосованием: ссылка + награда за лайк и комментарий */
+function vtSocHtml(r){if(!r.url)return "";const S2=r.soc||{};
+  const claim=S2.got?`<p class="cln vt-sgot">✅ Награда за лайк и комментарий получена · +${r.socSp} 🎴</p>`:S2.open?`<button type="button" class="craftbtn vt-like" id="vt-like" ${S2.left>0?"disabled":""}>${S2.left>0?`⏳ Смотри видео… ${S2.left} сек`:`❤️ Я лайкнул и написал комментарий · +${r.socSp} 🎴`}</button>`:"";
+  return `<div class="vt-soc"><b>🎬 Смотри серию и голосуй вместе со всеми</b><button type="button" class="vt-play" id="vt-play"><i>▶</i><span>Смотреть видео<small>поставь ❤️ лайк и напиши в комментариях свой выбор</small></span></button>${claim}${!S2.open&&!S2.got&&r.socSp?`<small class="vt-sh">🎁 За лайк и комментарий: <b>+${r.socSp} 🎴</b></small>`:""}</div>`}
+let vtTick=null;
+function vtSocBind(r){clearInterval(vtTick);const pl=$("vt-play");if(pl)pl.onclick=async()=>{hap("light");const u=r.url;try{tg&&tg.openLink?tg.openLink(u):open(u)}catch(e){open(u)}
+    if(!(r.soc&&r.soc.open)){const q=await act("vt_open");if(q){r.soc=q.soc;vtDraw(r)}}};
+  const lk=$("vt-like");if(lk&&r.soc&&r.soc.left>0){let left=r.soc.left;vtTick=setInterval(()=>{const b=$("vt-like");if(!b){clearInterval(vtTick);return}left--;if(left<=0){clearInterval(vtTick);r.soc.left=0;vtDraw(r);return}b.textContent="⏳ Смотри видео… "+left+" сек"},1000)}
+  if(lk&&!(r.soc.left>0))lk.onclick=async()=>{lk.disabled=true;const q=await act("vt_soc");if(!q){lk.disabled=false;return}sfx.fanfare();burst(2);hapN("success");toast("❤️ +"+q.socSp+" 🎴 за поддержку видео!");vtDraw(q)};
+  const sv=$("vt-ssave");if(sv)sv.onclick=async()=>{const url=($("vt-surl").value||"").trim();sv.disabled=true;const q=await act("vt_set",{url,socSp:+$("vt-ssp").value||0});sv.disabled=false;if(q){toast(url?"✅ Ссылка сохранена — игроки уже видят кнопку":"Ссылка убрана");vtDraw(q)}}}
+function vtAdmHtml(r){const A=r.adm||{};const c=A.cnt||{};return `<div class="vt-adm"><b>👑 Только для тебя</b><small>Голоса: ${r.opts.map(o=>`${o.ic} ${c[o.k]||0}`).join(" · ")} · всего ${r.tot}<br>Открыли видео: ${A.opened||0} · забрали награду за лайк: ${A.soc||0}</small>
+  <input id="vt-surl" placeholder="https://www.tiktok.com/@…/video/…" value="${rdEsc(r.url)}"><label>🎴 за лайк и комментарий <input id="vt-ssp" type="number" min="0" max="20" value="${r.socSp||0}"></label><button type="button" class="craftbtn" id="vt-ssave">💾 Сохранить ссылку на видео</button></div>`}
