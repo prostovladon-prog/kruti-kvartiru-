@@ -1142,7 +1142,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=47;
+const SCHEMA_V=48;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1220,7 +1220,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
  "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
  "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)",
- "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))"];
+ "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1486,6 +1486,7 @@ async function stateFor(env,me){
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
+  try{S.rd=await rdState(env,me)}catch(e){}
   try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
   try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
   S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
@@ -2191,6 +2192,33 @@ async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_start"){const h=Math.max(1,Math.min(24,+p.h||3)),C=await ref3Cur(env);if(C&&now<C.end)fail("Акция уже идёт");const id=new Date(now+3*3600e3).toISOString().slice(0,16).replace(/[-:T]/g,"");
     await kvSet(env,"ref3",{id,start:now,end:now+h*36e5});delete topCache.ref3;return {id,end:now+h*36e5}}
   if(a==="ref3_stop"){const C=await ref3Cur(env);if(!C||now>=C.end)fail("Акция не идёт");C.end=now;await kvSet(env,"ref3",C);delete topCache.ref3;return {end:now}}
+  fail("Неизвестное действие")}
+/* ---------- 🧩 «Загадка серии»: мультики «Хроники Эпох» заканчиваются вопросом, ответ ищут в игре ----------
+   Подсказка 1 видна сразу, подсказка 2 — после 3 неверных попыток. Всего 10 попыток. За верный ответ — прокрутки, первые 10 попадают в следующую серию. */
+const RIDDLE_DEFAULT={id:"ep1",ep:1,title:"Серия 1 · «Триста»",q:"Персидский царь Ксеркс потребовал: «Сложите оружие!» Что ответил ему царь Спарты Леонид?",
+  hints:["Ответ — 3 слова. Это и приглашение, и вызов одновременно","П _ _ _ _   И   В _ _ _ _ И"],ans:["Приди и возьми","приходи и возьми","придите и возьмите","приди возьми","приходите и возьмите","молон лабе","molon labe"],
+  sp:5,top:10,max:10,start:Date.UTC(2026,10,5,21,0),end:Date.UTC(2026,10,13,21,0)};
+const rdNorm=x=>String(x||"").toLowerCase().replace(/ё/g,"е").replace(/[^a-zа-я0-9 ]+/g," ").replace(/\s+/g," ").trim();
+async function rdCfg(env){const k=await kvGet(env,"riddle");return k&&k.id?k:RIDDLE_DEFAULT}
+async function rdTop(env,C,n){return (await env.DB.prepare("SELECT r.uid,COALESCE(u.nick,r.name) AS name,r.ok_t FROM riddle_ans r LEFT JOIN users u ON u.id=r.uid WHERE r.rid=? AND r.ok_t IS NOT NULL ORDER BY r.ok_t LIMIT ?").bind(C.id,n).all()).results}
+async function rdState(env,me){const C=await rdCfg(env),now=Date.now();if(now<C.start||now>=C.end)return null;const r=await env.DB.prepare("SELECT ok_t FROM riddle_ans WHERE rid=? AND uid=?").bind(C.id,me.id).first();return {id:C.id,ep:C.ep,ok:r&&r.ok_t?1:0}}
+async function riddleApi(env,me,a,p){const C=await rdCfg(env),now=Date.now();
+  const pub=async()=>{const r=await env.DB.prepare("SELECT * FROM riddle_ans WHERE rid=? AND uid=?").bind(C.id,me.id).first()||{tries:0};const wrong=r.ok_t?0:r.tries;
+    const place=r.ok_t?(((await env.DB.prepare("SELECT COUNT(*) AS n FROM riddle_ans WHERE rid=? AND ok_t IS NOT NULL AND ok_t<=?").bind(C.id,r.ok_t).first())||{}).n||1):0;
+    const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM riddle_ans WHERE rid=? AND ok_t IS NOT NULL").bind(C.id).first())||{}).n||0;
+    return {on:now>=C.start&&now<C.end?1:0,id:C.id,ep:C.ep,title:C.title,q:C.q,hints:C.hints.slice(0,r.ok_t||wrong>=3?2:1),next:r.ok_t||wrong>=3?0:3-wrong,tries:r.tries||0,max:C.max,left:r.ok_t?0:Math.max(0,C.max-(r.tries||0)),
+      ok:r.ok_t?1:0,place,sp:C.sp,topN:C.top,n,end:C.end,ans:r.ok_t||(r.tries||0)>=C.max?C.ans[0]:undefined,last:r.ok_t?undefined:r.last,top:(await rdTop(env,C,C.top)).map(x=>x.name||"Воин")}};
+  if(a==="rd_get")return pub();
+  if(a==="rd_try"){if(now<C.start)fail("Загадка ещё не открылась");if(now>=C.end)fail("Эта загадка закрыта — жди следующую серию");const g=rdNorm(p.a);if(g.length<2)fail("Напиши ответ");if(g.length>60)fail("Слишком длинный ответ");
+    await env.DB.prepare("INSERT OR IGNORE INTO riddle_ans(rid,uid,name,tries) VALUES(?,?,?,0)").bind(C.id,me.id,me.name||"").run();
+    const r=await env.DB.prepare("SELECT * FROM riddle_ans WHERE rid=? AND uid=?").bind(C.id,me.id).first();if(r.ok_t)fail("Ты уже разгадал 🎉");if(r.tries>=C.max)fail("Попытки закончились — жди следующую серию");
+    const ok=C.ans.map(rdNorm).includes(g);
+    const u=await env.DB.prepare("UPDATE riddle_ans SET tries=tries+1,last=?,ok_t=? WHERE rid=? AND uid=? AND ok_t IS NULL AND tries<?").bind(g,ok?now:null,C.id,me.id,C.max).run();if(!u.meta||u.meta.changes!==1)fail("Попробуй ещё раз");
+    if(ok&&C.sp)await doAction(env,me,"tour_prize",{sp:C.sp,cash:0},{tour:1});
+    const res=await pub();res.hit=ok?1:0;return res}
+  if(!isAdmin(env,me.id))fail("Нет доступа");
+  if(a==="rd_list"){const L=(await env.DB.prepare("SELECT r.uid,COALESCE(u.nick,r.name) AS name,r.tries,r.ok_t FROM riddle_ans r LEFT JOIN users u ON u.id=r.uid WHERE r.rid=? ORDER BY r.ok_t IS NULL,r.ok_t LIMIT 300").bind(C.id).all()).results;
+    return {id:C.id,title:C.title,ok:L.filter(x=>x.ok_t).length,all:L.length,list:L.filter(x=>x.ok_t).slice(0,100)}}
   fail("Неизвестное действие")}
 async function promoApi(env,me,a,p){const now=Date.now();
   if(a==="promo_use"&&/^\d{6}$/.test(promoKey(p.code))){const L=await liveClaim(env,me,promoKey(p.code));if(L)return L}
@@ -3302,7 +3330,7 @@ async function handle(req,env){{
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
-      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(/^map_|^mph_/.test(a)){const res=await mapApi(env,me,a,p);return J({ok:true,res,S:a==="map_get"||a==="mph_list"||a==="map_stats"?undefined:await stateFor(env,me)})}
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});

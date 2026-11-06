@@ -17,7 +17,8 @@ const MENU_GROUPS=[
   {k:"camp",ic:"🏕",n:"Лагерь",c:["#c9e86b","#4a7a1e"]},
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
   {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
-  {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]}]],
+  {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]},
+  {k:"riddle",ic:"🧩",n:"Загадка серии",c:["#e3c8ff","#6a2ad0"]}]],
  ["Сражения",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
   {k:"clan",ic:"🛡",n:"Клан",c:["#b9a2ff","#4b2a9a"]},
@@ -32,6 +33,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="gold")return openGold();
   if(k==="don")return openGold("flex");
   if(k==="promo")return promoOpen();
+  if(k==="riddle")return rdOpen();
   if(k==="cas"){if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas");return}
   if(k==="prof"||k==="pass"||k==="conq"||k==="clan"||k==="camp")return goSub(k);
   if(k==="chat")return openChat();
@@ -921,3 +923,32 @@ function pmAsk2(why){try{if(!canPmAsk()||!S||!$("modal").hidden||$("onb")||docum
   $("pm2-yes").onclick=()=>{closeModal();enablePm()};$("pm2-no").onclick=closeModal}catch(e){}}
 {const _act=act;act=async function(n,p){const r=await _act.apply(this,arguments);try{if(n==="open"&&r&&r.card&&HEROES[r.card.h][2]>=2)setTimeout(()=>pmAsk2("drop"),3800)}catch(e){}return r}}
 setTimeout(()=>pmAsk2("day"),35000);
+
+/* ---------- 🧩 «Загадка серии» — мультики «Хроники Эпох» ---------- */
+const rdEsc=x=>String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function rdOpen(){if(!ONLINE)return toast("Загадка работает в игре через Telegram");const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox rdbox"><div class="rd-load">🧩</div></div>';
+  const r=await act("rd_get");if(!r){closeModal();return}rdDraw(r)}
+function rdDraw(r,fx){const sh=$("msheet");if(!sh)return;
+  const hints=r.hints.map((h,i)=>`<div class="rd-h${i?" rd-h2":""}"><b>${i?"🔓 Подсказка 2":"💡 Подсказка"}</b><span>${rdEsc(h)}</span></div>`).join("")+(r.next&&!r.ok&&r.on?`<div class="rd-h rd-lock"><b>🔒 Подсказка 2</b><span>откроется после ${r.next} ${plural(r.next,"неверной попытки","неверных попыток","неверных попыток")}</span></div>`:"");
+  const top=r.top.length?`<div class="rd-top"><b>🏆 Первые разгадавшие — попадут в следующую серию</b><ol>${r.top.map(n=>`<li>${rdEsc(n)}</li>`).join("")}</ol>${r.n>r.top.length?`<small>и ещё ${r.n-r.top.length} — всего разгадали ${r.n}</small>`:""}</div>`:`<div class="rd-top"><b>🏆 Пока никто не разгадал</b><small>Стань первым — и попадёшь в следующую серию!</small></div>`;
+  let body;
+  if(r.ok)body=`<div class="rd-win"><div class="rd-wbig">🎉</div><h4>Разгадал${r.place?` · ${r.place} место`:""}!</h4><p>Ответ: <b>«${rdEsc(r.ans)}»</b></p><p class="cln">+${r.sp} 🎴 прокруток уже у тебя${r.place&&r.place<=r.topN?". Ты в списке первых — увидишь свой ник в следующей серии 🔥":""}</p><p class="cln">Не пиши ответ в комментариях — пусть другие тоже поломают голову 😉</p></div>`;
+  else if(!r.on)body=`<p class="cln">Загадка закрыта. Ответ: <b>«${rdEsc(r.ans||"…")}»</b> — жди следующую серию в TikTok!</p>`;
+  else if(!r.left)body=`<p class="cln">Попытки закончились 😔 Ответ: <b>«${rdEsc(r.ans)}»</b>. В следующей серии — новая загадка!</p>`;
+  else body=`<input id="rd-in" maxlength="60" autocomplete="off" placeholder="Твой ответ"><button type="button" class="craftbtn" id="rd-go">Ответить</button><small class="rd-left">Попыток: ${r.left} из ${r.max}${r.last?` · последний ответ: «${rdEsc(r.last)}» — не то`:""}</small>`;
+  sh.innerHTML=`<div class="box nickbox rdbox${fx==="bad"?" rd-shake":""}"><div class="kg-rays"></div><div class="rd-ep">🎬 ХРОНИКИ ЭПОХ · ${rdEsc(r.title)}</div><div class="rd-ico">🧩</div><h3>Загадка серии</h3><p class="rd-q">${rdEsc(r.q)}</p>${hints}${body}
+   <div class="rd-gift">🎁 За верный ответ: <b>+${r.sp} 🎴</b> · первые ${r.topN} — в следующую серию</div>${top}<button type="button" class="ghost" id="rd-x">Закрыть</button></div>`;
+  $("rd-x").onclick=closeModal;const go=$("rd-go"),inp=$("rd-in");
+  if(go){const send=async()=>{const v=(inp.value||"").trim();if(!v)return toast("Напиши ответ");go.disabled=true;const q=await act("rd_try",{a:v});go.disabled=false;if(!q)return;
+      if(q.hit){sfx.fanfare();burst(4);hapN("success");rdDraw(q,"ok")}else{hapN("error");toast(q.left?"❌ Не угадал. Осталось попыток: "+q.left:"Попытки закончились");rdDraw(q,"bad")}};
+    go.onclick=send;inp.onkeydown=e=>{if(e.key==="Enter")send()};setTimeout(()=>{try{inp.focus()}catch(e){}},200)}}
+/* полоска под шапкой, пока загадка не разгадана */
+function rdStrip(){let b=$("rdstrip");const R=S&&ONLINE?S.rd:null;if(!R||R.ok){if(b)b.remove();return}
+  if(!b){const hd=$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="rdstrip";b.className="r3strip rdstrip";hd.after(b);b.onclick=()=>{hap("light");rdOpen()}
+    b.innerHTML=`<i>🧩</i><span><b>Загадка серии ${R.ep} — разгадай!</b><small>Ответ на вопрос из мультика «Хроники Эпох» · +🎴 и твой ник в серии</small></span><em>▶</em>`}}
+setInterval(()=>{try{rdStrip()}catch(e){}},1500);
+{const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="rd"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(rdOpen,1200)},400)}}
+/* админ: кто разгадал */
+{const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("rdadm"))return;const x=document.createElement("div");x.id="rdadm";x.className="srcbox r3adm";b.prepend(x);
+  (async()=>{const r=await act("rd_list");if(!r)return;x.innerHTML=`<b>🧩 Загадка: ${rdEsc(r.title)}</b><p class="cln">Пытались: <b>${r.all}</b> · разгадали: <b>${r.ok}</b></p>`+(r.list.length?`<p class="cln rd-adl">${r.list.map((u,i)=>`${i+1}. ${rdEsc(u.name||u.uid)} <small>(${u.tries} поп.)</small>`).join("<br>")}</p><button type="button" class="ghost" id="rd-copy">📋 Скопировать первых 10 для видео</button>`:"");
+    const c=$("rd-copy");if(c)c.onclick=()=>{const t=r.list.slice(0,10).map((u,i)=>`${i+1}. ${u.name||u.uid}`).join("\n");try{navigator.clipboard.writeText(t);toast("Скопировано")}catch(e){prompt("Скопируй",t)}}})()}catch(e){}}}

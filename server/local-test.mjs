@@ -1280,6 +1280,21 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const envN = { ...env, ADMINS: "8", TT: makeBridge(env.DB, async () => { throw new Error("Cannot find package") }) };
   q = await (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": "8" }, body: JSON.stringify({ a: "live_tt", p: { op: "start", user: "a" } }) }), envN)).json();
   ok(q.ok && q.res.state === "nolib" && /npm i tiktok-live-connector/.test(q.res.err), "нет библиотеки — подсказка, что установить"); }
+// 🧩 загадка серии
+{ const envA = { ...env, ADMINS: "8" }; const cr = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envA)).json();
+  const U = 7881; await cr(U, "sync");
+  let q = await cr(U, "sync"); ok(q.S.rd && q.S.rd.id === "ep1" && q.S.rd.ok === 0, "загадка видна в игре");
+  q = await cr(U, "rd_get"); ok(q.ok && q.res.on === 1 && q.res.hints.length === 1 && q.res.next === 3 && q.res.ans === undefined, "сначала одна подсказка, ответа не видно");
+  const sp0 = q.res && JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins;
+  for (const w of ["не знаю", "спарта", "сдавайтесь"]) q = await cr(U, "rd_try", { a: w });
+  ok(q.ok && !q.res.hit && q.res.hints.length === 2 && q.res.left === 7, "после 3 ошибок — вторая подсказка, осталось 7 попыток");
+  q = await cr(U, "rd_try", { a: "  ПРИДИ и Возьми!!! " }); ok(q.ok && q.res.hit === 1 && q.res.ok === 1 && q.res.place === 1 && q.res.ans === "Приди и возьми", "ответ принят без учёта регистра и знаков");
+  ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state).spins === sp0 + 5 && q.S, "+5 прокруток за ответ");
+  q = await cr(U, "rd_try", { a: "приди и возьми" }); ok(!q.ok, "второй раз не наградят");
+  const V = 7882; await cr(V, "sync"); for (let k = 0; k < 10; k++) q = await cr(V, "rd_try", { a: "вариант " + k });
+  ok(q.ok && q.res.left === 0 && q.res.ans, "10 ошибок — попытки кончились, ответ показан"); q = await cr(V, "rd_try", { a: "приди и возьми" }); ok(!q.ok, "после 10 попыток не ответить");
+  q = await cr(7883, "rd_try", { a: "Придите и возьмите" }); ok(q.ok && q.res.place === 2 && q.res.top.length === 2, "второй разгадавший — 2 место, оба в топе");
+  q = await cr(U, "rd_list"); ok(!q.ok, "список — только админу"); q = await cr(8, "rd_list"); ok(q.ok && q.res.ok === 2 && q.res.all === 3 && q.res.list[0].uid === U, "админ видит, кто разгадал первым"); }
 // 🔥 акция «3 друга → VIP + x2»
 { const envA = { ...env, ADMINS: "8" }; const cr = async (uid, a, p = {}, start = "") => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid), "X-Dev-Start": start }, body: JSON.stringify({ a, p }) }), envA)).json();
   const I = 7981; await cr(I, "sync"); await cr(7990, "sync", {}, "r_" + I);   // друг ДО акции — не считается
