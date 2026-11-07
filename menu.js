@@ -1196,7 +1196,9 @@ function warDraw(){const m=$("modal"),sh=$("msheet");m.hidden=false;const r=WR,M
    (r.log.length?'<div class="wr-log"><b>📜 Летопись битв</b>'+r.log.map(l=>'<div class="'+(l.win?"w":"l")+'">'+(l.att?"⚔️ Ты напал на ":"🛡 На тебя напал ")+fnEsc(l.name||"Игрок")+' — '+(l.win?"победа":"поражение")+(l.att?' <i>'+(l.gl>0?"+":"")+l.gl+'</i>':'')+'<small>'+ago(l.t)+'</small></div>').join("")+'</div>':'')+
    '<button type="button" class="ghost" id="wr-x">Закрыть</button></div>';
   try{hydrate(sh)}catch(e){}$("wr-x").onclick=closeModal;$("wr-re").onclick=()=>{WR=null;warOpen()};
-  sh.querySelectorAll(".wr-go").forEach(b=>b.onclick=async()=>{b.disabled=true;const res=await act("war_attack",{uid:+b.dataset.u});if(!res){b.disabled=false;return}warFight(res)})}
+  sh.querySelectorAll(".wr-go").forEach(b=>b.onclick=async()=>{b.disabled=true;const t0=b.textContent;b.textContent="⏳ Готовим армию…";
+    let res=null,err="";try{const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"war_attack",p:{uid:+b.dataset.u}})});const j=await r.json();if(j.ok){res=j.res;if(j.S){S=j.S;try{renderAll()}catch(e){}}}else err=j.err||("Ошибка сервера "+r.status)}catch(e){err="Нет связи с сервером"}
+    if(!res){b.disabled=false;b.textContent=t0;let n=b.parentNode.querySelector(".wr-err");if(!n){n=document.createElement("p");n.className="wr-err";b.after(n)}n.textContent="⚠️ "+err;hapN("error");return}warFight(res)})}
 async function warFight(r){const sh=$("msheet"),w=ms=>new Promise(z=>setTimeout(z,ms));
   sh.innerHTML='<div class="box nickbox warbox wfight"><small class="wf-k">⚔️ БИТВА ИМПЕРИЙ</small><h3>Ты vs '+fnEsc(r.opp.name)+'</h3><div class="wf-score"><b id="wf-a">0</b> : <b id="wf-b">0</b></div><div id="wf-d"></div><div id="wf-res"></div></div>';
   const D=$("wf-d");let a=0,b=0;try{sfx.rumble(2)}catch(e){}
