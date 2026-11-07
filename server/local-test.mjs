@@ -919,6 +919,16 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "theme_set", { k: "night" }); ok(q.ok && q.S.theme === "night", "тема сменилась"); q = await call(A, "theme_set", { k: "xxx" }); ok(!q.ok, "несуществующая тема");
     q = await call(A, "upd_gift"); ok(q.ok && q.res.sp === 5, "подарок обновления"); q = await call(A, "upd_gift"); ok(!q.ok, "подарок обновления один раз");
     q = await call(A, "top", { kind: "emp" }); ok(q.ok && q.res.items.length > 0 && q.res.items[0].score > 0, "топ Империй"); }
+  // ⚔️ война армий
+  { await call(B, "sync"); let q = await call(A, "war_get"); ok(q.ok && q.res.me.army.length > 0 && q.res.left === 5, "война: моя армия и 5 битв");
+    ok(q.res.opp.length > 0 && q.res.opp.every(o => o.uid !== A && o.army.length > 0), "найдены соперники с армиями (" + q.res.opp.length + ")");
+    const tid = q.res.opp[0].uid; q = await call(A, "war_attack", { uid: tid }); ok(q.ok && q.res.duels.length === 5 && (q.res.win === 1) === (q.res.w >= 3), "битва 5 на 5: " + q.res.w + " побед");
+    const g = db.prepare("SELECT glory FROM users WHERE id=?").get(A).glory; ok(q.res.win ? g >= 8 : g === 0, "слава за битву: " + g);
+    q = await call(A, "war_attack", { uid: tid }); ok(!q.ok && /2 часа/.test(q.err), "ту же Империю — не чаще раза в 2 часа");
+    q = await call(A, "war_attack", { uid: A }); ok(!q.ok, "себя не атаковать");
+    q = await call(A, "war_get"); ok(q.res.left === 4 && q.res.log.length === 1, "летопись и счётчик битв");
+    db.prepare("UPDATE users SET state=json_set(state,'$.warN',5) WHERE id=?").run(A); db.prepare("DELETE FROM emp_war").run(); q = await call(A, "war_attack", { uid: tid }); ok(!q.ok && /5 битв/.test(q.err), "не больше 5 битв в день");
+    q = await call(A, "top", { kind: "glory" }); ok(q.ok, "топ славы"); }
   // 🍀 оберег удачи + 🏛 зал славы
   { db.prepare("UPDATE users SET cash=100000 WHERE id=?").run(A);
     let q = await call(A, "luck_buy"); ok(q.ok && q.res.paid === 3000 && q.res.until > Date.now() + 35e5 && q.S.cash === 97000, "оберег: 3% монет (" + (q.res && q.res.paid) + ")");

@@ -10,6 +10,7 @@ const MENU_GROUPS=[
   {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
   {k:"upd",ic:"🆕",n:"Обновление",c:["#ff9ad5","#c42a8a"]},
   {k:"emp",ic:"👑",n:"Империя",c:["#ffe066","#c47a00"]},
+  {k:"war",ic:"⚔️",n:"Война армий",c:["#ff9a8a","#b0201a"]},
   {k:"hof",ic:"🏛",n:"Зал славы",c:["#ffe9a8","#b07a10"]},
   {k:"theme",ic:"🎨",n:"Тема",c:["#ffc8f0","#8a2ab0"]},
   {k:"luck",ic:"🍀",n:"Оберег удачи",c:["#b8ffcf","#1e9a52"]},
@@ -44,6 +45,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
   if(k==="upd"){updI=0;return updOpen()}
   if(k==="emp")return empOpen();
+  if(k==="war")return warOpen();
   if(k==="theme")return themeOpen();
   if(k==="hof")return hofOpen();
   if(k==="luck")return luckOpen();
@@ -1140,9 +1142,9 @@ function empOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const E=empN
    '<div class="emp-src"><div><b>🎴 '+fmtN(cardsP)+'</b><small>армия: '+C.length+' карт</small></div><div><b>📚 '+fmtN(coll*EMP.coll)+'</b><small>коллекций: '+coll+'</small></div><div><b>🐉 '+fmtN(dgP)+'</b><small>дракон</small></div></div>'+
    '<p class="emp-how">💡 Мощь дают <b>все</b> карты: редкость × отделка × уровень × звёзды. Золотая — в 6 раз сильнее обычной, Ошибка — в 12, Алмаз — в 14. Прокачивай, закаляй ★, собирай коллекции и расти дракона.</p>'+
    '<div class="emp-rk">'+EMP.R.map((R,i)=>'<div class="'+(i===E.r?"on":i<E.r?"ok":"")+'"><i>'+R.ic+'</i><span><b>'+R.n+'</b><small>ур. '+EMP.band[i]+'–'+(EMP.band[i+1]?EMP.band[i+1]-1:EMP.MAXL)+(i?' · от ⚔️ '+fmtN(R.p):'')+' · '+perk(i)+'</small></span>'+(i<E.r?'✅':i===E.r?'<em>ТЫ</em>':'')+'</div>').join("")+'</div>'+
-   '<div class="emp-b"><button type="button" class="ghost" id="emp-top">🏆 Топ Империй</button><button type="button" class="ghost" id="emp-ava">🖼 Аватар</button><button type="button" class="ghost" id="emp-th">🎨 Тема</button></div>'+
+   '<button type="button" class="craftbtn emp-war" id="emp-war">⚔️ Война армий</button><div class="emp-b"><button type="button" class="ghost" id="emp-top">🏆 Топ Империй</button><button type="button" class="ghost" id="emp-ava">🖼 Аватар</button><button type="button" class="ghost" id="emp-th">🎨 Тема</button></div>'+
    '<button type="button" class="ghost" id="emp-x">Закрыть</button></div>';
-  $("emp-x").onclick=closeModal;$("emp-top").onclick=()=>{closeModal();try{tpView="emp";setTab("top");renderTop(true)}catch(e){}};$("emp-ava").onclick=avaOpen;$("emp-th").onclick=themeOpen;
+  $("emp-x").onclick=closeModal;$("emp-top").onclick=()=>{closeModal();try{tpView="emp";setTab("top");renderTop(true)}catch(e){}};$("emp-ava").onclick=avaOpen;$("emp-war").onclick=()=>warOpen();$("emp-th").onclick=themeOpen;
   const t=$("emp-trib");if(t)t.onclick=async()=>{t.disabled=true;const r=await act("emp_trib");if(r){hapN("success");try{sfx.coin();burst(3)}catch(e){}toast("💰 Дань собрана: +"+fmtN(r.cash)+" 🪙"+(r.sp?" и "+r.sp+" 🎴":""));updCash&&updCash();empOpen()}else t.disabled=false}}
 /* 🖼 аватар: любой воин из своей коллекции */
 function avaOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const hs=[...new Set((S.cards||[]).map(c=>c.h))].filter(h=>HEROES[h]).sort((a,b)=>HEROES[b][2]-HEROES[a][2]);
@@ -1179,3 +1181,28 @@ function updOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const got=S&
 {const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||$("onb")||document.querySelector(".hhpop"))return;let seen="";try{seen=localStorage.getItem("we-upd")}catch(e){}if(seen===BIGUPD.id||S.updG===BIGUPD.id){clearInterval(t);return}if(!$("modal").hidden)return;clearInterval(t);updI=0;updOpen()},1200)}
 
 if(new URLSearchParams(location.search).get("upd")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);setTimeout(()=>{updI=0;updOpen()},400)},500)}
+
+/* ===================== ⚔️ ВОЙНА АРМИЙ ===================== */
+let WR=null;
+const armyRow=A=>'<div class="wr-army">'+[0,1,2,3,4].map(i=>A&&A[i]?'<span>'+miniSlot(A[i].c)+'<small>⚔️'+fmtN(A[i].p)+'</small></span>':'<span class="no">—</span>').join("")+'</div>';
+async function warOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;if(!WR)sh.innerHTML='<div class="box nickbox warbox"><h3>⚔️ Война армий</h3><p class="cln">Ищем Империи для битвы…</p></div>';
+  const r=await act("war_get");if(!r){if(!WR)closeModal();return}WR=r;warDraw()}
+function warDraw(){const m=$("modal"),sh=$("msheet");m.hidden=false;const r=WR,M=r.me,ap=M.ap||0,ER=x=>{const k=empRank(x.emp||0);return EMP.R[k].ic+" "+EMP.R[k].n+" · ур. "+empLvl(x.emp||0)};
+  sh.innerHTML='<div class="box nickbox warbox"><div class="wr-hd"><div><small>ВОЙНА АРМИЙ</small><h3>⚔️ '+fmtN(M.glory)+' славы</h3></div><div class="wr-left"><b>'+r.left+'</b><small>битв сегодня</small></div></div>'+
+   '<p class="cln">Твои <b>5 сильнейших воинов</b> бьются против 5 сильнейших воинов другой Империи. 3 победы из 5 — армия разбита! Сильнее соперник — больше славы.</p>'+
+   '<div class="wr-me"><b>🛡 Твоя армия · ⚔️ '+fmtN(ap)+'</b>'+armyRow(M.army)+'</div>'+
+   (r.opp.length?r.opp.map(o=>{const d=o.ap/Math.max(1,ap),c=d<.8?"easy":d<1.15?"mid":"hard";return '<div class="wr-op '+c+'"><div class="wr-oh">'+avaHTML(o.ava,"sm")+'<span><b>'+fnEsc(o.name)+'</b><small>'+ER(o)+' · ⚔️ '+fmtN(o.glory)+' славы</small></span><em>'+(c==="easy"?"слабее":c==="mid"?"равный":"сильнее")+'<br>⚔️ '+fmtN(o.ap)+'</em></div>'+armyRow(o.army)+'<button type="button" class="craftbtn wr-go" data-u="'+o.uid+'"'+(r.left>0?"":" disabled")+'>⚔️ В атаку!</button></div>'}).join(""):'<p class="cln">Пока нет подходящих Империй — загляни позже.</p>')+
+   '<button type="button" class="ghost" id="wr-re">🔄 Другие соперники</button>'+
+   (r.log.length?'<div class="wr-log"><b>📜 Летопись битв</b>'+r.log.map(l=>'<div class="'+(l.win?"w":"l")+'">'+(l.att?"⚔️ Ты напал на ":"🛡 На тебя напал ")+fnEsc(l.name||"Игрок")+' — '+(l.win?"победа":"поражение")+(l.att?' <i>'+(l.gl>0?"+":"")+l.gl+'</i>':'')+'<small>'+ago(l.t)+'</small></div>').join("")+'</div>':'')+
+   '<button type="button" class="ghost" id="wr-x">Закрыть</button></div>';
+  try{hydrate(sh)}catch(e){}$("wr-x").onclick=closeModal;$("wr-re").onclick=()=>{WR=null;warOpen()};
+  sh.querySelectorAll(".wr-go").forEach(b=>b.onclick=async()=>{b.disabled=true;const res=await act("war_attack",{uid:+b.dataset.u});if(!res){b.disabled=false;return}warFight(res)})}
+async function warFight(r){const sh=$("msheet"),w=ms=>new Promise(z=>setTimeout(z,ms));
+  sh.innerHTML='<div class="box nickbox warbox wfight"><small class="wf-k">⚔️ БИТВА ИМПЕРИЙ</small><h3>Ты vs '+fnEsc(r.opp.name)+'</h3><div class="wf-score"><b id="wf-a">0</b> : <b id="wf-b">0</b></div><div id="wf-d"></div><div id="wf-res"></div></div>';
+  const D=$("wf-d");let a=0,b=0;try{sfx.rumble(2)}catch(e){}
+  for(let i=0;i<r.duels.length;i++){await w(750);const x=r.duels[i],row=document.createElement("div");row.className="wf-row "+(x.win?"w":"l");
+    row.innerHTML='<span>'+(x.a?miniSlot(x.a):'<i>—</i>')+'</span><em><b>'+fmtN(x.ap)+'</b><small>'+(x.win?"✅":"❌")+'</small><b>'+fmtN(x.bp)+'</b></em><span>'+(x.b?miniSlot(x.b):'<i>—</i>')+'</span>';D.appendChild(row);try{hydrate(row)}catch(e){}
+    if(x.win)a++;else b++;$("wf-a").textContent=a;$("wf-b").textContent=b;try{x.win?sfx.clash():hap("medium")}catch(e){}}
+  await w(700);const R=$("wf-res");if(!R)return;R.innerHTML='<div class="wf-end '+(r.win?"w":"l")+'"><h3>'+(r.win?"🏆 ПОБЕДА!":"💥 Армия отступила")+'</h3><p>'+(r.win?"+"+r.gl+" славы"+(r.cash?" · +"+fmtN(r.cash)+" 🪙":""):r.gl+" славы · усиль армию и вернись")+'</p><p class="wf-l">Битв сегодня осталось: '+r.left+'</p><button type="button" class="craftbtn" id="wf-ok">⚔️ К войне</button></div>';
+  try{if(r.win){sfx.fanfare();burst(4);hapN("success")}else{sfx.lose();hapN("error")}}catch(e){}$("wf-ok").onclick=()=>{WR=null;warOpen()}}
+if(new URLSearchParams(location.search).get("war")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);setTimeout(()=>warOpen(),500)},500)}
