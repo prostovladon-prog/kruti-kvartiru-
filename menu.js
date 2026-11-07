@@ -1100,8 +1100,9 @@ document.addEventListener("click",e=>{if(e.target.closest("#tab-fight"))gSet("fi
 if(new URLSearchParams(location.search).get("hof")){const t=setInterval(()=>{if(!S||!ONLINE)return;clearInterval(t);setTimeout(()=>{try{hofOpen()}catch(e){}},500)},500)}
 /* ===================== 🎵 МУЗЫКА: своя (без авторских прав), своя тема у каждого раздела, плавный переход ===================== */
 const MUS={el:null,cur:"",vol:.32,on:(()=>{try{return localStorage.getItem("we-mus")!=="0"}catch(e){return true}})(),ok:false,fade:0};
-function musTrack(){const m=$("mapscr");if(m&&!m.hidden)return (typeof mapView!=="undefined"&&mapView==="d")?"dragon":"map";
-  if($("sec-cas")&&!$("sec-cas").hidden)return "casino";if($("sec-dragon")&&!$("sec-dragon").hidden)return "dragon";return "main"}
+function musTrack(){const vis=id=>{const e=$(id);return !!(e&&!e.hidden)},m=$("mapscr");if(m&&!m.hidden)return typeof mapView==="undefined"?"map":mapView==="d"?"dragon":mapView==="a"?"ally":"map";
+  if(document.querySelector(".rkm:not([hidden])")||vis("sec-duel")||vis("sec-conq"))return "battle";
+  if(vis("sec-cas"))return "casino";if(vis("sec-dragon"))return "dragon";if(vis("sec-camp"))return "camp";return "main"}
 function musPlay(k){if(!MUS.ok||!MUS.on||document.hidden||muted){if(MUS.el&&!MUS.el.paused){MUS.el.pause()}return}
   if(MUS.cur===k&&MUS.el&&!MUS.el.paused)return;const old=MUS.el,og=MUS.g;MUS.cur=k;const a=new Audio("assets/music/"+k+".mp3");a.loop=true;a.preload="auto";a.crossOrigin="anonymous";MUS.el=a;
   /* громкость через WebAudio: на iPhone у <audio> громкость не меняется */
