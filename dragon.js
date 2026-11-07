@@ -524,3 +524,66 @@ function dgWishBar(){const D=dgOf(),pb=$("dgplay");let b=$("dgwish");if(!D||!pb|
     return '<div class="dgw'+(done?" done":ok?" ok":"")+'"><i>'+Q.ic+'</i><span><b>'+Q.n+'</b><u><s style="width:'+(p/Q.need*100)+'%"></s></u></span>'+(done?'<em>✅</em>':ok?'<button type="button" class="mini2" data-wk="'+x+'">Забрать</button>':'<em>'+p+'/'+Q.need+'</em>')+'</div>'}).join("")}
 setInterval(()=>{try{dgWishBar()}catch(e){}},1500);
 {const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{dgWishBar()}catch(e){}}}
+/* ===================== 🐉 Земля драконов на карте мира: логова держат только драконы ===================== */
+const DGL_R=44;
+const DGL_CELLS=(()=>{const R=DGL_R,W=Math.sqrt(3)*R,cx=195,cy=246,o=[[0,0],[W,0],[W/2,-1.5*R],[-W/2,-1.5*R],[-W,0],[-W/2,1.5*R],[W/2,1.5*R],[0,-3*R],[-1.5*W,1.5*R],[1.5*W,1.5*R]];return o.map(([x,y])=>({x:cx+x,y:cy+y}))})();
+function dgLandSVG(){const R=DGL_R,regs={};(MD.regs||[]).forEach(r=>regs[r.id]=r);const me=S.uid,col=u=>u===me?"#ffd23f":`hsl(${(u*2654435761>>>0)%360},85%,60%)`,lk=!MD.dgp;
+  let h=`<defs><radialGradient id="dls" cx=".5" cy=".55" r=".75"><stop offset="0" stop-color="#5a1206"/><stop offset=".55" stop-color="#2a0806"/><stop offset="1" stop-color="#0c0204"/></radialGradient>
+   <radialGradient id="dlg"><stop offset="0" stop-color="#ff7a1a" stop-opacity=".75"/><stop offset="1" stop-color="#ff3a00" stop-opacity="0"/></radialGradient>
+   <linearGradient id="dlh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b2a1c"/><stop offset="1" stop-color="#2e0f0c"/></linearGradient>
+   <linearGradient id="dlt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcf4a"/><stop offset="1" stop-color="#a8460a"/></linearGradient>
+   <linearGradient id="dll" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb02e"/><stop offset=".5" stop-color="#ff4d00"/><stop offset="1" stop-color="#ffb02e"/></linearGradient>
+   <filter id="dlb"><feGaussianBlur stdDeviation="3"/></filter><clipPath id="dlfc"><path d="M0 0 h18 l-5 6 l5 6 h-18z"/></clipPath></defs>
+   <rect width="390" height="470" fill="url(#dls)"/>
+   <g class="dl-lava" fill="none" stroke="url(#dll)" stroke-linecap="round"><path d="M-10 420 C 60 390, 90 450, 160 425 S 280 400, 400 440" stroke-width="7" opacity=".7"/><path d="M-10 60 C 70 90, 120 30, 210 60 S 330 90, 400 50" stroke-width="5" opacity=".55"/></g>
+   <ellipse cx="195" cy="250" rx="185" ry="170" fill="url(#dlg)" opacity=".45" class="dl-pulse"/>
+   <g class="dl-smoke" fill="#2a1a1a" opacity=".55" filter="url(#dlb)"><circle cx="40" cy="120" r="26"/><circle cx="350" cy="330" r="30"/><circle cx="330" cy="110" r="18"/><circle cx="60" cy="350" r="22"/></g>
+   <text x="18" y="452" font-size="26">🌋</text><text x="342" y="452" font-size="24">🌋</text><text x="330" y="44" font-size="20" class="dl-fly">🐉</text><text x="22" y="40" font-size="16" class="dl-fly b">🐲</text>`;
+  DGL_CELLS.forEach(p=>{h+=`<polygon points="${hexP(p.x,p.y+5,R+6)}" fill="#120404" opacity=".85"/><polygon points="${hexP(p.x,p.y+3,R+4)}" fill="#ff5a14" opacity=".35" filter="url(#dlb)"/>`});
+  let fl="";
+  DGL_CELLS.forEach((p,k)=>{const i=DGL0+k,o=regs[i],M=MAP_R[i],thr=i===DGL_THRONE,mine=o&&o.owner===me;
+    h+=`<g data-rg="${i}" style="cursor:pointer"><polygon points="${hexP(p.x,p.y,R-1)}" fill="url(#${thr?"dlt":"dlh"})" stroke="${o&&o.owner?col(o.owner):"#ff9a5a"}" stroke-opacity="${o&&o.owner?1:.55}" stroke-width="${o&&o.owner?3.5:1.4}" opacity="${lk?.72:1}"/>
+     <polygon points="${hexP(p.x,p.y-1,R-7)}" fill="none" stroke="#ffd9a8" stroke-opacity=".2"/>${i===mapSel?`<polygon points="${hexP(p.x,p.y,R+2)}" fill="none" stroke="#fff" stroke-width="4"/>`:""}
+     <text x="${p.x}" y="${p.y+4}" font-size="${thr?28:22}" text-anchor="middle">${o&&o.owner?"🐉":M[1]}</text>
+     <text x="${p.x}" y="${p.y+24}" font-size="7.6" font-weight="900" fill="#fff" stroke="#2a0604" stroke-width="2.2" paint-order="stroke" text-anchor="middle">${M[0].length>12?M[0].split(" ")[0]:M[0]}</text>
+     ${o&&o.dg?`<text x="${p.x}" y="${p.y-17}" font-size="7.4" font-weight="900" fill="#ffd23f" stroke="#2a0604" stroke-width="2" paint-order="stroke" text-anchor="middle">⚡${fmtN(o.dg.pow)}</text>`:""}
+     ${lk?`<text x="${p.x}" y="${p.y-12}" font-size="11" text-anchor="middle">🔒</text>`:""}${o&&o.shield?`<text x="${p.x-20}" y="${p.y-10}" font-size="10">🛡</text>`:""}<polygon points="${hexP(p.x,p.y,R)}" fill="transparent"/></g>`;
+    if(o&&o.owner){const C=MFC[o.flag]||MFC[""],nm=mine?"🐉 ТЫ":String(o.oname||"?").slice(0,8),w=Math.max(26,nm.length*5+8);
+      fl+=`<g pointer-events="none"><line x1="${p.x+11}" y1="${p.y-33}" x2="${p.x+11}" y2="${p.y-12}" stroke="#2a1608" stroke-width="2"/><g transform="translate(${p.x+12},${p.y-33})">${o.flag==="photo"&&o.ph?`<image href="${API_URL.replace(/\/$/,"")}/mp/${o.owner}" width="18" height="12" preserveAspectRatio="xMidYMid slice" clip-path="url(#dlfc)"/>`:`<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="${C[0]}"/><path d="M0 0 h9 v12 h-9z" fill="${C[1]}" opacity=".6"/>`}<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="none" stroke="#fff" stroke-width=".8"/></g>
+       <rect x="${p.x-22}" y="${p.y-41}" width="${w}" height="11" rx="5.5" fill="${mine?"#ffd23f":"rgba(30,4,2,.88)"}"/><text x="${p.x-22+w/2}" y="${p.y-33}" font-size="6.8" font-weight="900" fill="${mine?"#3a0a00":"#fff"}" text-anchor="middle">${escH(nm)}</text></g>`}});
+  const t=DGL_CELLS[0];h+=`<g pointer-events="none"><circle cx="${t.x+17}" cy="${t.y-15}" r="8" fill="#3a1600" stroke="#ffd23f" stroke-width="1.5"/><text x="${t.x+17}" y="${t.y-11.4}" font-size="9" text-anchor="middle">👑</text></g>`;
+  return h+fl}
+let mapDgTac="rush";
+function mapDgSheet(i){const r=(MD.regs||[]).find(x=>x.id===i)||{id:i},M=MAP_R[i],I=mapInc(i),m=$("modal"),sh=$("msheet"),mine=r.owner===S.uid,D=dgOf(),P=MD.dgp,thr=i===DGL_THRONE;m.hidden=false;
+  const myLair=(MD.regs||[]).find(x=>x.owner===S.uid&&x.id>=DGL0);
+  let body=`<div class="ms-h"><b>${M[1]} ${M[0]}</b><em style="background:${MAP.zc[3]}">🐉 ${MAP.zn[3]} · +${fmtN(I.c)} 🪙/ч${thr?" · 👑 ×"+MAP.dthr:""}</em></div>`;
+  if(!D||!P)body+=`<p class="ms-lock">🥚 Сюда пускают только с драконом. Выведи своего дракона — и он сможет захватить логово!</p><button type="button" class="craftbtn" id="mdg-egg">🐉 К дракону</button>`;
+  else if(mine)body+=`<p class="ms-sub">Твой дракон охраняет логово уже ${tleft(NOW()-r.since)}${r.shield?" · 🛡 щит ещё "+tleft(r.shield-NOW()):""} · отбито атак: ${r.def_n||0}</p><div class="mdg-v one"><div class="mdg-s me"><span>${dgMini(D)}</span><b>${escH(D.name||"Твой дракон")}</b><small>мощь ${dgFmt(P.pow)}</small></div></div>
+    <p class="ms-note">Логово приносит +${fmtN(I.c)} 🪙 и +${fmtN(I.r)} 💠 в час. Сила хранителя — это сила твоего дракона: качай его, и логово будет держаться крепче.</p><div class="ms-b"><button type="button" class="ghost" id="ms-leave">Покинуть логово</button></div>`;
+  else{const op=r.dg,fat=Math.min(MAP.dfatMax,MAP.dfat*(r.def_n||0)),pb=op?Math.round(op.pow*(1-fat)):Math.round(P.pow*.87),ch=dgaChance(P.pow,pb,P.el,op?op.el:null);
+    body+=`<p class="ms-sub">${r.owner?"Хозяин логова: <b>"+escH(r.oname||"?")+"</b>"+(r.shield?" · 🛡 щит ещё "+tleft(r.shield-NOW()):"")+(r.def_n?" · хранитель устал ×"+r.def_n:""):"Логово свободно, но его сторожит 🌿 дикий дракон. Победи — и логово твоё (атака не тратится)"}</p>
+    <div class="mdg-v"><div class="mdg-s me"><span>${dgMini(D)}</span><b>Твой ${P.el?DG_EL[P.el]:""}</b><small>мощь ${dgFmt(P.pow)}</small></div><div class="dgab-vs">VS</div>
+     <div class="mdg-s op"><span>${op?dgaMiniOf(op):'<i class="mdg-wild">🐲</i>'}</span><b>${op?escH(op.dn||r.oname||"Дракон")+" "+(op.el?DG_EL[op.el]:""):"Дикий дракон"}</b><small>мощь ${op?"":"~"}${dgFmt(pb)}${fat?" (−"+Math.round(fat*100)+"%)":""}</small></div></div>
+    <div class="dgab-ch">Шанс победы: <b>${ch}%</b></div>
+    <div class="dgab-tac">${Object.keys(DGA_TAC).map(k=>`<button type="button" class="${mapDgTac===k?"on":""}" data-tac="${k}"><i>${DGA_TAC[k].ic}</i><b>${DGA_TAC[k].n}</b><small>${DGA_TAC[k].d}</small></button>`).join("")}</div>
+    <button type="button" class="ms-go" id="ms-go"${r.shield||myLair?" disabled":""}>${myLair?"Твой дракон уже держит «"+MAP_R[myLair.id][0]+"»":r.owner?"🔥 Напасть на логово":"🐉 Изгнать дикого дракона"}</button>
+    <p class="ms-note">${r.owner?"Тратит 1 атаку (сегодня: "+Math.max(0,MD.att.left)+"). Победишь — логово твоё и щит на 3 ч.":"Один дракон держит одно логово."} Твой дракон никуда не уходит — он продолжает биться на арене и расти.</p>`}
+  sh.innerHTML='<div class="box nickbox mapsh mdg">'+body+'<button type="button" class="ghost" id="ms-x">Закрыть</button></div>';$("ms-x").onclick=closeModal;
+  sh.onclick=e=>{const b=e.target.closest("[data-tac]");if(b){mapDgTac=b.dataset.tac;hap("light");mapDgSheet(i)}};
+  const eg=$("mdg-egg");if(eg)eg.onclick=()=>{closeModal();const o=$("mapscr");if(o)o.remove();setTab("dragon")};
+  const go=$("ms-go");if(go)go.onclick=async()=>{go.disabled=true;const res=await act("map_attack",{rid:i,tac:mapDgTac});if(!res){go.disabled=false;return}mapDgFight(res,i)};
+  const lv=$("ms-leave");if(lv)lv.onclick=async()=>{if(await act("map_leave",{rid:i})){toast("🐉 Дракон вернулся домой");closeModal();await mapLoad();mapDraw()}}}
+async function mapDgFight(r,i){const D=dgOf(),M=MAP_R[i],T=DGA_TAC,m=$("modal"),sh=$("msheet");m.hidden=false;const op=r.opp;
+  sh.innerHTML='<div class="box dgab mdgf"><div class="mdgf-h"><small>🔥 БИТВА ЗА ЛОГОВО</small><b>'+M[1]+' '+M[0]+'</b></div><div class="dgab-v"><div class="dgab-s me" id="ab-me"><span>'+dgMini(D)+'</span><b>Ты</b><div class="dgab-hp"><i id="hp-a" style="width:100%"></i></div><small>'+T[r.ta].ic+' '+T[r.ta].n+'</small></div><div class="dgab-vs">VS</div><div class="dgab-s op" id="ab-op"><span>'+(r.wild?'<i class="mdg-wild">🐲</i>':dgaMiniOf(op))+'</span><b>'+escH(op.name)+'</b><div class="dgab-hp"><i id="hp-b" style="width:100%"></i></div><small id="ab-tb">🤫 тактика скрыта</small></div></div>'+
+    '<div class="dgab-log" id="ab-log"></div><div class="dgab-res" id="ab-res" hidden></div></div>';
+  const log=$("ab-log"),add=x=>{const d=document.createElement("div");d.innerHTML=x;log.appendChild(d)},wait=ms=>new Promise(z=>setTimeout(z,ms)),n=r.rounds.length;let ha=100,hb=100;
+  try{sfx.rumble(2)}catch(e){}await wait(600);$("ab-tb").textContent=T[r.tb].ic+" "+T[r.tb].n;add('<p class="dgab-tl">'+(r.tw>0?"🎯 Ты угадал тактику! +15% силы":r.tw<0?"😬 Соперник переиграл тактикой: у него +15%":"🤝 Тактики равны")+(r.ela?" · 🔥 стихия +20% тебе":r.elb?" · ⚠️ стихия +20% сопернику":"")+'</p>');
+  for(let k=0;k<n;k++){await wait(950);const x=r.rounds[k],aw=x[0]>=x[1],att=$(aw?"ab-me":"ab-op"),def=$(aw?"ab-op":"ab-me");if(!att||!def)return;
+    att.classList.add("lunge");def.classList.add("hit");setTimeout(()=>{att.classList.remove("lunge");def.classList.remove("hit")},500);
+    const f=document.createElement("i");f.className="dgab-fire "+(aw?"ltr":"rtl");f.textContent="🔥";log.parentNode.appendChild(f);setTimeout(()=>f.remove(),700);
+    if(aw){hb=Math.max(1,hb-50);$("hp-b").style.width=hb+"%"}else{ha=Math.max(1,ha-50);$("hp-a").style.width=ha+"%"}try{aw?sfx.clash():hap("medium")}catch(e){}
+    add('<p class="'+(aw?"w":"l")+'">Раунд '+(k+1)+': '+(aw?"твой дракон":"соперник")+' бьёт — <b>'+dgFmt(x[0])+'</b> : <b>'+dgFmt(x[1])+'</b></p>')}
+  if(r.won)$("hp-b").style.width="0%";else $("hp-a").style.width="0%";await wait(700);const R=$("ab-res");if(!R)return;R.hidden=false;R.className="dgab-res show "+(r.won?"w":"l");
+  R.innerHTML='<h3>'+(r.won?"🐉 ЛОГОВО ТВОЁ!":"💥 Хранитель выстоял")+'</h3><p>'+(r.won?M[0]+" под твоим флагом · 🛡 щит на 3 ч · доход +"+fmtN(mapInc(i).c)+" 🪙/ч":"Поменяй тактику или прокачай дракона — и возвращайся")+'</p><button type="button" class="craftbtn" id="dgab-ok">'+(r.won?"🗺 На карту":"🔥 Ещё раз")+'</button>';
+  try{if(r.won){sfx.fanfare();burst(4);hapN("success")}else{sfx.lose();hapN("error")}}catch(e){}
+  $("dgab-ok").onclick=async()=>{closeModal();await mapLoad();mapDraw();if(!r.won){mapSel=i;mapDgSheet(i)}}}
