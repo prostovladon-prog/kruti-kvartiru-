@@ -8,6 +8,7 @@ const MENU_GROUPS=[
  ["Главное",[
   {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
   {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
+  {k:"upd",ic:"🆕",n:"Обновление",c:["#ff9ad5","#c42a8a"]},
   {k:"emp",ic:"👑",n:"Империя",c:["#ffe066","#c47a00"]},
   {k:"hof",ic:"🏛",n:"Зал славы",c:["#ffe9a8","#b07a10"]},
   {k:"theme",ic:"🎨",n:"Тема",c:["#ffc8f0","#8a2ab0"]},
@@ -41,6 +42,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="riddle")return rdOpen();
   if(k==="vote")return vtOpen();
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
+  if(k==="upd"){updI=0;return updOpen()}
   if(k==="emp")return empOpen();
   if(k==="theme")return themeOpen();
   if(k==="hof")return hofOpen();
@@ -1152,3 +1154,25 @@ function themeOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;
   $("th-x").onclick=empOpen;sh.querySelector(".th-g").onclick=async e=>{const b=e.target.closest("[data-k]");if(!b)return;document.documentElement.dataset.theme=b.dataset.k;const r=await act("theme_set",{k:b.dataset.k});if(r){hapN("success");themeApply();themeOpen()}}}
 setInterval(()=>{try{if(S&&document.documentElement.dataset.theme!==(S.theme||""))themeApply()}catch(e){}},1500);
 {const _tr=topRow;topRow=function(it,i,kind){const d=_tr.apply(this,arguments);if(kind==="emp"){const r=empRank(it.score||0),sm=d.querySelector("small");if(sm)sm.textContent=EMP.R[r].ic+" "+EMP.R[r].n;if(it.ava!=null&&HEROES[it.ava]){const e=d.querySelector(".e");if(e)e.innerHTML=avaHTML(it.ava)}}return d}}
+/* ===================== 🆕 БОЛЬШОЕ ОБНОВЛЕНИЕ: слайды «что нового» + подарок ===================== */
+const UPD_SL=[
+ {ic:"👑",c:["#ffb02e","#7a2ad6"],t:"Твоя Империя",d:"Каждая карта — воин твоей армии и даёт ⚔️ Мощь. Расти от Племени до Легенды эпох: больше земель, атак, дохода и ежедневная дань.",b:"👑 Моя Империя",go:()=>empOpen()},
+ {ic:"🚀",c:["#ff4d6d","#2a1a7a"],t:"Ракетка онлайн",d:"Один полёт на всех: ставь, смотри, кто ещё в игре, и забирай до взрыва! А ещё 💣 Сапёр, общий 💎 джекпот и 💸 кешбэк каждое утро.",b:"🎰 В казино",go:()=>{closeModal();openCas("rk")}},
+ {ic:"🐉",c:["#ff6a1a","#5a0d0d"],t:"Земля драконов и союзы",d:"Логова, которые держат только драконы. Крепости, которые берут только вдвоём — найди напарника! И карта мира выросла до 70 земель.",b:"🗺 На карту",go:()=>{closeModal();try{mapView="d";openMap()}catch(e){}}},
+ {ic:"🏛",c:["#ffd23f","#6a4a06"],t:"Зал славы и удача",d:"Дорогие карты в Зале славы приносят монеты каждый час. 🍀 Оберег удачи повышает шанс Голограммы и Золота.",b:"🏛 Зал славы",go:()=>hofOpen()},
+ {ic:"💎",c:["#5ad8ff","#1a2a7a"],t:"Алмазная серия",d:"51 алмазная ошибка печати с крошечным тиражом — выпадает в прокрутке и сундуках. Плюс 11 новых героев: Король Артур, Святогор, Робин Гуд и другие!",b:"💎 Смотреть",go:()=>{closeModal();try{openGold();setTimeout(()=>{const b=document.querySelector('[data-g="dia"]');b&&b.click()},300)}catch(e){}}},
+ {ic:"🎵",c:["#3ddc84","#0d3a5a"],t:"Музыка, темы и аватар",d:"Своя музыка в каждом разделе, 8 тем оформления, аватар из твоих воинов, полный экран и бегущая строка LIVE с крутыми выпадениями.",b:"🎨 Выбрать тему",go:()=>themeOpen()}];
+let updI=0;
+function updOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const got=S&&S.updG===BIGUPD.id,last=updI>=UPD_SL.length;
+  const X=last?null:UPD_SL[updI];
+  sh.innerHTML='<div class="box nickbox updbox" style="'+(X?'--a:'+X.c[0]+';--b:'+X.c[1]:'--a:#ffd23f;--b:#c42a8a')+'"><div class="upd-k">🆕 БОЛЬШОЕ ОБНОВЛЕНИЕ</div>'+
+   (X?'<div class="upd-ic">'+X.ic+'</div><h3>'+X.t+'</h3><p>'+X.d+'</p><button type="button" class="ghost upd-try" id="upd-try">'+X.b+'</button>':
+     '<div class="upd-ic">🎁</div><h3>Подарок за обновление</h3><p>Спасибо, что играешь в «Воинов Эпох»! Держи прокрутки — вдруг выпадет алмаз 💎</p>')+
+   '<div class="upd-dots">'+UPD_SL.concat([0]).map((x,i)=>'<i class="'+(i===updI?"on":"")+'"></i>').join("")+'</div>'+
+   (X?'<button type="button" class="craftbtn upd-next" id="upd-next">Дальше ›</button>':'<button type="button" class="craftbtn upd-next" id="upd-gift"'+(got?" disabled":"")+'>'+(got?"✅ Подарок получен":"🎁 Забрать "+BIGUPD.sp+" прокруток")+'</button>')+
+   '<button type="button" class="ghost upd-x" id="upd-x">'+(X?"Пропустить":"Закрыть")+'</button></div>';
+  $("upd-x").onclick=()=>{try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}closeModal()};
+  const n=$("upd-next");if(n&&X)n.onclick=()=>{updI++;hap("light");updOpen()};const t=$("upd-try");if(t)t.onclick=()=>{try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}X.go()};
+  const g=$("upd-gift");if(g&&!got)g.onclick=async()=>{g.disabled=true;const r=await act("upd_gift");if(r){try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}hapN("success");try{sfx.fanfare();burst(5)}catch(e){}toast("🎁 +"+r.sp+" прокруток — удачи!");updCash&&updCash();setTimeout(()=>{closeModal();try{renderAll()}catch(e){}},900)}else g.disabled=false}}
+/* показать один раз после загрузки */
+{const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||$("onb")||document.querySelector(".hhpop"))return;let seen="";try{seen=localStorage.getItem("we-upd")}catch(e){}if(seen===BIGUPD.id||S.updG===BIGUPD.id){clearInterval(t);return}if(!$("modal").hidden)return;clearInterval(t);updI=0;updOpen()},1200)}

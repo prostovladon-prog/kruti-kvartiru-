@@ -3055,3 +3055,12 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .emp-b{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.emp-b button{margin:0;font-size:12px;padding:9px 4px}
 .seg.seg5{grid-template-columns:repeat(5,1fr)}.seg.seg5 button{font-size:11px;padding-inline:2px}
 .modal:has(.empbox),.modal:has(.avabox),.modal:has(.thbox),.modal:has(.updbox){align-items:flex-start;padding-top:calc(14px + var(--st,env(safe-area-inset-top,0px)))}
+/* 🆕 большое обновление */
+.updbox{text-align:center;color:#fff;background:radial-gradient(circle at 50% 22%,var(--a),var(--b) 70%)!important;overflow:hidden;position:relative}
+.updbox::before{content:"";position:absolute;left:50%;top:120px;width:520px;height:520px;margin:-260px 0 0 -260px;background:repeating-conic-gradient(rgba(255,255,255,.12) 0 8deg,transparent 8deg 22deg);animation:btSpin 30s linear infinite;pointer-events:none}
+.updbox>*{position:relative}.upd-k{font-size:11px;font-weight:900;letter-spacing:2px;background:rgba(0,0,0,.25);display:inline-block;padding:4px 10px;border-radius:999px}
+.upd-ic{font-size:84px;line-height:1;margin:14px 0 6px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.4));animation:updIn .5s cubic-bezier(.2,1.5,.4,1)}@keyframes updIn{from{transform:scale(.3) rotate(-20deg);opacity:0}}
+.updbox h3{font-size:24px;margin:4px 0 8px;text-shadow:0 3px 0 rgba(0,0,0,.25)}.updbox p{font-size:14px;line-height:1.45;margin:0 4px 12px;opacity:.95}
+.updbox .upd-try{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.15);font-weight:900}.upd-dots{display:flex;justify-content:center;gap:6px;margin:12px 0}.upd-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.35)}.upd-dots i.on{background:#fff;width:22px;border-radius:5px}
+.updbox .upd-next{background:linear-gradient(135deg,#ffd23f,#ff8a1a)!important;color:#3a1600!important}.updbox .upd-x{color:rgba(255,255,255,.8);border:0;background:none}
+@keyframes btSpin{to{transform:rotate(360deg)}}
