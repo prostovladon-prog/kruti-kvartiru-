@@ -3064,3 +3064,9 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .updbox .upd-try{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.15);font-weight:900}.upd-dots{display:flex;justify-content:center;gap:6px;margin:12px 0}.upd-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.35)}.upd-dots i.on{background:#fff;width:22px;border-radius:5px}
 .updbox .upd-next{background:linear-gradient(135deg,#ffd23f,#ff8a1a)!important;color:#3a1600!important}.updbox .upd-x{color:rgba(255,255,255,.8);border:0;background:none}
 @keyframes btSpin{to{transform:rotate(360deg)}}
+/* 👑 плашка Империи — крупнее */
+.emp-bar{padding:12px 14px;gap:12px;border-radius:20px;border-width:2px;background:linear-gradient(135deg,rgba(90,40,180,.9),rgba(170,80,10,.75));box-shadow:0 10px 26px rgba(0,0,0,.3),0 0 0 1px rgba(255,210,63,.25) inset}
+.eb-av{position:relative;flex:none}.ava.md{width:58px;height:58px;border-width:3px;box-shadow:0 0 14px rgba(255,200,40,.5)}
+.eb-lv{position:absolute;right:-6px;bottom:-4px;min-width:26px;height:26px;padding:0 5px;border-radius:13px;background:linear-gradient(135deg,#ffd23f,#ff8a1a);color:#3a1600;font-style:normal;font-weight:900;font-size:13px;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.eb-k{font-size:9.5px!important;letter-spacing:1.5px;color:#ffd23f;font-weight:900;opacity:1!important}.eb-t b{font-size:18px!important}.eb-l{font-size:13px;opacity:.85}.eb-t small{font-size:12px!important}.eb-bar{height:8px!important;border-radius:5px!important;margin-top:6px!important}
+.emp-bar .eb-tr{font-size:12px!important;line-height:1.15;text-align:center;padding:8px 10px!important;border-radius:12px!important}

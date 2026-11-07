@@ -1125,20 +1125,21 @@ $("snd").onclick=()=>{if(!muted&&MUS.on){MUS.on=false;toast("🎵 Музыка �
 try{if(!MUS.on)$("snd").textContent="🔈"}catch(e){}
 
 /* ===================== 👑 ИМПЕРИЯ ===================== */
-const empNow=()=>{const p=(S&&S.emp)||0,r=empRank(p),R=EMP.R[r],N=EMP.R[r+1];return {p,r,R,N,pc:N?Math.min(100,(p-R.p)/(N.p-R.p)*100):100}};
+const empNow=()=>{const p=(S&&S.emp)||0,r=empRank(p),R=EMP.R[r],N=EMP.R[r+1],L=empLvl(p),a=empLvP(L),b=empLvP(L+1);return {p,r,R,N,L,next:L<EMP.MAXL?b:0,pc:L<EMP.MAXL?Math.min(100,(p-a)/(b-a)*100):100}};
+let empLvSeen=0;setInterval(()=>{try{if(!S||!S.emp)return;const L=empLvl(S.emp);if(empLvSeen&&L>empLvSeen){const E=empNow();toast("🎉 Империя: уровень "+L+"!"+(EMP.band.includes(L)?" Новый ранг — "+E.R.ic+" "+E.R.n+"!":""));try{burst(4);sfx.fanfare();hapN("success")}catch(e){}}empLvSeen=L}catch(e){}},1500);
 function avaHTML(h,cls){return '<span class="ava '+(cls||"")+'">'+(h!=null&&HEROES[h]?portrait(h):'<i>👤</i>')+'</span>'}
 function empBar(){if(!S||!ONLINE)return;const sp=$("sec-spin");if(!sp)return;let b=$("emp-bar");if(!b){b=document.createElement("button");b.type="button";b.id="emp-bar";b.className="emp-bar";b.onclick=()=>empOpen();const h=$("hype");if(h&&h.parentNode===sp)h.after(b);else sp.insertBefore(b,sp.firstChild)}
   const E=empNow(),trib=S.empD!==new Date(NOW()).toISOString().slice(0,10),sig=E.p+"|"+E.r+"|"+trib+"|"+S.ava;if(b.dataset.sig===sig)return;b.dataset.sig=sig;
-  b.innerHTML=avaHTML(S.ava,"sm")+'<span class="eb-t"><b>'+E.R.ic+' '+E.R.n+'</b><small>⚔️ '+fmtN(E.p)+(E.N?' · до «'+E.N.n+'» '+fmtN(E.N.p-E.p):' · высший ранг')+'</small><i class="eb-bar"><u style="width:'+E.pc+'%"></u></i></span>'+(trib?'<em class="eb-tr">💰 Дань</em>':'<em>›</em>')}
+  b.innerHTML='<span class="eb-av">'+avaHTML(S.ava,"md")+'<i class="eb-lv">'+E.L+'</i></span><span class="eb-t"><small class="eb-k">ТВОЯ ИМПЕРИЯ</small><b>'+E.R.ic+' '+E.R.n+' <span class="eb-l">· ур. '+E.L+'</span></b><small>⚔️ '+fmtN(E.p)+' мощи'+(E.next?' · до ур. '+(E.L+1)+': '+fmtN(E.next-E.p):' · максимум!')+'</small><i class="eb-bar"><u style="width:'+E.pc+'%"></u></i></span>'+(trib?'<em class="eb-tr">💰<br>Дань</em>':'<em>›</em>')}
 setInterval(()=>{try{empBar()}catch(e){}},1500);
 function empOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const E=empNow(),C=S.cards||[],coll=hofColl(C),cardsP=C.reduce((a,c)=>a+cardPow(c),0),dgP=S.dg?(S.dg.lv||0)*EMP.dg:0,trib=S.empD!==new Date(NOW()).toISOString().slice(0,10);
   const perk=i=>['🗺 '+EMP.reg[i]+' рег.','🏛 +'+EMP.hof[i]+' в Зале','⚔️ +'+EMP.att[i]+' атак','💰 +'+Math.round(EMP.inc*i*100)+'% дохода','🎁 дань '+fmtN(EMP.trib[i])+'🪙'+(EMP.tribSp[i]?' +'+EMP.tribSp[i]+'🎴':'')].filter((x,k)=>k===0||k===4||(k===1&&EMP.hof[i])||(k===2&&EMP.att[i])||(k===3&&i)).join(' · ');
-  sh.innerHTML='<div class="box nickbox empbox"><div class="emp-hd">'+avaHTML(S.ava,"lg")+'<div><small>ТВОЯ ИМПЕРИЯ</small><h3>'+E.R.ic+' '+E.R.n+'</h3><b>⚔️ '+fmtN(E.p)+' мощи</b></div></div>'+
-   '<div class="emp-pr"><i style="width:'+E.pc+'%"></i><span>'+(E.N?'до «'+E.N.ic+' '+E.N.n+'» ещё '+fmtN(E.N.p-E.p):'🌟 Высший ранг!')+'</span></div>'+
+  sh.innerHTML='<div class="box nickbox empbox"><div class="emp-hd">'+avaHTML(S.ava,"lg")+'<div><small>ТВОЯ ИМПЕРИЯ · УРОВЕНЬ '+E.L+' из '+EMP.MAXL+'</small><h3>'+E.R.ic+' '+E.R.n+'</h3><b>⚔️ '+fmtN(E.p)+' мощи</b></div></div>'+
+   '<div class="emp-pr"><i style="width:'+E.pc+'%"></i><span>'+(E.next?'до ур. '+(E.L+1)+' ещё '+fmtN(E.next-E.p)+(E.N?' · ранг «'+E.N.n+'» с ур. '+EMP.band[E.r+1]:''):'🌟 Максимальный уровень!')+'</span></div>'+
    '<button type="button" class="craftbtn emp-trib" id="emp-trib"'+(trib?'':' disabled')+'>'+(trib?'💰 Собрать дань: +'+fmtN(EMP.trib[E.r])+' 🪙'+(EMP.tribSp[E.r]?' и '+EMP.tribSp[E.r]+' 🎴':''):'Дань собрана — завтра снова')+'</button>'+
    '<div class="emp-src"><div><b>🎴 '+fmtN(cardsP)+'</b><small>армия: '+C.length+' карт</small></div><div><b>📚 '+fmtN(coll*EMP.coll)+'</b><small>коллекций: '+coll+'</small></div><div><b>🐉 '+fmtN(dgP)+'</b><small>дракон</small></div></div>'+
    '<p class="emp-how">💡 Мощь дают <b>все</b> карты: редкость × отделка × уровень × звёзды. Золотая — в 6 раз сильнее обычной, Ошибка — в 12, Алмаз — в 14. Прокачивай, закаляй ★, собирай коллекции и расти дракона.</p>'+
-   '<div class="emp-rk">'+EMP.R.map((R,i)=>'<div class="'+(i===E.r?"on":i<E.r?"ok":"")+'"><i>'+R.ic+'</i><span><b>'+R.n+'</b><small>'+(i?'от ⚔️ '+fmtN(R.p)+' · ':'')+perk(i)+'</small></span>'+(i<E.r?'✅':i===E.r?'<em>ТЫ</em>':'')+'</div>').join("")+'</div>'+
+   '<div class="emp-rk">'+EMP.R.map((R,i)=>'<div class="'+(i===E.r?"on":i<E.r?"ok":"")+'"><i>'+R.ic+'</i><span><b>'+R.n+'</b><small>ур. '+EMP.band[i]+'–'+(EMP.band[i+1]?EMP.band[i+1]-1:EMP.MAXL)+(i?' · от ⚔️ '+fmtN(R.p):'')+' · '+perk(i)+'</small></span>'+(i<E.r?'✅':i===E.r?'<em>ТЫ</em>':'')+'</div>').join("")+'</div>'+
    '<div class="emp-b"><button type="button" class="ghost" id="emp-top">🏆 Топ Империй</button><button type="button" class="ghost" id="emp-ava">🖼 Аватар</button><button type="button" class="ghost" id="emp-th">🎨 Тема</button></div>'+
    '<button type="button" class="ghost" id="emp-x">Закрыть</button></div>';
   $("emp-x").onclick=closeModal;$("emp-top").onclick=()=>{closeModal();try{tpView="emp";setTab("top");renderTop(true)}catch(e){}};$("emp-ava").onclick=avaOpen;$("emp-th").onclick=themeOpen;
