@@ -590,7 +590,7 @@ const mnM=(mines,k)=>{let m=MN.ret;for(let i=0;i<k;i++)m*=(MN.size-i)/(MN.size-m
 /* 🎰 Джекпот: 1% всех ставок казино копится в общий банк, его срывает тот, кто выбьет 💎💎💎 в слотах. Кешбэк: 10% вчерашнего минуса в казино (до 50 000 рун) */
 const JP={cut:.01,seed:1e5},CSB={pct:.1,max:5e4};
 /* 🚀 Ракетка: множитель растёт e^(k·t), взрыв в случайный момент. P(дожить до ×x)=0.96/x — честные 96% отдачи */
-const RKT={min:1e3,max:5e4,k:.11,cap:100,ret:.96},rkM=ms=>Math.min(RKT.cap,Math.floor(100*Math.exp(RKT.k*Math.max(0,ms)/1e3))/100),rkCr=()=>{const u=Math.random();return Math.max(1,Math.min(RKT.cap,Math.floor(100*RKT.ret/(1-u))/100))};
+const RKT={min:1e3,max:5e4,k:.11,cap:100,ret:.96,bet:8e3,pause:4e3},rkM=ms=>Math.min(RKT.cap,Math.floor(100*Math.exp(RKT.k*Math.max(0,ms)/1e3))/100),rkCr=()=>{const u=Math.random();return Math.max(1,Math.min(RKT.cap,Math.floor(100*RKT.ret/(1-u))/100))};
 function rkEnd(st,ctx,K,take){const R=K.rk,m=rkM(ctx.now-R.t0);let w=0,at=R.cr;if(R.auto&&R.auto<R.cr&&m>=R.auto){w=Math.floor(R.b*R.auto);at=R.auto}else if(take&&m<R.cr){w=Math.floor(R.b*m);at=m}
   K.rk=null;if(w)camp(st,ctx.now).runes+=w;return {end:1,cr:R.cr,at,win:w,b:R.b}}
 /* обмен монет на руны пакетами по 10 000 💠. Цена — процент от монет игрока: 1-й пакет за день 1%, 2-й 2% … 5-й 5% (не меньше 1 000 🪙).
@@ -920,6 +920,7 @@ const ACTIONS={
     if(M.o.length>=MN.size-M.n){const w=Math.floor(M.b*m);camp(st,ctx.now).runes+=w;K.mn=null;return {i,m,win:w,all:1,mines:M.m}}return {i,m,next:mnM(M.n,M.o.length+1),o:M.o}},
   cas_mn_take(G){const {st,ctx}=G;const K=casDay(st,ctx.now),M=K.mn;if(!M)fail("Игра не начата");if(!M.o.length)fail("Открой хотя бы одну клетку");
     const m=mnM(M.n,M.o.length),w=Math.floor(M.b*m);camp(st,ctx.now).runes+=w;K.mn=null;return {win:w,m,mines:M.m}},
+  cas_rk_bet(G){if(!G.ctx.grant)fail("Неизвестное действие");casBet(G.st,G.ctx,G.p.bet,RKT);return {dg:dgCasDrop(G.st,G.ctx,"hl")}},
   cas_rk_go(G){const {st,ctx}=G;const K=casDay(st,ctx.now);let prev=null;if(K.rk)prev=rkEnd(st,ctx,K,0);casBet(st,ctx,G.p.bet,RKT);
     const a=+G.p.auto||0;K.rk={b:Math.floor(+G.p.bet),t0:ctx.now,cr:rkCr(),auto:a>=1.1&&a<=RKT.cap?Math.round(a*100)/100:0};return {t0:ctx.now,k:RKT.k,auto:K.rk.auto,prev,dg:dgCasDrop(st,ctx,"hl")}},
   cas_rk(G){const {st,ctx}=G;const K=casDay(st,ctx.now),R=K.rk;if(!R)return {end:1,none:1};const m=rkM(ctx.now-R.t0);

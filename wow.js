@@ -283,7 +283,7 @@ function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySel
        :bets+'<button type="button" class="cs-go" id="hl-go">НАЧАТЬ · '+fmtN(csBet)+' 💠</button>')+
       '<details class="cs-odds"><summary>Как считается</summary><p>Чем меньше шанс угадать, тем больше множитель. Одинаковая карта — проигрыш. В среднем возвращается 95% на каждом шаге.</p></details></div>';
     if(H){B.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>hlGo(b.dataset.dir));$("hl-take").onclick=hlTake}else $("hl-go").onclick=hlStart}
-  if(csTab==="rk")rkDraw(B,bets);
+  if(csTab==="rk")qDraw(B,bets);
   if(csTab==="mn")mnDraw(B,bets);
   csTopDraw();
   const bb=$("cs-bets");if(bb)bb.onclick=e=>{const b=e.target.closest("[data-bet]");if(!b)return;csBet=+b.dataset.bet;renderCas()}}
@@ -955,38 +955,46 @@ document.addEventListener("click",e=>{if(e.target.closest("#cap-open")){e.stopPr
     v+='<div class="diac'+(l<=0?" sold":"")+'">'+miniSlot(c)+'<b>'+HEROES[h][0]+'</b><small>«'+D.n+'»</small><div class="dial"><i style="width:'+Math.round(l/D.run*100)+'%"></i></div><small class="diaq">'+(l>0?'осталось '+l+' из '+D.run:'все '+D.run+' уже у игроков')+'</small></div>'}
   B.innerHTML=v+'</div>'}}
 
-/* ===================== 🚀 РАКЕТКА (crash): множитель растёт, забери до взрыва ===================== */
-let rkAuto=0,rkSt=null,rkHist=[];try{rkHist=JSON.parse(localStorage.getItem("we-rkh")||"[]")}catch(e){}
-const rkFmt=m=>"×"+m.toFixed(2).replace(".",",");
-function rkDraw(B,bets){const fly=rkSt&&rkSt.fly;
-  B.innerHTML='<div class="cs-box rkbox"><h3>🚀 РАКЕТКА</h3><div class="sub">Ракета взлетает — множитель растёт. Успей забрать до взрыва! Чем дольше ждёшь, тем больше риск</div>'+
-   '<div class="rk-hist">'+(rkHist.length?rkHist.slice(-9).reverse().map(x=>'<i class="'+(x>=10?"hi":x>=2?"md":"lo")+'">'+rkFmt(x)+'</i>').join(""):'<i class="md">история взлётов</i>')+'</div>'+
-   '<div class="rk-sky" id="rk-sky"><div class="rk-stars"></div><svg class="rk-curve" viewBox="0 0 300 180" preserveAspectRatio="none"><defs><linearGradient id="rkg" x1="0" x2="1"><stop offset="0" stop-color="#ffb02e" stop-opacity=".1"/><stop offset="1" stop-color="#ff4d6d"/></linearGradient></defs><path id="rk-path" d="M0 180" fill="none" stroke="url(#rkg)" stroke-width="4" stroke-linecap="round"/></svg>'+
-   '<div class="rk-ship" id="rk-ship"><span>🚀</span><i></i></div><div class="rk-m" id="rk-m">'+(fly?rkFmt(1):"×1,00")+'</div><div class="rk-msg" id="rk-msg">'+(fly?"":"готов к взлёту")+'</div></div>'+
-   (fly?'<button type="button" class="cs-go rk-take" id="rk-take">💰 ЗАБРАТЬ</button>':
-   bets+'<div class="rk-auto"><span>Автовывод:</span>'+[0,1.5,2,3,5,10].map(a=>'<button type="button" data-auto="'+a+'" aria-pressed="'+(rkAuto===a)+'">'+(a?"×"+String(a).replace(".",","):"выкл")+'</button>').join("")+'</div>'+
-   '<button type="button" class="cs-go" id="rk-go">🚀 ВЗЛЁТ · '+fmtN(csBet)+' 💠</button>')+
-   '<details class="cs-odds"><summary>Как это работает — всё честно</summary><p>Точку взрыва сервер выбирает в момент взлёта, и изменить её нельзя. Шанс долететь до ×2 — 48%, до ×5 — 19%, до ×10 — 9,6%, до ×100 — около 1%. В среднем возвращается 96% ставок. Автовывод заберёт выигрыш сам, даже если ты отвлёкся.</p></details></div>';
-  if(fly){$("rk-take").onclick=()=>rkPoll(1)}else{$("rk-go").onclick=rkGo;B.querySelector(".rk-auto").onclick=e=>{const b=e.target.closest("[data-auto]");if(!b)return;rkAuto=+b.dataset.auto;renderCas()}}}
-async function rkGo(){if(csBusy)return;if(campView().runes<csBet){toast("Нужно ещё "+fmtN(csBet-campView().runes)+" рун — потренируйся в лагере");return}
-  csBusy=true;const r=await act("cas_rk_go",{bet:csBet,auto:rkAuto});if(!r){csBusy=false;return}csBal();try{sfx.rumble(2);hap("heavy")}catch(e){}
-  rkSt={fly:1,t0:performance.now(),auto:r.auto,b:csBet,polling:0,done:0};renderCas();rkLoop();rkTm=setInterval(()=>rkPoll(0),650)}
-let rkTm=0;
-function rkLoop(){if(!rkSt||!rkSt.fly)return;const s=(performance.now()-rkSt.t0)/1e3,m=Math.min(RKT.cap,Math.exp(RKT.k*s)),el=$("rk-m");
-  if(el){el.textContent=rkFmt(Math.floor(m*100)/100);el.className="rk-m"+(m>=10?" hi":m>=2?" md":"")}
-  const X=Math.min(1,s/22),Y=Math.min(1,Math.log(m)/Math.log(30)),px=12+X*270,py=170-Y*150,ship=$("rk-ship"),p=$("rk-path");
-  if(ship)ship.style.transform="translate("+(px/300*100)+"cqw,"+(py/180*100)+"cqh) rotate("+(-60+X*20-Y*10)+"deg)";
+/* ===================== 🚀 ОНЛАЙН-РАКЕТКА: общие раунды для всех игроков ===================== */
+let qAuto=0,ROQ=null,qOff=0,qTm=0,qRaf=0,qBusy=false,qLastId=0,qBoomId=0;
+const qFmt=m=>"×"+(+m).toFixed(2).replace(".",",");
+async function qQ(a,p){if(!ONLINE)return null;try{const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a,p:p||{}})});const j=await r.json();return j.ok?j.res:null}catch(e){return null}}
+function qOn(){return csTab==="rk"&&$("sec-cas")&&!$("sec-cas").hidden}
+async function qTick(){if(!qOn()){clearInterval(qTm);qTm=0;cancelAnimationFrame(qRaf);qRaf=0;return}const r=await qQ("roc_state");if(!r||!qOn())return;qOff=r.now-Date.now();const prev=ROQ;ROQ=r;
+  if(!prev||prev.id!==r.id||prev.ph!==r.ph||!$("rk-sky"))renderCas();else qList();
+  if(r.ph==="crash"&&qBoomId!==r.id){qBoomId=r.id;const sk=$("rk-sky");if(sk){sk.classList.remove("boom");void sk.offsetWidth;sk.classList.add("boom")}const my=r.my;try{if(my&&my.out_m==null){sfx.lose();hapN("error")}else hap("medium")}catch(e){}}}
+function qStart(){if(!qTm){qTm=setInterval(qTick,1000);qTick()}if(!qRaf)qRaf=requestAnimationFrame(qLoop)}
+function qDraw(B,bets){qStart();const r=ROQ;
+  if(!r){B.innerHTML='<div class="cs-box rkbox"><h3>🚀 РАКЕТКА · ОНЛАЙН</h3><div class="rk-sky"><div class="rk-msg" style="top:90px">Подключаемся к раунду…</div></div></div>';return}
+  const my=r.my,ph=r.ph,canBet=ph==="bet"&&!my,inFly=ph==="fly"&&my&&my.out_m==null;
+  B.innerHTML='<div class="cs-box rkbox"><h3>🚀 РАКЕТКА · <span class="rk-live">● ОНЛАЙН</span></h3><div class="sub">Один полёт на всех: ставь, пока идёт отсчёт, и забирай до взрыва</div>'+
+   '<div class="rk-hist">'+(r.hist||[]).slice(0,10).map(x=>'<i class="'+(x>=10?"hi":x>=2?"md":"lo")+'">'+qFmt(x)+'</i>').join("")+'</div>'+
+   '<div class="rk-sky'+(ph==="crash"?" boom crashed":"")+'" id="rk-sky"><div class="rk-stars"></div><svg class="rk-curve" viewBox="0 0 300 180" preserveAspectRatio="none"><defs><linearGradient id="rkg" x1="0" x2="1"><stop offset="0" stop-color="#ffb02e" stop-opacity=".1"/><stop offset="1" stop-color="#ff4d6d"/></linearGradient></defs><path id="rk-path" d="M0 180" fill="none" stroke="url(#rkg)" stroke-width="4" stroke-linecap="round"/></svg>'+
+   '<div class="rk-ship" id="rk-ship"><span>'+(ph==="crash"?"💥":"🚀")+'</span><i></i></div><div class="rk-m'+(ph==="crash"?" lose":"")+'" id="rk-m">'+(ph==="crash"?qFmt(r.cr):ph==="bet"?"":"×1,00")+'</div>'+
+   '<div class="rk-msg" id="rk-msg">'+(ph==="bet"?'<span class="rk-cd">Взлёт через <b id="rk-cd">'+Math.max(0,Math.ceil((r.fs-r.now)/1000))+'</b></span><small>принимаем ставки · '+r.n+' игроков · '+fmtN(r.sum)+' 💠</small>':ph==="crash"?'💥 ВЗОРВАЛАСЬ<small>новый раунд через пару секунд</small>':'')+'</div>'+(ph==="bet"?'<div class="rk-bar"><i id="rk-bar"></i></div>':'')+'</div>'+
+   (inFly?'<button type="button" class="cs-go rk-take" id="rk-take">💰 ЗАБРАТЬ</button>':
+    my?'<div class="rk-my '+(my.out_m!=null?"w":ph==="crash"?"l":"")+'">'+(my.out_m!=null?'✅ Ты забрал на '+qFmt(my.out_m)+' · +'+fmtN(my.win)+' 💠':ph==="crash"?'💥 Ставка '+fmtN(my.b)+' 💠 сгорела':'🎟 Ставка '+fmtN(my.b)+' 💠 принята'+(my.auto?' · автовывод '+qFmt(my.auto):'')+' — ждём взлёта')+'</div>':
+    bets+'<div class="rk-auto"><span>Автовывод:</span>'+[0,1.5,2,3,5,10].map(a=>'<button type="button" data-auto="'+a+'" aria-pressed="'+(qAuto===a)+'">'+(a?"×"+String(a).replace(".",","):"выкл")+'</button>').join("")+'</div>'+
+    '<button type="button" class="cs-go" id="rk-go"'+(canBet?"":" disabled")+'>'+(canBet?'🚀 ПОСТАВИТЬ · '+fmtN(csBet)+' 💠':'⏳ Ставки — на следующий раунд')+'</button>')+
+   '<div class="rk-pl"><div class="rk-plh"><b>👥 Игроки раунда</b><small id="rk-n">'+r.n+'</small></div><div id="rk-list"></div></div>'+
+   '<details class="cs-odds"><summary>Как это работает — всё честно</summary><p>Точку взрыва сервер выбирает до начала раунда, одну на всех — изменить её нельзя. Шанс долететь до ×2 — 48%, до ×5 — 19%, до ×10 — 9,6%. В среднем возвращается 96% ставок. Автовывод заберёт выигрыш сам, даже если ты закрыл игру.</p></details></div>';
+  if(ph==="crash"&&r.cr){const sc=Math.log(r.cr)/RKT.k,X=Math.min(1,sc/22),Y=Math.min(1,Math.log(r.cr)/Math.log(30)),sh=$("rk-ship"),pp=$("rk-path");if(sh){sh.style.left=(4+X*90)+"%";sh.style.top=(94-Y*83)+"%"}
+    if(pp){let d="M0 178";for(let k=1;k<=20;k++){const ss=sc*k/20,mm=Math.exp(RKT.k*ss);d+=" L"+(12+Math.min(1,ss/22)*270).toFixed(1)+" "+(170-Math.min(1,Math.log(mm)/Math.log(30))*150).toFixed(1)}pp.setAttribute("d",d)}}
+  qList();const t=$("rk-take");if(t)t.onclick=qOut;const g=$("rk-go");if(g)g.onclick=qBet;const au=B.querySelector(".rk-auto");if(au)au.onclick=e=>{const b=e.target.closest("[data-auto]");if(!b)return;qAuto=+b.dataset.auto;renderCas()}}
+function qList(){const L=$("rk-list"),r=ROQ;if(!L||!r)return;const n=$("rk-n");if(n)n.textContent=r.n+" · "+fmtN(r.sum)+" 💠";
+  L.innerHTML=r.bets.length?r.bets.map(x=>'<div class="rk-pi'+(x.me?" me":"")+(x.out!=null?" w":x.lost?" l":"")+'"><b>'+fnEsc(String(x.name||"Игрок").slice(0,16))+'</b><span>'+fmtN(x.b)+' 💠</span><em>'+(x.out!=null?qFmt(x.out)+' · +'+fmtN(x.win):x.lost?"💥":"…")+'</em></div>').join(""):'<p class="rk-empty">Пока никто не поставил — будь первым!</p>'}
+function qLoop(){qRaf=0;if(!qOn())return;qRaf=requestAnimationFrame(qLoop);const r=ROQ;if(!r)return;const now=Date.now()+qOff;
+  if(r.ph==="bet"){const c=$("rk-cd");if(c)c.textContent=Math.max(0,Math.ceil((r.fs-now)/1000));const b=$("rk-bar");if(b)b.style.width=Math.max(0,Math.min(100,(r.fs-now)/RKT.bet*100))+"%";
+    if(now>=r.fs&&!r._fly){r._fly=1;r.ph="fly";renderCas();try{sfx.rumble(2);hap("heavy")}catch(e){}}return}
+  if(r.ph!=="fly")return;const s=Math.max(0,(now-r.fs)/1e3),m=Math.min(RKT.cap,Math.exp(RKT.k*s)),el=$("rk-m");
+  if(el){el.textContent=qFmt(Math.floor(m*100)/100);el.className="rk-m"+(m>=10?" hi":m>=2?" md":"")}
+  const X=Math.min(1,s/22),Y=Math.min(1,Math.log(m)/Math.log(30)),ship=$("rk-ship"),p=$("rk-path");
+  if(ship){ship.style.left=(4+X*90)+"%";ship.style.top=(94-Y*83)+"%";ship.style.transform="rotate("+(-25-Y*20)+"deg)"}
   if(p){let d="M0 178";for(let k=1;k<=20;k++){const ss=s*k/20,mm=Math.exp(RKT.k*ss);d+=" L"+(12+Math.min(1,ss/22)*270).toFixed(1)+" "+(170-Math.min(1,Math.log(mm)/Math.log(30))*150).toFixed(1)}p.setAttribute("d",d)}
-  const tk=$("rk-take");if(tk)tk.textContent="💰 ЗАБРАТЬ "+fmtN(Math.floor(rkSt.b*Math.floor(m*100)/100))+" 💠";
-  requestAnimationFrame(rkLoop)}
-async function rkPoll(take){if(!rkSt||!rkSt.fly||rkSt.polling)return;if(!take&&rkSt.tk)return;rkSt.polling=1;if(take){rkSt.tk=1;const b=$("rk-take");if(b)b.disabled=true}
-  const r=await act("cas_rk",take?{take:1}:{});if(!rkSt){return}rkSt.polling=0;if(!r){if(take){rkSt.tk=0;const b=$("rk-take");if(b)b.disabled=false}return}
-  if(r.end)rkFinish(r)}
-function rkFinish(r){clearInterval(rkTm);rkTm=0;csBusy=false;const sk=$("rk-sky"),msg=$("rk-msg"),el=$("rk-m");rkSt.fly=0;
-  if(!r.none){rkHist.push(r.cr);rkHist=rkHist.slice(-20);try{localStorage.setItem("we-rkh",JSON.stringify(rkHist))}catch(e){}}
-  if(r.win){if(el){el.textContent=rkFmt(r.at);el.className="rk-m win"}if(msg)msg.innerHTML='+'+fmtN(r.win)+' 💠 <small>ракета взорвалась на '+rkFmt(r.cr)+'</small>';try{sfx.fanfare();hapN("success");if(r.at>=5)burst(3)}catch(e){}}
-  else{if(sk)sk.classList.add("boom");if(el){el.textContent=rkFmt(r.cr||1);el.className="rk-m lose"}if(msg)msg.innerHTML='💥 БУМ! <small>ставка сгорела</small>';try{sfx.lose();hapN("error")}catch(e){}}
-  csBal();setTimeout(()=>{rkSt=null;if(csTab==="rk"&&!$("sec-cas").hidden)renderCas()},2300)}
+  const tk=$("rk-take");if(tk&&r.my)tk.textContent="💰 ЗАБРАТЬ "+fmtN(Math.floor(r.my.b*Math.floor(m*100)/100))+" 💠"}
+async function qBet(){if(qBusy)return;if(campView().runes<csBet){toast("Нужно ещё "+fmtN(csBet-campView().runes)+" рун — потренируйся в лагере");return}qBusy=true;
+  const r=await act("roc_bet",{bet:csBet,auto:qAuto});qBusy=false;if(r){ROQ=r;qOff=r.now-Date.now();hap("heavy");csBal();renderCas()}}
+async function qOut(){if(qBusy)return;qBusy=true;const b=$("rk-take");if(b)b.disabled=true;const r=await act("roc_out");qBusy=false;if(r){ROQ=r;const my=r.my;if(my&&my.out_m!=null){try{sfx.fanfare();hapN("success");if(my.out_m>=5)burst(3)}catch(e){}toast("💰 +"+fmtN(my.win)+" 💠 на "+qFmt(my.out_m))}csBal();renderCas()}else if(b)b.disabled=false}
 /* ===================== 🔥 БЕГУЩАЯ СТРОКА: крутые выпадения у всех ===================== */
 let hypeSig="";
 function hypeDraw(){const L=(S&&S.hype)||[];const sig=L.map(x=>x.id).join(",");if(sig===hypeSig)return;hypeSig=sig;let el=$("hype");

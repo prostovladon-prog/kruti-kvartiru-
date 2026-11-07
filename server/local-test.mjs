@@ -940,19 +940,24 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "cas_info"); ok(q.res.cb.amt >= 8000 && !q.res.cb.taken, "кешбэк за вчера: " + q.res.cb.amt);
     r0 = await ru(); const amt = q.res.cb.amt; q = await call(A, "cas_cb"); ok(q.ok && q.res.got === amt && (await ru()) === r0 + amt, "кешбэк начислен");
     q = await call(A, "cas_cb"); ok(!q.ok && /уже/.test(q.err), "кешбэк раз в день"); }
-  // 🚀 ракетка
-  { const setRk = (cr, ago) => db.prepare("UPDATE users SET state=json_set(state,'$.cas.rk.cr',?,'$.cas.rk.t0',?) WHERE id=?").run(cr, Date.now() - ago, A);
-    const ru = async () => (await call(A, "sync")).S.camp.runes;
-    let q = await call(A, "cas_rk_go", { bet: 500 }); ok(!q.ok, "ракетка: ставка от 1 000");
-    let r0 = await ru(); q = await call(A, "cas_rk_go", { bet: 1000 }); ok(q.ok && q.res.t0 > 0, "ракетка взлетела");
-    setRk(50, 10000); q = await call(A, "cas_rk", {}); ok(q.ok && q.res.fly && q.res.m >= 2.9 && q.res.m < 3.1 && q.res.cr === undefined, "летит, точка взрыва скрыта (×" + q.res.m + ")");
-    q = await call(A, "cas_rk", { take: 1 }); ok(q.ok && q.res.end && q.res.win >= 2900 && q.res.cr === 50 && Math.abs((await ru()) - (r0 - 1000 + q.res.win)) < 1, "забрал на ×" + q.res.at);
-    r0 = await ru(); await call(A, "cas_rk_go", { bet: 1000, auto: 2 }); setRk(50, 20000); q = await call(A, "cas_rk", {}); ok(q.res.end && q.res.win === 2000 && q.res.at === 2, "автовывод ×2");
-    await call(A, "cas_rk_go", { bet: 1000 }); setRk(1.5, 10000); q = await call(A, "cas_rk", { take: 1 }); ok(q.res.end && q.res.win === 0 && q.res.cr === 1.5, "взорвалась раньше — ставка сгорела");
-    await call(A, "cas_rk_go", { bet: 1000 }); setRk(50, 25000); q = await call(A, "cas_rk", { take: 1 }); ok(q.res.win > 10000, "×" + q.res.at + " — крупный выигрыш");
-    q = await call(A, "sync"); ok(q.S.hype && q.S.hype.some(h => /ракетку/.test(h.txt)), "крупный выигрыш попал в бегущую строку");
-    await call(A, "cas_rk_go", { bet: 1000 }); q = await call(A, "cas_rk_go", { bet: 1000 }); ok(q.ok && q.res.prev && q.res.prev.end, "новый взлёт закрывает прошлый");
-    let n = 0, sum = 0; for (let i = 0; i < 20000; i++) { const u = Math.random(), cr = Math.max(1, Math.min(100, Math.floor(96 / (1 - u)) / 100)); if (cr >= 2) { n++; sum += 2 } } ok(Math.abs(sum / 20000 - .96) < .03, "отдача на ×2 ≈ 96% (" + (sum / 20000).toFixed(3) + ")"); }
+  // 🚀 онлайн-ракетка: общий раунд
+  { const ru = async u => (await call(u, "sync")).S.camp.runes, rr = () => db.prepare("SELECT * FROM roc_round ORDER BY id DESC LIMIT 1").get();
+    let q = await call(A, "roc_state"); ok(q.ok && q.res.ph === "bet" && q.res.cr === null && q.res.id > 0, "раунд создан, идут ставки, точка взрыва скрыта");
+    q = await call(A, "roc_bet", { bet: 500 }); ok(!q.ok, "ставка от 1 000");
+    let r0 = await ru(A); q = await call(A, "roc_bet", { bet: 1000 }); ok(q.ok && q.res.my && q.res.my.b === 1000 && (await ru(A)) === r0 - 1000, "ставка принята и списана " + (q.err || ""));
+    q = await call(A, "roc_bet", { bet: 1000 }); ok(!q.ok && /уже/.test(q.err), "одна ставка на раунд");
+    await call(B, "sync"); db.prepare("UPDATE users SET state=json_set(state,'$.camp.runes',50000) WHERE id=? AND json_extract(state,'$.camp') IS NOT NULL").run(B);
+    q = await call(B, "roc_bet", { bet: 2000, auto: 2 }); const okB = q.ok; q = await call(A, "roc_state"); ok(q.res.n === (okB ? 2 : 1) && q.res.bets.some(b => b.me), "игроки видят ставки друг друга (" + q.res.n + ")");
+    q = await call(A, "roc_out"); ok(!q.ok && /не взлетела/.test(q.err), "до взлёта не забрать");
+    const R = rr(); db.prepare("UPDATE roc_round SET fs=?,cr=50,ct=? WHERE id=?").run(Date.now() - 10000, Date.now() + 60000, R.id);
+    r0 = await ru(A); q = await call(A, "roc_out"); ok(q.ok && q.res.my.out_m >= 2.9 && q.res.my.out_m < 3.2 && (await ru(A)) === r0 + q.res.my.win, "забрал в полёте ×" + (q.res.my && q.res.my.out_m));
+    if (okB) { const b = db.prepare("SELECT out_m,win FROM roc_bet WHERE rid=? AND uid=?").get(R.id, B); ok(b.out_m === 2 && b.win === 4000, "автовывод ×2 сработал сам"); }
+    q = await call(A, "roc_out"); ok(!q.ok, "дважды не забрать");
+    db.prepare("UPDATE roc_round SET fs=?,ct=? WHERE id=?").run(Date.now() - 50000, Date.now() - 1000, R.id); q = await call(A, "roc_state"); ok(q.res.id === R.id && q.res.ph === "crash" && q.res.cr === 50, "после взрыва точка видна всем");
+    db.prepare("UPDATE roc_round SET ct=? WHERE id=?").run(Date.now() - 10000, R.id); q = await call(A, "roc_state"); ok(q.res.id === R.id + 1 && q.res.ph === "bet" && q.res.hist[0] === 50, "новый раунд, в истории ×50");
+    q = await call(A, "roc_bet", { bet: 1000 }); const R2 = rr(); db.prepare("UPDATE roc_round SET fs=?,cr=1.5,ct=? WHERE id=?").run(Date.now() - 10000, Date.now() - 1000, R2.id);
+    q = await call(A, "roc_out"); ok(!q.ok && /взорвалась/.test(q.err), "после взрыва ставка сгорела");
+    let sum = 0; for (let i = 0; i < 20000; i++) { const u = Math.random(), cr = Math.max(1, Math.min(100, Math.floor(96 / (1 - u)) / 100)); if (cr >= 2) sum += 2 } ok(Math.abs(sum / 20000 - .96) < .03, "отдача ≈ 96%"); }
   // голем
   r = await buy(A, { item: "golem" }); ok(r.ok && r.res.status === "done" && r.S.golemUntil > Date.now() + 6 * 864e5, "голем на неделю куплен");
   r = await call(A, "camp_tap", { n: 1 }); ok(r.ok && r.S.camp.gm === 1, "с големом энергии в 2 раза больше");
