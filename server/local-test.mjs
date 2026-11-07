@@ -628,7 +628,7 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   // 💎 Алмазная серия: не продаётся, только выпадает
   { let q = await cp(7301, "sync"); q = await cp(7301, "invoice", { item: "dia", h: 65 }); ok(!q.ok, "Алмазную серию купить нельзя");
     q = await cp(7301, "invoice", { item: "any", h: 65, f: 8 }); ok(!q.ok, "и через «Любую карточку» тоже");
-    q = await cp(7301, "shop"); ok(q.ok && Object.keys(q.res.dia).length === 40 && q.res.dia[65] === 5 && q.res.dia[17] === 30, "в Сокровищнице 40 карт серии и их тираж"); }
+    q = await cp(7301, "shop"); ok(q.ok && Object.keys(q.res.dia).length === 51 && q.res.dia[65] === 5 && q.res.dia[17] === 30 && q.res.dia[76] === 10, "в Сокровищнице 51 карта серии и их тираж"); }
   let r = await call(U, "invoice", { item: "small" }); ok(!r.ok && /Telegram/.test(r.err), "без PAY_SIM счёт создаёт Telegram, симуляции нет");
   r = await call(U, "pay_sim", { pid: 1 }); ok(!r.ok, "симуляция оплаты закрыта на боевом сервере");
   r = await call(U, "grant", { item: "royal", pid: 999 }); ok(!r.ok, "выдать покупку напрямую нельзя");
