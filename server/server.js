@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=52;
+const SCHEMA_V=53;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -93,6 +93,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "ALTER TABLE users ADD COLUMN golem_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN terms_v INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN pm_bonus INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN vip_t INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN clan INTEGER NOT NULL DEFAULT 0",
     "CREATE TABLE IF NOT EXISTS clans (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, name_key TEXT NOT NULL, owner INTEGER NOT NULL, h INTEGER NOT NULL DEFAULT 0, created INTEGER)","CREATE UNIQUE INDEX IF NOT EXISTS clans_nk ON clans(name_key)",
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
+    "CREATE TABLE IF NOT EXISTS hype (id INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER NOT NULL, uid INTEGER NOT NULL, txt TEXT NOT NULL)",
     "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))","ALTER TABLE users ADD COLUMN dg_pow INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS users_dgpow ON users(dg_pow)","CREATE INDEX IF NOT EXISTS users_ref ON users(ref)",
  "CREATE TABLE IF NOT EXISTS ad_links (code TEXT PRIMARY KEY, name TEXT, created INTEGER, hidden INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS ad_clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, t INTEGER, ip TEXT)","CREATE INDEX IF NOT EXISTS ad_clicks_c ON ad_clicks(code,t)",
  "CREATE TABLE IF NOT EXISTS ad_starts (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, new INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))","CREATE INDEX IF NOT EXISTS ad_starts_u ON ad_starts(uid)",   // откуда карточка: craft, merge, chest, build (для ленты «Прямо сейчас»)   // тиражи считаются только по ограниченным отделкам
@@ -371,7 +372,7 @@ async function stateFor(env,me){
   const prints=await cached("prints",30e3,async()=>{const o={};for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS m FROM cards WHERE (f>0 OR h>=26) AND owner<>-1 GROUP BY f,h").all()).results)o[r.h+"-"+r.f]=r.m;return o});
   const news=(await env.DB.prepare("SELECT h,buyer_name AS buyer,price,got FROM sales WHERE seller=? AND seen=0").bind(me.id).all()).results;
   if(news.length)await env.DB.prepare("UPDATE sales SET seen=1 WHERE seller=? AND seen=0").bind(me.id).run();
-  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
+  const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,hype:await hypeList(env),uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
   try{S.rd=await rdState(env,me)}catch(e){}
   try{S.vt=await vtState(env,me)}catch(e){}
@@ -1846,6 +1847,12 @@ async function chanCheck(env,C){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.
     if(k.fail>=2&&!k.warned){k.warned=1;for(const a of ADMINS)await notify(env,a,"⚠️ Бот не может публиковать в канал "+C.chan+".\n\nПричина: "+why+".\n\nПроверю снова через 10 минут.","⚔️ Открыть")}}
   await kvSet(env,"chan_chk:"+C.id,k)}
 /* ---------- казино: журнал игр, лента крупных выигрышей для всех и статистика для админа ---------- */
+/* 🔥 бегущая строка: крутые выпадения всех игроков */
+async function hypeAdd(env,uid,txt){try{await env.DB.prepare("INSERT INTO hype(t,uid,txt) VALUES(?,?,?)").bind(Date.now(),uid,txt).run();delete CACHE_HYPE.v}catch(e){}}
+const CACHE_HYPE={};async function hypeList(env){const now=Date.now();if(CACHE_HYPE.v&&now-CACHE_HYPE.t<8e3)return CACHE_HYPE.v;
+  const L=(await env.DB.prepare("SELECT h.id,h.t,h.txt,COALESCE(u.nick,u.name) AS name FROM hype h LEFT JOIN users u ON u.id=h.uid WHERE h.t>? ORDER BY h.id DESC LIMIT 14").bind(now-6*36e5).all()).results;CACHE_HYPE.v=L;CACHE_HYPE.t=now;return L}
+function hypeCards(res){const out=[],seen=new Set(),add=c=>{if(c&&typeof c==="object"&&c.h!=null&&c.f!=null&&!seen.has(c)){seen.add(c);out.push(c)}};
+  if(res&&typeof res==="object")for(const k of Object.keys(res)){const v=res[k];if(Array.isArray(v))v.forEach(add);else add(v)}return out}
 async function casLog(env,uid,g,bet,win,gift,m){try{await env.DB.prepare("INSERT INTO cas_log(uid,g,bet,win,gift,gno,m,at) VALUES(?,?,?,?,?,?,?,?)").bind(uid,g,bet|0,win|0,gift?gift.k:null,gift?gift.no:null,m||null,Date.now()).run()}catch(e){console.error("caslog",e)}}
 async function casFeed(env){return cached("casfeed",5e3,async()=>(await env.DB.prepare("SELECT l.g,l.bet,l.win,l.gift,l.gno,l.m,l.at,COALESCE(u.nick,u.name) AS name FROM cas_log l LEFT JOIN users u ON u.id=l.uid WHERE l.gift IS NOT NULL OR l.win>=50000 OR (l.g='slot' AND l.m>=8) ORDER BY l.id DESC LIMIT 20").all()).results)}
 async function casStats(env){const now=Date.now(),d0=dayNum(now)*864e5-TZ;
@@ -2314,7 +2321,7 @@ async function handle(req,env){{
       if(/^gift_/.test(a)){const res=await giftApi(env,me,a,p);return J({ok:true,res,S:a==="gift_top"?undefined:await stateFor(env,me)})}
       if(a==="cas_case"){const r=await doAction(env,me,a,p,{giftLeft:await giftLeft(env)});
         if(r.res.gift){const g=await giftMint(env,me.id,r.res.gift,"case");
-          if(g)r.res.g=g;else{await doAction(env,me,"cas_comp",{},{grant:true});r.res={r:CASE.sold,sold:r.res.gift,i:r.res.i,dg:r.res.dg}}
+          if(g){r.res.g=g;await hypeAdd(env,me.id,"🎁 достал подарок «"+((GIFTS[r.res.gift]||{}).n||"редкий")+"» из кейса")}else{await doAction(env,me,"cas_comp",{},{grant:true});r.res={r:CASE.sold,sold:r.res.gift,i:r.res.i,dg:r.res.dg}}
           r.S=await stateFor(env,me)}
         await casLog(env,me.id,"case",CASE.price,r.res.r||0,r.res.g||null);return J({ok:true,...r})}
       if(a==="cas_feed")return J({ok:true,res:await casFeed(env)});
@@ -2349,6 +2356,12 @@ async function handle(req,env){{
       if((a==="open"||a==="open_multi")&&r.res&&r.res.card&&r.res.card.h===THOR){try{const nm=await nameOf(env,me.id);
         for(const ad of ADMINS)await notify(env,ad,"⚡⚡⚡ ТОР ВЫБИТ! Игрок "+nm+" (id "+me.id+") выбил Тора — ошибку печати, 1 из 1!\n\nВыдай обещанный приз: VIP навсегда и NFT-подарок.","⚔️ Открыть");
         await chanSend(env,{chan:CHANNEL},{text:"⚡ ЛЕГЕНДА ВЫБИТА!\n\n"+nm+" выбил ТОРА — ошибку печати, единственную карточку на всю игру. Шанс был 1 на миллион!\n\n👉 @VoinyEpohBot"})}catch(e){console.error("thor",e)}}
+      try{if(r.res){for(const c of hypeCards(r.res)){const F=FIN[c.f];if(!F||!(c.f===3||c.f===4||F.dia))continue;const H=HEROES[c.h];await hypeAdd(env,me.id,(F.dia?"💎 выбил АЛМАЗНУЮ ОШИБКУ":c.f===4?"🔥 выбил ОШИБКУ ПЕЧАТИ":"✨ выбил ЗОЛОТУЮ")+" · "+(H?H[0]:"воин")+(c.no?" #"+c.no:""))}
+        if(a==="cas_slot"&&r.res.m>=20)await hypeAdd(env,me.id,"🎰 сорвал ×"+r.res.m+" в слотах · +"+r.res.win.toLocaleString("ru")+" 💠");
+        if(a==="cas_rk"&&r.res.win&&r.res.at>=10)await hypeAdd(env,me.id,"🚀 забрал ракетку на ×"+r.res.at+" · +"+r.res.win.toLocaleString("ru")+" 💠");
+        if(a==="cas_case"&&r.res.g)await hypeAdd(env,me.id,"🎁 достал подарок из кейса");}}catch(e){}
+      if(a==="cas_rk_go")await casLog(env,me.id,"rk",Math.floor(+p.bet||0),0);
+      else if(a==="cas_rk"&&r.res&&r.res.end&&r.res.win)await casLog(env,me.id,"rk",0,r.res.win,null,r.res.at);
       if(a==="cas_slot")await casLog(env,me.id,"slot",Math.floor(+p.bet||0),r.res.win||0,null,r.res.m);
       else if(a==="cas_hl_go")await casLog(env,me.id,"hl",Math.floor(+p.bet||0),0);
       else if(a==="cas_hl_take")await casLog(env,me.id,"hl",0,r.res.win||0);

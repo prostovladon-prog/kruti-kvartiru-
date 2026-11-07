@@ -283,6 +283,7 @@ function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySel
        :bets+'<button type="button" class="cs-go" id="hl-go">НАЧАТЬ · '+fmtN(csBet)+' 💠</button>')+
       '<details class="cs-odds"><summary>Как считается</summary><p>Чем меньше шанс угадать, тем больше множитель. Одинаковая карта — проигрыш. В среднем возвращается 95% на каждом шаге.</p></details></div>';
     if(H){B.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>hlGo(b.dataset.dir));$("hl-take").onclick=hlTake}else $("hl-go").onclick=hlStart}
+  if(csTab==="rk")rkDraw(B,bets);
   const bb=$("cs-bets");if(bb)bb.onclick=e=>{const b=e.target.closest("[data-bet]");if(!b)return;csBet=+b.dataset.bet;renderCas()}}
 $("cs-seg").onclick=e=>{const b=e.target.closest("[data-c]");if(!b||csBusy)return;csTab=b.dataset.c;renderCas()};
 $("cs-back").onclick=()=>{if(!csBusy)openCamp()};$("cs-entry").onclick=()=>openCas();
@@ -951,3 +952,44 @@ document.addEventListener("click",e=>{if(e.target.closest("#cap-open")){e.stopPr
   for(const h of hs){const D=DIA[h],l=L[h]!=null?L[h]:D.run,c=demoOne(h,DIA_F);c.no=Math.min(D.run,D.run-l+1);
     v+='<div class="diac'+(l<=0?" sold":"")+'">'+miniSlot(c)+'<b>'+HEROES[h][0]+'</b><small>«'+D.n+'»</small><div class="dial"><i style="width:'+Math.round(l/D.run*100)+'%"></i></div><small class="diaq">'+(l>0?'осталось '+l+' из '+D.run:'все '+D.run+' уже у игроков')+'</small></div>'}
   B.innerHTML=v+'</div>'}}
+
+/* ===================== 🚀 РАКЕТКА (crash): множитель растёт, забери до взрыва ===================== */
+let rkAuto=0,rkSt=null,rkHist=[];try{rkHist=JSON.parse(localStorage.getItem("we-rkh")||"[]")}catch(e){}
+const rkFmt=m=>"×"+m.toFixed(2).replace(".",",");
+function rkDraw(B,bets){const fly=rkSt&&rkSt.fly;
+  B.innerHTML='<div class="cs-box rkbox"><h3>🚀 РАКЕТКА</h3><div class="sub">Ракета взлетает — множитель растёт. Успей забрать до взрыва! Чем дольше ждёшь, тем больше риск</div>'+
+   '<div class="rk-hist">'+(rkHist.length?rkHist.slice(-9).reverse().map(x=>'<i class="'+(x>=10?"hi":x>=2?"md":"lo")+'">'+rkFmt(x)+'</i>').join(""):'<i class="md">история взлётов</i>')+'</div>'+
+   '<div class="rk-sky" id="rk-sky"><div class="rk-stars"></div><svg class="rk-curve" viewBox="0 0 300 180" preserveAspectRatio="none"><defs><linearGradient id="rkg" x1="0" x2="1"><stop offset="0" stop-color="#ffb02e" stop-opacity=".1"/><stop offset="1" stop-color="#ff4d6d"/></linearGradient></defs><path id="rk-path" d="M0 180" fill="none" stroke="url(#rkg)" stroke-width="4" stroke-linecap="round"/></svg>'+
+   '<div class="rk-ship" id="rk-ship"><span>🚀</span><i></i></div><div class="rk-m" id="rk-m">'+(fly?rkFmt(1):"×1,00")+'</div><div class="rk-msg" id="rk-msg">'+(fly?"":"готов к взлёту")+'</div></div>'+
+   (fly?'<button type="button" class="cs-go rk-take" id="rk-take">💰 ЗАБРАТЬ</button>':
+   bets+'<div class="rk-auto"><span>Автовывод:</span>'+[0,1.5,2,3,5,10].map(a=>'<button type="button" data-auto="'+a+'" aria-pressed="'+(rkAuto===a)+'">'+(a?"×"+String(a).replace(".",","):"выкл")+'</button>').join("")+'</div>'+
+   '<button type="button" class="cs-go" id="rk-go">🚀 ВЗЛЁТ · '+fmtN(csBet)+' 💠</button>')+
+   '<details class="cs-odds"><summary>Как это работает — всё честно</summary><p>Точку взрыва сервер выбирает в момент взлёта, и изменить её нельзя. Шанс долететь до ×2 — 48%, до ×5 — 19%, до ×10 — 9,6%, до ×100 — около 1%. В среднем возвращается 96% ставок. Автовывод заберёт выигрыш сам, даже если ты отвлёкся.</p></details></div>';
+  if(fly){$("rk-take").onclick=()=>rkPoll(1)}else{$("rk-go").onclick=rkGo;B.querySelector(".rk-auto").onclick=e=>{const b=e.target.closest("[data-auto]");if(!b)return;rkAuto=+b.dataset.auto;renderCas()}}}
+async function rkGo(){if(csBusy)return;if(campView().runes<csBet){toast("Нужно ещё "+fmtN(csBet-campView().runes)+" рун — потренируйся в лагере");return}
+  csBusy=true;const r=await act("cas_rk_go",{bet:csBet,auto:rkAuto});if(!r){csBusy=false;return}csBal();try{sfx.rumble(2);hap("heavy")}catch(e){}
+  rkSt={fly:1,t0:performance.now(),auto:r.auto,b:csBet,polling:0,done:0};renderCas();rkLoop();rkTm=setInterval(()=>rkPoll(0),650)}
+let rkTm=0;
+function rkLoop(){if(!rkSt||!rkSt.fly)return;const s=(performance.now()-rkSt.t0)/1e3,m=Math.min(RKT.cap,Math.exp(RKT.k*s)),el=$("rk-m");
+  if(el){el.textContent=rkFmt(Math.floor(m*100)/100);el.className="rk-m"+(m>=10?" hi":m>=2?" md":"")}
+  const X=Math.min(1,s/22),Y=Math.min(1,Math.log(m)/Math.log(30)),px=12+X*270,py=170-Y*150,ship=$("rk-ship"),p=$("rk-path");
+  if(ship)ship.style.transform="translate("+(px/300*100)+"cqw,"+(py/180*100)+"cqh) rotate("+(-60+X*20-Y*10)+"deg)";
+  if(p){let d="M0 178";for(let k=1;k<=20;k++){const ss=s*k/20,mm=Math.exp(RKT.k*ss);d+=" L"+(12+Math.min(1,ss/22)*270).toFixed(1)+" "+(170-Math.min(1,Math.log(mm)/Math.log(30))*150).toFixed(1)}p.setAttribute("d",d)}
+  const tk=$("rk-take");if(tk)tk.textContent="💰 ЗАБРАТЬ "+fmtN(Math.floor(rkSt.b*Math.floor(m*100)/100))+" 💠";
+  requestAnimationFrame(rkLoop)}
+async function rkPoll(take){if(!rkSt||!rkSt.fly||rkSt.polling)return;if(!take&&rkSt.tk)return;rkSt.polling=1;if(take){rkSt.tk=1;const b=$("rk-take");if(b)b.disabled=true}
+  const r=await act("cas_rk",take?{take:1}:{});if(!rkSt){return}rkSt.polling=0;if(!r){if(take){rkSt.tk=0;const b=$("rk-take");if(b)b.disabled=false}return}
+  if(r.end)rkFinish(r)}
+function rkFinish(r){clearInterval(rkTm);rkTm=0;csBusy=false;const sk=$("rk-sky"),msg=$("rk-msg"),el=$("rk-m");rkSt.fly=0;
+  if(!r.none){rkHist.push(r.cr);rkHist=rkHist.slice(-20);try{localStorage.setItem("we-rkh",JSON.stringify(rkHist))}catch(e){}}
+  if(r.win){if(el){el.textContent=rkFmt(r.at);el.className="rk-m win"}if(msg)msg.innerHTML='+'+fmtN(r.win)+' 💠 <small>ракета взорвалась на '+rkFmt(r.cr)+'</small>';try{sfx.fanfare();hapN("success");if(r.at>=5)burst(3)}catch(e){}}
+  else{if(sk)sk.classList.add("boom");if(el){el.textContent=rkFmt(r.cr||1);el.className="rk-m lose"}if(msg)msg.innerHTML='💥 БУМ! <small>ставка сгорела</small>';try{sfx.lose();hapN("error")}catch(e){}}
+  csBal();setTimeout(()=>{rkSt=null;if(csTab==="rk"&&!$("sec-cas").hidden)renderCas()},2300)}
+/* ===================== 🔥 БЕГУЩАЯ СТРОКА: крутые выпадения у всех ===================== */
+let hypeSig="";
+function hypeDraw(){const L=(S&&S.hype)||[];const sig=L.map(x=>x.id).join(",");if(sig===hypeSig)return;hypeSig=sig;let el=$("hype");
+  if(!L.length){if(el)el.remove();return}
+  if(!el){el=document.createElement("div");el.id="hype";el.className="hype";const sp=$("sec-spin");if(!sp)return;sp.insertBefore(el,sp.firstChild)}
+  const it=L.map(x=>'<span><b>'+fnEsc(String(x.name||"Игрок").slice(0,16))+'</b> '+fnEsc(x.txt)+'</span>').join('<i>✦</i>');
+  el.innerHTML='<em>🔥 LIVE</em><div class="hype-w"><div class="hype-t" style="animation-duration:'+Math.max(18,L.length*7)+'s">'+it+'<i>✦</i>'+it+'<i>✦</i></div></div>'}
+setInterval(()=>{try{hypeDraw()}catch(e){}},1500);
