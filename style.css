@@ -3087,3 +3087,17 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .wf-end h3{font-size:24px}.wf-end.w h3{color:#3dff8a}.wf-end.l h3{color:#ff6b7f}.wf-l{font-size:12px;opacity:.75}
 .seg.seg6{grid-template-columns:repeat(3,1fr)}
 .wr-oh>span.ava{flex:none!important;width:42px;height:42px}
+/* 👑 донаты Империи */
+.es-it{margin:0 0 10px;padding:12px;border-radius:16px;background:linear-gradient(145deg,rgba(90,40,180,.35),rgba(20,10,50,.5));border:1px solid rgba(255,210,63,.35);color:#fff}.es-it.own{opacity:.7}
+.es-h{display:flex;gap:10px;align-items:flex-start}.es-h i{font-style:normal;font-size:34px;line-height:1}.es-h b{display:block;font-size:15px}.es-h small{display:block;font-size:12px;opacity:.85;line-height:1.35}
+.es-buy{width:100%;margin-top:8px;border:0;border-radius:12px;padding:10px;font:inherit;font-weight:900;background:linear-gradient(135deg,#ffd23f,#ff9a1a);color:#3a1600}.es-buy:disabled{background:rgba(255,255,255,.12);color:#fff}
+.es-use{width:100%;margin-top:6px;border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:7px;background:none;color:#fff;font:inherit;font-weight:800;font-size:12px}
+.es-opt{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.es-opt button{border:2px solid transparent;border-radius:12px;padding:6px 2px;background:rgba(255,255,255,.08);color:#fff;font:inherit;display:flex;flex-direction:column;align-items:center;gap:3px}.es-opt button.on{border-color:#ffd23f}.es-opt button.own::after{content:"✓";font-size:10px;color:#3dff8a}
+.es-opt small{font-size:9.5px;font-weight:800}.es-opt.cr{grid-template-columns:repeat(8,1fr)}.es-opt.cr button{font-size:22px;padding:6px 0}
+/* рамки аватара */
+.ava.avf-fire{border-color:#ff6a1a;box-shadow:0 0 0 3px rgba(255,90,20,.5),0 0 18px #ff4d00;animation:avfF 1s ease-in-out infinite alternate}@keyframes avfF{to{box-shadow:0 0 0 4px rgba(255,180,40,.7),0 0 26px #ff8a1a}}
+.ava.avf-ice{border-color:#9fe8ff;box-shadow:0 0 0 3px rgba(120,220,255,.5),0 0 18px #5ad8ff}
+.ava.avf-crown{border-color:#ffd23f;box-shadow:0 0 0 3px #b8860b,0 0 20px #ffd23f}.ava.avf-crown::before{content:"👑";position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:16px;z-index:2}
+.ava.avf-rainbow{border-color:transparent;background:linear-gradient(#ffe9a8,#c47a00) padding-box,conic-gradient(red,orange,yellow,lime,cyan,blue,magenta,red) border-box;animation:avfR 3s linear infinite}@keyframes avfR{to{filter:hue-rotate(360deg)}}
+.ava{overflow:visible}.ava>svg,.ava>img{border-radius:50%;clip-path:circle(50%)}
+.es-h small b{display:inline!important;font-size:inherit!important;color:#ffe066}

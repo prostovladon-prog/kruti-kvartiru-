@@ -977,6 +977,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "roc_bet", { bet: 1000 }); const R2 = rr(); db.prepare("UPDATE roc_round SET fs=?,cr=1.5,ct=? WHERE id=?").run(Date.now() - 10000, Date.now() - 1000, R2.id);
     q = await call(A, "roc_out"); ok(!q.ok && /взорвалась/.test(q.err), "после взрыва ставка сгорела");
     let sum = 0; for (let i = 0; i < 20000; i++) { const u = Math.random(), cr = Math.max(1, Math.min(100, Math.floor(92 / (1 - u)) / 100)); if (cr >= 2) sum += 2 } ok(Math.abs(sum / 20000 - .92) < .03, "отдача ≈ 92%"); }
+  // 👑 донаты Империи и новые сундуки
+  { let q = await buy(A, { item: "eshop", k: "pth" }); ok(q.ok && q.res.status === "done", "премиум-темы куплены"); q = await call(A, "theme_set", { k: "neon" }); ok(q.ok, "премиум-тема ставится после покупки");
+    q = await call(B, "theme_set", { k: "neon" }); ok(!q.ok, "без покупки премиум-тему не поставить");
+    q = await cp(A, "invoice", { item: "eshop", k: "pth" }); ok(!q.ok && /Уже/.test(q.err), "навсегда — второй раз не продаём");
+    q = await buy(A, { item: "eshop", k: "frame", v: "fire" }); ok(q.ok && JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(A).state).avfOn === "fire", "рамка «Огонь» надета");
+    q = await buy(A, { item: "eshop", k: "horn" }); q = await cp(A, "invoice", { item: "eshop", k: "horn" }); ok(!q.ok && /Сегодня/.test(q.err), "боевой рог — раз в день");
+    q = await buy(A, { item: "eshop", k: "shield" }); ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(A).state).warSh > Date.now() + 7 * 36e5, "щит Империи на 8 ч");
+    q = await buy(A, { item: "eshop", k: "fw" }); ok(q.ok && db.prepare("SELECT 1 FROM hype WHERE uid=? AND big=1 AND txt LIKE '%салют%'").get(A), "салют виден всем");
+    q = await buy(A, { item: "promo" }); const pr = db.prepare("SELECT * FROM promo WHERE code LIKE 'ЭПОХ%' ORDER BY created DESC").get(); ok(q.ok && pr && pr.mx === 1 && (pr.sp > 0 || pr.bon > 0), "сундук промокодов: " + (pr && pr.code) + " " + (pr && (pr.sp || pr.bon)));
+    q = await cp(B, "promo_use", { code: pr.code }); ok(q.ok, "промокод из сундука можно подарить другу"); q = await cp(A, "promo_use", { code: pr.code }); ok(!q.ok, "промокод одноразовый");
+    const l0 = JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(A).state).luckU || 0; q = await buy(A, { item: "luckbox" }); ok(q.ok && (JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(A).state).luckU || 0) > Math.max(l0, Date.now()) + 2.9 * 36e5, "сундук удачи: +3 часа удачи");
+    q = await buy(A, { item: "general" }); ok(q.ok && q.res.status === "done", "сундук полководца");
+    q = await buy(A, { item: "empire" }); ok(q.ok && q.res.status === "done", "сундук Империи"); }
   // голем
   r = await buy(A, { item: "golem" }); ok(r.ok && r.res.status === "done" && r.S.golemUntil > Date.now() + 6 * 864e5, "голем на неделю куплен");
   r = await call(A, "camp_tap", { n: 1 }); ok(r.ok && r.S.camp.gm === 1, "с големом энергии в 2 раза больше");

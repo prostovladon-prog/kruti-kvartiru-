@@ -526,9 +526,9 @@ async function top(env,me,p){
   }
   const col=BOARDS[kind];if(!col)fail("Нет такого рейтинга");
   const items=await cached(kind,60e3,async()=>{
-    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score,json_extract(state,'$.ava') AS ava FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
+    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score,json_extract(state,'$.ava') AS ava,json_extract(state,'$.avfOn') AS avf,json_extract(state,'$.crest') AS crest FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
     const out=[];for(const r of rows){const b=await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();
-      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,ava:r.ava==null?null:+r.ava,card:b?pub(rowToCard(b)):null})}return out});
+      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,ava:r.ava==null?null:+r.ava,avf:r.avf||null,crest:r.crest||null,card:b?pub(rowToCard(b)):null})}return out});
   const mine=await env.DB.prepare(`SELECT ${col} AS score FROM users WHERE id=?`).bind(me.id).first();
   const score=mine?mine.score:0;
   const rank=score>0?(await env.DB.prepare(`SELECT COUNT(*)+1 AS n FROM users WHERE ${col}>?`).bind(score).first()).n:null;
@@ -1337,9 +1337,9 @@ async function mapAlAttack(env,me,rid,now){const m=await alMate(env,me.id);if(!m
 /* ⚔️ Война армий */
 async function warArmy(env,uid){const R=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 120").bind(uid).all()).results;const A=[];
   for(const r of R){const c=rowToCard(r);if(!FIN[c.f]||FIN[c.f].excl||c.part)continue;A.push({c,p:cardPow(c)})}A.sort((a,b)=>b.p-a.p);return A.slice(0,WAR.army)}
-async function warInfo(env,uid,full){const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,emp,glory,json_extract(state,'$.ava') AS ava FROM users WHERE id=?").bind(uid).first();if(!u)return null;
-  const A=full?await warArmy(env,uid):null;return {uid:u.id,name:u.name||"Игрок",emp:u.emp||0,glory:u.glory||0,ava:u.ava==null?null:+u.ava,army:A?A.map(x=>({c:pub(x.c),p:x.p})):undefined,ap:A?A.reduce((s,x)=>s+x.p,0):undefined}}
-async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const left=st.warD===today(now)?WAR.day-(st.warN||0):WAR.day;
+async function warInfo(env,uid,full){const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,emp,glory,json_extract(state,'$.ava') AS ava,json_extract(state,'$.avfOn') AS avf,json_extract(state,'$.crest') AS crest,json_extract(state,'$.warSh') AS sh FROM users WHERE id=?").bind(uid).first();if(!u)return null;
+  const A=full?await warArmy(env,uid):null;return {uid:u.id,name:u.name||"Игрок",emp:u.emp||0,glory:u.glory||0,ava:u.ava==null?null:+u.ava,avf:u.avf||null,crest:u.crest||null,sh:(u.sh||0)>Date.now()?1:0,army:A?A.map(x=>({c:pub(x.c),p:x.p})):undefined,ap:A?A.reduce((s,x)=>s+x.p,0):undefined}}
+async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const lim=WAR.day+(st.warXD===today(now)?3:0),left=st.warD===today(now)?lim-(st.warN||0):lim;
   if(a==="war_get"){const mine=await warInfo(env,me.id,true);const mp=mine.emp||1;
     let L=(await env.DB.prepare("SELECT id FROM users WHERE id<>? AND emp BETWEEN ? AND ? AND seen>? ORDER BY RANDOM() LIMIT 3").bind(me.id,Math.floor(mp*.6),Math.ceil(mp*1.6),now-14*864e5).all()).results;
     if(L.length<3)L=L.concat((await env.DB.prepare("SELECT id FROM users WHERE id<>? AND emp>0 ORDER BY ABS(emp-?) LIMIT 6").bind(me.id,mp).all()).results.filter(x=>!L.some(y=>y.id===x.id))).slice(0,3);
@@ -1348,6 +1348,7 @@ async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((awa
       .map(w=>({t:w.t,att:w.att===me.id,name:w.att===me.id?w.dn:w.an,win:w.att===me.id?!!w.win:!w.win,gl:w.gl}));
     return {me:mine,opp,left,log}}
   if(a==="war_attack"){const tid=p.uid|0;if(!tid||tid===me.id)fail("Выбери соперника");
+    const tst=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(tid).first())||{}).state||"{}");if((tst.warSh||0)>now)fail("🛡 Эта Империя под щитом ещё "+Math.ceil((tst.warSh-now)/36e5)+" ч");
     const recent=await env.DB.prepare("SELECT 1 FROM emp_war WHERE att=? AND def=? AND t>?").bind(me.id,tid,now-WAR.cool).first();if(recent)fail("Эту Империю ты уже атаковал недавно — дай ей 2 часа");
     const A=await warArmy(env,me.id),B=await warArmy(env,tid);if(!A.length)fail("Нужна хотя бы одна боевая карточка");if(!B.length)fail("У этой Империи нет армии");
     const me2=await warInfo(env,me.id),op=await warInfo(env,tid);
@@ -1524,6 +1525,8 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     return {item,stars,title:("🎁 "+W.n+" для "+to.name).slice(0,32),desc:"Подарок игроку "+to.name+": "+W.ic+" "+W.n+". Он получит его сразу и узнает, что это от тебя",data:{to:to.id,w,tn:to.name}}}
   if(item==="mflag"){const k=String(p.k||""),F=MFLAG[k];if(!F||!F.stars)fail("Нет такого флага");const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
     if((st.mflags||[]).includes(k))fail("Этот флаг уже твой");return {item,stars:F.stars,title:F.ic+" "+F.n,desc:F.n+" над твоими регионами на карте мира — навсегда"+(k==="photo"?". Фото проходит проверку модератором":""),data:{k}}}
+  if(item==="eshop"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}const k=String(p.k||""),v=String(p.v||"");eshopCheck(st,k,v,Date.now());const I=ESHOP[k];
+    return {item,stars:I.stars,title:I.ic+" "+I.n,desc:I.d.replace(/<[^>]+>/g,""),data:{k,v}}}
   if(item==="mpack"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}const A=mapAtt(st,Date.now());
     if(A.packs>=MAP.packMax)fail("Сегодня больше нельзя — максимум "+MAP.packMax+" пакета в день");return {item,stars:MAP.packStars,title:"⚔️ +"+MAP.pack+" атаки",desc:"+"+MAP.pack+" атаки на карте мира сегодня",data:{}}}
   if(item==="mpass"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}if(mapPass(st,Date.now()).prem)fail("Пропуск этого месяца уже твой");
@@ -1580,7 +1583,12 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         if(n>=I.month)fail("Мифические сундуки этого месяца раскупили на секунду раньше")}
       const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"grant",Object.assign({},d,{item:P.item,pid:P.id}),{grant:true})).res;delete res.events;
-      msg="🎁 «"+I.n+"» открыт! "+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+"Всё уже в игре."}
+      if(I.promo){const B=PROMO_BOX[pick(PROMO_BOX.map(x=>x.w))];let code="";for(let i=0;i<20;i++){const b=new Uint32Array(1);crypto.getRandomValues(b);code="ЭПОХ"+String(b[0]%1e6).padStart(6,"0");if(!(await env.DB.prepare("SELECT 1 FROM promo WHERE code=?").bind(code).first()))break}
+        await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,?,0,1,?,?,0,0,?,?)").bind(code,B.sp||0,Date.now()+14*864e5,Date.now(),B.bon||0,B.bmin||0).run();
+        const what=B.sp?"+"+B.sp+" прокруток":"+"+B.bon+" ⭐ к пополнению от "+B.bmin+" ⭐";res.promo={code,what,big:B.bon>=300||B.sp>=20?1:0};
+        if(B.bon>=1000)try{await hypeAdd(env,P.uid,"🎟 выбил промокод на +1000 ⭐ из сундука!",1)}catch(e){}
+        try{await notify(env,P.uid,"🎟 Твой промокод из сундука: "+code+"\n\nВнутри: "+what+". Действует 14 дней, активировать может 1 человек — себе или другу 🎁","🎟 Ввести код",PAGE+"?promo=1")}catch(e){}}
+      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+"Всё уже в игре."}
     else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");
       let r;try{r=await env.DB.prepare("UPDATE cards SET sn=?,nice=2 WHERE id=? AND owner=?").bind(d.sn,c.id,P.uid).run()}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Номер "+fmtSn(d.sn)+" успели занять");throw e}
       if(r.meta.changes!==1)fail("Карточка больше не у тебя, номер не поставлен");res={card:c.id,sn:d.sn,old:c.sn};msg="✍️ Готово! Теперь у твоей карточки номер "+fmtSn(d.sn)+"."}
@@ -1618,6 +1626,11 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       const fn=(me&&me.n)||"Друг";await doAction(env,to,"present_note",{f:fn,w},{grant:true});const W=PRESENT[w];res={to:d.to,tn:d.tn,w};
       msg="🎁 Подарок отправлен! "+d.tn+" получил "+W.ic+" "+W.n+" и узнает, что это от тебя.";
       await notify(env,d.to,"🎁 "+fn+" подарил тебе "+W.ic+" "+W.n+"!\n\nПодарок уже в игре — заходи посмотреть.","🎁 Открыть подарок")}
+    else if(P.item==="eshop"){const u=await env.DB.prepare("SELECT name,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"eshop_grant",{k:d.k,v:d.v},{grant:true})).res;delete res.events;const I=ESHOP[d.k];
+      if(d.k==="fw")await hypeAdd(env,P.uid,"🎆 запустил салют в честь своей Империи!",1);
+      if(d.k==="regsh")await env.DB.prepare("UPDATE map_reg SET shield=MAX(shield,?)+? WHERE owner=? OR owner2=?").bind(Date.now(),4*36e5,P.uid,P.uid).run();
+      msg=I.ic+" «"+I.n+"» — готово!"+(d.k==="trib2"&&res.extra?" Дань уже была собрана — доплатили ещё +"+res.extra+" 🪙":"")}
     else if(P.item==="mflag"||P.item==="mpack"||P.item==="mpass"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},P.item==="mflag"?"mflag_grant":P.item==="mpack"?"mpack_grant":"mpass_grant",d,{grant:true})).res;delete res.events;
       msg=P.item==="mflag"?MFLAG[d.k].ic+" «"+MFLAG[d.k].n+"» поднят над твоими регионами!"+(d.k==="photo"?" Загрузи фото на карте мира — после проверки оно появится на флаге.":""):P.item==="mpack"?"⚔️ +"+MAP.pack+" атаки на карте мира — вперёд!":"🎖 Пропуск завоевателя активирован! Забирай премиум-награды на карте мира."}

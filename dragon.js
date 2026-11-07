@@ -587,3 +587,7 @@ async function mapDgFight(r,i){const D=dgOf(),M=MAP_R[i],T=DGA_TAC,m=$("modal"),
   R.innerHTML='<h3>'+(r.won?"🐉 ЛОГОВО ТВОЁ!":"💥 Хранитель выстоял")+'</h3><p>'+(r.won?M[0]+" под твоим флагом · 🛡 щит на 3 ч · доход +"+fmtN(mapInc(i).c)+" 🪙/ч":"Поменяй тактику или прокачай дракона — и возвращайся")+'</p><button type="button" class="craftbtn" id="dgab-ok">'+(r.won?"🗺 На карту":"🔥 Ещё раз")+'</button>';
   try{if(r.won){sfx.fanfare();burst(4);hapN("success")}else{sfx.lose();hapN("error")}}catch(e){}
   $("dgab-ok").onclick=async()=>{closeModal();await mapLoad();mapDraw();if(!r.won){mapSel=i;mapDgSheet(i)}}}
+
+/* рамка аватара и герб — на плашке, в топах и в войне */
+{const _ah=avaHTML;avaHTML=function(h,cls,avf){const f=avf===undefined?((S&&S.avfOn)||""):avf;return _ah(h,(cls||"")+(f&&!/avf-/.test(cls||"")?" avf-"+f:""))}}
+{const _tr=topRow;topRow=function(it,i,kind){const d=_tr.apply(this,arguments);if(kind==="emp"||kind==="glory"){const e=d.querySelector(".e");if(e&&it.ava!=null&&HEROES[it.ava])e.innerHTML=avaHTML(it.ava,"",it.avf||"");const b=d.querySelector("b");if(b&&it.crest)b.insertAdjacentText("afterbegin",it.crest+" ")}return d}}

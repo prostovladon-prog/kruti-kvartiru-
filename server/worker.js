@@ -128,7 +128,7 @@ const FIN=[
  {k:"Близнец",cls:"duo",w:0,m:250,run:2,col:"#7cf7ff",duo:1},
  {k:"Алмазная ошибка",cls:"error dia",w:0,m:600,run:30,col:"#5ad8ff",dia:1}];   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
 /* 💎 Алмазная серия: 51 «ошибок печати». Не продаются — выпадают в прокрутке (DIA_P.spin) и в Легендарном/Мифическом сундуке, пока не кончился тираж. У каждой свой дефект печати (c — css-класс) и спрятанный бриллиант (x,y — где он на рисунке), свой тираж */
-const DIA_P={spin:.0005,legend:.02,mythic:.05};
+const DIA_P={spin:.0005,legend:.02,empire:.03,mythic:.05};
 const DIA_F=8,DIA={"59": {"n": "Двойная печать", "c": "dbl", "x": 50, "y": 30, "run": 10}, "64": {"n": "Золотой залив", "c": "gold", "x": 50, "y": 22, "run": 10}, "63": {"n": "Перевёртыш", "c": "flip", "x": 30, "y": 70, "run": 10}, "65": {"n": "Алмазный брак", "c": "crys", "x": 62, "y": 38, "run": 5}, "61": {"n": "Негатив", "c": "neg", "x": 48, "y": 24, "run": 15}, "62": {"n": "Глитч", "c": "glit", "x": 70, "y": 40, "run": 15}, "60": {"n": "Ночная смена", "c": "night", "x": 52, "y": 32, "run": 15}, "29": {"n": "Тень", "c": "shadow", "x": 44, "y": 30, "run": 20}, "28": {"n": "Перегрев", "c": "burn", "x": 36, "y": 30, "run": 20}, "25": {"n": "Кровавая печать", "c": "blood", "x": 50, "y": 26, "run": 20}, "26": {"n": "Сдвиг цвета", "c": "rgb", "x": 58, "y": 46, "run": 25}, "27": {"n": "Зеркало", "c": "mirror", "x": 50, "y": 52, "run": 25}, "36": {"n": "Радужная плёнка", "c": "rain", "x": 40, "y": 44, "run": 20}, "40": {"n": "Капля чернил", "c": "ink", "x": 64, "y": 58, "run": 20}, "58": {"n": "Без краски", "c": "sketch", "x": 52, "y": 34, "run": 25}, "57": {"n": "Растр", "c": "pix", "x": 38, "y": 40, "run": 25}, "52": {"n": "Лишний слой", "c": "ghost", "x": 60, "y": 28, "run": 30}, "20": {"n": "Порез ножа", "c": "cut", "x": 45, "y": 36, "run": 30}, "18": {"n": "Водяной знак", "c": "water", "x": 55, "y": 30, "run": 30}, "19": {"n": "Съехавший слой", "c": "mosaic", "x": 50, "y": 50, "run": 30}, "30": {"n": "Неон", "c": "neon", "x": 50, "y": 28, "run": 10}, "31": {"n": "Космос", "c": "cosmos", "x": 60, "y": 22, "run": 10}, "38": {"n": "Ледяная печать", "c": "ice", "x": 46, "y": 30, "run": 10}, "39": {"n": "Огненный край", "c": "fire", "x": 55, "y": 34, "run": 10}, "56": {"n": "Засвет", "c": "flare", "x": 48, "y": 26, "run": 10}, "55": {"n": "Старая плёнка", "c": "sepia", "x": 52, "y": 24, "run": 20}, "53": {"n": "Ржавчина", "c": "rust", "x": 40, "y": 34, "run": 20}, "49": {"n": "Тепловизор", "c": "thermo", "x": 56, "y": 30, "run": 20}, "50": {"n": "Контур мелом", "c": "outline", "x": 50, "y": 40, "run": 20}, "51": {"n": "Перекос", "c": "skew", "x": 44, "y": 30, "run": 20}, "54": {"n": "Брызги краски", "c": "splash", "x": 58, "y": 28, "run": 20}, "24": {"n": "Половина без краски", "c": "half", "x": 46, "y": 26, "run": 25}, "23": {"n": "Небо вниз", "c": "bgflip", "x": 52, "y": 22, "run": 25}, "22": {"n": "Царапины", "c": "scratch", "x": 38, "y": 36, "run": 25}, "21": {"n": "Призрак", "c": "phantom", "x": 50, "y": 30, "run": 25}, "11": {"n": "Радиация", "c": "rad", "x": 54, "y": 30, "run": 30}, "12": {"n": "Растяжение", "c": "stretch", "x": 50, "y": 20, "run": 30}, "13": {"n": "Сползший герой", "c": "drop", "x": 48, "y": 62, "run": 30}, "48": {"n": "Пустой фон", "c": "nobg", "x": 50, "y": 28, "run": 30}, "17": {"n": "Мини-герой", "c": "tiny", "x": 50, "y": 50, "run": 30}, "76": {"n": "Алмазный дождь", "c": "gemrain", "x": 50, "y": 22, "run": 10}, "80": {"n": "Тиснение", "c": "emboss", "x": 48, "y": 26, "run": 10}, "81": {"n": "Затмение", "c": "eclipse", "x": 44, "y": 30, "run": 10}, "82": {"n": "Северное сияние", "c": "aurora", "x": 52, "y": 28, "run": 10}, "85": {"n": "Золотая пыль", "c": "dust", "x": 50, "y": 24, "run": 10}, "77": {"n": "Витраж", "c": "glass", "x": 50, "y": 30, "run": 20}, "79": {"n": "Кислота", "c": "acid", "x": 46, "y": 26, "run": 20}, "83": {"n": "VHS", "c": "vhs", "x": 56, "y": 22, "run": 20}, "84": {"n": "Комикс", "c": "comic", "x": 42, "y": 28, "run": 20}, "78": {"n": "Синька", "c": "blueprint", "x": 50, "y": 30, "run": 25}, "86": {"n": "Опечатка", "c": "typo", "x": 55, "y": 30, "run": 25}};
 const isDia=h=>!!DIA[h], finRun=c=>c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
@@ -458,7 +458,13 @@ const SHOP={
  warrior:{n:"Сундук воина",stars:75,cards:5,epic:1,d:["🃏 <b>5</b> карточек","минимум <b>1 эпическая</b>"]},
  legend:{n:"Легендарный сундук",stars:300,cards:10,leg:1,d:["🃏 <b>10</b> карточек","гарантированно <b>легендарная</b>","💎 шанс <b>2%</b> на Алмазную серию","шанс <b>4%</b> на богатыря"]},
  mythic:{n:"Мифический сундук",stars:1000,cards:10,myth:1,leg:1,month:30,d:["🃏 <b>10</b> карточек","💎 шанс <b>5%</b> на Алмазную серию","гарантированно <b>мифический</b>: Сёгун, Мерлин или богатырь","+ легендарная","шанс <b>2%</b> на легенду 1 из 1","всего <b>30</b> в месяц на всю игру"]}};
-const CHESTS=["newbie","small","royal","warrior","legend","mythic"];
+/* новые сундуки: удачи, промокодов, полководца, Империи */
+SHOP.luckbox={n:"Сундук удачи",stars:60,sp:10,luckH:3,d:["🎴 <b>10</b> прокруток","🍀 <b>3 часа</b> удачи: Голограмма и Золото ×1,25"]};
+SHOP.promo={n:"Сундук промокодов",stars:25,promo:1,d:["🎟 случайный <b>промокод</b>: прокрутки или ⭐ к пополнению","можно забрать себе или <b>подарить другу</b>","шанс на <b>+1000 ⭐</b>"]};
+SHOP.general={n:"Сундук полководца",stars:149,sp:15,cards:4,epic:1,horn:1,d:["🃏 <b>4</b> карточки, минимум <b>1 эпическая</b>","🎴 <b>15</b> прокруток","📯 <b>+3 битвы</b> в войне армий сегодня"]};
+SHOP.empire={n:"Сундук Империи",stars:499,sp:40,cards:6,leg:1,luckH:6,d:["🃏 <b>6</b> карточек, <b>легендарная</b> гарантирована","🎴 <b>40</b> прокруток","🍀 <b>6 часов</b> удачи","💎 шанс <b>3%</b> на Алмазную серию"]};
+const PROMO_BOX=[{w:55,sp:5},{w:25,bon:100,bmin:250},{w:12,bon:300,bmin:500},{w:5,sp:20},{w:3,bon:1000,bmin:1000}];
+const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
   if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
@@ -496,18 +502,34 @@ const EMP={rar:[10,25,60,150,400],fin:[1,1.6,3,6,12,15,15,8,14],coll:500,dg:60,
 function cardPow(c){const H=HEROES[c.h];if(!H)return 0;const F=EMP.fin[c.f]||1;return Math.round(EMP.rar[H[2]||0]*F*(1+.06*(lvl(c)-1))*(1+.12*(c.stars||0))*(c.part?.5:1))}
 function empPower(st,cards){let p=0;for(const c of cards||[])p+=cardPow(c);p+=hofColl(cards||[])*EMP.coll;if(st&&st.dg)p+=(st.dg.lv||0)*EMP.dg;return p}
 /* 🎨 темы оформления и 🖼 аватар (герой из своей коллекции) */
-const THEMES=[{k:"",n:"Классика",c:["#2f63ff","#1d44c8"]},{k:"night",n:"Ночь",c:["#3a2a8a","#140d3a"]},{k:"royal",n:"Королевская",c:["#8a6410","#2a1a05"]},{k:"forest",n:"Лес",c:["#1f8a55","#0b3a24"]},
+const THEMES=[{k:"stars",n:"✨ Звёздная ночь",c:["#6a4aff","#05031a"],prem:1},{k:"goldp",n:"✨ Чистое золото",c:["#d4a017","#3a2600"],prem:1},{k:"neon",n:"✨ Неон",c:["#ff2ad0","#12002a"],prem:1},{k:"",n:"Классика",c:["#2f63ff","#1d44c8"]},{k:"night",n:"Ночь",c:["#3a2a8a","#140d3a"]},{k:"royal",n:"Королевская",c:["#8a6410","#2a1a05"]},{k:"forest",n:"Лес",c:["#1f8a55","#0b3a24"]},
   {k:"fire",n:"Пламя",c:["#c8361a","#4a0d0d"]},{k:"ocean",n:"Океан",c:["#0d8aa8","#062c3a"]},{k:"rose",n:"Роза",c:["#c8268a","#4a0a3a"]},{k:"ice",n:"Лёд",c:["#5ab4e8","#1a4a7a"]}];
 const BIGUPD={id:"nov7",sp:5};
 /* 100 уровней Империи: уровень L требует 8·L^2,35 мощи. Ранги — полосы уровней: Племя 1–4, Деревня 5–9, Город 10–19, Крепость 20–34, Королевство 35–54, Империя 55–79, Легенда эпох 80–100 */
 EMP.MAXL=100;EMP.band=[1,5,10,20,35,55,80];const empLvP=L=>L<=1?0:Math.floor(8*Math.pow(L,2.35));EMP.R.forEach((R,i)=>R.p=empLvP(EMP.band[i]));
 /* ⚔️ Война армий: 5 лучших воинов против 5 лучших воинов другой Империи. 5 атак в день, слава за победы */
 const WAR={day:5,army:5,cool:2*36e5,win:[8,40],lose:8,def:5};
+/* 👑 Донаты Империи: стиль, удобство и защита. Не дают силы армии и карт — баланс не ломают. day:1 — раз в день, once:1 — навсегда */
+const AVF={fire:{n:"Огонь",ic:"🔥"},ice:{n:"Лёд",ic:"❄️"},crown:{n:"Корона",ic:"👑"},rainbow:{n:"Радуга",ic:"🌈"}},CRESTS=["🦅","🐺","🦁","🐉","⚔️","🛡","🔱","🌙"];
+const ESHOP={
+ fw:{n:"Салют для всех",ic:"🎆",stars:99,d:"Баннер с салютом увидят <b>все</b>, кто сейчас в игре: «⚡ Влад запустил салют в честь своей Империи!»"},
+ frame:{n:"Рамка аватара",ic:"🖼",stars:79,once:1,d:"Анимированная рамка вокруг аватара на плашке, в топах и в войне. Огонь, Лёд, Корона или Радуга"},
+ pth:{n:"Премиум-темы",ic:"🎨",stars:149,once:1,d:"3 особые темы игры: ✨ Звёздная ночь, ✨ Чистое золото и ✨ Неон — навсегда"},
+ crest:{n:"Герб Империи",ic:"🦅",stars:99,once:1,d:"Свой герб рядом с ником в топе Империй и в войне армий"},
+ shield:{n:"Щит Империи · 8 ч",ic:"🛡",stars:49,d:"8 часов на твою армию никто не нападёт в войне армий. Нападёшь сам — щит снимется"},
+ horn:{n:"Боевой рог",ic:"📯",stars:49,day:1,d:"+3 битвы в войне армий сегодня (раз в день)"},
+ trib2:{n:"Двойная дань",ic:"💰",stars:39,day:1,d:"Дань Империи сегодня ×2 (раз в день)"},
+ hofp:{n:"Пьедестал славы",ic:"🏛",stars:199,once:1,d:"+1 место в Зале славы навсегда — ещё одна карта приносит монеты"},
+ gluck:{n:"Золотой оберег · 3 ч",ic:"🍀",stars:69,day:1,d:"3 часа удачи: шанс Голограммы и Золота ×1,25. Не тратит дневные обереги (раз в день)"},
+ regsh:{n:"Укрепления · 4 ч",ic:"🏰",stars:59,day:1,d:"+4 часа щита на все твои земли: регионы, логово и крепость (раз в день)"}};
+function eshopCheck(st,k,v,now){const I=ESHOP[k];if(!I)fail("Нет такого товара");const d=today(now);
+  if(I.day&&(st.esd||{})[k]===d)fail("Сегодня уже куплено — приходи завтра");
+  if(k==="frame"){if(!AVF[v])fail("Выбери рамку");if((st.avf||{})[v])fail("Эта рамка уже твоя")}else if(k==="crest"){if(!CRESTS.includes(v))fail("Выбери герб");if(st.crest===v)fail("Этот герб уже твой")}else if(I.once&&st["es_"+k])fail("Уже куплено навсегда")}
 const empLvl=p=>{let L=1;while(L<EMP.MAXL&&p>=empLvP(L+1))L++;return L};
 const empRank=p=>{let r=0;EMP.R.forEach((x,i)=>{if(p>=x.p)r=i});return r};
 /* 🏛 Зал славы: выставленные карточки приносят монеты — 0,5% ценности в час, копится до 12 ч. Собранная коллекция героя (все 4 отделки: обычная, блестящая, голограмма, золотая) — +10% к доходу зала, до +50% */
 const HOF={rate:.005,cap:12*36e5,slots:[2,3,4,5,6],slotP:[0,2000,8000,25000,80000],coll:.1,collMax:.5};
-const hofSlots=(st,cards)=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)]+(cards?EMP.hof[empRank(empPower(st,cards))]:0);
+const hofSlots=(st,cards)=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)]+(cards?EMP.hof[empRank(empPower(st,cards))]:0)+(st.es_hofp?1:0);
 function hofColl(cards){const m={};for(const c of cards)if(c.f<=3)(m[c.h]||(m[c.h]=new Set())).add(c.f);let n=0;for(const k in m)if(m[k].size>=4)n++;return n}
 function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=c.v||0;return v*HOF.rate*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))*(1+EMP.inc*empRank(empPower(st,cards)))}
 function rollCard(ctx,epic){
@@ -758,11 +780,16 @@ const ACTIONS={
   /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
   hh_claim(G){const e=hhNow(G.ctx.now);if(!e||e.k!=="gift")fail("Сейчас нет Часа подарков");if(G.st.hhGot===e.at)fail("Подарок этого часа уже забран");G.st.hhGot=e.at;G.st.spins+=3;return {sp:3}},
   seen(G){const k=String(G.p.k||"").slice(0,40);if(!k)fail("Нет ключа");const L=(G.st.seen||[]).filter(x=>x!==k);L.push(k);G.st.seen=L.slice(-60);return {}},
-  war_use(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx}=G;const d=today(ctx.now);if(st.warD!==d){st.warD=d;st.warN=0}if(st.warN>=WAR.day)fail("Сегодня армия устала: "+WAR.day+" битв в день. Приходи завтра!");st.warN++;if(G.p.cash)earn(st,G.p.cash);return {left:WAR.day-st.warN}},
+  war_use(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx}=G;const d=today(ctx.now);if(st.warD!==d){st.warD=d;st.warN=0}const lim=WAR.day+(st.warXD===d?3:0);if(st.warN>=lim)fail("Сегодня армия устала: "+lim+" битв в день. Приходи завтра!");delete st.warSh;st.warN++;if(G.p.cash)earn(st,G.p.cash);return {left:WAR.day-st.warN}},
+  eshop_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,k=p.k,v=p.v,d=today(ctx.now),I=ESHOP[k];if(!I)fail("Нет такого товара");if(I.day)(st.esd||(st.esd={}))[k]=d;
+    if(k==="frame"){(st.avf||(st.avf={}))[v]=1;st.avfOn=v}else if(k==="crest")st.crest=v;else if(I.once)st["es_"+k]=1;
+    if(k==="shield")st.warSh=Math.max(st.warSh||0,ctx.now)+8*36e5;if(k==="horn")st.warXD=d;if(k==="gluck")st.luckU=Math.max(st.luckU||0,ctx.now)+3*36e5;
+    let extra=0;if(k==="trib2"){if(st.empD===d){extra=EMP.trib[empRank(empPower(st,G.cards))];earn(st,extra)}else st.trib2=d}return {k,v:v||null,extra}},
+  avf_set(G){const {st}=G;const v=String(G.p.v||"");if(v&&!(st.avf||{})[v])fail("Эта рамка ещё не куплена");st.avfOn=v||null;return {avfOn:st.avfOn}},
   ava_set(G){const {st}=G;const h=G.p.h|0;if(h<0){delete st.ava;return {ava:null}}if(!G.cards.some(c=>c.h===h))fail("Аватаром можно поставить только воина из своей коллекции");st.ava=h;return {ava:h}},
-  theme_set(G){const {st}=G;const k=String(G.p.k||"");if(!THEMES.some(t=>t.k===k))fail("Нет такой темы");st.theme=k;return {theme:k}},
+  theme_set(G){const {st}=G;const k=String(G.p.k||"");const T=THEMES.find(t=>t.k===k);if(!T)fail("Нет такой темы");if(T.prem&&!st.es_pth)fail("Премиум-темы открываются в Сокровищнице → 👑 Империя");st.theme=k;return {theme:k}},
   upd_gift(G){const {st}=G;if(st.updG===BIGUPD.id)fail("Подарок обновления уже получен");st.updG=BIGUPD.id;st.spins=(st.spins||0)+BIGUPD.sp;return {sp:BIGUPD.sp}},
-  emp_trib(G){const {st,ctx}=G;const d=today(ctx.now);if(st.empD===d)fail("Дань уже собрана — приходи завтра");const r=empRank(empPower(st,G.cards));st.empD=d;earn(st,EMP.trib[r]);if(EMP.tribSp[r])st.spins=(st.spins||0)+EMP.tribSp[r];return {cash:EMP.trib[r],sp:EMP.tribSp[r],r}},
+  emp_trib(G){const {st,ctx}=G;const d=today(ctx.now);if(st.empD===d)fail("Дань уже собрана — приходи завтра");const r=empRank(empPower(st,G.cards));st.empD=d;const x2=st.trib2===d?2:1;earn(st,EMP.trib[r]*x2);if(EMP.tribSp[r])st.spins=(st.spins||0)+EMP.tribSp[r];return {cash:EMP.trib[r]*x2,sp:EMP.tribSp[r],r,x2}},
   luck_buy(G){const {st,ctx}=G;const d=today(ctx.now);if(st.luckD!==d){st.luckD=d;st.luckN=0}if(st.luckN>=LUCK.day)fail("Сегодня обереги закончились — приходи завтра");
     const pr=luckPrice(st,ctx.now);pay(st,pr);st.luckN++;st.luckU=Math.max(st.luckU||0,ctx.now)+LUCK.dur;return {until:st.luckU,paid:pr,left:LUCK.day-st.luckN}},
   hof_set(G){const {st}=G;const ids=[...new Set((G.p.ids||[]).map(x=>x|0))].slice(0,hofSlots(st,G.cards));const own=new Set(G.cards.map(c=>c.id));
@@ -986,7 +1013,7 @@ const ACTIONS={
   grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,I=SHOP[p.item];if(!I)fail("Нет такого товара");
     st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     const got=[],add=c=>{c.how="chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
-    if(I.sp)st.spins+=I.sp;if(I.guar)st.guar=(st.guar||0)+I.guar;if(I.once)st.newbie=1;
+    if(I.sp)st.spins+=I.sp;if(I.guar)st.guar=(st.guar||0)+I.guar;if(I.once)st.newbie=1;if(I.luckH)st.luckU=Math.max(st.luckU||0,ctx.now)+I.luckH*36e5;if(I.horn)st.warXD=today(ctx.now);
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
@@ -1205,7 +1232,7 @@ Object.assign(ACTIONS,{
     if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
   mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
   mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
-if(typeof module!=="undefined")module.exports={WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,UPD,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,UPD,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -1736,9 +1763,9 @@ async function top(env,me,p){
   }
   const col=BOARDS[kind];if(!col)fail("Нет такого рейтинга");
   const items=await cached(kind,60e3,async()=>{
-    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score,json_extract(state,'$.ava') AS ava FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
+    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score,json_extract(state,'$.ava') AS ava,json_extract(state,'$.avfOn') AS avf,json_extract(state,'$.crest') AS crest FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
     const out=[];for(const r of rows){const b=await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();
-      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,ava:r.ava==null?null:+r.ava,card:b?pub(rowToCard(b)):null})}return out});
+      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,ava:r.ava==null?null:+r.ava,avf:r.avf||null,crest:r.crest||null,card:b?pub(rowToCard(b)):null})}return out});
   const mine=await env.DB.prepare(`SELECT ${col} AS score FROM users WHERE id=?`).bind(me.id).first();
   const score=mine?mine.score:0;
   const rank=score>0?(await env.DB.prepare(`SELECT COUNT(*)+1 AS n FROM users WHERE ${col}>?`).bind(score).first()).n:null;
@@ -2547,9 +2574,9 @@ async function mapAlAttack(env,me,rid,now){const m=await alMate(env,me.id);if(!m
 /* ⚔️ Война армий */
 async function warArmy(env,uid){const R=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 120").bind(uid).all()).results;const A=[];
   for(const r of R){const c=rowToCard(r);if(!FIN[c.f]||FIN[c.f].excl||c.part)continue;A.push({c,p:cardPow(c)})}A.sort((a,b)=>b.p-a.p);return A.slice(0,WAR.army)}
-async function warInfo(env,uid,full){const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,emp,glory,json_extract(state,'$.ava') AS ava FROM users WHERE id=?").bind(uid).first();if(!u)return null;
-  const A=full?await warArmy(env,uid):null;return {uid:u.id,name:u.name||"Игрок",emp:u.emp||0,glory:u.glory||0,ava:u.ava==null?null:+u.ava,army:A?A.map(x=>({c:pub(x.c),p:x.p})):undefined,ap:A?A.reduce((s,x)=>s+x.p,0):undefined}}
-async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const left=st.warD===today(now)?WAR.day-(st.warN||0):WAR.day;
+async function warInfo(env,uid,full){const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,emp,glory,json_extract(state,'$.ava') AS ava,json_extract(state,'$.avfOn') AS avf,json_extract(state,'$.crest') AS crest,json_extract(state,'$.warSh') AS sh FROM users WHERE id=?").bind(uid).first();if(!u)return null;
+  const A=full?await warArmy(env,uid):null;return {uid:u.id,name:u.name||"Игрок",emp:u.emp||0,glory:u.glory||0,ava:u.ava==null?null:+u.ava,avf:u.avf||null,crest:u.crest||null,sh:(u.sh||0)>Date.now()?1:0,army:A?A.map(x=>({c:pub(x.c),p:x.p})):undefined,ap:A?A.reduce((s,x)=>s+x.p,0):undefined}}
+async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const lim=WAR.day+(st.warXD===today(now)?3:0),left=st.warD===today(now)?lim-(st.warN||0):lim;
   if(a==="war_get"){const mine=await warInfo(env,me.id,true);const mp=mine.emp||1;
     let L=(await env.DB.prepare("SELECT id FROM users WHERE id<>? AND emp BETWEEN ? AND ? AND seen>? ORDER BY RANDOM() LIMIT 3").bind(me.id,Math.floor(mp*.6),Math.ceil(mp*1.6),now-14*864e5).all()).results;
     if(L.length<3)L=L.concat((await env.DB.prepare("SELECT id FROM users WHERE id<>? AND emp>0 ORDER BY ABS(emp-?) LIMIT 6").bind(me.id,mp).all()).results.filter(x=>!L.some(y=>y.id===x.id))).slice(0,3);
@@ -2558,6 +2585,7 @@ async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((awa
       .map(w=>({t:w.t,att:w.att===me.id,name:w.att===me.id?w.dn:w.an,win:w.att===me.id?!!w.win:!w.win,gl:w.gl}));
     return {me:mine,opp,left,log}}
   if(a==="war_attack"){const tid=p.uid|0;if(!tid||tid===me.id)fail("Выбери соперника");
+    const tst=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(tid).first())||{}).state||"{}");if((tst.warSh||0)>now)fail("🛡 Эта Империя под щитом ещё "+Math.ceil((tst.warSh-now)/36e5)+" ч");
     const recent=await env.DB.prepare("SELECT 1 FROM emp_war WHERE att=? AND def=? AND t>?").bind(me.id,tid,now-WAR.cool).first();if(recent)fail("Эту Империю ты уже атаковал недавно — дай ей 2 часа");
     const A=await warArmy(env,me.id),B=await warArmy(env,tid);if(!A.length)fail("Нужна хотя бы одна боевая карточка");if(!B.length)fail("У этой Империи нет армии");
     const me2=await warInfo(env,me.id),op=await warInfo(env,tid);
@@ -2734,6 +2762,8 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     return {item,stars,title:("🎁 "+W.n+" для "+to.name).slice(0,32),desc:"Подарок игроку "+to.name+": "+W.ic+" "+W.n+". Он получит его сразу и узнает, что это от тебя",data:{to:to.id,w,tn:to.name}}}
   if(item==="mflag"){const k=String(p.k||""),F=MFLAG[k];if(!F||!F.stars)fail("Нет такого флага");const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
     if((st.mflags||[]).includes(k))fail("Этот флаг уже твой");return {item,stars:F.stars,title:F.ic+" "+F.n,desc:F.n+" над твоими регионами на карте мира — навсегда"+(k==="photo"?". Фото проходит проверку модератором":""),data:{k}}}
+  if(item==="eshop"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}const k=String(p.k||""),v=String(p.v||"");eshopCheck(st,k,v,Date.now());const I=ESHOP[k];
+    return {item,stars:I.stars,title:I.ic+" "+I.n,desc:I.d.replace(/<[^>]+>/g,""),data:{k,v}}}
   if(item==="mpack"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}const A=mapAtt(st,Date.now());
     if(A.packs>=MAP.packMax)fail("Сегодня больше нельзя — максимум "+MAP.packMax+" пакета в день");return {item,stars:MAP.packStars,title:"⚔️ +"+MAP.pack+" атаки",desc:"+"+MAP.pack+" атаки на карте мира сегодня",data:{}}}
   if(item==="mpass"){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}if(mapPass(st,Date.now()).prem)fail("Пропуск этого месяца уже твой");
@@ -2790,7 +2820,12 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         if(n>=I.month)fail("Мифические сундуки этого месяца раскупили на секунду раньше")}
       const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"grant",Object.assign({},d,{item:P.item,pid:P.id}),{grant:true})).res;delete res.events;
-      msg="🎁 «"+I.n+"» открыт! "+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+"Всё уже в игре."}
+      if(I.promo){const B=PROMO_BOX[pick(PROMO_BOX.map(x=>x.w))];let code="";for(let i=0;i<20;i++){const b=new Uint32Array(1);crypto.getRandomValues(b);code="ЭПОХ"+String(b[0]%1e6).padStart(6,"0");if(!(await env.DB.prepare("SELECT 1 FROM promo WHERE code=?").bind(code).first()))break}
+        await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,?,0,1,?,?,0,0,?,?)").bind(code,B.sp||0,Date.now()+14*864e5,Date.now(),B.bon||0,B.bmin||0).run();
+        const what=B.sp?"+"+B.sp+" прокруток":"+"+B.bon+" ⭐ к пополнению от "+B.bmin+" ⭐";res.promo={code,what,big:B.bon>=300||B.sp>=20?1:0};
+        if(B.bon>=1000)try{await hypeAdd(env,P.uid,"🎟 выбил промокод на +1000 ⭐ из сундука!",1)}catch(e){}
+        try{await notify(env,P.uid,"🎟 Твой промокод из сундука: "+code+"\n\nВнутри: "+what+". Действует 14 дней, активировать может 1 человек — себе или другу 🎁","🎟 Ввести код",PAGE+"?promo=1")}catch(e){}}
+      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+"Всё уже в игре."}
     else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");
       let r;try{r=await env.DB.prepare("UPDATE cards SET sn=?,nice=2 WHERE id=? AND owner=?").bind(d.sn,c.id,P.uid).run()}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Номер "+fmtSn(d.sn)+" успели занять");throw e}
       if(r.meta.changes!==1)fail("Карточка больше не у тебя, номер не поставлен");res={card:c.id,sn:d.sn,old:c.sn};msg="✍️ Готово! Теперь у твоей карточки номер "+fmtSn(d.sn)+"."}
@@ -2828,6 +2863,11 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       const fn=(me&&me.n)||"Друг";await doAction(env,to,"present_note",{f:fn,w},{grant:true});const W=PRESENT[w];res={to:d.to,tn:d.tn,w};
       msg="🎁 Подарок отправлен! "+d.tn+" получил "+W.ic+" "+W.n+" и узнает, что это от тебя.";
       await notify(env,d.to,"🎁 "+fn+" подарил тебе "+W.ic+" "+W.n+"!\n\nПодарок уже в игре — заходи посмотреть.","🎁 Открыть подарок")}
+    else if(P.item==="eshop"){const u=await env.DB.prepare("SELECT name,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
+      res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"eshop_grant",{k:d.k,v:d.v},{grant:true})).res;delete res.events;const I=ESHOP[d.k];
+      if(d.k==="fw")await hypeAdd(env,P.uid,"🎆 запустил салют в честь своей Империи!",1);
+      if(d.k==="regsh")await env.DB.prepare("UPDATE map_reg SET shield=MAX(shield,?)+? WHERE owner=? OR owner2=?").bind(Date.now(),4*36e5,P.uid,P.uid).run();
+      msg=I.ic+" «"+I.n+"» — готово!"+(d.k==="trib2"&&res.extra?" Дань уже была собрана — доплатили ещё +"+res.extra+" 🪙":"")}
     else if(P.item==="mflag"||P.item==="mpack"||P.item==="mpass"){const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},P.item==="mflag"?"mflag_grant":P.item==="mpack"?"mpack_grant":"mpass_grant",d,{grant:true})).res;delete res.events;
       msg=P.item==="mflag"?MFLAG[d.k].ic+" «"+MFLAG[d.k].n+"» поднят над твоими регионами!"+(d.k==="photo"?" Загрузи фото на карте мира — после проверки оно появится на флаге.":""):P.item==="mpack"?"⚔️ +"+MAP.pack+" атаки на карте мира — вперёд!":"🎖 Пропуск завоевателя активирован! Забирай премиум-награды на карте мира."}

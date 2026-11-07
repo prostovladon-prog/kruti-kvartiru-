@@ -1042,3 +1042,20 @@ function csTopDraw(){const sec=$("sec-cas");if(!sec||sec.hidden)return;let el=$(
   const cb=CSI.cb||{};el.innerHTML='<div class="jp"><small>💎💎💎 ДЖЕКПОТ · сорви в слотах</small><b>'+fmtN(CSI.jp)+' 💠</b>'+(CSI.jw?'<em>последний: '+fnEsc(CSI.jw.name)+' +'+fmtN(CSI.jw.v)+'</em>':'<em>1% каждой ставки идёт в банк</em>')+'</div>'+
    (cb.amt>0&&!cb.taken?'<button type="button" class="cbk" id="cs-cb">💸 Кешбэк за вчера<b>+'+fmtN(cb.amt)+' 💠</b></button>':'<div class="cbk off">💸 Кешбэк<small>10% вчерашнего минуса — каждое утро</small></div>');
   const b=$("cs-cb");if(b)b.onclick=async()=>{b.disabled=true;const r=await act("cas_cb");if(r){toast("💸 Кешбэк +"+fmtN(r.got)+" 💠");try{sfx.coin&&sfx.coin();hapN("success")}catch(e){}csBal();csInfo(1)}else b.disabled=false}}
+
+/* ===================== 👑 Сокровищница → Империя: донаты без силы (стиль, удобство, защита) ===================== */
+let esPick={frame:"fire",crest:"🦅"};
+{const _rg=renderGold;renderGold=function(){if(goldTab!=="emp")return _rg.apply(this,arguments);const B=$("gold-body");if(!B||!S)return;
+  document.querySelectorAll("#gold-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.g===goldTab));const d=new Date(NOW()).toISOString().slice(0,10);
+  const owned=k=>{const I=ESHOP[k];if(k==="frame")return !!(S.avf||{})[esPick.frame];if(k==="crest")return S.crest===esPick.crest;if(I.day)return (S.esd||{})[k]===d;if(I.once)return !!S["es_"+k];return false};
+  const extra=k=>k==="frame"?'<div class="es-opt">'+Object.keys(AVF).map(v=>'<button type="button" data-fr="'+v+'" class="'+(esPick.frame===v?"on":"")+((S.avf||{})[v]?" own":"")+'">'+avaHTML(S.ava,"sm avf-"+v)+'<small>'+AVF[v].ic+' '+AVF[v].n+'</small></button>').join("")+'</div>'
+    :k==="crest"?'<div class="es-opt cr">'+CRESTS.map(v=>'<button type="button" data-cr="'+v+'" class="'+(esPick.crest===v?"on":"")+(S.crest===v?" own":"")+'">'+v+'</button>').join("")+'</div>':"";
+  B.innerHTML='<div class="ghd">👑 Для твоей Империи</div><p class="gnote">Стиль, удобство и защита. <b>Сила армии и карт за звёзды не продаётся</b> — побеждать можно только своей армией.</p>'+
+   Object.keys(ESHOP).map(k=>{const I=ESHOP[k],own=owned(k);return '<div class="es-it'+(own?" own":"")+'"><div class="es-h"><i>'+I.ic+'</i><span><b>'+I.n+'</b><small>'+I.d+'</small></span></div>'+extra(k)+
+     '<button type="button" class="es-buy" data-k="'+k+'"'+(own?" disabled":"")+'>'+(own?(I.day?"✅ Сегодня уже есть":"✅ Уже твоё"):"⭐ "+I.stars)+'</button>'+(k==="frame"&&Object.keys(S.avf||{}).length?'<button type="button" class="es-use" data-use="1">'+(S.avfOn?"Снять рамку":"Надеть купленную")+'</button>':"")+'</div>'}).join("");
+  try{hydrate(B)}catch(e){}
+  B.onclick=async e=>{const fr=e.target.closest("[data-fr]"),cr=e.target.closest("[data-cr]"),bu=e.target.closest(".es-buy"),us=e.target.closest(".es-use");
+    if(fr){esPick.frame=fr.dataset.fr;if((S.avf||{})[esPick.frame]){const r=await act("avf_set",{v:esPick.frame});if(r)toast("🖼 Рамка надета")}renderGold();return}
+    if(cr){esPick.crest=cr.dataset.cr;renderGold();return}
+    if(us){const r=await act("avf_set",{v:S.avfOn?"":Object.keys(S.avf||{})[0]});if(r)renderGold();return}
+    if(bu&&!bu.disabled){const k=bu.dataset.k;buyItem({item:"eshop",k,v:k==="frame"?esPick.frame:k==="crest"?esPick.crest:""})}}}}
