@@ -1237,6 +1237,21 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await cm(Y, "map_get"); ok(q.res.att.left === 2, "бой с хозяином тратит атаку");
     if (o52.owner === X) { q = await cm(X, "map_claim"); ok(q.ok && q.res.cash >= 550, "доход с логова (" + (q.res && q.res.cash) + ")"); } else ok(true, "доход (пропуск)");
     q = await cm(o52.owner, "map_leave", { rid: 52 }); ok(q.ok && !db.prepare("SELECT 1 FROM map_reg WHERE id=52").get(), "логово можно покинуть"); }
+  // 🤝 Земли союзов
+  { const X = 9151, Y = 9152, Z = 9153; await cm(Z, "sync"); for (let k = 0; k < 3; k++) await cm(Z, "open");
+    let q = await cm(X, "map_attack", { rid: 62 }); ok(!q.ok && /вдвоём/.test(q.err), "крепость без напарника не взять");
+    q = await cm(X, "al_find"); ok(q.ok && q.res.wait && !q.res.mate, "встал в поиск напарника");
+    q = await cm(Y, "al_find"); ok(q.ok && q.res.mate && q.res.mate.id === X, "поиск нашёл пару");
+    q = await cm(X, "al_get"); ok(q.res.mate && q.res.mate.id === Y && q.res.my.pw > 0, "у обоих виден союзник");
+    q = await cm(Z, "al_join", { uid: X }); ok(!q.ok && /уже есть напарник/.test(q.err), "занятого не переманить");
+    let won = 0; for (let i = 0; i < 15 && !won; i++) { q = await cm(X, "map_attack", { rid: 62 }); ok(q.ok && q.res.ally && q.res.rounds.length === 3, i ? "ещё штурм" : "штурм гарнизона"); won = q.res.won; }
+    const f = db.prepare("SELECT owner,owner2 FROM map_reg WHERE id=62").get(); ok(won && f.owner === X && f.owner2 === Y, "крепость у пары");
+    q = await cm(Y, "map_attack", { rid: 63 }); ok(!q.ok && /одна крепость/.test(q.err), "одна пара — одна крепость");
+    db.prepare("UPDATE map_reg SET since=?,claim_at=?,claim2_at=? WHERE id=62").run(Date.now() - 2 * 36e5, Date.now() - 2 * 36e5, Date.now() - 2 * 36e5);
+    const before = db.prepare("SELECT cash FROM users WHERE id=?").get(Y).cash; q = await cm(Y, "map_claim"); ok(q.ok && q.res.cash >= 270 && q.res.cash <= 300, "второй союзник получает свою половину (" + (q.res && q.res.cash) + ")");
+    q = await cm(Z, "al_join", { uid: Z }); ok(!q.ok, "сам с собой нельзя");
+    q = await cm(X, "al_leave"); ok(q.ok && !q.res.mate, "союз распущен"); q = await cm(Z, "al_join", { uid: X }); ok(q.ok && q.res.mate.id === X, "приглашение по ссылке");
+    db.prepare("UPDATE map_reg SET shield=0 WHERE id=62").run(); q = await cm(Z, "map_attack", { rid: 62 }); ok(!q.ok && /уже ваша|одна крепость/.test(q.err), "свою крепость не штурмуют"); }
   const mine = db.prepare("SELECT id FROM map_reg WHERE owner=?").all(own30);
   q = await buyM(own30, { item: "mstatue", rid: 30 }); ok(q.ok && q.res.status === "done" && db.prepare("SELECT statue FROM map_reg WHERE id=30").get().statue === 1, "статуя в своём регионе");
   q = await buyM(own30, { item: "mpass" }); ok(q.ok && q.S.mpass.prem === 1, "пропуск завоевателя");

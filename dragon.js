@@ -555,7 +555,7 @@ function dgLandSVG(){const R=DGL_R,regs={};(MD.regs||[]).forEach(r=>regs[r.id]=r
   return h+fl}
 let mapDgTac="rush";
 function mapDgSheet(i){const r=(MD.regs||[]).find(x=>x.id===i)||{id:i},M=MAP_R[i],I=mapInc(i),m=$("modal"),sh=$("msheet"),mine=r.owner===S.uid,D=dgOf(),P=MD.dgp,thr=i===DGL_THRONE;m.hidden=false;
-  const myLair=(MD.regs||[]).find(x=>x.owner===S.uid&&x.id>=DGL0);
+  const myLair=(MD.regs||[]).find(x=>x.owner===S.uid&&x.id>=DGL0&&x.id<AL0);
   let body=`<div class="ms-h"><b>${M[1]} ${M[0]}</b><em style="background:${MAP.zc[3]}">🐉 ${MAP.zn[3]} · +${fmtN(I.c)} 🪙/ч${thr?" · 👑 ×"+MAP.dthr:""}</em></div>`;
   if(!D||!P)body+=`<p class="ms-lock">🥚 Сюда пускают только с драконом. Выведи своего дракона — и он сможет захватить логово!</p><button type="button" class="craftbtn" id="mdg-egg">🐉 К дракону</button>`;
   else if(mine)body+=`<p class="ms-sub">Твой дракон охраняет логово уже ${tleft(NOW()-r.since)}${r.shield?" · 🛡 щит ещё "+tleft(r.shield-NOW()):""} · отбито атак: ${r.def_n||0}</p><div class="mdg-v one"><div class="mdg-s me"><span>${dgMini(D)}</span><b>${escH(D.name||"Твой дракон")}</b><small>мощь ${dgFmt(P.pow)}</small></div></div>
