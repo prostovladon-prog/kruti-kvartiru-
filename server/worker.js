@@ -114,8 +114,9 @@ const FIN=[
  {k:"Бесценная",cls:"collab",w:0,m:0,run:1,col:"#00e5ff",excl:1,collab:1},
  {k:"Близнец",cls:"duo",w:0,m:250,run:2,col:"#7cf7ff",duo:1},
  {k:"Алмазная ошибка",cls:"error dia",w:0,m:600,run:30,col:"#5ad8ff",dia:1}];   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
-/* 💎 Алмазная серия: 20 «ошибок печати» только за ⭐. У каждой свой дефект печати (c — css-класс) и спрятанный бриллиант (x,y — где он на рисунке), свой тираж и цена */
-const DIA_F=8,DIA={"59": {"n": "Двойная печать", "c": "dbl", "x": 50, "y": 30, "run": 10, "st": 1999}, "64": {"n": "Золотой залив", "c": "gold", "x": 50, "y": 22, "run": 10, "st": 1999}, "63": {"n": "Перевёртыш", "c": "flip", "x": 30, "y": 70, "run": 10, "st": 1999}, "65": {"n": "Алмазный брак", "c": "crys", "x": 62, "y": 38, "run": 5, "st": 2999}, "61": {"n": "Негатив", "c": "neg", "x": 48, "y": 24, "run": 15, "st": 1499}, "62": {"n": "Глитч", "c": "glit", "x": 70, "y": 40, "run": 15, "st": 1499}, "60": {"n": "Ночная смена", "c": "night", "x": 52, "y": 32, "run": 15, "st": 1499}, "29": {"n": "Тень", "c": "shadow", "x": 44, "y": 30, "run": 20, "st": 999}, "28": {"n": "Перегрев", "c": "burn", "x": 36, "y": 30, "run": 20, "st": 999}, "25": {"n": "Кровавая печать", "c": "blood", "x": 50, "y": 26, "run": 20, "st": 999}, "26": {"n": "Сдвиг цвета", "c": "rgb", "x": 58, "y": 46, "run": 25, "st": 799}, "27": {"n": "Зеркало", "c": "mirror", "x": 50, "y": 52, "run": 25, "st": 799}, "36": {"n": "Радужная плёнка", "c": "rain", "x": 40, "y": 44, "run": 20, "st": 999}, "40": {"n": "Капля чернил", "c": "ink", "x": 64, "y": 58, "run": 20, "st": 999}, "58": {"n": "Без краски", "c": "sketch", "x": 52, "y": 34, "run": 25, "st": 799}, "57": {"n": "Растр", "c": "pix", "x": 38, "y": 40, "run": 25, "st": 799}, "52": {"n": "Лишний слой", "c": "ghost", "x": 60, "y": 28, "run": 30, "st": 599}, "20": {"n": "Порез ножа", "c": "cut", "x": 45, "y": 36, "run": 30, "st": 599}, "18": {"n": "Водяной знак", "c": "water", "x": 55, "y": 30, "run": 30, "st": 599}, "19": {"n": "Съехавший слой", "c": "mosaic", "x": 50, "y": 50, "run": 30, "st": 599}};
+/* 💎 Алмазная серия: 40 «ошибок печати». Не продаются — выпадают в прокрутке (DIA_P.spin) и в Легендарном/Мифическом сундуке, пока не кончился тираж. У каждой свой дефект печати (c — css-класс) и спрятанный бриллиант (x,y — где он на рисунке), свой тираж */
+const DIA_P={spin:.0005,legend:.02,mythic:.05};
+const DIA_F=8,DIA={"59": {"n": "Двойная печать", "c": "dbl", "x": 50, "y": 30, "run": 10}, "64": {"n": "Золотой залив", "c": "gold", "x": 50, "y": 22, "run": 10}, "63": {"n": "Перевёртыш", "c": "flip", "x": 30, "y": 70, "run": 10}, "65": {"n": "Алмазный брак", "c": "crys", "x": 62, "y": 38, "run": 5}, "61": {"n": "Негатив", "c": "neg", "x": 48, "y": 24, "run": 15}, "62": {"n": "Глитч", "c": "glit", "x": 70, "y": 40, "run": 15}, "60": {"n": "Ночная смена", "c": "night", "x": 52, "y": 32, "run": 15}, "29": {"n": "Тень", "c": "shadow", "x": 44, "y": 30, "run": 20}, "28": {"n": "Перегрев", "c": "burn", "x": 36, "y": 30, "run": 20}, "25": {"n": "Кровавая печать", "c": "blood", "x": 50, "y": 26, "run": 20}, "26": {"n": "Сдвиг цвета", "c": "rgb", "x": 58, "y": 46, "run": 25}, "27": {"n": "Зеркало", "c": "mirror", "x": 50, "y": 52, "run": 25}, "36": {"n": "Радужная плёнка", "c": "rain", "x": 40, "y": 44, "run": 20}, "40": {"n": "Капля чернил", "c": "ink", "x": 64, "y": 58, "run": 20}, "58": {"n": "Без краски", "c": "sketch", "x": 52, "y": 34, "run": 25}, "57": {"n": "Растр", "c": "pix", "x": 38, "y": 40, "run": 25}, "52": {"n": "Лишний слой", "c": "ghost", "x": 60, "y": 28, "run": 30}, "20": {"n": "Порез ножа", "c": "cut", "x": 45, "y": 36, "run": 30}, "18": {"n": "Водяной знак", "c": "water", "x": 55, "y": 30, "run": 30}, "19": {"n": "Съехавший слой", "c": "mosaic", "x": 50, "y": 50, "run": 30}, "30": {"n": "Неон", "c": "neon", "x": 50, "y": 28, "run": 10}, "31": {"n": "Космос", "c": "cosmos", "x": 60, "y": 22, "run": 10}, "38": {"n": "Ледяная печать", "c": "ice", "x": 46, "y": 30, "run": 10}, "39": {"n": "Огненный край", "c": "fire", "x": 55, "y": 34, "run": 10}, "56": {"n": "Засвет", "c": "flare", "x": 48, "y": 26, "run": 10}, "55": {"n": "Старая плёнка", "c": "sepia", "x": 52, "y": 24, "run": 20}, "53": {"n": "Ржавчина", "c": "rust", "x": 40, "y": 34, "run": 20}, "49": {"n": "Тепловизор", "c": "thermo", "x": 56, "y": 30, "run": 20}, "50": {"n": "Контур мелом", "c": "outline", "x": 50, "y": 40, "run": 20}, "51": {"n": "Перекос", "c": "skew", "x": 44, "y": 30, "run": 20}, "54": {"n": "Брызги краски", "c": "splash", "x": 58, "y": 28, "run": 20}, "24": {"n": "Половина без краски", "c": "half", "x": 46, "y": 26, "run": 25}, "23": {"n": "Небо вниз", "c": "bgflip", "x": 52, "y": 22, "run": 25}, "22": {"n": "Царапины", "c": "scratch", "x": 38, "y": 36, "run": 25}, "21": {"n": "Призрак", "c": "phantom", "x": 50, "y": 30, "run": 25}, "11": {"n": "Радиация", "c": "rad", "x": 54, "y": 30, "run": 30}, "12": {"n": "Растяжение", "c": "stretch", "x": 50, "y": 20, "run": 30}, "13": {"n": "Сползший герой", "c": "drop", "x": 48, "y": 62, "run": 30}, "48": {"n": "Пустой фон", "c": "nobg", "x": 50, "y": 28, "run": 30}, "17": {"n": "Мини-герой", "c": "tiny", "x": 50, "y": 50, "run": 30}};
 const isDia=h=>!!DIA[h], finRun=c=>c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
@@ -442,8 +443,8 @@ const SHOP={
  small:{n:"Малый сундук",stars:50,sp:10,halves:1,rightP:HALF_P.right,d:["🎴 <b>10</b> прокруток","🧩 <b>1</b> половинка составного воина","шанс правой: <b>15%</b>"]},
  royal:{n:"Королевский сундук",stars:250,sp:60,halves:6,rightP:HALF_P.right,right1:1,d:["🎴 <b>60</b> прокруток","🧩 <b>6</b> половинок","минимум <b>1 правая</b> гарантированно"]},
  warrior:{n:"Сундук воина",stars:75,cards:5,epic:1,d:["🃏 <b>5</b> карточек","минимум <b>1 эпическая</b>"]},
- legend:{n:"Легендарный сундук",stars:300,cards:10,leg:1,d:["🃏 <b>10</b> карточек","гарантированно <b>легендарная</b>","шанс <b>4%</b> на богатыря"]},
- mythic:{n:"Мифический сундук",stars:1000,cards:10,myth:1,leg:1,month:30,d:["🃏 <b>10</b> карточек","гарантированно <b>мифический</b>: Сёгун, Мерлин или богатырь","+ легендарная","шанс <b>2%</b> на легенду 1 из 1","всего <b>30</b> в месяц на всю игру"]}};
+ legend:{n:"Легендарный сундук",stars:300,cards:10,leg:1,d:["🃏 <b>10</b> карточек","гарантированно <b>легендарная</b>","💎 шанс <b>2%</b> на Алмазную серию","шанс <b>4%</b> на богатыря"]},
+ mythic:{n:"Мифический сундук",stars:1000,cards:10,myth:1,leg:1,month:30,d:["🃏 <b>10</b> карточек","💎 шанс <b>5%</b> на Алмазную серию","гарантированно <b>мифический</b>: Сёгун, Мерлин или богатырь","+ легендарная","шанс <b>2%</b> на легенду 1 из 1","всего <b>30</b> в месяц на всю игру"]}};
 const CHESTS=["newbie","small","royal","warrior","legend","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
@@ -455,8 +456,9 @@ function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROE
     const sn=genNumber(ctx,0),B=cardBody(h,0);return {id:ctx.newId(),h,f:0,no,sn,part:0,hue:B.hue,stats:B.stats,v:priceOf(h,0,no,sn,B.top,0),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0}}
   return makeCard(ctx,h,f)}
 SHOP.twins={n:"Сундук Близнецов",stars:1500,twins:1,cards:3,d:["♊ <b>Близнец</b> — карточка, которой всего <b>2</b> на весь мир","+ <b>3</b> обычные карточки","собери пару близнецов — их знает вся игра"]};
+function rollDia(ctx){const L=Object.keys(DIA).map(Number).filter(h=>HEROES[h]&&ctx.issuedOf(h,DIA_F)<DIA[h].run);if(!L.length)return null;
+  const w=L.map(h=>DIA[h].run-ctx.issuedOf(h,DIA_F));try{return makeDia(ctx,L[pick(w)])}catch(e){return null}}   // чем больше осталось в тираже, тем чаще
 function makeDia(ctx,h){const D=DIA[h];if(!D||!HEROES[h])fail("Такой карточки нет в Алмазной серии");if(ctx.issuedOf(h,DIA_F)>=D.run)fail("Тираж «"+HEROES[h][0]+"» в Алмазной серии закончился");return makeCard(ctx,h,DIA_F)}
-SHOP.dia={n:"Алмазная серия",stars:0,dia:1,d:["💎 «ошибка печати» со спрятанным бриллиантом","только за ⭐ · крошечный тираж"]};
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
 SHOP.custom={n:"Карточка твоей мечты",stars:5000,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
 /* свой номер: 100 ⭐ + 100 ⭐ за каждый «икс» красивого номера (777 777 ×15 = 1600 ⭐) */
@@ -725,6 +727,7 @@ const ACTIONS={
     if(c){}else if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
     else if(rr<SPIN_P.one+SPIN_P.don)c=rollTier(ctx,-1,DON);   // богатырь
     else if(rr<SPIN_P.one+SPIN_P.don+SPIN_P.duo)c=rollDuo(ctx);   // Близнец: 2 на весь мир
+    if(!c&&!ctx.noRare&&Math.random()<DIA_P.spin)c=rollDia(ctx);   // 💎 Алмазная серия: 1 на 2000 прокруток
     if(!c&&!epic&&!ctx.noRare&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
     st.nOp=(st.nOp||0)+1;let wel=0;
     if(st.wel===0&&st.nOp>=2&&!c){wel=1;st.wel=1;const pl=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===3),h=pl[Math.floor(Math.random()*pl.length)];c=makeCard(ctx,h,ctx.issuedOf(h,1)<FIN[1].run?1:0)}   // подарок новичку: на 2-й прокрутке легендарный воин с блеском
@@ -912,9 +915,9 @@ const ACTIONS={
     if(I.sp)st.spins+=I.sp;if(I.guar)st.guar=(st.guar||0)+I.guar;if(I.once)st.newbie=1;
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
-    if(I.dia)add(makeDia(ctx,p.h|0));
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;
+      {const dp=DIA_P[p.item];if(dp&&!ctx.noRare&&Math.random()<dp){const d=rollDia(ctx);if(d){add(d);n--}}}   // 💎 шанс на Алмазную серию
       if(I.myth){add(rollTier(ctx,4,DON));n--}
       if(I.leg){add(!I.myth&&Math.random()<DON_P.legend?rollTier(ctx,-1,DON):rollTier(ctx,3));n--}
       const op=ONE_P[p.item];if(op&&Math.random()<op){const one=rollOne(ctx);if(one){add(one);n--}}
@@ -2497,11 +2500,6 @@ const monthOf=t=>new Date(t+TZ).toISOString().slice(0,7),PAY_HOLD=15*60e3;
 async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
   const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='mythic' AND month=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(monthOf(now),except||0,now-PAY_HOLD).first())||{}).n||0;
   return Math.max(0,I.month-n)}
-/* сколько карт Алмазной серии этого героя ещё можно купить: выпущенные + неоплаченные счета последних 15 минут */
-async function diaLeft(env,h,except){const D=DIA[h];if(!D)return 0;const now=Date.now();
-  const made=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,DIA_F).first())||{}).n||0;
-  const hold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='dia' AND p=? AND id<>? AND (status='paid' OR (status='new' AND created>?))").bind(JSON.stringify({h}),except||0,now-PAY_HOLD).first())||{}).n||0;
-  return Math.max(0,D.run-made-hold)}
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
   if(I){
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
@@ -2509,8 +2507,6 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
-    if(I.dia){const h=p.h|0,D=DIA[h];if(!D)fail("Такой карточки нет в Алмазной серии");if(await diaLeft(env,h,except)<=0)fail("«"+HEROES[h][0]+"» из Алмазной серии раскупили");
-      return {item,stars:D.st,title:("💎 "+HEROES[h][0]+" · "+D.n).slice(0,32),desc:"Ошибка печати «"+D.n+"» из Алмазной серии: тираж "+D.run+" на весь мир, в карте спрятан бриллиант",data:{h}}}
     if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
       if(H[4].one&&f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");if(H[4].comp&&f!==0)fail("Составного воина можно взять только обычной отделки");
       const f2=H[4].comp?0:f,n=((await env.DB.prepare(H[4].comp?"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=0 AND no<=?":"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,H[4].comp?HALF_RUN:f2).first())||{}).n||0;
