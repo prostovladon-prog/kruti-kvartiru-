@@ -2851,3 +2851,45 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .prmode{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.prmode button{border:1px solid rgba(0,0,0,.15);background:rgba(0,0,0,.05);border-radius:10px;padding:9px 4px;font:inherit;font-weight:800;font-size:12.5px;color:inherit}
 .prmode button.on{background:linear-gradient(135deg,#ffd23f,#ff9f0a);color:#3a1600;border-color:transparent;box-shadow:0 4px 12px rgba(255,170,20,.4)}
 .bonly .prrw label:nth-child(-n+3){display:none}.bonly .prrw{grid-template-columns:1fr 1fr}.bonly{display:flex;flex-direction:column}.bonly .prbon{order:2}.bonly .prrw{order:3;margin-top:6px}.bonly #pa-go{order:4}.bonly>small{order:5}.bonly .prmode{order:0}.bonly #pa-code{order:1}
+
+/* 💎 Алмазная серия — дефекты печати и бриллиант */
+.face .diam{position:absolute;width:13%;aspect-ratio:1;transform:translate(-50%,-50%) rotate(-8deg);z-index:9;filter:drop-shadow(0 0 10px #8af6ff) drop-shadow(0 0 22px rgba(120,220,255,.9));animation:diamtw 2.4s ease-in-out infinite}
+.face .diam svg{width:100%;height:100%;display:block}
+@keyframes diamtw{50%{transform:translate(-50%,-50%) rotate(-8deg) scale(1.12);filter:drop-shadow(0 0 16px #c8fbff) drop-shadow(0 0 34px rgba(140,230,255,1))}}
+.face.dia .finish{background:linear-gradient(90deg,#ff2e63,#7a2aff,#00d2ff)!important;color:#fff!important;font-weight:900!important;letter-spacing:.04em}
+.face .diam{position:absolute;width:13%;aspect-ratio:1;transform:translate(-50%,-50%) rotate(-8deg);z-index:9;filter:drop-shadow(0 0 10px #8af6ff) drop-shadow(0 0 22px rgba(120,220,255,.9))}
+.face .diam:after{content:"";position:absolute;left:-60%;top:40%;width:220%;height:4px;background:linear-gradient(90deg,transparent,#fff,transparent);transform:rotate(-20deg);opacity:.9}
+.face .diam:before{content:"";position:absolute;left:40%;top:-60%;width:4px;height:220%;background:linear-gradient(180deg,transparent,#fff,transparent);transform:rotate(-20deg);opacity:.9}
+ .face.dia-dbl .hero{filter:drop-shadow(14px -8px 0 rgba(255,40,90,.55)) drop-shadow(-12px 6px 0 rgba(0,200,255,.5))!important}
+ .face.dia.dia-gold .art{filter:sepia(1) saturate(4) hue-rotate(-12deg) brightness(1.15) contrast(1.15)}.face.dia.dia-gold .art:after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 40% 30%,rgba(255,240,150,.6),transparent 60%);mix-blend-mode:screen}
+ .face.dia-flip .hero{transform:rotate(180deg)}.face.dia-flip .top b{display:inline-block;transform:rotate(180deg)}
+ .face.dia-crys .art{filter:hue-rotate(160deg) saturate(1.6) brightness(1.15)}.face.dia-crys .art:after{content:"";position:absolute;inset:0;background:conic-gradient(from 30deg,rgba(255,255,255,.35),rgba(120,220,255,.1),rgba(255,255,255,.4),rgba(160,120,255,.15),rgba(255,255,255,.35));mix-blend-mode:overlay;clip-path:polygon(0 0,40% 0,20% 30%,60% 10%,100% 0,100% 50%,70% 40%,100% 100%,50% 70%,0 100%,30% 50%)}
+ .face.dia-neg .art{filter:invert(1) hue-rotate(180deg) contrast(1.1)}
+ .face.dia-glit .hero{clip-path:polygon(0 0,100% 0,100% 30%,0 30%,0 32%,100% 32%,100% 100%,0 100%);filter:drop-shadow(18px 0 0 rgba(0,255,200,.6)) drop-shadow(-18px 0 0 rgba(255,0,120,.6))!important}.face.dia-glit .art:after{content:"";position:absolute;left:0;right:0;top:36%;height:9%;background:inherit;backdrop-filter:hue-rotate(120deg);transform:translateX(12%);border-top:3px solid #0ff;border-bottom:3px solid #f0a}
+ .face.dia-night .art{filter:brightness(.55) saturate(1.4) hue-rotate(200deg)}.face.dia-night .art:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,rgba(120,180,255,.6),transparent 45%);mix-blend-mode:screen}
+ .face.dia-shadow .hero{filter:brightness(0) drop-shadow(0 0 18px #ff3a5a)!important}
+ .face.dia-burn .art{filter:sepia(.6) saturate(2.6) hue-rotate(-25deg) contrast(1.2)}.face.dia-burn .art:after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 60px 20px rgba(255,80,0,.85),inset 0 0 20px 6px #000}
+ .face.dia-blood .art{filter:grayscale(1) sepia(1) saturate(8) hue-rotate(-50deg) brightness(.9) contrast(1.3)}
+ .face.dia-rgb .hero{filter:drop-shadow(-22px 0 0 rgba(255,0,60,.8)) drop-shadow(22px 0 0 rgba(0,230,255,.8)) drop-shadow(0 14px 0 rgba(255,230,0,.6))!important}
+ .face.dia-mirror .art{transform:scaleX(-1)}.face.dia-mirror .top b{display:inline-block;transform:scaleX(-1)}
+ .face.dia-rain .art:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,0,0,.45),rgba(255,160,0,.45),rgba(255,255,0,.45),rgba(0,255,100,.45),rgba(0,160,255,.45),rgba(170,0,255,.45));mix-blend-mode:color}
+ .face.dia-ink .dxtra{position:absolute;left:-4%;top:58%;width:44%;height:40%;z-index:5;background:radial-gradient(circle at 40% 40%,#0b0b24 50%,transparent 51%),radial-gradient(circle at 78% 72%,#0b0b24 22%,transparent 23%),radial-gradient(circle at 18% 84%,#0b0b24 16%,transparent 17%),radial-gradient(circle at 90% 20%,#0b0b24 10%,transparent 11%)}
+ .face.dia-sketch .art{filter:grayscale(1) contrast(2.2) brightness(1.4)}
+ .face.dia-pix .dxtra{position:absolute;inset:0;z-index:5;background:radial-gradient(circle,rgba(0,0,0,.55) 38%,transparent 40%) 0 0/14px 14px;mix-blend-mode:multiply}.face.dia-pix .art{filter:contrast(1.3) saturate(1.5)}
+ .face.dia-ghost .dxtra{position:absolute;left:-18%;top:4%;width:80%;height:90%;z-index:4;background:var(--g2) center/contain no-repeat;opacity:.55;filter:hue-rotate(140deg) drop-shadow(0 0 10px #0ff)}
+ .face.dia-cut .in{transform:translate(9%,-6%) rotate(-3deg)!important}.face.dia-cut{background:repeating-linear-gradient(45deg,#ffffff,#ffffff 8px,#e0e0e0 8px 16px)!important}
+ .face.dia-water .dxtra{position:absolute;inset:-30%;z-index:5;font:900 30px sans-serif;color:rgba(255,255,255,.42);transform:rotate(-28deg);line-height:1.7;word-spacing:18px;overflow:hidden;text-shadow:0 0 2px rgba(0,0,0,.4)}
+ .face.dia-mosaic .hero{transform:translate(12%,7%) rotate(5deg);filter:drop-shadow(-60px -20px 0 rgba(255,255,255,.35))!important}
+
+
+.diahd{text-align:center;padding:16px 14px 12px;margin:4px 0 12px;border-radius:22px;background:radial-gradient(ellipse at 50% 0,#3a2aa0,#14093a 70%);color:#fff;border:2px solid rgba(120,220,255,.55);box-shadow:0 0 30px rgba(90,200,255,.25)}
+.diahd h3{margin:4px 0;font-size:24px;font-weight:900;background:linear-gradient(90deg,#9af,#e8ffff,#5ad8ff);-webkit-background-clip:text;background-clip:text;color:transparent}.diahd p{font-size:13px;line-height:1.4;margin:6px 0;opacity:.92}
+.diagem{width:56px;height:56px;margin:0 auto;filter:drop-shadow(0 0 14px #8af6ff);animation:rdbob 2.4s ease-in-out infinite}.diagem svg{width:100%;height:100%}
+.dialeft{display:inline-block;margin-top:6px;padding:5px 14px;border-radius:999px;background:rgba(255,255,255,.12);font-size:12px}
+.diag{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.diac{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 8px 10px;border-radius:18px;background:linear-gradient(180deg,#1a1440,#0e0a26);border:2px solid rgba(120,220,255,.35);color:#fff}
+.diac .minic{width:100%}.diac>b{margin-top:6px;font-size:14px;font-weight:900}.diac>small{font-size:11px;color:#8ae6ff;font-weight:700}
+.dial{width:100%;height:6px;border-radius:4px;background:rgba(255,255,255,.12);margin:6px 0 2px;overflow:hidden}.dial i{display:block;height:100%;background:linear-gradient(90deg,#5ad8ff,#c8fbff)}
+.diac .diaq{color:#cfc4ff;font-weight:600}.diac .craftbtn{margin-top:6px;width:100%;padding:9px 6px;font-size:15px}
+.diac.sold{opacity:.55}.diac.sold .minic{filter:grayscale(.8)}
+.face.dia-ghost .hero{filter:drop-shadow(-120px -30px 0 rgba(90,255,230,.45)) drop-shadow(120px 10px 0 rgba(255,90,200,.3))!important}

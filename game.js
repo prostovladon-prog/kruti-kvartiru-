@@ -669,6 +669,11 @@ const SEAM='<svg class="seam" viewBox="0 0 300 420" preserveAspectRatio="none" a
 function compFin(c){if(!isComp(c.h))return "";const err=c.f===4;
   if(c.part)return (err?"Ошибка · ":"")+PART_K[c.part]+(err?" 1/1":c.part===2?" · "+c.no+"/"+HALF_RUN:"");
   return err?"Ошибка печати 1/1":"Составной "+c.no+"/"+HALF_RUN}
+/* 💎 Алмазная серия: дефект печати (класс dia-…) + спрятанный бриллиант */
+const DIA_GEM='<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="dgm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8ffff"/><stop offset=".5" stop-color="#5ad8ff"/><stop offset="1" stop-color="#2a6aff"/></linearGradient></defs><path d="M20 30 L35 12 L65 12 L80 30 L50 90Z" fill="url(#dgm)" stroke="#0d1030" stroke-width="5" stroke-linejoin="round"/><path d="M20 30 L80 30 M35 12 L42 30 L50 90 L58 30 L65 12" fill="none" stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round"/><path d="M38 16 L44 28" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>';
+function diaFace(root,c){[...root.classList].filter(x=>x.startsWith("dia-")).forEach(x=>root.classList.remove(x));root.querySelectorAll(".diam,.dxtra").forEach(e=>e.remove());
+  const D=c.f===DIA_F&&DIA[c.h];if(!D)return;root.classList.add("dia-"+D.c);const art=root.querySelector(".art");if(!art)return;
+  art.insertAdjacentHTML("beforeend",'<div class="diam" style="left:'+D.x+'%;top:'+D.y+'%">'+DIA_GEM+'</div>'+(["pix","ink","water"].includes(D.c)?'<div class="dxtra">'+(D.c==="water"?"ОШИБКА · ".repeat(60):"")+'</div>':""))}
 function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"");root.style.setProperty("--hc",T.c);
@@ -678,7 +683,7 @@ function fillFace(root,c){
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
   const lb=q(".lvl");lb.hidden=lvl(c)<=1;lb.textContent="Ур. "+lvl(c);
-  q(".finish").textContent=compFin(c)||F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run);
+  q(".finish").textContent=compFin(c)||(F.dia&&DIA[c.h]?"💎 "+DIA[c.h].n+" "+c.no+"/"+DIA[c.h].run:F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run));
   const sn=c.sn||"482913",cl=classify(sn),se=q(".foot .sn");
   se.innerHTML="<small>№</small>"+fmtSn(sn);se.classList.toggle("nice",!!cl);
   const rb=q(".ribbon");rb.hidden=!cl&&!c.cust;if(c.cust)rb.textContent="✍️ Именной номер";else if(cl)rb.textContent=cl.k+", ×"+cl.m;
@@ -686,11 +691,11 @@ function fillFace(root,c){
   const art=q(".art");
   let sb=q(".stars");if(!sb){sb=document.createElement("div");sb.className="stars";art.appendChild(sb)}
   sb.hidden=!st;sb.innerHTML="★".repeat(st)+"<i>"+"★".repeat(STAR_MAX-st)+"</i>";
-  root.style.clipPath=c.part?HALF_CLIP[c.part]:c.f===4?tornPoly(sn):"";
-  root.querySelectorAll(".tear,.brak,.seam").forEach(e=>e.remove());if(c.f===4)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
+  const ER=c.f===4||c.f===DIA_F;root.style.clipPath=c.part?HALF_CLIP[c.part]:ER?tornPoly(sn):"";
+  root.querySelectorAll(".tear,.brak,.seam").forEach(e=>e.remove());if(ER)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
   root.classList.toggle("half",!!c.part);root.classList.toggle("half-l",c.part===1);root.classList.toggle("half-r",c.part===2);root.classList.toggle("comp",isComp(c.h)&&!c.part);
   if(isComp(c.h)&&!c.part)q(".in").insertAdjacentHTML("beforeend",SEAM);
-  faceV2(root,c);if(HEROES[c.h][4].collab&&typeof collabFace==="function")collabFace(root,c);
+  faceV2(root,c);diaFace(root,c);if(HEROES[c.h][4].collab&&typeof collabFace==="function")collabFace(root,c);
 }
 /* ---------- маленькая копия карточки для списков ----------
    miniSlot(c) возвращает пустой span, а настоящая карточка дорисовывается, как только span попадёт на страницу. */
@@ -874,8 +879,8 @@ function renderBeauty(){const B=$("beauty"),ownF=new Set(S.cards.map(c=>c.f)),ow
   const demo=(h,f,o)=>{let c;try{c=makeCard(ctx,h,f)}catch(e){c={h,f,no:1,sn:"482913",hue:0,v:0,stats:[300,300,300,300,300],xp:0,wins:0,stars:0}}Object.assign(c,o||{});return c};
   const slot=c=>'<div class="ms">'+miniSlot(c)+'</div>',got=FIN.filter((F,i)=>ownF.has(i)).length;
   let v='<div class="colhead"><div class="t">✨ ВИТРИНА КРАСОТЫ</div><div class="s" style="margin-top:6px">Все виды карточек в игре: какие бывают, как часто выпадают и сколько их всего. Собери все!</div><div class="bar"><i style="width:'+(got/FIN.length*100)+'%"></i></div><div class="s">собрано отделок: '+got+' из '+FIN.length+'</div></div><div class="bvh">Отделки</div>';
-  const H5=[11,20,23,26,30,31,0,72];
-  FIN.forEach((F,i)=>{if(F.collab)return;const o=ownF.has(i);v+='<div class="bfr'+(o?'':' lock')+'">'+slot(demo(H5[i],i,{sn:i===4?"000001":undefined}))+'<div><h4><span>'+F.k+'</span><em>'+(F.duo?'2 на мир':F.excl?'15 друзей':String(F.w).replace(".",",")+'%')+'</em></h4><p>'+(F.duo?'Только у '+DUO.length+' воинов-Близнецов: '+DUO_PAIRS.map(P=>P.n).join(", ")+'. Каждой карточки всего 2 на весь мир. Выпадает в прокрутке или в Сундуке Близнецов · цена ×'+F.m:F.excl?'Не выпадает. Только 3 штуки на всю игру — за 15 приглашённых друзей.':(F.run===Infinity?'Без ограничений':'Тираж: всего '+F.run+(F.run===1?' на каждого воина — одна на весь мир':' на каждого воина'))+' · цена ×'+F.m)+'</p><div class="own '+(o?'ok':'no')+'">'+(o?'✅ У тебя есть':'🔒 Ещё нет')+'</div></div></div>'});
+  const H5=[11,20,23,26,30,31,0,72,59];
+  FIN.forEach((F,i)=>{if(F.collab)return;const o=ownF.has(i);v+='<div class="bfr'+(o?'':' lock')+'">'+slot(demo(H5[i],i,{sn:i===4?"000001":undefined,no:F.dia?1:undefined}))+'<div><h4><span>'+F.k+'</span><em>'+(F.dia?'только за ⭐':F.duo?'2 на мир':F.excl?'15 друзей':String(F.w).replace(".",",")+'%')+'</em></h4><p>'+(F.dia?'💎 Алмазная серия: 20 «ошибок печати» со спрятанным бриллиантом. Не выпадают — только в Сокровищнице за ⭐, тираж от 5 до 30 на весь мир':F.duo?'Только у '+DUO.length+' воинов-Близнецов: '+DUO_PAIRS.map(P=>P.n).join(", ")+'. Каждой карточки всего 2 на весь мир. Выпадает в прокрутке или в Сундуке Близнецов · цена ×'+F.m:F.excl?'Не выпадает. Только 3 штуки на всю игру — за 15 приглашённых друзей.':(F.run===Infinity?'Без ограничений':'Тираж: всего '+F.run+(F.run===1?' на каждого воина — одна на весь мир':' на каждого воина'))+' · цена ×'+F.m)+'</p><div class="own '+(o?'ok':'no')+'">'+(o?'✅ У тебя есть':'🔒 Ещё нет')+'</div></div></div>'});
   v+='<div class="bvh">Редкость воинов</div><div class="bbx"><div class="bsr">'+[3,11,20,26,30].map((h,i)=>'<div class="'+(ownT.has(i)?'':'lock')+'">'+slot(demo(h,0))+'<span style="color:'+HT[i].c+'">'+HT[i].k+'</span></div>').join("")+'</div></div>';
   v+='<div class="bvh">Красивые номера</div><div class="bbx">'+NICE.map(n=>'<div class="bnm"><span>'+n.k+'</span><span>'+n.ex+'</span><span>×'+n.m+'</span></div>').join("")+'</div>';
   v+='<div class="bvh">Закалка ★1–★5</div><div class="bbx"><div class="bsr">'+[1,2,3,4,5].map(s=>'<div class="'+(ownS.has(s)?'':'lock')+'">'+slot(demo(20,0,{stars:s,xp:2500}))+'<span style="color:var(--ink)">★'+s+'</span></div>').join("")+'</div></div>';
@@ -905,7 +910,7 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
     const cl=classify(cur.sn);
     info.innerHTML="";const t=document.createElement("div");t.className="who";t.innerHTML="<span></span><small></small>";
     t.children[0].textContent=HEROES[cur.h][0]+((cur.stars||0)>=3?" «"+epithet(cur)+"»":"");
-    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+(isCollab(cur)?"Бесценная, 1 из 1, номер А777МР 77. Коллаборация «Воинов Эпох» и «Номерка» — такой больше нет ни у кого.":FIN[cur.f].k+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+FIN[cur.f].run:"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.");
+    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+(isCollab(cur)?"Бесценная, 1 из 1, номер А777МР 77. Коллаборация «Воинов Эпох» и «Номерка» — такой больше нет ни у кого.":(cur.f===DIA_F&&DIA[cur.h]?"💎 Алмазная серия, «"+DIA[cur.h].n+"»":FIN[cur.f].k)+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+finRun(cur):"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.");
     {const fl=document.createElement("p");fl.className="cv-flavor";fl.textContent=HEROES[cur.h][3];t.appendChild(fl);const A=abil(cur.h),ab=document.createElement("p");if(isCollab(cur))ab.hidden=true;ab.className="cv-abil";ab.textContent="⚡ Способность в рейтинговом бою: "+A[0]+" "+A[1]+" — "+A[2]+" · "+WC_IC[wclass(cur.h)]+" "+WCLASS[wclass(cur.h)];t.appendChild(ab)}
     info.appendChild(t);
     if(FIN[cur.f].collab){fb.hidden=false;fb.innerHTML='<h3>💎 Бесценная</h3><p>Главный приз розыгрыша — подарок лично от «Номерка». У неё нет оценки: продать её можно только на рынке, и цену назначает сам владелец. В боях не участвует, сжечь или продать системе её нельзя.</p>';return}
@@ -938,7 +943,7 @@ $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;r
 
 
 /* ---------- odds ---------- */
-$("odds").innerHTML=FIN.filter(f=>!f.excl&&!f.duo).map(f=>`<div><i style="--s:${f.col}"></i><b style="text-align:left;min-width:0">${f.k}</b><span>${f.run===Infinity?"без лимита":"тираж "+f.run}</span><b>${String(f.w).replace(".",",")}%</b></div>`).join("");
+$("odds").innerHTML=FIN.filter(f=>!f.excl&&!f.duo&&!f.dia).map(f=>`<div><i style="--s:${f.col}"></i><b style="text-align:left;min-width:0">${f.k}</b><span>${f.run===Infinity?"без лимита":"тираж "+f.run}</span><b>${String(f.w).replace(".",",")}%</b></div>`).join("");
 
 $("nums").innerHTML=NICE.map(n=>`<div><b>${n.ex}</b><span>${n.k}</span><b>×${n.m}</b></div>`).join("");
 
@@ -976,7 +981,7 @@ function renderCraft(){
   $("cr-hint").textContent=crSel.size?"в горне "+crSel.size+" из 5":"от 1 до 5 карточек";
   // target finishes
   const fb=$("cr-fins");fb.innerHTML="";
-  if(!craftable(crF))crF=1;FIN.forEach((F,i)=>{if(F.excl||!craftable(i))return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
+  if(!craftable(crF))crF=1;FIN.forEach((F,i)=>{if(F.excl||F.dia||!craftable(i))return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
     b.onclick=()=>{if(crBusy)return;crF=i;renderCraft()};fb.appendChild(b)});
   const tg=$("cr-tgt");tg.innerHTML="";
   HEROES.forEach((H,i)=>{if(!isBase(i))return;const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
@@ -1327,7 +1332,7 @@ function hap(k){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.impactOccurred(k)}c
 function hapN(k){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred(k)}catch(e){}}
 $("share").onclick=()=>{
   const c=current;if(!c){toast("Сначала выбей карточку");return}
-  const cl=classify(c.sn),txt=`Мне выпал ${HEROES[c.h][0]} (${FIN[c.f].k.toLowerCase()}${FIN[c.f].run!==Infinity?", "+c.no+" из "+FIN[c.f].run:""}), № ${fmtSn(c.sn)}${cl?" — "+cl.k.toLowerCase():""}! Цена ${fmt(c.v)}. Сможешь круче?`;
+  const cl=classify(c.sn),txt=`Мне выпал ${HEROES[c.h][0]} (${FIN[c.f].k.toLowerCase()}${FIN[c.f].run!==Infinity?", "+c.no+" из "+finRun(c):""}), № ${fmtSn(c.sn)}${cl?" — "+cl.k.toLowerCase():""}! Цена ${fmt(c.v)}. Сможешь круче?`;
   const url="https://t.me/share/url?url="+encodeURIComponent(BOT_LINK)+"&text="+encodeURIComponent(txt);
   if(tg&&tg.openTelegramLink){tg.openTelegramLink(url);return}
   if(navigator.clipboard)navigator.clipboard.writeText(txt+" "+BOT_LINK).then(()=>toast("Текст скопирован, отправь другу"),()=>toast(txt));else toast(txt);
