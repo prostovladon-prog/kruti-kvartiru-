@@ -910,6 +910,22 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await call(A, "cas_hl_go", { bet: 1000 }); ok(r.ok && r.res.hl.c >= 1 && r.res.hl.c <= 13, "больше/меньше: первая карта");
   r = await call(A, "cas_hl_take"); ok(!r.ok, "забрать можно только после угаданной карты");
   const c = r.ok ? 0 : (await call(A, "sync")).S.cas.hl.c; r = await call(A, "cas_hl", { dir: c >= 7 ? "down" : "up" }); ok(r.ok && (r.res.win ? r.res.hl.m > .9 : !r.res.hl), "больше/меньше: ход");
+  // 🍀 оберег удачи + 🏛 зал славы
+  { db.prepare("UPDATE users SET cash=100000 WHERE id=?").run(A);
+    let q = await call(A, "luck_buy"); ok(q.ok && q.res.paid === 3000 && q.res.until > Date.now() + 35e5 && q.S.cash === 97000, "оберег: 3% монет (" + (q.res && q.res.paid) + ")");
+    q = await call(A, "luck_buy"); ok(q.ok && q.res.paid === Math.round(97000 * .03 * 2), "второй оберег вдвое дороже, время продлевается");
+    q = await call(A, "luck_buy"); q = await call(A, "luck_buy"); ok(!q.ok && /закончились/.test(q.err), "не больше 3 оберегов в день");
+    db.prepare("UPDATE users SET state=json_set(state,'$.fpity',99,'$.spins',5) WHERE id=?").run(A);
+    q = await call(A, "open"); ok(q.ok && q.res.card.f >= 2 || (q.res && q.res.card && q.res.card.f >= 1), "гарант: 100-я прокрутка — Голограмма (f=" + (q.res && q.res.card && q.res.card.f) + ")");
+    ok(JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(A).state).fpity === 0, "счётчик гаранта сброшен");
+    const C = db.prepare("SELECT id,v FROM cards WHERE owner=? ORDER BY v DESC LIMIT 3").all(A);
+    q = await call(A, "hof_set", { ids: C.map(c => c.id) }); ok(q.ok && q.res.hof.length === 2, "в зале 2 места по умолчанию");
+    q = await call(A, "hof_set", { ids: [999999] }); ok(!q.ok, "чужую карту в зал не поставить");
+    q = await call(A, "hof_set", { ids: C.slice(0, 2).map(c => c.id) }); const rate = q.res.rate; ok(rate > 0, "доход зала в час: " + rate);
+    db.prepare("UPDATE users SET state=json_set(state,'$.hofAt',?) WHERE id=?").run(Date.now() - 3 * 36e5, A); const c0 = (await call(A, "sync")).S.cash;
+    q = await call(A, "hof_claim"); ok(q.ok && Math.abs(q.res.got - Math.floor(rate * 3)) <= 1 && q.S.cash === c0 + q.res.got, "зал за 3 часа: +" + (q.res && q.res.got));
+    db.prepare("UPDATE users SET state=json_set(state,'$.hofAt',?) WHERE id=?").run(Date.now() - 48 * 36e5, A); q = await call(A, "hof_claim"); ok(Math.abs(q.res.got - Math.floor(rate * 12)) <= 1, "копится не больше 12 часов");
+    q = await call(A, "hof_slot"); ok(q.ok && q.res.slots === 3, "купил третье место"); }
   // 🚀 ракетка
   { const setRk = (cr, ago) => db.prepare("UPDATE users SET state=json_set(state,'$.cas.rk.cr',?,'$.cas.rk.t0',?) WHERE id=?").run(cr, Date.now() - ago, A);
     const ru = async () => (await call(A, "sync")).S.camp.runes;

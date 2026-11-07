@@ -8,6 +8,8 @@ const MENU_GROUPS=[
  ["Главное",[
   {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
   {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
+  {k:"hof",ic:"🏛",n:"Зал славы",c:["#ffe9a8","#b07a10"]},
+  {k:"luck",ic:"🍀",n:"Оберег удачи",c:["#b8ffcf","#1e9a52"]},
   {k:"prof",ic:"👤",n:"Профиль",c:["#7cc8ff","#2a4fd0"]},
   {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]},
   {k:"don",ic:"⭐",n:"Донат и понт",c:["#ffe9a8","#d06a00"]}]],
@@ -35,6 +37,8 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="promo")return promoOpen();
   if(k==="riddle")return rdOpen();
   if(k==="vote")return vtOpen();
+  if(k==="hof")return hofOpen();
+  if(k==="luck")return luckOpen();
   if(k==="cas"){if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas");return}
   if(k==="prof"||k==="pass"||k==="conq"||k==="clan"||k==="camp")return goSub(k);
   if(k==="chat")return openChat();
@@ -993,3 +997,38 @@ function vtSocBind(r){clearInterval(vtTick);const pl=$("vt-play");if(pl)pl.oncli
   const sv=$("vt-ssave");if(sv)sv.onclick=async()=>{const url=($("vt-surl").value||"").trim(),urlIg=($("vt-sig").value||"").trim();sv.disabled=true;const q=await act("vt_set",{url,urlIg,socSp:+$("vt-ssp").value||0});sv.disabled=false;if(q){toast(url||urlIg?"✅ Ссылки сохранены — игроки уже видят кнопку":"Ссылки убраны");vtDraw(q)}}}
 function vtAdmHtml(r){const A=r.adm||{};const c=A.cnt||{};return `<div class="vt-adm"><b>👑 Только для тебя</b><small>Голоса: ${r.opts.map(o=>`${o.ic} ${c[o.k]||0}`).join(" · ")} · всего ${r.tot}<br>Открыли видео: ${A.opened||0} · забрали награду за лайк: ${A.soc||0}</small>
   <small>🎵 TikTok</small><input id="vt-surl" placeholder="https://www.tiktok.com/@…/video/…" value="${rdEsc(r.url)}"><small>📸 Instagram</small><input id="vt-sig" placeholder="https://www.instagram.com/reel/…" value="${rdEsc(r.urlIg)}"><label>🎴 за лайк и комментарий <input id="vt-ssp" type="number" min="0" max="20" value="${r.socSp||0}"></label><button type="button" class="craftbtn" id="vt-ssave">💾 Сохранить ссылки на видео</button></div>`}
+
+/* ===================== 🍀 Оберег удачи ===================== */
+function luckOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const now=NOW(),on=(S.luckU||0)>now,n=S.luckD===new Date(now).toISOString().slice(0,10)?(S.luckN||0):0,pr=luckPrice(S,now),pity=S.fpity||0;
+  sh.innerHTML='<div class="box nickbox lkbox"><div class="lk-ic'+(on?" on":"")+'">🍀</div><h3>Оберег удачи</h3>'+
+   (on?'<p class="lk-on">✨ Активен ещё <b id="lk-t">'+tleft(S.luckU-now)+'</b></p>':'')+
+   '<p class="cln">На 1 час шанс <b>Голограммы</b> и <b>Золотой</b> карточки становится ×1,25. Ошибки печати, Алмазы и легенды — по обычным шансам: удача помогает, но не ломает игру.</p>'+
+   '<div class="lk-pity"><span>🎯 Гарант Голограммы</span><div class="bar"><i style="width:'+Math.min(100,pity/LUCK.pity*100)+'%"></i></div><small>'+pity+' / '+LUCK.pity+' — на '+LUCK.pity+'-й прокрутке без Голограммы она выпадет точно</small></div>'+
+   '<button type="button" class="craftbtn lk-go" id="lk-go"'+(n>=LUCK.day?" disabled":"")+'>'+(n>=LUCK.day?"На сегодня обереги закончились":(on?"Продлить на 1 час":"Надеть оберег")+" · "+fmtN(pr)+" 🪙")+'</button>'+
+   '<p class="lk-n">Сегодня осталось: '+(LUCK.day-n)+' из '+LUCK.day+' · каждый следующий дороже</p><button type="button" class="ghost" id="lk-x">Закрыть</button></div>';
+  $("lk-x").onclick=closeModal;const g=$("lk-go");if(g)g.onclick=async()=>{g.disabled=true;const r=await act("luck_buy");if(r){hapN("success");try{sfx.fanfare();burst(2)}catch(e){}toast("🍀 Оберег надет на 1 час!");updCash&&updCash();luckBadge()}luckOpen()}}
+function luckBadge(){const st=$("stage");if(!st||!S)return;let b=$("lk-badge");const on=(S.luckU||0)>NOW();
+  if(!b){b=document.createElement("button");b.type="button";b.id="lk-badge";b.className="lk-badge";b.onclick=e=>{e.stopPropagation();luckOpen()};st.parentNode.insertBefore(b,st)}
+  b.className="lk-badge"+(on?" on":"");b.innerHTML=on?'🍀 Удача ×1,25 · '+tleft(S.luckU-NOW()):'🍀 Оберег удачи'}
+setInterval(()=>{try{luckBadge();const t=$("lk-t");if(t&&S)t.textContent=tleft(S.luckU-NOW())}catch(e){}},1000);
+/* ===================== 🏛 Зал славы ===================== */
+function hofOpen(pick){const m=$("modal"),sh=$("msheet");m.hidden=false;const C=S.cards||[],ids=S.hof||[],slots=hofSlots(S),L=S.hofL||0,rate=hofRate(S,C),coll=hofColl(C),
+    acc=Math.floor(rate*Math.min(HOF.cap,Math.max(0,NOW()-(S.hofAt||NOW())))/36e5),byId={};C.forEach(c=>byId[c.id]=c);
+  if(pick){const sel=new Set(ids.filter(i=>byId[i])),top=C.slice().sort((a,b)=>(b.v||0)-(a.v||0)).slice(0,60);
+    sh.innerHTML='<div class="box nickbox hofbox"><h3>🏛 Выбери карты для зала</h3><p class="cln">Мест: '+slots+'. Каждая карта приносит 0,5% своей цены в час (до 12 ч). Ставь самые дорогие!</p><div class="hof-pick" id="hof-pk">'+
+      top.map(c=>'<button type="button" data-id="'+c.id+'" class="'+(sel.has(c.id)?"on":"")+'">'+miniSlot(c)+'<small>+'+fmtN(Math.round((c.v||0)*HOF.rate*10)/10)+'/ч</small></button>').join("")+'</div>'+
+      '<button type="button" class="craftbtn" id="hof-ok">Сохранить</button><button type="button" class="ghost" id="hof-back">Назад</button></div>';
+    try{hydrate(sh)}catch(e){}
+    $("hof-pk").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;const id=+b.dataset.id;if(sel.has(id)){sel.delete(id);b.classList.remove("on")}else{if(sel.size>=slots){toast("Все "+slots+" места заняты — убери карту или купи место");return}sel.add(id);b.classList.add("on")}hap("light")};
+    $("hof-back").onclick=()=>hofOpen();$("hof-ok").onclick=async()=>{const r=await act("hof_set",{ids:[...sel]});if(r){hapN("success");hofOpen()}};return}
+  sh.innerHTML='<div class="box nickbox hofbox"><div class="hof-hd"><span>🏛</span><div><h3>Зал славы</h3><small>Дорогие карты работают на тебя</small></div></div>'+
+   '<div class="hof-inc"><div><b>+'+fmtN(Math.round(rate))+' 🪙</b><small>в час</small></div><div><b>'+fmtN(acc)+' 🪙</b><small>накоплено (до 12 ч)</small></div></div>'+
+   '<div class="hof-sl">'+Array.from({length:HOF.slots[HOF.slots.length-1]},(x,i)=>{const c=i<slots?byId[ids[i]]:null;return i>=slots?'<div class="hof-s lock"><i>🔒</i><small>'+(i===slots?fmtN(HOF.slotP[L+1])+" 🪙":"")+'</small></div>':c?'<div class="hof-s">'+miniSlot(c)+'</div>':'<div class="hof-s empty" data-pk="1"><i>＋</i></div>'}).join("")+'</div>'+
+   '<button type="button" class="craftbtn" id="hof-get"'+(acc<1?" disabled":"")+'>Забрать '+fmtN(acc)+' 🪙</button>'+
+   '<div class="hof-b"><button type="button" class="ghost" id="hof-pk">🃏 Выбрать карты</button>'+(L<HOF.slots.length-1?'<button type="button" class="ghost" id="hof-buy">🔓 Место +1 · '+fmtN(HOF.slotP[L+1])+' 🪙</button>':'')+'</div>'+
+   '<div class="hof-col"><b>📚 Коллекции героев: '+coll+'</b><small>Собери у одного героя все 4 отделки (обычная, блестящая, голограмма, золотая) — и зал приносит на 10% больше. До +50%. Сейчас: +'+Math.min(50,coll*10)+'%</small></div>'+
+   '<button type="button" class="ghost" id="hof-x">Закрыть</button></div>';
+  try{hydrate(sh)}catch(e){}
+  $("hof-x").onclick=closeModal;$("hof-pk").onclick=()=>hofOpen(1);sh.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>hofOpen(1));
+  $("hof-get").onclick=async()=>{const r=await act("hof_claim");if(r){hapN("success");try{sfx.coin&&sfx.coin();burst(2)}catch(e){}toast("🏛 +"+fmtN(r.got)+" 🪙 из Зала славы");updCash&&updCash();hofOpen()}};
+  const bb=$("hof-buy");if(bb)bb.onclick=async()=>{const r=await act("hof_slot");if(r){hapN("success");hofOpen()}}}

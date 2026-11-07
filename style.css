@@ -2969,3 +2969,16 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .hype-w{overflow:hidden;flex:1;-webkit-mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
 .hype-t{display:inline-flex;white-space:nowrap;gap:10px;font-size:12.5px;color:#fff;animation:hypeRun linear infinite}.hype-t b{color:#ffd23f}.hype-t i{font-style:normal;color:#ff8a5a}
 @keyframes hypeRun{to{transform:translateX(-50%)}}
+/* 🍀 Оберег удачи */
+.lk-badge{display:block;margin:0 auto 6px;border:1px solid rgba(80,230,140,.45);background:rgba(20,120,60,.35);color:#c9ffd9;font:inherit;font-weight:900;font-size:12.5px;padding:6px 14px;border-radius:999px}
+.lk-badge.on{background:linear-gradient(90deg,#1e9a52,#3ddc84);color:#fff;box-shadow:0 0 18px rgba(60,220,130,.6);animation:rkPulse 1.2s infinite alternate}
+.lkbox{text-align:center}.lk-ic{font-size:64px;line-height:1;margin:4px 0;filter:drop-shadow(0 6px 16px rgba(40,200,100,.5))}.lk-ic.on{animation:dlNew 1.4s infinite}.lk-on{font-weight:900;color:#1e9a52}
+.lk-pity{text-align:left;margin:10px 0;padding:10px;border-radius:12px;background:rgba(120,80,255,.1)}.lk-pity span{font-weight:900;font-size:13px}.lk-pity .bar{height:8px;border-radius:5px;background:rgba(0,0,0,.12);margin:6px 0;overflow:hidden}.lk-pity .bar i{display:block;height:100%;background:linear-gradient(90deg,#c56bff,#7a5cff)}.lk-pity small{font-size:11px;opacity:.75}
+.lk-go{background:linear-gradient(135deg,#1e9a52,#3ddc84)!important}.lk-n{font-size:11.5px;opacity:.7;margin:6px 0}
+/* 🏛 Зал славы */
+.hof-hd{display:flex;gap:10px;align-items:center}.hof-hd span{font-size:42px}.hof-hd h3{margin:0}.hof-hd small{opacity:.7}
+.hof-inc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.hof-inc div{padding:10px;border-radius:12px;background:linear-gradient(135deg,rgba(255,200,40,.2),rgba(255,140,0,.1));text-align:center}.hof-inc b{display:block;font-size:18px}.hof-inc small{font-size:11px;opacity:.7}
+.hof-sl{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}.hof-s{aspect-ratio:3/4.2;border-radius:10px;display:grid;place-items:center;background:rgba(0,0,0,.06);border:2px solid #e0b030;overflow:hidden}
+.hof-s .minic{width:100%}.hof-s.empty{border-style:dashed;cursor:pointer}.hof-s.empty i{font-style:normal;font-size:30px;opacity:.5}.hof-s.lock{border-color:rgba(0,0,0,.12);opacity:.6;display:flex;flex-direction:column;gap:4px;justify-content:center}.hof-s.lock i{font-style:normal;font-size:22px}.hof-s.lock small{font-size:10.5px;font-weight:800}
+.hof-b{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.hof-col{padding:10px;border-radius:12px;background:rgba(120,80,255,.08);font-size:12.5px}.hof-col small{display:block;opacity:.75;margin-top:3px;font-size:11.5px}
+.hof-pick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;max-height:50vh;overflow:auto;margin:8px 0}.hof-pick button{border:2px solid transparent;border-radius:10px;padding:2px;background:rgba(0,0,0,.05)}.hof-pick button.on{border-color:#e0a800;background:rgba(255,200,40,.25)}.hof-pick .minic{width:100%;display:block}.hof-pick small{font-size:9.5px;font-weight:900;color:#a06800}
