@@ -30,13 +30,15 @@ const MENU_GROUPS=[
   {k:"album",ic:"📖",n:"Альбом",c:["#a8e0ff","#2a6ab0"]},
   {k:"craft",ic:"⚒",n:"Крафт",c:["#d0d6e0","#5a6478"]},
   {k:"trade",ic:"🔄",n:"Обмены",c:["#9ff7d6","#1a8a7a"]},
-  {k:"odds",ic:"🎲",n:"Шансы",c:["#e0c8ff","#6a3ab0"]}]]];
+  {k:"odds",ic:"🎲",n:"Шансы",c:["#e0c8ff","#6a3ab0"]},
+  {k:"fs",ic:"📱",n:"Полный экран",c:["#c8f0ff","#2a7ab0"]}]]];
 function menuGo(k){menuClose();hap&&hap("light");
   if(k==="gold")return openGold();
   if(k==="don")return openGold("flex");
   if(k==="promo")return promoOpen();
   if(k==="riddle")return rdOpen();
   if(k==="vote")return vtOpen();
+  if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
   if(k==="hof")return hofOpen();
   if(k==="luck")return luckOpen();
   if(k==="cas"){if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas");return}

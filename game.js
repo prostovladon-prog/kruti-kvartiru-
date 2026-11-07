@@ -1327,7 +1327,12 @@ $("du-go").onclick=async()=>{
 
 
 /* ---------- Telegram ---------- */
-try{if(tg){tg.ready();tg.expand();try{tg.disableVerticalSwipes&&tg.disableVerticalSwipes()}catch(e){}tg.setHeaderColor&&tg.setHeaderColor("#1d44c8");tg.setBackgroundColor&&tg.setBackgroundColor("#1d44c8")}}catch(e){}
+/* 📱 полный экран (Telegram 8.0+, только телефоны): убираем полосу Telegram, верх игры сдвигаем ниже чёлки и плавающих кнопок */
+function fsInsets(){try{const r=document.documentElement;if(tg&&tg.isFullscreen){const a=(tg.safeAreaInset||{}).top||0,b=(tg.contentSafeAreaInset||{}).top||0;r.style.setProperty("--st",(a+b)+"px");r.classList.add("tgfs")}else{r.style.removeProperty("--st");r.classList.remove("tgfs")}}catch(e){}}
+function fsWanted(){try{return localStorage.getItem("we-fs")!=="0"}catch(e){return true}}
+function fsApply(on){try{if(!tg||!tg.isVersionAtLeast||!tg.isVersionAtLeast("8.0")||!/^(ios|android)$/.test(tg.platform||""))return false;if(on&&!tg.isFullscreen)tg.requestFullscreen();else if(!on&&tg.isFullscreen)tg.exitFullscreen();return true}catch(e){return false}}
+try{if(tg){["fullscreenChanged","safeAreaChanged","contentSafeAreaChanged"].forEach(ev=>{try{tg.onEvent(ev,fsInsets)}catch(e){}});try{tg.onEvent("fullscreenFailed",()=>{})}catch(e){}}}catch(e){}
+try{if(tg){tg.ready();tg.expand();if(fsWanted())fsApply(true);setTimeout(fsInsets,300);try{tg.disableVerticalSwipes&&tg.disableVerticalSwipes()}catch(e){}tg.setHeaderColor&&tg.setHeaderColor("#1d44c8");tg.setBackgroundColor&&tg.setBackgroundColor("#1d44c8")}}catch(e){}
 function hap(k){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.impactOccurred(k)}catch(e){}}
 function hapN(k){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.notificationOccurred(k)}catch(e){}}
 $("share").onclick=()=>{
