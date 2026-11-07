@@ -2535,6 +2535,8 @@ async function mapDgAttack(env,me,rid,st,p,now){const myD=st.dg;if(!myD||!(dgPow
   else{await env.DB.prepare("UPDATE map_reg SET def_n=def_n+1 WHERE id=?").bind(rid).run();try{await doAction(env,{id:R.owner,name:(du&&du.name)||"Игрок"},"map_grant",{pts:MPASS.pts.def},{grant:true})}catch(e){}}
   return {dragon:1,won:F.win,rid,rounds:F.rounds,ta:F.ta,tb:F.tb,tw:F.tw,ela:F.ela,elb:F.elb,pa:mp,pb,fat,opp:Object.assign(look(oD),{name:(du&&du.name)||"Игрок"})}}
 /* 🤝 Земли союзов: крепости берут и держат только вдвоём. Сила пары = лучшая боевая карта каждого (сумма 5 характеристик). Доход — пополам */
+/* ID в Telegram бывают больше 2^31 — «|0» их обрезает. Только так: */
+const uidOf=x=>{const n=Math.floor(Number(x));return Number.isSafeInteger(n)&&n>0?n:0};
 async function alMate(env,uid){const r=await env.DB.prepare("SELECT mate FROM ally WHERE uid=?").bind(uid).first();return r?r.mate:0}
 async function alBest(env,uid){const R=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND COALESCE(away,0)=0 ORDER BY v DESC LIMIT 60").bind(uid).all()).results;let best=null,bp=0;
   for(const row of R){const c=rowToCard(row);if(FIN[c.f]&&FIN[c.f].excl)continue;if(c.part)continue;let s=0;for(let i=0;i<5;i++)s+=eff(c,i)||0;if(s>bp){bp=s;best=c}}return {c:best?pub(best):null,pw:bp}}
@@ -2548,7 +2550,7 @@ async function alApi(env,me,a,p){const now=Date.now();
     if(o){await alPair(env,me.id,o.uid,now);try{await notify(env,o.uid,"🤝 Напарник найден: "+(me.nick||me.name||"Игрок")+"!\n\nВместе захватывайте крепости в Землях союзов 🏰","🗺 На карту",PAGE+"?map=1")}catch(e){}return alApi(env,me,"al_get",{})}
     await env.DB.prepare("INSERT OR REPLACE INTO ally_q(uid,t,pw) VALUES(?,?,?)").bind(me.id,now,my).run();return alApi(env,me,"al_get",{})}
   if(a==="al_cancel"){await env.DB.prepare("DELETE FROM ally_q WHERE uid=?").bind(me.id).run();return alApi(env,me,"al_get",{})}
-  if(a==="al_join"){const t=p.uid|0;if(!t||t===me.id)fail("Нельзя позвать самого себя");if(await alMate(env,me.id))fail("У тебя уже есть напарник");if(await alMate(env,t))fail("У этого игрока уже есть напарник");
+  if(a==="al_join"){const t=uidOf(p.uid);if(!t||t===me.id)fail("Нельзя позвать самого себя");if(await alMate(env,me.id))fail("У тебя уже есть напарник");if(await alMate(env,t))fail("У этого игрока уже есть напарник");
     if(!(await env.DB.prepare("SELECT 1 FROM users WHERE id=?").bind(t).first()))fail("Игрок не найден");await alPair(env,me.id,t,now);
     try{await notify(env,t,"🤝 "+(me.nick||me.name||"Игрок")+" принял твоё приглашение — теперь вы союзники!","🗺 На карту",PAGE+"?map=1")}catch(e){}return alApi(env,me,"al_get",{})}
   if(a==="al_leave"){const m=await alMate(env,me.id);if(!m)fail("Напарника нет");await env.DB.prepare("DELETE FROM ally WHERE uid IN (?,?)").bind(me.id,m).run();
@@ -2584,7 +2586,7 @@ async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((awa
     const log=(await env.DB.prepare("SELECT w.*,COALESCE(a.nick,a.name) AS an,COALESCE(d.nick,d.name) AS dn FROM emp_war w LEFT JOIN users a ON a.id=w.att LEFT JOIN users d ON d.id=w.def WHERE w.att=? OR w.def=? ORDER BY w.id DESC LIMIT 12").bind(me.id,me.id).all()).results
       .map(w=>({t:w.t,att:w.att===me.id,name:w.att===me.id?w.dn:w.an,win:w.att===me.id?!!w.win:!w.win,gl:w.gl}));
     return {me:mine,opp,left,log}}
-  if(a==="war_attack"){const tid=p.uid|0;if(!tid||tid===me.id)fail("Выбери соперника");
+  if(a==="war_attack"){const tid=uidOf(p.uid);if(!tid||tid===me.id)fail("Выбери соперника");
     const tst=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(tid).first())||{}).state||"{}");if((tst.warSh||0)>now)fail("🛡 Эта Империя под щитом ещё "+Math.ceil((tst.warSh-now)/36e5)+" ч");
     const recent=await env.DB.prepare("SELECT 1 FROM emp_war WHERE att=? AND def=? AND t>?").bind(me.id,tid,now-WAR.cool).first();if(recent)fail("Эту Империю ты уже атаковал недавно — дай ей 2 часа");
     const A=await warArmy(env,me.id),B=await warArmy(env,tid);if(!A.length)fail("Нужна хотя бы одна боевая карточка");if(!B.length)fail("У этой Империи нет армии");
@@ -2654,8 +2656,8 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     const ph=await one("SELECT SUM(st=0) AS wait,SUM(st=1) AS ok FROM map_photo");
     return {today:await per(d0),week:await per(w0),season:await per(m0),occupied:R.length,zones:z,statues:R.filter(r=>r.statue).length,rulers:Object.values(rul).sort((a,b)=>b.n-a.n).slice(0,7),topA,hot,pay,ph}}
   if(a==="mph_list")return {list:(await env.DB.prepare("SELECT p.uid,p.img,p.st,p.t,COALESCE(u.nick,u.name) AS name FROM map_photo p LEFT JOIN users u ON u.id=p.uid WHERE p.st=0 ORDER BY p.t LIMIT 20").all()).results};
-  if(a==="mph_ok"||a==="mph_no"){const ok=a==="mph_ok";await env.DB.prepare("UPDATE map_photo SET st=? WHERE uid=?").bind(ok?1:2,p.uid|0).run();
-    await notify(env,p.uid|0,ok?"✅ Твоё фото одобрено — теперь оно на флаге над твоими регионами!":"❌ Фото для флага не прошло проверку. Загрузи другое — без чужих лиц, рекламы и неприличного.","🗺 На карту",PAGE+"?map=1");return {}}
+  if(a==="mph_ok"||a==="mph_no"){const ok=a==="mph_ok";await env.DB.prepare("UPDATE map_photo SET st=? WHERE uid=?").bind(ok?1:2,uidOf(p.uid)).run();
+    await notify(env,uidOf(p.uid),ok?"✅ Твоё фото одобрено — теперь оно на флаге над твоими регионами!":"❌ Фото для флага не прошло проверку. Загрузи другое — без чужих лиц, рекламы и неприличного.","🗺 На карту",PAGE+"?map=1");return {}}
   fail("Неизвестное действие")}
 /* возвращаем пропавших: через 1, 3 и 7 дней тишины — сообщение с подарком (прокрутки ждут в игре). Новичкам — напоминание о подарке дня */
 const WB={1:{sp:3,t:"⚔️ Твои воины заскучали! Мы оставили тебе подарок: +3 прокрутки уже в игре. Вдруг сегодня выпадет легенда?"},3:{sp:5,t:"🎁 Тебя не было 3 дня — держи +5 прокруток! Пока тебя не было, игроки выбили новые редкие карточки. Твоя очередь?"},7:{sp:10,t:"👑 Неделя без тебя! Возвращайся — в игре ждут +10 прокруток в подарок, новые воины и розыгрыши каждый день."}};

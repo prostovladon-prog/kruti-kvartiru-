@@ -928,7 +928,9 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "war_attack", { uid: A }); ok(!q.ok, "себя не атаковать");
     q = await call(A, "war_get"); ok(q.res.left === 4 && q.res.log.length === 1, "летопись и счётчик битв");
     db.prepare("UPDATE users SET state=json_set(state,'$.warN',5) WHERE id=?").run(A); db.prepare("DELETE FROM emp_war").run(); q = await call(A, "war_attack", { uid: tid }); ok(!q.ok && /5 битв/.test(q.err), "не больше 5 битв в день");
-    q = await call(A, "top", { kind: "glory" }); ok(q.ok, "топ славы"); }
+    q = await call(A, "top", { kind: "glory" }); ok(q.ok, "топ славы");
+    { const BIG = 6724818967; db.prepare("DELETE FROM users WHERE id=?").run(BIG); await call(BIG, "sync"); for (let k = 0; k < 3; k++) await call(BIG, "open");
+      db.prepare("UPDATE users SET state=json_set(state,'$.warN',0) WHERE id=?").run(A); q = await call(A, "war_attack", { uid: BIG }); ok(q.ok && q.res.duels.length === 5, "атака на игрока с длинным Telegram ID (" + (q.err || "ok") + ")"); } }
   // 🍀 оберег удачи + 🏛 зал славы
   { db.prepare("UPDATE users SET cash=100000 WHERE id=?").run(A);
     let q = await call(A, "luck_buy"); ok(q.ok && q.res.paid === 3000 && q.res.until > Date.now() + 35e5 && q.S.cash === 97000, "оберег: 3% монет (" + (q.res && q.res.paid) + ")");
