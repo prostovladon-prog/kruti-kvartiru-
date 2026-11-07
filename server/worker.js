@@ -112,11 +112,7 @@ const FIN=[
  {k:"Ошибка печати",cls:"error",w:.07,m:600,run:1,col:"#ff2e63"},
  {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1},
  {k:"Бесценная",cls:"collab",w:0,m:0,run:1,col:"#00e5ff",excl:1,collab:1},
- {k:"Близнец",cls:"duo",w:0,m:250,run:2,col:"#7cf7ff",duo:1},
- {k:"Алмазная ошибка",cls:"error dia",w:0,m:600,run:30,col:"#5ad8ff",dia:1}];   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
-/* 💎 Алмазная серия: 20 «ошибок печати» только за ⭐. У каждой свой дефект печати (c — css-класс) и спрятанный бриллиант (x,y — где он на рисунке), свой тираж и цена */
-const DIA_F=8,DIA={"59": {"n": "Двойная печать", "c": "dbl", "x": 50, "y": 30, "run": 10, "st": 1999}, "64": {"n": "Золотой залив", "c": "gold", "x": 50, "y": 22, "run": 10, "st": 1999}, "63": {"n": "Перевёртыш", "c": "flip", "x": 30, "y": 70, "run": 10, "st": 1999}, "65": {"n": "Алмазный брак", "c": "crys", "x": 62, "y": 38, "run": 5, "st": 2999}, "61": {"n": "Негатив", "c": "neg", "x": 48, "y": 24, "run": 15, "st": 1499}, "62": {"n": "Глитч", "c": "glit", "x": 70, "y": 40, "run": 15, "st": 1499}, "60": {"n": "Ночная смена", "c": "night", "x": 52, "y": 32, "run": 15, "st": 1499}, "29": {"n": "Тень", "c": "shadow", "x": 44, "y": 30, "run": 20, "st": 999}, "28": {"n": "Перегрев", "c": "burn", "x": 36, "y": 30, "run": 20, "st": 999}, "25": {"n": "Кровавая печать", "c": "blood", "x": 50, "y": 26, "run": 20, "st": 999}, "26": {"n": "Сдвиг цвета", "c": "rgb", "x": 58, "y": 46, "run": 25, "st": 799}, "27": {"n": "Зеркало", "c": "mirror", "x": 50, "y": 52, "run": 25, "st": 799}, "36": {"n": "Радужная плёнка", "c": "rain", "x": 40, "y": 44, "run": 20, "st": 999}, "40": {"n": "Капля чернил", "c": "ink", "x": 64, "y": 58, "run": 20, "st": 999}, "58": {"n": "Без краски", "c": "sketch", "x": 52, "y": 34, "run": 25, "st": 799}, "57": {"n": "Растр", "c": "pix", "x": 38, "y": 40, "run": 25, "st": 799}, "52": {"n": "Лишний слой", "c": "ghost", "x": 60, "y": 28, "run": 30, "st": 599}, "20": {"n": "Порез ножа", "c": "cut", "x": 45, "y": 36, "run": 30, "st": 599}, "18": {"n": "Водяной знак", "c": "water", "x": 55, "y": 30, "run": 30, "st": 599}, "19": {"n": "Съехавший слой", "c": "mosaic", "x": 50, "y": 50, "run": 30, "st": 599}};
-const isDia=h=>!!DIA[h], finRun=c=>c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
+ {k:"Близнец",cls:"duo",w:0,m:250,run:2,col:"#7cf7ff",duo:1}];   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
 const HW=[10,4.5,1.15,.25,.045];   // при 10 прокрутках раз в 4 часа редкие выпадают чуть реже          // вес выпадения воина по его редкости
@@ -426,7 +422,7 @@ function rollHalf(ctx,rightP){let part=Math.random()<rightP?2:1,pool=COMP;
   return makeHalf(ctx,h,part,f)}
 /* воин нужной редкости (только обычные 32), отделка выпадает как обычно */
 function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tier).concat(extra||[]),h=pool[Math.floor(Math.random()*pool.length)];
-  let f=pick(FIN.map(x=>x.w));if(FIN[f].dia)f=0;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;return makeCard(ctx,h,f)}
+  let f=pick(FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;return makeCard(ctx,h,f)}
 /* легенда 1 из 1 (Тор и др.): только «Ошибка печати», свой номер. null — если все уже у игроков */
 function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1&&(h!==THOR||want1===THOR));if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
   const c=makeCard(ctx,h,4),want=HEROES[h][4].sn;if(want&&ctx.snFree(want)){ctx.takeSn(want);c.sn=want;c.v=priceOf(h,4,1,want,false)}return c}
@@ -446,7 +442,7 @@ const SHOP={
  mythic:{n:"Мифический сундук",stars:1000,cards:10,myth:1,leg:1,month:30,d:["🃏 <b>10</b> карточек","гарантированно <b>мифический</b>: Сёгун, Мерлин или богатырь","+ легендарная","шанс <b>2%</b> на легенду 1 из 1","всего <b>30</b> в месяц на всю игру"]}};
 const CHESTS=["newbie","small","royal","warrior","legend","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
-function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
+function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
   if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
   if(W.one){if(f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");return rollOne(ctx,h)}
   if(W.duo){if(f!==DUO_F)fail("Близнецы бывают только с отделкой «Близнец»");return rollDuo(ctx,h)}
@@ -455,8 +451,6 @@ function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROE
     const sn=genNumber(ctx,0),B=cardBody(h,0);return {id:ctx.newId(),h,f:0,no,sn,part:0,hue:B.hue,stats:B.stats,v:priceOf(h,0,no,sn,B.top,0),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0}}
   return makeCard(ctx,h,f)}
 SHOP.twins={n:"Сундук Близнецов",stars:1500,twins:1,cards:3,d:["♊ <b>Близнец</b> — карточка, которой всего <b>2</b> на весь мир","+ <b>3</b> обычные карточки","собери пару близнецов — их знает вся игра"]};
-function makeDia(ctx,h){const D=DIA[h];if(!D||!HEROES[h])fail("Такой карточки нет в Алмазной серии");if(ctx.issuedOf(h,DIA_F)>=D.run)fail("Тираж «"+HEROES[h][0]+"» в Алмазной серии закончился");return makeCard(ctx,h,DIA_F)}
-SHOP.dia={n:"Алмазная серия",stars:0,dia:1,d:["💎 «ошибка печати» со спрятанным бриллиантом","только за ⭐ · крошечный тираж"]};
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
 SHOP.custom={n:"Карточка твоей мечты",stars:5000,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
 /* свой номер: 100 ⭐ + 100 ⭐ за каждый «икс» красивого номера (777 777 ×15 = 1600 ⭐) */
@@ -471,7 +465,7 @@ const HW_LUCK=[0,0,1,3,3], FW_LUCK=[0,2,3,3,2];
 function rollCard(ctx,epic){
   const mt=epic===3?3:epic?2:0,pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]>=mt);
   const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
-  let f=pick(ctx.luck?FW_LUCK:FIN.map(x=>x.w));if(FIN[f].dia)f=0;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
+  let f=pick(ctx.luck?FW_LUCK:FIN.map(x=>x.w));while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
   return makeCard(ctx,h,f);
 }
 function addXp(ctx,c,x){const b=lvl(c);c.xp=(c.xp||0)+x;const a=lvl(c);if(a>b)ctx.events.push({t:"lvl",h:c.h,lv:a})}
@@ -912,7 +906,6 @@ const ACTIONS={
     if(I.sp)st.spins+=I.sp;if(I.guar)st.guar=(st.guar||0)+I.guar;if(I.once)st.newbie=1;
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
-    if(I.dia)add(makeDia(ctx,p.h|0));
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;
       if(I.myth){add(rollTier(ctx,4,DON));n--}
@@ -2497,11 +2490,6 @@ const monthOf=t=>new Date(t+TZ).toISOString().slice(0,7),PAY_HOLD=15*60e3;
 async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
   const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='mythic' AND month=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(monthOf(now),except||0,now-PAY_HOLD).first())||{}).n||0;
   return Math.max(0,I.month-n)}
-/* сколько карт Алмазной серии этого героя ещё можно купить: выпущенные + неоплаченные счета последних 15 минут */
-async function diaLeft(env,h,except){const D=DIA[h];if(!D)return 0;const now=Date.now();
-  const made=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,DIA_F).first())||{}).n||0;
-  const hold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='dia' AND p=? AND id<>? AND (status='paid' OR (status='new' AND created>?))").bind(JSON.stringify({h}),except||0,now-PAY_HOLD).first())||{}).n||0;
-  return Math.max(0,D.run-made-hold)}
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
   if(I){
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
@@ -2509,9 +2497,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
-    if(I.dia){const h=p.h|0,D=DIA[h];if(!D)fail("Такой карточки нет в Алмазной серии");if(await diaLeft(env,h,except)<=0)fail("«"+HEROES[h][0]+"» из Алмазной серии раскупили");
-      return {item,stars:D.st,title:("💎 "+HEROES[h][0]+" · "+D.n).slice(0,32),desc:"Ошибка печати «"+D.n+"» из Алмазной серии: тираж "+D.run+" на весь мир, в карте спрятан бриллиант",data:{h}}}
-    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
+    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
       if(H[4].one&&f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");if(H[4].comp&&f!==0)fail("Составного воина можно взять только обычной отделки");
       const f2=H[4].comp?0:f,n=((await env.DB.prepare(H[4].comp?"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=0 AND no<=?":"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,H[4].comp?HALF_RUN:f2).first())||{}).n||0;
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
@@ -2701,9 +2687,7 @@ async function shopInfo(env,me){
   const ones=await cached("shopones",10e3,async()=>{const o={};for(const h of ONE)o[h]=null;
     for(const r of (await env.DB.prepare("SELECT c.h,COALESCE(u.nick,u.name) AS name,c.owner FROM cards c LEFT JOIN users u ON u.id=c.owner WHERE c.f=4 AND c.h>=?").bind(NBASE).all()).results)if(ONE.includes(r.h))o[r.h]={name:r.name||"Игрок",uid:r.owner};return o});
   const duos=await cached("shopduos",10e3,async()=>{const o={};for(const h of DUO)o[h]=0;for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DUO_F).all()).results)if(o[r.h]!=null)o[r.h]=r.n;return o});
-  const dia=await cached("shopdia",8e3,async()=>{const o={};for(const h in DIA)o[h]=DIA[h].run;
-    for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DIA_F).all()).results)if(o[r.h]!=null)o[r.h]=Math.max(0,DIA[r.h].run-r.n);return o});
-  return {comp,ones,duos,dia,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:await donors(env),mine,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
+  return {comp,ones,duos,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:await donors(env),mine,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
 async function tgApi(env,method,body){let r;try{r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})}catch(e){return {ok:false,description:"network"}}return r.json().catch(()=>({ok:false}))}
 /* ---------- переезд на свой сервер: выгрузка базы и режим «технические работы» ----------
    Ключ выгрузки считается из токена бота, поэтому его знает только тот, у кого есть токен. */

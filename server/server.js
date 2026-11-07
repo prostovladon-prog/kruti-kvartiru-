@@ -1377,11 +1377,6 @@ const monthOf=t=>new Date(t+TZ).toISOString().slice(0,7),PAY_HOLD=15*60e3;
 async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
   const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='mythic' AND month=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(monthOf(now),except||0,now-PAY_HOLD).first())||{}).n||0;
   return Math.max(0,I.month-n)}
-/* сколько карт Алмазной серии этого героя ещё можно купить: выпущенные + неоплаченные счета последних 15 минут */
-async function diaLeft(env,h,except){const D=DIA[h];if(!D)return 0;const now=Date.now();
-  const made=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,DIA_F).first())||{}).n||0;
-  const hold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='dia' AND p=? AND id<>? AND (status='paid' OR (status='new' AND created>?))").bind(JSON.stringify({h}),except||0,now-PAY_HOLD).first())||{}).n||0;
-  return Math.max(0,D.run-made-hold)}
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
   if(I){
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
@@ -1389,9 +1384,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
-    if(I.dia){const h=p.h|0,D=DIA[h];if(!D)fail("Такой карточки нет в Алмазной серии");if(await diaLeft(env,h,except)<=0)fail("«"+HEROES[h][0]+"» из Алмазной серии раскупили");
-      return {item,stars:D.st,title:("💎 "+HEROES[h][0]+" · "+D.n).slice(0,32),desc:"Ошибка печати «"+D.n+"» из Алмазной серии: тираж "+D.run+" на весь мир, в карте спрятан бриллиант",data:{h}}}
-    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
+    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
       if(H[4].one&&f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");if(H[4].comp&&f!==0)fail("Составного воина можно взять только обычной отделки");
       const f2=H[4].comp?0:f,n=((await env.DB.prepare(H[4].comp?"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=0 AND no<=?":"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,H[4].comp?HALF_RUN:f2).first())||{}).n||0;
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
@@ -1581,9 +1574,7 @@ async function shopInfo(env,me){
   const ones=await cached("shopones",10e3,async()=>{const o={};for(const h of ONE)o[h]=null;
     for(const r of (await env.DB.prepare("SELECT c.h,COALESCE(u.nick,u.name) AS name,c.owner FROM cards c LEFT JOIN users u ON u.id=c.owner WHERE c.f=4 AND c.h>=?").bind(NBASE).all()).results)if(ONE.includes(r.h))o[r.h]={name:r.name||"Игрок",uid:r.owner};return o});
   const duos=await cached("shopduos",10e3,async()=>{const o={};for(const h of DUO)o[h]=0;for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DUO_F).all()).results)if(o[r.h]!=null)o[r.h]=r.n;return o});
-  const dia=await cached("shopdia",8e3,async()=>{const o={};for(const h in DIA)o[h]=DIA[h].run;
-    for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DIA_F).all()).results)if(o[r.h]!=null)o[r.h]=Math.max(0,DIA[r.h].run-r.n);return o});
-  return {comp,ones,duos,dia,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:await donors(env),mine,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
+  return {comp,ones,duos,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:await donors(env),mine,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
 async function tgApi(env,method,body){let r;try{r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})}catch(e){return {ok:false,description:"network"}}return r.json().catch(()=>({ok:false}))}
 /* ---------- переезд на свой сервер: выгрузка базы и режим «технические работы» ----------
    Ключ выгрузки считается из токена бота, поэтому его знает только тот, у кого есть токен. */

@@ -625,16 +625,6 @@ r = await call(7, "stats"); ok(!r.ok && /доступа/.test(r.err), "обыч�
   const cp = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envP)).json();
   const buy = async (uid, p) => { const i = await cp(uid, "invoice", p); if (!i.ok) return i; return cp(uid, "pay_sim", { pid: i.res.pid }); };
   const U = 7001; await cp(U, "sync");
-  // 💎 Алмазная серия
-  { const G = 65, U = 7301; await cp(U, "sync"); let q = await cp(U, "invoice", { item: "dia", h: G }); ok(q.ok && q.res && q.res.pid, "счёт на Гильгамеша из Алмазной серии");
-    q = await cp(U, "pay_sim", { pid: q.res.pid }); const st = JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(U).state);
-    const dc = db.prepare("SELECT * FROM cards WHERE owner=? AND f=8").all(U); ok(q.ok && q.res.status === "done" && dc.length === 1 && dc[0].h === G && dc[0].no === 1, "куплена карта Алмазной серии № 1");
-    q = await cp(U, "invoice", { item: "dia", h: 3 }); ok(!q.ok, "героя не из серии купить нельзя");
-    q = await cp(U, "invoice", { item: "any", h: G, f: 8 }); ok(!q.ok, "через «Любую карточку» алмазную не взять");
-    q = await cp(U, "shop"); ok(q.ok && q.res.dia[G] === 4 && q.res.dia[59] === 10, "в Сокровищнице виден остаток тиража");
-    for (let k = 0; k < 4; k++) { await cp(7302 + k, "sync"); const i = await cp(7302 + k, "invoice", { item: "dia", h: G }); if (i.ok) await cp(7302 + k, "pay_sim", { pid: i.res.pid }); }
-    await cp(7310, "sync"); q = await cp(7310, "invoice", { item: "dia", h: G }); ok(!q.ok && /раскупили/.test(q.err), "тираж 5 — шестую не купить");
-    db.prepare("UPDATE payments SET charge='bal' WHERE item='dia'").run(); }   // чтобы не мешать тесту топа донатеров
   let r = await call(U, "invoice", { item: "small" }); ok(!r.ok && /Telegram/.test(r.err), "без PAY_SIM счёт создаёт Telegram, симуляции нет");
   r = await call(U, "pay_sim", { pid: 1 }); ok(!r.ok, "симуляция оплаты закрыта на боевом сервере");
   r = await call(U, "grant", { item: "royal", pid: 999 }); ok(!r.ok, "выдать покупку напрямую нельзя");
