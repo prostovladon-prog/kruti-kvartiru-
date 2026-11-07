@@ -942,13 +942,12 @@ function openCap(){const m=$("modal"),sh=$("msheet"),P=capParts(S),n=S.cards.len
   $("cap-merge").onclick=()=>{closeModal();colView="merge";setTab("col")};$("cap-x").onclick=closeModal}
 document.addEventListener("click",e=>{if(e.target.closest("#cap-open")){e.stopPropagation();openCap()}},true);
 
-/* ---------- 💎 Сокровищница: Алмазная серия — 20 ошибок печати только за ⭐ ---------- */
+/* ---------- 💎 Сокровищница: Алмазная серия — 40 ошибок печати, выпадают в прокрутке и сундуках ---------- */
 {const _rg=renderGold;renderGold=function(){if(goldTab!=="dia")return _rg.apply(this,arguments);const B=$("gold-body");if(!B||!S)return;
   document.querySelectorAll("#gold-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.g===goldTab));const L=(goldData&&goldData.dia)||{};
-  const hs=Object.keys(DIA).map(Number).sort((a,b)=>DIA[b].st-DIA[a].st||DIA[a].run-DIA[b].run);
+  const hs=Object.keys(DIA).map(Number).sort((a,b)=>DIA[a].run-DIA[b].run||HEROES[b][2]-HEROES[a][2]);
   const tot=hs.reduce((a,h)=>a+DIA[h].run,0),left=hs.reduce((a,h)=>a+(L[h]!=null?L[h]:DIA[h].run),0);
-  let v='<div class="diahd"><div class="diagem">'+DIA_GEM+'</div><h3>Алмазная серия</h3><p>20 «ошибок печати», которых нет в прокрутке и сундуках. В каждой спрятан <b>бриллиант</b>, у каждой — свой брак печати. Только за ⭐, крошечный тираж на весь мир.</p><div class="dialeft">осталось в мире: <b>'+left+'</b> из '+tot+'</div></div><div class="diag">';
-  for(const h of hs){const D=DIA[h],l=L[h]!=null?L[h]:D.run,c=demoOne(h,DIA_F);c.no=D.run-l+1>D.run?D.run:D.run-l+1;
-    v+='<div class="diac'+(l<=0?" sold":"")+'">'+miniSlot(c)+'<b>'+HEROES[h][0]+'</b><small>«'+D.n+'»</small><div class="dial"><i style="width:'+Math.round(l/D.run*100)+'%"></i></div><small class="diaq">'+(l>0?'осталось '+l+' из '+D.run:'раскуплено')+'</small><button type="button" class="craftbtn" data-dia="'+h+'"'+(l<=0?' disabled':'')+'>'+(l>0?D.st+' ⭐':'Нет в наличии')+'</button></div>'}
+  let v='<div class="diahd"><div class="diagem">'+DIA_GEM+'</div><h3>Алмазная серия</h3><p>'+hs.length+' «ошибок печати» с крошечным тиражом. В каждой спрятан <b>бриллиант</b>, у каждой — свой брак печати. Не продаются — их можно только <b>выбить</b>.</p><div class="diahow"><span>🎴 в прокрутке · 1 из 2000</span><span>🎁 Легендарный сундук · 2%</span><span>🎁 Мифический сундук · 5%</span></div><div class="dialeft">осталось в мире: <b>'+left+'</b> из '+tot+'</div></div><div class="diag">';
+  for(const h of hs){const D=DIA[h],l=L[h]!=null?L[h]:D.run,c=demoOne(h,DIA_F);c.no=Math.min(D.run,D.run-l+1);
+    v+='<div class="diac'+(l<=0?" sold":"")+'">'+miniSlot(c)+'<b>'+HEROES[h][0]+'</b><small>«'+D.n+'»</small><div class="dial"><i style="width:'+Math.round(l/D.run*100)+'%"></i></div><small class="diaq">'+(l>0?'осталось '+l+' из '+D.run:'все '+D.run+' уже у игроков')+'</small></div>'}
   B.innerHTML=v+'</div>'}}
-$("gold-body").addEventListener("click",e=>{const t=e.target.closest("[data-dia]");if(!t||t.disabled)return;e.stopPropagation();hap("light");buyItem({item:"dia",h:+t.dataset.dia})},true);
