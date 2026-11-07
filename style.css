@@ -2846,3 +2846,5 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .vtbox .rd-q{font-size:14px;margin:6px 0}.vtbox h3{margin:2px 0}
 .vt-play{margin-bottom:4px}.vt-play span{min-width:0}
 .vt-sgot{display:block;margin:14px 0 2px!important;clear:both}
+.tpg{grid-template-columns:repeat(auto-fit,minmax(52px,1fr))}.tpc.bon{border-color:#ffd23f;background:linear-gradient(160deg,rgba(255,210,63,.28),rgba(0,0,0,.25));box-shadow:0 0 14px rgba(255,210,63,.35)}.tpc.bon small{color:#ffd23f;font-weight:900}
+.prnr.prbon{grid-template-columns:1fr 1fr;margin-top:6px;padding:7px;border-radius:10px;background:rgba(255,200,40,.14);border:1px dashed #e0a800}.prnr.prbon label{font-weight:800}

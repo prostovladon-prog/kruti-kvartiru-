@@ -1151,6 +1151,19 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   const c = db.prepare("SELECT h,f,sn,v FROM cards WHERE owner=1025352541 AND f=4 AND h=15").get();
   ok(c && c.h === 15 && Math.round(c.v) === 57529, "компенсация: игроку выдан Гоплит, ошибка печати № 200 000");
   await worker.tick(envG); { const L = db.prepare("SELECT h,v FROM cards WHERE owner=1025352541 AND f=4").all(); ok(L.length === 2 && L.some(x => x.h !== 15 && Math.round(x.v) === 57529), "запасная выдача: другой редкий воин с ошибкой печати той же цены, без повторов"); } }
+// 🎁 промокод «+⭐ сверху» с минимальной суммой пополнения
+{ const envP = { ...env, PAY_SIM: "1", ADMINS: "8" }; const cp = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envP)).json();
+  const buyP = async (uid, p) => { const i = await cp(uid, "invoice", p); if (!i.ok) return i; return cp(uid, "pay_sim", { pid: i.res.pid }); };
+  let q = await cp(8, "pcode_set", { code: "ЗВЕЗДА300", sp: 0, bon: 300, bmin: 500, days: 1 }); ok(q.ok, "админ создал код +300 ⭐ от 500");
+  q = await cp(8, "pcode_list"); ok(q.res.list.some(P => P.code === "ЗВЕЗДА300" && P.bon === 300 && P.bmin === 500), "код в списке с бонусом и минимумом");
+  const U = 9201; await cp(U, "sync"); q = await cp(U, "promo_use", { code: "звезда300" }); ok(q.ok && q.res.bon === 300 && q.res.bmin === 500, "игрок активировал код");
+  q = await cp(U, "promo_x2"); ok(q.res.bons.length === 1 && q.res.bons[0].bmin === 500, "клиент знает минимум");
+  const b0 = db.prepare("SELECT star_bal FROM users WHERE id=?").get(U).star_bal;
+  q = await buyP(U, { item: "bal", n: 250 }); ok(q.ok && db.prepare("SELECT star_bal FROM users WHERE id=?").get(U).star_bal === b0 + 250, "пополнение 250 — бонуса нет, он ждёт");
+  q = await buyP(U, { item: "bal", n: 500 }); ok(q.ok && db.prepare("SELECT star_bal FROM users WHERE id=?").get(U).star_bal === b0 + 250 + 800, "пополнение 500 → +300 ⭐ сверху");
+  q = await buyP(U, { item: "bal", n: 500 }); ok(db.prepare("SELECT star_bal FROM users WHERE id=?").get(U).star_bal === b0 + 250 + 800 + 500, "бонус только один раз");
+  await cp(8, "pcode_set", { code: "ЗВЕЗДА400", bon: 400 }); const V = 9202; await cp(V, "sync"); await cp(V, "promo_use", { code: "ЗВЕЗДА400" }); const v0 = db.prepare("SELECT star_bal FROM users WHERE id=?").get(V).star_bal;
+  await buyP(V, { item: "bal", n: 50 }); ok(db.prepare("SELECT star_bal FROM users WHERE id=?").get(V).star_bal === v0 + 450, "без минимума — с любого пополнения"); }
 // 🗺 карта мира
 { const envM = { ...env, PAY_SIM: "1", ADMINS: "8" }; const cm = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envM)).json();
   const buyM = async (uid, p) => { const i = await cm(uid, "invoice", p); if (!i.ok) return i; return cm(uid, "pay_sim", { pid: i.res.pid }); };
