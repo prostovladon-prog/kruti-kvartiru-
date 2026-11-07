@@ -926,6 +926,20 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "hof_claim"); ok(q.ok && Math.abs(q.res.got - Math.floor(rate * 3)) <= 1 && q.S.cash === c0 + q.res.got, "зал за 3 часа: +" + (q.res && q.res.got));
     db.prepare("UPDATE users SET state=json_set(state,'$.hofAt',?) WHERE id=?").run(Date.now() - 48 * 36e5, A); q = await call(A, "hof_claim"); ok(Math.abs(q.res.got - Math.floor(rate * 12)) <= 1, "копится не больше 12 часов");
     q = await call(A, "hof_slot"); ok(q.ok && q.res.slots === 3, "купил третье место"); }
+  // 💣 сапёр + 🎰 джекпот + 💸 кешбэк
+  { const ru = async () => (await call(A, "sync")).S.camp.runes, setM = m => db.prepare("UPDATE users SET state=json_set(state,'$.cas.mn.m',json(?)) WHERE id=?").run(JSON.stringify(m), A);
+    let q = await call(A, "cas_mn_go", { bet: 1000, n: 2 }); ok(!q.ok, "сапёр: только 1/3/5/10 мин");
+    let r0 = await ru(); q = await call(A, "cas_mn_go", { bet: 1000, n: 3 }); ok(q.ok && !q.res.mines && q.res.next === 1.09, "сапёр начат, мины скрыты (след. ×" + q.res.next + ")");
+    setM([0, 1, 2]); q = await call(A, "cas_mn", { i: 10 }); ok(q.ok && q.res.m === 1.09, "💎 ×1,09"); q = await call(A, "cas_mn", { i: 11 }); q = await call(A, "cas_mn", { i: 12 }); ok(q.res.m === 1.43, "3 клетки ×" + q.res.m);
+    q = await call(A, "cas_mn", { i: 12 }); ok(!q.ok, "дважды одну клетку не открыть");
+    q = await call(A, "cas_mn_take"); ok(q.ok && q.res.win === 1430 && (await ru()) === r0 + 430 && q.res.mines.length === 3, "забрал ×1,43");
+    await call(A, "cas_mn_go", { bet: 1000, n: 3 }); setM([5, 6, 7]); q = await call(A, "cas_mn", { i: 6 }); ok(q.ok && q.res.boom && q.res.mines.length === 3, "мина — ставка сгорела");
+    q = await call(A, "cas_info"); ok(q.ok && q.res.jp >= 1e5, "джекпот виден: " + q.res.jp);
+    const j0 = q.res.jp; await call(A, "cas_slot", { bet: 10000 }); q = await call(A, "cas_info"); ok(q.res.jp === j0 + 100 || q.res.jw, "1% ставки ушёл в банк");
+    db.prepare("INSERT INTO cas_log(uid,g,bet,win,gift,gno,m,at) VALUES(?,?,?,?,NULL,NULL,0,?)").run(A, "slot", 100000, 20000, Date.now() - 864e5);
+    q = await call(A, "cas_info"); ok(q.res.cb.amt >= 8000 && !q.res.cb.taken, "кешбэк за вчера: " + q.res.cb.amt);
+    r0 = await ru(); const amt = q.res.cb.amt; q = await call(A, "cas_cb"); ok(q.ok && q.res.got === amt && (await ru()) === r0 + amt, "кешбэк начислен");
+    q = await call(A, "cas_cb"); ok(!q.ok && /уже/.test(q.err), "кешбэк раз в день"); }
   // 🚀 ракетка
   { const setRk = (cr, ago) => db.prepare("UPDATE users SET state=json_set(state,'$.cas.rk.cr',?,'$.cas.rk.t0',?) WHERE id=?").run(cr, Date.now() - ago, A);
     const ru = async () => (await call(A, "sync")).S.camp.runes;

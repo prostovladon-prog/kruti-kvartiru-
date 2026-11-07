@@ -586,6 +586,11 @@ const CASE={price:1e4,day:1e9,sold:3000,
   [.001,{g:"mask"}],[.0005,{g:"wheel"}],[.0001,{g:"cup"}],[.00005,{g:"eye"}],[.00001,{g:"crown"}]]};
 const SLOT={min:1e3,max:5e4,t:[[.002,"💎",50],[.005,"👑",20],[.02,"⚔️",8],[.06,"🍀",4]],pair:[.2,1.5],sym:["💎","👑","⚔️","🍀","🔔","🍒"]};
 const HL={min:1e3,max:5e4,k:.92,cap:100};
+/* 💣 Сапёр: поле 5×5, мины прячет сервер. Каждая открытая клетка растит множитель: 0,96 · C(25,k)/C(25−мин,k) */
+const MN={min:1e3,max:5e4,n:[1,3,5,10],ret:.96,size:25};
+const mnM=(mines,k)=>{let m=MN.ret;for(let i=0;i<k;i++)m*=(MN.size-i)/(MN.size-mines-i);return Math.floor(m*100)/100};
+/* 🎰 Джекпот: 1% всех ставок казино копится в общий банк, его срывает тот, кто выбьет 💎💎💎 в слотах. Кешбэк: 10% вчерашнего минуса в казино (до 50 000 рун) */
+const JP={cut:.01,seed:1e5},CSB={pct:.1,max:5e4};
 /* 🚀 Ракетка: множитель растёт e^(k·t), взрыв в случайный момент. P(дожить до ×x)=0.96/x — честные 96% отдачи */
 const RKT={min:1e3,max:5e4,k:.11,cap:100,ret:.96},rkM=ms=>Math.min(RKT.cap,Math.floor(100*Math.exp(RKT.k*Math.max(0,ms)/1e3))/100),rkCr=()=>{const u=Math.random();return Math.max(1,Math.min(RKT.cap,Math.floor(100*RKT.ret/(1-u))/100))};
 function rkEnd(st,ctx,K,take){const R=K.rk,m=rkM(ctx.now-R.t0);let w=0,at=R.cr;if(R.auto&&R.auto<R.cr&&m>=R.auto){w=Math.floor(R.b*R.auto);at=R.auto}else if(take&&m<R.cr){w=Math.floor(R.b*m);at=m}
@@ -909,6 +914,14 @@ const ACTIONS={
   cas_hl(G){const {st,ctx}=G;const K=casDay(st,ctx.now),H=K.hl;if(!H)fail("Игра не начата");const dir=G.p.dir==="up"?"up":"down",p=hlP(H.c,dir);
     if(p<=0)fail(dir==="up"?"Выше короля не бывает":"Ниже туза не бывает");const n=card13(),win=dir==="up"?n>H.c:n<H.c;
     if(!win){K.hl=null;return {n,win:0,lost:H.b}}H.m=Math.min(HL.cap,Math.round(H.m*HL.k/p*1000)/1000);H.c=n;H.s++;return {n,win:1,hl:H}},
+  cas_cbset(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;if(st.cbDay===p.d)fail("Кешбэк за вчера уже забран");st.cbDay=p.d;camp(st,ctx.now).runes+=p.runes;return {}},
+  cas_mn_go(G){const {st,ctx}=G;const K=casDay(st,ctx.now);if(K.mn)fail("Сначала доиграй или забери выигрыш");const n=G.p.n|0;if(!MN.n.includes(n))fail("Выбери количество мин");casBet(st,ctx,G.p.bet,MN);
+    const cells=[...Array(MN.size).keys()].sort(()=>Math.random()-.5);K.mn={b:Math.floor(+G.p.bet),n,m:cells.slice(0,n),o:[]};return {mn:{b:K.mn.b,n,o:[]},next:mnM(n,1),dg:dgCasDrop(st,ctx,"hl")}},
+  cas_mn(G){const {st,ctx}=G;const K=casDay(st,ctx.now),M=K.mn;if(!M)fail("Игра не начата");const i=G.p.i|0;if(i<0||i>=MN.size||M.o.includes(i))fail("Эта клетка уже открыта");
+    if(M.m.includes(i)){K.mn=null;return {boom:1,i,mines:M.m,lost:M.b}}M.o.push(i);const m=mnM(M.n,M.o.length);
+    if(M.o.length>=MN.size-M.n){const w=Math.floor(M.b*m);camp(st,ctx.now).runes+=w;K.mn=null;return {i,m,win:w,all:1,mines:M.m}}return {i,m,next:mnM(M.n,M.o.length+1),o:M.o}},
+  cas_mn_take(G){const {st,ctx}=G;const K=casDay(st,ctx.now),M=K.mn;if(!M)fail("Игра не начата");if(!M.o.length)fail("Открой хотя бы одну клетку");
+    const m=mnM(M.n,M.o.length),w=Math.floor(M.b*m);camp(st,ctx.now).runes+=w;K.mn=null;return {win:w,m,mines:M.m}},
   cas_rk_go(G){const {st,ctx}=G;const K=casDay(st,ctx.now);let prev=null;if(K.rk)prev=rkEnd(st,ctx,K,0);casBet(st,ctx,G.p.bet,RKT);
     const a=+G.p.auto||0;K.rk={b:Math.floor(+G.p.bet),t0:ctx.now,cr:rkCr(),auto:a>=1.1&&a<=RKT.cap?Math.round(a*100)/100:0};return {t0:ctx.now,k:RKT.k,auto:K.rk.auto,prev,dg:dgCasDrop(st,ctx,"hl")}},
   cas_rk(G){const {st,ctx}=G;const K=casDay(st,ctx.now),R=K.rk;if(!R)return {end:1,none:1};const m=rkM(ctx.now-R.t0);
@@ -1161,7 +1174,7 @@ Object.assign(ACTIONS,{
     if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
   mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
   mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -3057,6 +3070,11 @@ const CACHE_HYPE={};async function hypeList(env){const now=Date.now();if(CACHE_H
   const L=(await env.DB.prepare("SELECT h.id,h.t,h.txt,COALESCE(u.nick,u.name) AS name FROM hype h LEFT JOIN users u ON u.id=h.uid WHERE h.t>? ORDER BY h.id DESC LIMIT 14").bind(now-6*36e5).all()).results;CACHE_HYPE.v=L;CACHE_HYPE.t=now;return L}
 function hypeCards(res){const out=[],seen=new Set(),add=c=>{if(c&&typeof c==="object"&&c.h!=null&&c.f!=null&&!seen.has(c)){seen.add(c);out.push(c)}};
   if(res&&typeof res==="object")for(const k of Object.keys(res)){const v=res[k];if(Array.isArray(v))v.forEach(add);else add(v)}return out}
+async function jpGet(env){const v=await kvGet(env,"jp");return v&&v.v>0?v:{v:JP.seed,w:null}}
+async function jpAdd(env,bet){if(!(bet>0))return;try{const J0=await jpGet(env);J0.v=Math.round(J0.v+bet*JP.cut);await kvSet(env,"jp",J0)}catch(e){}}
+const mskDayOf=t=>new Date(t+3*36e5).toISOString().slice(0,10);
+async function cbInfo(env,uid,st){const now=Date.now(),d0=Date.parse(mskDayOf(now)+"T00:00:00Z")-3*36e5,r=await env.DB.prepare("SELECT COALESCE(SUM(bet),0) AS b,COALESCE(SUM(win),0) AS w FROM cas_log WHERE uid=? AND at>=? AND at<?").bind(uid,d0-864e5,d0).first();
+  const loss=Math.max(0,(r.b||0)-(r.w||0)),amt=Math.min(CSB.max,Math.floor(loss*CSB.pct));return {amt,taken:(st&&st.cbDay)===mskDayOf(now)}}
 async function casLog(env,uid,g,bet,win,gift,m){try{await env.DB.prepare("INSERT INTO cas_log(uid,g,bet,win,gift,gno,m,at) VALUES(?,?,?,?,?,?,?,?)").bind(uid,g,bet|0,win|0,gift?gift.k:null,gift?gift.no:null,m||null,Date.now()).run()}catch(e){console.error("caslog",e)}}
 async function casFeed(env){return cached("casfeed",5e3,async()=>(await env.DB.prepare("SELECT l.g,l.bet,l.win,l.gift,l.gno,l.m,l.at,COALESCE(u.nick,u.name) AS name FROM cas_log l LEFT JOIN users u ON u.id=l.uid WHERE l.gift IS NOT NULL OR l.win>=50000 OR (l.g='slot' AND l.m>=8) ORDER BY l.id DESC LIMIT 20").all()).results)}
 async function casStats(env){const now=Date.now(),d0=dayNum(now)*864e5-TZ;
@@ -3530,6 +3548,9 @@ async function handle(req,env){{
           r.S=await stateFor(env,me)}
         await casLog(env,me.id,"case",CASE.price,r.res.r||0,r.res.g||null);return J({ok:true,...r})}
       if(a==="cas_feed")return J({ok:true,res:await casFeed(env)});
+      if(a==="cas_info"){const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const jp=await jpGet(env);return J({ok:true,res:{jp:jp.v,jw:jp.w||null,cb:await cbInfo(env,me.id,st)}})}
+      if(a==="cas_cb"){const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const c=await cbInfo(env,me.id,st);if(c.taken)fail("Кешбэк за вчера уже забран");if(c.amt<1)fail("Вчера ты не был в минусе — кешбэка нет");
+        const r=await doAction(env,me,"cas_cbset",{d:mskDayOf(Date.now()),runes:c.amt},{grant:true});return J({ok:true,res:{got:c.amt},S:r.S||await stateFor(env,me)})}
       if(a==="cas_stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await casStats(env)})}
       if(a==="camp_top")return J({ok:true,res:await campTop(env,me,p.per==="w"?"w":"d")});
       if(a==="chal_get")return J({ok:true,res:await chalGet(env,me)});if(/^tt_/.test(a))return J({ok:true,res:await ttApi(env,me,a,p)});
@@ -3565,6 +3586,12 @@ async function handle(req,env){{
         if(a==="cas_slot"&&r.res.m>=20)await hypeAdd(env,me.id,"🎰 сорвал ×"+r.res.m+" в слотах · +"+r.res.win.toLocaleString("ru")+" 💠");
         if(a==="cas_rk"&&r.res.win&&r.res.at>=10)await hypeAdd(env,me.id,"🚀 забрал ракетку на ×"+r.res.at+" · +"+r.res.win.toLocaleString("ru")+" 💠");
         if(a==="cas_case"&&r.res.g)await hypeAdd(env,me.id,"🎁 достал подарок из кейса");}}catch(e){}
+      if(a==="cas_slot"||a==="cas_rk_go"||a==="cas_hl_go"||a==="cas_mn_go")await jpAdd(env,Math.floor(+p.bet||0));
+      if(a==="cas_slot"&&r.res.m>=50){const J0=await jpGet(env),won=J0.v;await kvSet(env,"jp",{v:JP.seed,w:{name:me.nick||me.name||"Игрок",v:won,t:Date.now()}});await doAction(env,me,"map_grant",{runes:won},{grant:true});r.res.jp=won;r.S=await stateFor(env,me);
+        await hypeAdd(env,me.id,"💎💎💎 СОРВАЛ ДЖЕКПОТ · +"+won.toLocaleString("ru")+" 💠")}
+      if(a==="cas_mn"&&r.res.win&&r.res.m>=10)await hypeAdd(env,me.id,"💣 прошёл Сапёра на ×"+r.res.m+" · +"+r.res.win.toLocaleString("ru")+" 💠");
+      if(a==="cas_mn_take"&&r.res.m>=10)await hypeAdd(env,me.id,"💣 забрал в Сапёре ×"+r.res.m+" · +"+r.res.win.toLocaleString("ru")+" 💠");
+      if(a==="cas_mn_go")await casLog(env,me.id,"mn",Math.floor(+p.bet||0),0);else if((a==="cas_mn"||a==="cas_mn_take")&&r.res.win)await casLog(env,me.id,"mn",0,r.res.win,null,r.res.m);
       if(a==="cas_rk_go")await casLog(env,me.id,"rk",Math.floor(+p.bet||0),0);
       else if(a==="cas_rk"&&r.res&&r.res.end&&r.res.win)await casLog(env,me.id,"rk",0,r.res.win,null,r.res.at);
       if(a==="cas_slot")await casLog(env,me.id,"slot",Math.floor(+p.bet||0),r.res.win||0,null,r.res.m);

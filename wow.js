@@ -284,6 +284,8 @@ function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySel
       '<details class="cs-odds"><summary>Как считается</summary><p>Чем меньше шанс угадать, тем больше множитель. Одинаковая карта — проигрыш. В среднем возвращается 95% на каждом шаге.</p></details></div>';
     if(H){B.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>hlGo(b.dataset.dir));$("hl-take").onclick=hlTake}else $("hl-go").onclick=hlStart}
   if(csTab==="rk")rkDraw(B,bets);
+  if(csTab==="mn")mnDraw(B,bets);
+  csTopDraw();
   const bb=$("cs-bets");if(bb)bb.onclick=e=>{const b=e.target.closest("[data-bet]");if(!b)return;csBet=+b.dataset.bet;renderCas()}}
 $("cs-seg").onclick=e=>{const b=e.target.closest("[data-c]");if(!b||csBusy)return;csTab=b.dataset.c;renderCas()};
 $("cs-back").onclick=()=>{if(!csBusy)openCamp()};$("cs-entry").onclick=()=>openCas();
@@ -993,3 +995,32 @@ function hypeDraw(){const L=(S&&S.hype)||[];const sig=L.map(x=>x.id).join(",");i
   const it=L.map(x=>'<span><b>'+fnEsc(String(x.name||"Игрок").slice(0,16))+'</b> '+fnEsc(x.txt)+'</span>').join('<i>✦</i>');
   el.innerHTML='<em>🔥 LIVE</em><div class="hype-w"><div class="hype-t" style="animation-duration:'+Math.max(18,L.length*7)+'s">'+it+'<i>✦</i>'+it+'<i>✦</i></div></div>'}
 setInterval(()=>{try{hypeDraw()}catch(e){}},1500);
+
+/* ===================== 💣 САПЁР ===================== */
+let mnN=3,mnRes=null;
+function mnDraw(B,bets){const K=casK(),M=K.mn,o=M?M.o||[]:[],R=mnRes;
+  const cell=i=>{let c="",t="";if(R&&R.mines&&R.mines.includes(i)){c=" mine"+(R.i===i?" hit":"");t="💣"}else if(o.includes(i)||(R&&R.open&&R.open.includes(i))){c=" gem";t="💎"}return '<button type="button" class="mn-c'+c+'" data-i="'+i+'"'+(!M||c?" disabled":"")+'>'+t+'</button>'};
+  const k=o.length,m=M?mnM(M.n,k):0,nx=M?mnM(M.n,k+1):mnM(mnN,1);
+  B.innerHTML='<div class="cs-box mnbox"><h3>💣 САПЁР</h3><div class="sub">Открывай клетки — каждый 💎 растит выигрыш. Наткнёшься на мину — ставка сгорит. Забери вовремя!</div>'+
+   '<div class="mn-st"><div><small>сейчас</small><b>'+(M&&k?"×"+String(m).replace(".",","):"—")+'</b></div><div><small>следующий 💎</small><b>×'+String(nx).replace(".",",")+'</b></div><div><small>мин</small><b>'+(M?M.n:mnN)+'</b></div></div>'+
+   '<div class="mn-g" id="mn-g">'+[...Array(25).keys()].map(cell).join("")+'</div>'+
+   (M?'<button type="button" class="cs-go rk-take" id="mn-take"'+(k?"":" disabled")+'>'+(k?"💰 ЗАБРАТЬ "+fmtN(Math.floor(M.b*m))+" 💠":"Открой первую клетку")+'</button>':
+    bets+'<div class="rk-auto"><span>Мин на поле:</span>'+MN.n.map(n=>'<button type="button" data-mn="'+n+'" aria-pressed="'+(mnN===n)+'">'+n+'</button>').join("")+'</div><button type="button" class="cs-go" id="mn-go">💣 ИГРАТЬ · '+fmtN(csBet)+' 💠</button>')+
+   '<details class="cs-odds"><summary>Множители — всё честно</summary><p>Мины расставляет сервер в момент ставки. С 3 минами: '+[1,3,5,10].map(k=>k+'-й 💎 ×'+String(mnM(3,k)).replace('.',',')).join(', ')+'. Больше мин — быстрее растёт множитель. В среднем возвращается 96%.</p></details></div>';
+  if(M){$("mn-g").onclick=e=>{const b=e.target.closest("[data-i]");if(b&&!b.disabled)mnOpen(+b.dataset.i)};$("mn-take").onclick=mnTake}
+  else{$("mn-go").onclick=mnGo;B.querySelector(".rk-auto").onclick=e=>{const b=e.target.closest("[data-mn]");if(!b)return;mnN=+b.dataset.mn;mnRes=null;renderCas()}}}
+async function mnGo(){if(csBusy)return;if(campView().runes<csBet){toast("Нужно ещё "+fmtN(csBet-campView().runes)+" рун");return}csBusy=true;mnRes=null;const r=await act("cas_mn_go",{bet:csBet,n:mnN});csBusy=false;if(r){hap("medium");csBal();renderCas()}}
+async function mnOpen(i){if(csBusy)return;csBusy=true;const b=document.querySelector('.mn-c[data-i="'+i+'"]');if(b)b.classList.add("pend");const r=await act("cas_mn",{i});csBusy=false;if(!r){renderCas();return}
+  if(r.boom){mnRes={mines:r.mines,i,open:(casK().mn||{o:[]}).o};try{sfx.lose();hapN("error")}catch(e){}renderCas();const g=$("mn-g");if(g)g.classList.add("boom");setTimeout(()=>{mnRes=null;if(csTab==="mn")renderCas()},2600);return}
+  try{sfx.coin?sfx.coin():hap("light");hap("light")}catch(e){}if(r.all){mnRes={mines:r.mines,open:[...Array(25).keys()].filter(x=>!r.mines.includes(x))};toast("💎 Всё поле пройдено! +"+fmtN(r.win)+" 💠");try{sfx.fanfare();burst(4)}catch(e){}setTimeout(()=>{mnRes=null;if(csTab==="mn")renderCas()},2600)}
+  csBal();renderCas()}
+async function mnTake(){if(csBusy)return;csBusy=true;const o=(casK().mn||{o:[]}).o.slice();const r=await act("cas_mn_take");csBusy=false;if(!r)return;mnRes={mines:r.mines,open:o};try{sfx.fanfare();hapN("success");if(r.m>=3)burst(2)}catch(e){}toast("💰 +"+fmtN(r.win)+" 💠 (×"+String(r.m).replace(".",",")+")");csBal();renderCas();setTimeout(()=>{mnRes=null;if(csTab==="mn")renderCas()},2200)}
+/* ===================== 🎰 ДЖЕКПОТ + 💸 КЕШБЭК ===================== */
+let CSI=null,csiAt=0;
+async function csInfo(force){if(!force&&Date.now()-csiAt<15e3)return;csiAt=Date.now();try{const r=await act("cas_info");if(r){CSI=r;csTopDraw()}}catch(e){}}
+function csTopDraw(){const sec=$("sec-cas");if(!sec||sec.hidden)return;let el=$("cs-jp");const seg=$("cs-seg");if(!seg)return;
+  if(!el){el=document.createElement("div");el.id="cs-jp";el.className="cs-jp";seg.parentNode.insertBefore(el,seg)}
+  if(!CSI){el.innerHTML='<div class="jp"><small>💎 ДЖЕКПОТ</small><b>…</b></div>';csInfo(1);return}csInfo();
+  const cb=CSI.cb||{};el.innerHTML='<div class="jp"><small>💎💎💎 ДЖЕКПОТ · сорви в слотах</small><b>'+fmtN(CSI.jp)+' 💠</b>'+(CSI.jw?'<em>последний: '+fnEsc(CSI.jw.name)+' +'+fmtN(CSI.jw.v)+'</em>':'<em>1% каждой ставки идёт в банк</em>')+'</div>'+
+   (cb.amt>0&&!cb.taken?'<button type="button" class="cbk" id="cs-cb">💸 Кешбэк за вчера<b>+'+fmtN(cb.amt)+' 💠</b></button>':'<div class="cbk off">💸 Кешбэк<small>10% вчерашнего минуса — каждое утро</small></div>');
+  const b=$("cs-cb");if(b)b.onclick=async()=>{b.disabled=true;const r=await act("cas_cb");if(r){toast("💸 Кешбэк +"+fmtN(r.got)+" 💠");try{sfx.coin&&sfx.coin();hapN("success")}catch(e){}csBal();csInfo(1)}else b.disabled=false}}

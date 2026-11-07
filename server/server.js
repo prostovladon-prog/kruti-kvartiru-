@@ -1891,6 +1891,11 @@ const CACHE_HYPE={};async function hypeList(env){const now=Date.now();if(CACHE_H
   const L=(await env.DB.prepare("SELECT h.id,h.t,h.txt,COALESCE(u.nick,u.name) AS name FROM hype h LEFT JOIN users u ON u.id=h.uid WHERE h.t>? ORDER BY h.id DESC LIMIT 14").bind(now-6*36e5).all()).results;CACHE_HYPE.v=L;CACHE_HYPE.t=now;return L}
 function hypeCards(res){const out=[],seen=new Set(),add=c=>{if(c&&typeof c==="object"&&c.h!=null&&c.f!=null&&!seen.has(c)){seen.add(c);out.push(c)}};
   if(res&&typeof res==="object")for(const k of Object.keys(res)){const v=res[k];if(Array.isArray(v))v.forEach(add);else add(v)}return out}
+async function jpGet(env){const v=await kvGet(env,"jp");return v&&v.v>0?v:{v:JP.seed,w:null}}
+async function jpAdd(env,bet){if(!(bet>0))return;try{const J0=await jpGet(env);J0.v=Math.round(J0.v+bet*JP.cut);await kvSet(env,"jp",J0)}catch(e){}}
+const mskDayOf=t=>new Date(t+3*36e5).toISOString().slice(0,10);
+async function cbInfo(env,uid,st){const now=Date.now(),d0=Date.parse(mskDayOf(now)+"T00:00:00Z")-3*36e5,r=await env.DB.prepare("SELECT COALESCE(SUM(bet),0) AS b,COALESCE(SUM(win),0) AS w FROM cas_log WHERE uid=? AND at>=? AND at<?").bind(uid,d0-864e5,d0).first();
+  const loss=Math.max(0,(r.b||0)-(r.w||0)),amt=Math.min(CSB.max,Math.floor(loss*CSB.pct));return {amt,taken:(st&&st.cbDay)===mskDayOf(now)}}
 async function casLog(env,uid,g,bet,win,gift,m){try{await env.DB.prepare("INSERT INTO cas_log(uid,g,bet,win,gift,gno,m,at) VALUES(?,?,?,?,?,?,?,?)").bind(uid,g,bet|0,win|0,gift?gift.k:null,gift?gift.no:null,m||null,Date.now()).run()}catch(e){console.error("caslog",e)}}
 async function casFeed(env){return cached("casfeed",5e3,async()=>(await env.DB.prepare("SELECT l.g,l.bet,l.win,l.gift,l.gno,l.m,l.at,COALESCE(u.nick,u.name) AS name FROM cas_log l LEFT JOIN users u ON u.id=l.uid WHERE l.gift IS NOT NULL OR l.win>=50000 OR (l.g='slot' AND l.m>=8) ORDER BY l.id DESC LIMIT 20").all()).results)}
 async function casStats(env){const now=Date.now(),d0=dayNum(now)*864e5-TZ;
@@ -2364,6 +2369,9 @@ async function handle(req,env){{
           r.S=await stateFor(env,me)}
         await casLog(env,me.id,"case",CASE.price,r.res.r||0,r.res.g||null);return J({ok:true,...r})}
       if(a==="cas_feed")return J({ok:true,res:await casFeed(env)});
+      if(a==="cas_info"){const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const jp=await jpGet(env);return J({ok:true,res:{jp:jp.v,jw:jp.w||null,cb:await cbInfo(env,me.id,st)}})}
+      if(a==="cas_cb"){const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const c=await cbInfo(env,me.id,st);if(c.taken)fail("Кешбэк за вчера уже забран");if(c.amt<1)fail("Вчера ты не был в минусе — кешбэка нет");
+        const r=await doAction(env,me,"cas_cbset",{d:mskDayOf(Date.now()),runes:c.amt},{grant:true});return J({ok:true,res:{got:c.amt},S:r.S||await stateFor(env,me)})}
       if(a==="cas_stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await casStats(env)})}
       if(a==="camp_top")return J({ok:true,res:await campTop(env,me,p.per==="w"?"w":"d")});
       if(a==="chal_get")return J({ok:true,res:await chalGet(env,me)});if(/^tt_/.test(a))return J({ok:true,res:await ttApi(env,me,a,p)});
@@ -2399,6 +2407,12 @@ async function handle(req,env){{
         if(a==="cas_slot"&&r.res.m>=20)await hypeAdd(env,me.id,"🎰 сорвал ×"+r.res.m+" в слотах · +"+r.res.win.toLocaleString("ru")+" 💠");
         if(a==="cas_rk"&&r.res.win&&r.res.at>=10)await hypeAdd(env,me.id,"🚀 забрал ракетку на ×"+r.res.at+" · +"+r.res.win.toLocaleString("ru")+" 💠");
         if(a==="cas_case"&&r.res.g)await hypeAdd(env,me.id,"🎁 достал подарок из кейса");}}catch(e){}
+      if(a==="cas_slot"||a==="cas_rk_go"||a==="cas_hl_go"||a==="cas_mn_go")await jpAdd(env,Math.floor(+p.bet||0));
+      if(a==="cas_slot"&&r.res.m>=50){const J0=await jpGet(env),won=J0.v;await kvSet(env,"jp",{v:JP.seed,w:{name:me.nick||me.name||"Игрок",v:won,t:Date.now()}});await doAction(env,me,"map_grant",{runes:won},{grant:true});r.res.jp=won;r.S=await stateFor(env,me);
+        await hypeAdd(env,me.id,"💎💎💎 СОРВАЛ ДЖЕКПОТ · +"+won.toLocaleString("ru")+" 💠")}
+      if(a==="cas_mn"&&r.res.win&&r.res.m>=10)await hypeAdd(env,me.id,"💣 прошёл Сапёра на ×"+r.res.m+" · +"+r.res.win.toLocaleString("ru")+" 💠");
+      if(a==="cas_mn_take"&&r.res.m>=10)await hypeAdd(env,me.id,"💣 забрал в Сапёре ×"+r.res.m+" · +"+r.res.win.toLocaleString("ru")+" 💠");
+      if(a==="cas_mn_go")await casLog(env,me.id,"mn",Math.floor(+p.bet||0),0);else if((a==="cas_mn"||a==="cas_mn_take")&&r.res.win)await casLog(env,me.id,"mn",0,r.res.win,null,r.res.m);
       if(a==="cas_rk_go")await casLog(env,me.id,"rk",Math.floor(+p.bet||0),0);
       else if(a==="cas_rk"&&r.res&&r.res.end&&r.res.win)await casLog(env,me.id,"rk",0,r.res.win,null,r.res.at);
       if(a==="cas_slot")await casLog(env,me.id,"slot",Math.floor(+p.bet||0),r.res.win||0,null,r.res.m);
