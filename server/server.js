@@ -1087,10 +1087,10 @@ async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_stop"){const C=await ref3Cur(env);if(!C||now>=C.end)fail("Акция не идёт");C.end=now;await kvSet(env,"ref3",C);delete topCache.ref3;return {end:now}}
   fail("Неизвестное действие")}
 /* ---------- ⚔️ «Выбор серии»: зрители решают, что будет в следующей серии ---------- */
-const VOTE_DEFAULT={id:"ep2",ep:2,title:"«Калаш у Фермопил»",q:"У тебя автомат Калашникова, а царь Ксеркс зовёт к себе в войско. Что делаем?",
-  opts:[{k:"x",ic:"🤝",n:"Вступить к Ксерксу",d:"научить персов делать калаши"},{k:"f",ic:"🔥",n:"Открыть огонь",d:"по армии Ксеркса — за 300 спартанцев"}],
-  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,5,21,0),end:Date.UTC(2026,10,13,21,0)};
-async function vtCfg(env){const k=await kvGet(env,"ep_vote");return k&&k.id?{...VOTE_DEFAULT,...k}:VOTE_DEFAULT}
+const VOTE_DEFAULT={id:"ep3",ep:3,title:"«Тайная тропа»",q:"Предатель показал персам тайную тропу — спартанцев окружают. Что сделает Леонид?",
+  opts:[{k:"s",ic:"🛡",n:"Остаться и сражаться",d:"до последнего — и войти в историю навсегда"},{k:"r",ic:"🏃",n:"Отступить",d:"спасти своих воинов, но изменить историю"}],
+  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,7,15,0),end:Date.UTC(2026,10,14,21,0)};
+async function vtCfg(env){const k=await kvGet(env,"ep_vote");return k&&k.id===VOTE_DEFAULT.id?{...VOTE_DEFAULT,...k}:VOTE_DEFAULT}
 async function vtState(env,me){const C=await vtCfg(env),now=Date.now();if(now<C.start||now>=C.end)return null;const r=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();return {id:C.id,ep:C.ep,ch:r?r.ch:""}}
 async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
   const pub=async()=>{const R=(await env.DB.prepare("SELECT ch,COUNT(*) AS n FROM ep_vote WHERE vid=? GROUP BY ch").bind(C.id).all()).results;const cnt={};R.forEach(r=>cnt[r.ch]=r.n);const tot=R.reduce((x,r)=>x+r.n,0);
@@ -1109,7 +1109,7 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
     const u=await env.DB.prepare("UPDATE ep_vote_soc SET got_t=? WHERE vid=? AND uid=? AND got_t IS NULL").bind(now,C.id,me.id).run();if(!u.meta||u.meta.changes!==1)fail("Награда за лайк уже у тебя");
     if(C.socSp)await doAction(env,me,"tour_prize",{sp:C.socSp,cash:0},{tour:1});const res=await pub();res.hit=1;return res}
   if(!isAdmin(env,me.id))fail("Нет доступа");
-  if(a==="vt_set"){const url=String(p.url||"").trim(),ig=String(p.urlIg||"").trim();for(const u of [url,ig])if(u&&!/^https:\/\/[^\s]{6,300}$/.test(u))fail("Ссылка должна начинаться с https://");const k=(await kvGet(env,"ep_vote"))||{id:C.id};k.id=k.id||C.id;k.url=url;if(p.urlIg!=null)k.urlIg=ig;
+  if(a==="vt_set"){const url=String(p.url||"").trim(),ig=String(p.urlIg||"").trim();for(const u of [url,ig])if(u&&!/^https:\/\/[^\s]{6,300}$/.test(u))fail("Ссылка должна начинаться с https://");let k=(await kvGet(env,"ep_vote"))||{id:C.id};if(k.id!==C.id)k={id:C.id};k.url=url;if(p.urlIg!=null)k.urlIg=ig;
     if(p.socSp!=null)k.socSp=Math.max(0,Math.min(20,p.socSp|0));await kvSet(env,"ep_vote",k);return voteApi(env,me,"vt_get",{})}
   fail("Неизвестное действие")}
 /* ---------- 🧩 «Загадка серии»: мультики «Хроники Эпох» заканчиваются вопросом, ответ ищут в игре ----------
