@@ -997,14 +997,22 @@ function qLoop(){qRaf=0;if(!qOn())return;qRaf=requestAnimationFrame(qLoop);const
 async function qBet(bv){const bet=typeof bv==="number"?bv:csBet;if(qBusy)return;if(ROQ&&ROQ.ph!=="bet"&&typeof bv!=="number"){if(qNext){qNext=0;toast("Ставка на следующий раунд отменена")}else{if(campView().runes<bet){toast("💠 Не хватает рун: нужно ещё "+fmtN(bet-campView().runes));return}qNext=bet;toast("✅ Поставим "+fmtN(bet)+" 💠, как только начнётся новый раунд");hap("light")}renderCas();return}if(campView().runes<bet){toast("💠 Не хватает рун: нужно ещё "+fmtN(bet-campView().runes)+". Обменяй монеты на руны вверху казино или выбери ставку меньше");try{const x=document.querySelector("#sec-cas .cs-ex,#sec-cas [id*=ex]");x&&x.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}return}qBusy=true;
   const r=await act("roc_bet",{bet,auto:qAuto});qBusy=false;if(r){ROQ=r;qOff=r.now-Date.now();hap("heavy");csBal();renderCas()}}
 async function qOut(){if(qBusy)return;qBusy=true;const b=$("roc-take");if(b)b.disabled=true;const r=await act("roc_out");qBusy=false;if(r){ROQ=r;const my=r.my;if(my&&my.out_m!=null){try{sfx.fanfare();hapN("success");if(my.out_m>=5)burst(3)}catch(e){}toast("💰 +"+fmtN(my.win)+" 💠 на "+qFmt(my.out_m))}csBal();renderCas()}else if(b)b.disabled=false}
-/* ===================== 🔥 БЕГУЩАЯ СТРОКА: крутые выпадения у всех ===================== */
-let hypeSig="";
-function hypeDraw(){const L=(S&&S.hype)||[];const sig=L.map(x=>x.id).join(",");if(sig===hypeSig)return;hypeSig=sig;let el=$("hype");
-  if(!L.length){if(el)el.remove();return}
-  if(!el){el=document.createElement("div");el.id="hype";el.className="hype";const sp=$("sec-spin");if(!sp)return;sp.insertBefore(el,sp.firstChild)}
-  const it=L.map(x=>'<span><b>'+fnEsc(String(x.name||"Игрок").slice(0,16))+'</b> '+fnEsc(x.txt)+'</span>').join('<i>✦</i>');
-  el.innerHTML='<em>🔥 LIVE</em><div class="hype-w"><div class="hype-t" style="animation-duration:'+Math.max(18,L.length*7)+'s">'+it+'<i>✦</i>'+it+'<i>✦</i></div></div>'}
-setInterval(()=>{try{hypeDraw()}catch(e){}},1500);
+/* ===================== 🔥 БЕГУЩАЯ СТРОКА + 🎆 ГЛОБАЛЬНЫЕ СОБЫТИЯ: видно всем онлайн ===================== */
+let hypeSig="",hypeLast=-1,hypeAt=0;
+function hypeHTML(L){if(!L.length)return '<em>🔥 LIVE</em><div class="hype-w"><div class="hype-t idle"><span>Здесь бегут крутые выпадения всех игроков: <b>Золото</b>, <b>Ошибки печати</b>, <b>Алмазы</b>, джекпоты и ракетки ×10 — стань первым! 🔥</span></div></div>';
+  const it=L.map(x=>'<span class="'+(x.big?"big":"")+'"><b>'+fnEsc(String(x.name||"Игрок").slice(0,16))+'</b> '+fnEsc(x.txt)+'</span>').join('<i>✦</i>');
+  return '<em>🔥 LIVE</em><div class="hype-w"><div class="hype-t" style="animation-duration:'+Math.max(20,L.length*7)+'s">'+it+'<i>✦</i>'+it+'<i>✦</i></div></div>'}
+function hypeDraw(){const L=(S&&S.hype)||[];const sig=L.map(x=>x.id).join(",")||"0";
+  [["sec-spin","hype"],["sec-cas","hype2"]].forEach(([sec,id])=>{const sp=$(sec);if(!sp)return;let el=$(id);if(!el){el=document.createElement("div");el.id=id;el.className="hype";sp.insertBefore(el,sp.firstChild);el.dataset.sig=""}
+    if(el.dataset.sig!==sig){el.dataset.sig=sig;el.innerHTML=hypeHTML(L)}});
+  /* 🎆 большое событие — баннер с салютом у всех, кто сейчас в игре */
+  const top=L.reduce((m,x)=>Math.max(m,x.id),0);if(hypeLast<0){hypeLast=top;return}
+  const fresh=L.filter(x=>x.big&&x.id>hypeLast&&Date.now()-x.t<120e3).sort((a,b)=>a.id-b.id);hypeLast=Math.max(hypeLast,top);fresh.slice(-2).forEach((x,k)=>setTimeout(()=>hypeBoom(x),k*4200))}
+function hypeBoom(x){const b=document.createElement("div");b.className="hboom";b.innerHTML='<div class="hb-in"><small>⚡ ПРЯМО СЕЙЧАС</small><b>'+fnEsc(String(x.name||"Игрок").slice(0,20))+'</b><span>'+fnEsc(x.txt)+'</span></div>';
+  document.body.appendChild(b);try{burst(5);sfx.fanfare();hapN("success")}catch(e){}b.onclick=()=>b.remove();setTimeout(()=>b.classList.add("out"),3600);setTimeout(()=>b.remove(),4200)}
+async function hypePoll(){if(!S||!ONLINE||document.hidden)return;if(Date.now()-hypeAt<10e3)return;hypeAt=Date.now();
+  try{const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"hype",p:{}})});const j=await r.json();if(j.ok&&Array.isArray(j.res)&&S)S.hype=j.res}catch(e){}}
+setInterval(()=>{try{hypePoll();hypeDraw()}catch(e){}},1500);
 
 /* ===================== 💣 САПЁР ===================== */
 let mnN=3,mnRes=null;
