@@ -1180,6 +1180,21 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await buyM(A, { item: "mflag", k: "photo" }); q = await cm(A, "map_photo", { img: "data:image/jpeg;base64,/9j/AAAA" }); ok(q.ok && q.res.st === 0, "фото на модерации");
   q = await cm(8, "mph_list"); ok(q.ok && q.res.list.some(x => x.uid === A), "админ видит фото");
   await cm(8, "mph_ok", { uid: A }); { const r = await worker.fetch(new Request("https://x/mp/" + A), envM); ok(r.status === 200, "одобренное фото отдаётся картинкой"); }
+  // 🐉 Земля драконов
+  { const X = 9151, Y = 9152; for (const u of [X, Y]) { await cm(u, "sync"); await cm(u, "dg_story", { tg: "dl" + u }); await cm(u, "dg_hatch"); for (let k = 0; k < 4; k++) await cm(u, "open"); }
+    q = await cm(A, "map_attack", { rid: 52, tac: "rush" }); ok(!q.ok && /только с драконом/.test(q.err), "в Землю драконов — только с драконом");
+    let won = 0; for (let i = 0; i < 12 && !won; i++) { q = await cm(X, "map_attack", { rid: 52, tac: "rush" }); ok(q.ok && q.res.dragon && q.res.wild && q.res.rounds.length >= 2, i ? "ещё бой с диким" : "бой с диким драконом за свободное логово"); won = q.res.won; }
+    ok(won && db.prepare("SELECT owner,card FROM map_reg WHERE id=52").get().owner === X, "логово занято драконом, без карточки");
+    q = await cm(X, "map_get"); ok(q.ok && q.res.att.left === 3 && q.res.dgp && q.res.dgp.pow > 0 && q.res.regs.find(r => r.id === 52).dg.pow > 0, "дикий бой не тратит атаку, на карте видна сила дракона");
+    q = await cm(X, "map_attack", { rid: 53, tac: "rush" }); ok(!q.ok && /одно логово/.test(q.err), "один дракон — одно логово");
+    q = await cm(X, "map_attack", { rid: 31, id: low(X).id }); ok(q.ok && q.res.empty, "логово не мешает обычным регионам");
+    q = await cm(Y, "map_attack", { rid: 52, tac: "trick" }); ok(!q.ok && /щитом/.test(q.err), "щит на логове");
+    db.prepare("UPDATE map_reg SET shield=0,claim_at=?,since=? WHERE id=52").run(Date.now() - 2 * 36e5, Date.now() - 2 * 36e5);
+    q = await cm(Y, "map_attack", { rid: 52, tac: "guard" }); ok(q.ok && q.res.dragon && !q.res.wild && (q.res.won === 0 || q.res.won === 1) && q.res.opp.name, "драконий бой за чужое логово");
+    const o52 = db.prepare("SELECT owner,def_n FROM map_reg WHERE id=52").get(); ok(o52.owner === (q.res.won ? Y : X), "логово у победителя");
+    q = await cm(Y, "map_get"); ok(q.res.att.left === 2, "бой с хозяином тратит атаку");
+    if (o52.owner === X) { q = await cm(X, "map_claim"); ok(q.ok && q.res.cash >= 550, "доход с логова (" + (q.res && q.res.cash) + ")"); } else ok(true, "доход (пропуск)");
+    q = await cm(o52.owner, "map_leave", { rid: 52 }); ok(q.ok && !db.prepare("SELECT 1 FROM map_reg WHERE id=52").get(), "логово можно покинуть"); }
   const mine = db.prepare("SELECT id FROM map_reg WHERE owner=?").all(own30);
   q = await buyM(own30, { item: "mstatue", rid: 30 }); ok(q.ok && q.res.status === "done" && db.prepare("SELECT statue FROM map_reg WHERE id=30").get().statue === 1, "статуя в своём регионе");
   q = await buyM(own30, { item: "mpass" }); ok(q.ok && q.S.mpass.prem === 1, "пропуск завоевателя");

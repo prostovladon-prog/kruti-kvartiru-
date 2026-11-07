@@ -1107,10 +1107,14 @@ const TRADER_MS=3*3600e3, TRADER_MARKUP=[1.5,1.6], TRADER_WANT_K=1.3, TRADER_WAN
 const MAP_R=[["Рим","🏛","ant"],["Спарта","⚔️","troy"],["Троя","🐴","troy"],["Вавилон","🦁","emp"],["Мемфис","🐫","emp"],["Карфаген","⛵","ant"],["Персеполь","🔥","emp"],["Олимп","⚡","myth"],
  ["Афины","🏺","troy"],["Микены","👑","troy"],["Фивы","🗡","troy"],["Киото","🌸","jap"],["Эдо","🏯","jap"],["Ниппон","🗾","jap"],["Осло","❄️","nor"],["Упсала","🪓","nor"],["Валгалла","🌈","myth"],["Новгород","🛡","mid"],["Киев","⛪","mid"],["Париж","🗼","mid"],["Лондон","🏰","mid"],["Толедо","🤺","mid"],["Самарканд","🕌","nor"],["Каракорум","🐎","nor"],["Акрополь","🏛","ant"],["Александрия","📜","emp"],
  ["Вена","🎻","mid"],["Прага","🍺","mid"],["Краков","🦅","mid"],["Москва","❄️","mid"],["Казань","🌾","nor"],["Тула","🐻","mid"],["Сибирь","🌨","nor"],["Альпы","⛰","mid"],["Галлия","🍇","ant"],["Британия","☂️","mid"],["Дели","🐘","emp"],["Пекин","🐉","emp"],
- ["Лхаса","🏔","jap"],["Тибет","🧘","jap"],["Сиам","🐅","jap"],["Ангкор","🛕","jap"],["Майя","🗿","myth"],["Ацтеки","🌞","myth"],["Инки","🦙","myth"],["Сахара","🏜","emp"],["Нил","🐊","emp"],["Мекка","🌙","emp"],["Багдад","🌴","emp"],["Иерусалим","⭐","ant"]];
-const MAP_Z=i=>i<8?2:i<26?1:0;
+ ["Лхаса","🏔","jap"],["Тибет","🧘","jap"],["Сиам","🐅","jap"],["Ангкор","🛕","jap"],["Майя","🗿","myth"],["Ацтеки","🌞","myth"],["Инки","🦙","myth"],["Сахара","🏜","emp"],["Нил","🐊","emp"],["Мекка","🌙","emp"],["Багдад","🌴","emp"],["Иерусалим","⭐","ant"],
+ ["Трон Драконов","🐲","drg"],["Огненный пик","🌋","drg"],["Ледяной перевал","🧊","drg"],["Грозовой утёс","🌩","drg"],["Болото Гидры","🐍","drg"],["Золотое логово","💰","drg"],["Теневой каньон","🌑","drg"],["Кладбище драконов","🦴","drg"],["Небесный шпиль","☁️","drg"],["Пепельные врата","🔥","drg"]];
+const MAP_Z=i=>i>=50?3:i<8?2:i<26?1:0,DGL0=50,DGL_THRONE=50;
 const MAP={att:3,max:3,shield:2*3600e3,home:.15,fat:.08,fatMax:.4,pack:3,packMax:2,packStars:49,z1Spins:50,z2Stage:2,capH:24,
-  inc:[{c:60,r:10},{c:150,r:25},{c:400,r:60}],zn:["Окраины","Земли эпох","Сердце мира"],zc:["#22995a","#6a33d6","#d08a12"],statue:249};
+  inc:[{c:60,r:10},{c:150,r:25},{c:400,r:60},{c:300,r:50}],zn:["Окраины","Земли эпох","Сердце мира","Земля драконов"],zc:["#22995a","#6a33d6","#d08a12","#c22a1e"],statue:249,
+  dmax:1,dshield:3*3600e3,dfat:.07,dfatMax:.35,dthr:2};
+/* 🐉 Земля драконов: логова захватывают и держат только драконы. Тронное логово — двойной доход */
+const mapInc=id=>{const I=MAP.inc[MAP_Z(id)];return id===DGL_THRONE?{c:I.c*MAP.dthr,r:I.r*MAP.dthr}:I};
 const MFLAG={fire:{n:"Огненный флаг",ic:"🔥",stars:99},gold:{n:"Золотой флаг",ic:"👑",stars:149},skull:{n:"Пиратский флаг",ic:"☠️",stars:149},dragon:{n:"Флаг дракона",ic:"🐉",stars:199},photo:{n:"Флаг со своим фото",ic:"📸",stars:199},conq:{n:"Флаг завоевателя",ic:"🎖",stars:0,pass:1}};
 const MPASS={stars:299,th:[5,12,20,30,42,56,72,90,110,135],pts:{cap:5,def:2,claim:1},
   free:[{sp:2},{cash:500},{sp:3},{runes:2000},{sp:4},{cash:2000},{sp:5},{runes:5000},{sp:6},{sp:10}],
@@ -1131,7 +1135,7 @@ Object.assign(ACTIONS,{
     if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
   mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
   mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MAP_R,MAP_Z,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MAP_R,MAP_Z,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -2352,7 +2356,7 @@ async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;i
 async function mapSeason(env,now){const m=mapMon(now),k=await cached("mapseason",60e3,()=>kvGet(env,"map_season"));if(k&&k.m===m)return;
   if(k&&k.m!==m){await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%'").run();await env.DB.prepare("DELETE FROM map_reg").run()}
   await kvSet(env,"map_season",{m});delete topCache.mapseason}
-async function mapRegions(env){return (await env.DB.prepare("SELECT r.*,COALESCE(u.nick,u.name) AS oname,json_extract(u.state,'$.mflagOn') AS flag,(SELECT st FROM map_photo p WHERE p.uid=r.owner) AS ph FROM map_reg r LEFT JOIN users u ON u.id=r.owner").all()).results}
+async function mapRegions(env){return (await env.DB.prepare("SELECT r.*,COALESCE(u.nick,u.name) AS oname,json_extract(u.state,'$.mflagOn') AS flag,(SELECT st FROM map_photo p WHERE p.uid=r.owner) AS ph,CASE WHEN r.id>=50 THEN json_extract(u.state,'$.dg') END AS dgj FROM map_reg r LEFT JOIN users u ON u.id=r.owner").all()).results}
 /* ---------- 👑 Король мира: кандидаты недели (топ-5 завоевателей) → голосование в воскресенье → корона на неделю ---------- */
 const KING={cand:5,minSpins:20,cut:.05,cutThrone:.10,throne:0,pts:{occ:3,cap:5,def:2,hold:3}};
 const mskDow=now=>(new Date(now+3*3600e3).getUTCDay()+6)%7;   // 0 — понедельник, 6 — воскресенье
@@ -2400,27 +2404,51 @@ async function kingApi(env,me,a,p){const now=Date.now(),wk=mskWeek(now),dow=env.
     try{const T=HH_T[k];await env.DB.prepare("INSERT INTO chat(uid,name,text,t) VALUES(?,?,?,?)").bind(0,"📜 Указ","👑 Король "+K.name+" объявил: "+T.ic+" "+T.n+" на 30 минут! "+T.d,now).run()}catch(e){}
     return d}
   fail("Неизвестное действие")}
+/* 🐉 Земля драконов: в логове стоит не карточка, а дракон хозяина (его текущая сила). Бой — как на арене: мощь, стихия, тактика */
+const mapDgPow=D=>Math.round(dgPower(D)*(1+dgGemB(D,"ameth")));
+function mapDgLook(j){let D=null;try{D=j?JSON.parse(j):null}catch(e){}if(!D)return null;return {b:D.b|0,lv:D.lv|0,skin:D.skin||null,evo:D.evo||null,dn:D.name||"",pow:mapDgPow(D),el:dgEl(D)}}
+async function mapDgAttack(env,me,rid,st,p,now){const myD=st.dg;if(!myD||!(dgPower(myD)>0))fail("В Землю драконов пускают только с драконом — сначала выведи своего 🐉");
+  const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner===me.id)fail("Это уже твоё логово");
+  const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND id>=50").bind(me.id).first())||{}).n||0;if(myN>=MAP.dmax)fail("Твой дракон уже охраняет логово — один дракон держит одно логово. Покинь его, чтобы занять новое");
+  if(R&&R.owner&&R.shield>now)fail("Логово под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
+  const tac=String(p.tac||""),mp=mapDgPow(myD),look=D=>({b:D.b|0,lv:D.lv|0,skin:D.skin||null,evo:D.evo||null,dn:D.name||""});
+  const occupy=async old=>{const q=old?env.DB.prepare("UPDATE map_reg SET owner=?,card=NULL,since=?,claim_at=?,shield=?,def_n=0,statue=0 WHERE id=? AND owner=?").bind(me.id,now,now,now+MAP.dshield,rid,old)
+      :env.DB.prepare("INSERT INTO map_reg(id,owner,card,since,claim_at,shield,def_n,statue) VALUES(?,?,NULL,?,?,?,0,0) ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,card=NULL,since=excluded.since,claim_at=excluded.claim_at,shield=excluded.shield,def_n=0,statue=0 WHERE map_reg.owner IS NULL").bind(rid,me.id,now,now,now+MAP.dshield);
+    const u=await q.run();if(u.meta.changes!==1)fail("Логово только что заняли — обнови карту")};
+  if(!R||!R.owner){/* свободное логово сторожит дикий дракон — бой не тратит атаку */
+    const W=dgaWild((rid*7919+Math.floor(now/36e5))%100000+1,mp,myD.lv),oD=Object.assign({},W.D,{__pow:Math.max(40,Math.round(mp*(.72+Math.random()*.3)))});
+    const F=dgaSim(myD,oD,tac);if(F.win){await occupy(0);await env.DB.prepare("INSERT INTO map_log(rid,att,def,win,t) VALUES(?,?,0,2,?)").bind(rid,me.id,now).run();await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true})}
+    return {dragon:1,wild:1,won:F.win,rid,rounds:F.rounds,ta:F.ta,tb:F.tb,tw:F.tw,ela:F.ela,elb:F.elb,pa:mp,pb:oD.__pow,opp:{name:W.name,b:W.b,lv:W.lv,evo:W.evo,skin:null,dn:""}}}
+  await doAction(env,me,"map_use",{},{grant:true});
+  const du=await env.DB.prepare("SELECT state,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(R.owner).first(),oD=dgaDragon(du&&du.state);
+  if(!oD){await env.DB.prepare("DELETE FROM map_reg WHERE id=? AND owner=?").bind(rid,R.owner).run();fail("Дракон-хранитель улетел — логово свободно, попробуй ещё раз")}
+  const fat=Math.min(MAP.dfatMax,MAP.dfat*(R.def_n||0)),pb=Math.max(1,Math.round(mapDgPow(oD)*(1-fat))),F=dgaSim(myD,Object.assign({},oD,{__pow:pb}),tac);
+  await env.DB.prepare("INSERT INTO map_log(rid,att,def,win,t) VALUES(?,?,?,?,?)").bind(rid,me.id,R.owner,F.win,now).run();
+  if(F.win){await occupy(R.owner);await doAction(env,me,"map_grant",{pts:MPASS.pts.cap},{grant:true});
+    try{await notify(env,R.owner,"🐉 "+(me.nick||me.name||"Игрок")+" выгнал твоего дракона из логова «"+MAP_R[rid][0]+"»!\n\nВерни своё логово — Земля драконов ждёт 🔥","🗺 На карту",PAGE+"?map=1")}catch(e){}}
+  else{await env.DB.prepare("UPDATE map_reg SET def_n=def_n+1 WHERE id=?").bind(rid).run();try{await doAction(env,{id:R.owner,name:(du&&du.name)||"Игрок"},"map_grant",{pts:MPASS.pts.def},{grant:true})}catch(e){}}
+  return {dragon:1,won:F.win,rid,rounds:F.rounds,ta:F.ta,tb:F.tb,tw:F.tw,ela:F.ela,elb:F.elb,pa:mp,pb,fat,opp:Object.assign(look(oD),{name:(du&&du.name)||"Игрок"})}}
 async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
   const U=async()=>{const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();return JSON.parse((u&&u.state)||"{}")};
   if(a==="map_get"){const R=await mapRegions(env),ids=R.filter(r=>r.card).map(r=>r.card),cards={};
     for(let i=0;i<ids.length;i+=90){const part=ids.slice(i,i+90);for(const c of (await env.DB.prepare("SELECT * FROM cards WHERE id IN ("+part.map(()=>"?").join(",")+")").bind(...part).all()).results)cards[c.id]=pub(rowToCard(c))}
     const st=await U(),A=mapAtt(st,now),mine=R.filter(r=>r.owner===me.id);let cash=0,runes=0;
-    for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=MAP.inc[MAP_Z(r.id)];cash+=Math.floor(I.c*h);runes+=Math.floor(I.r*h)}
+    for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=mapInc(r.id);cash+=Math.floor(I.c*h);runes+=Math.floor(I.r*h)}
     const ph=await env.DB.prepare("SELECT st FROM map_photo WHERE uid=?").bind(me.id).first();
-    return {now,regs:R.map(r=>({id:r.id,owner:r.owner,oname:r.oname,flag:r.flag||"",ph:r.ph===1?1:0,card:cards[r.card]||null,shield:r.shield>now?r.shield:0,def_n:r.def_n,statue:r.statue?1:0,since:r.since})),
+    return {now,dgp:st.dg?{pow:mapDgPow(st.dg),el:dgEl(st.dg)}:null,regs:R.map(r=>({id:r.id,owner:r.owner,oname:r.oname,flag:r.flag||"",ph:r.ph===1?1:0,card:cards[r.card]||null,dg:mapDgLook(r.dgj),shield:r.shield>now?r.shield:0,def_n:r.def_n,statue:r.statue?1:0,since:r.since})),
       att:{left:MAP.att+A.extra-A.used,packs:A.packs},inc:{cash,runes},z1:(st.nOp||0)>=MAP.z1Spins,z2:!!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage),ph:ph?ph.st:-1}}
   if(a==="map_claim"){const mine=(await env.DB.prepare("SELECT * FROM map_reg WHERE owner=?").bind(me.id).all()).results;let cash=0,runes=0,n=0;
-    for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=MAP.inc[MAP_Z(r.id)];const c=Math.floor(I.c*h),q=Math.floor(I.r*h);if(c<=0)continue;
+    for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=mapInc(r.id);const c=Math.floor(I.c*h),q=Math.floor(I.r*h);if(c<=0)continue;
       const u=await env.DB.prepare("UPDATE map_reg SET claim_at=? WHERE id=? AND owner=? AND COALESCE(claim_at,since)=?").bind(now,r.id,me.id,r.claim_at||r.since).run();if(u.meta.changes===1){cash+=c;runes+=q;if(h>=1)n++}}
     if(!cash&&!runes)fail("Доход ещё не накопился");await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});try{await kingCut(env,cash)}catch(e){}return {cash,runes}}
   if(a==="map_leave"){const rid=p.rid|0,r=await env.DB.prepare("SELECT * FROM map_reg WHERE id=? AND owner=?").bind(rid,me.id).first();if(!r)fail("Это не твой регион");
     await env.DB.prepare("DELETE FROM map_reg WHERE id=? AND owner=?").bind(rid,me.id).run();await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=? AND owner=?").bind(r.card,me.id).run();return {rid}}
-  if(a==="map_attack"){const rid=p.rid|0;if(rid<0||rid>=MAP_R.length)fail("Нет такого региона");const z=MAP_Z(rid),st=await U();
+  if(a==="map_attack"){const rid=p.rid|0;if(rid<0||rid>=MAP_R.length)fail("Нет такого региона");const z=MAP_Z(rid),st=await U();if(z===3)return mapDgAttack(env,me,rid,st,p,now);
     if(z===1&&(st.nOp||0)<MAP.z1Spins)fail("«Земли эпох» откроются после "+MAP.z1Spins+" прокруток");if(z===2&&!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage))fail("«Сердце мира» откроется, когда дракон дорастёт до 3-й стадии");
     const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();if(!c)fail("Выбери свою карточку");
     if(c.away||c.list_price!=null||c.room_id||c.part||c.f>=5)fail("Эта карточка сейчас недоступна для боя");if(z===0&&HEROES[c.h][2]>1)fail("На «Окраины» можно только обычных и редких воинов — дай шанс новичкам");
     const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner===me.id)fail("Это уже твой регион");
-    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=?").bind(me.id).first())||{}).n||0;if(myN>=MAP.max)fail("У тебя уже "+MAP.max+" региона — это максимум. Оставь один, чтобы занять новый");
+    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND id<50").bind(me.id).first())||{}).n||0;if(myN>=MAP.max)fail("У тебя уже "+MAP.max+" региона — это максимум. Оставь один, чтобы занять новый");
     if(R&&R.shield>now)fail("Регион под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
     const occupy=async()=>{const ok=await env.DB.prepare("UPDATE cards SET away=1,dest=? WHERE id=? AND owner=? AND away=0 AND list_price IS NULL AND room_id IS NULL").bind("map:"+rid,c.id,me.id).run();if(ok.meta.changes!==1)fail("Карточка занята");
       await env.DB.prepare("INSERT INTO map_reg(id,owner,card,since,claim_at,shield,def_n,statue) VALUES(?,?,?,?,?,?,0,0) ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,card=excluded.card,since=excluded.since,claim_at=excluded.claim_at,shield=excluded.shield,def_n=0,statue=0").bind(rid,me.id,c.id,now,now,now+MAP.shield).run()};
@@ -2445,7 +2473,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
   if(a==="map_stats"){const D=864e5,d0=Math.floor((now+TZ)/D)*D-TZ,w0=now-7*D,m0=Date.parse(mapMon(now)+"-01T00:00:00Z")-TZ,one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
     const per=async t=>one("SELECT SUM(win=2) AS occ,SUM(win IN (0,1)) AS fights,SUM(win=1) AS caps,SUM(win=0) AS held,COUNT(DISTINCT att) AS players FROM map_log WHERE t>=?",t);
     const R=(await env.DB.prepare("SELECT r.id,r.owner,r.statue,r.def_n,r.since,COALESCE(u.nick,u.name) AS name FROM map_reg r LEFT JOIN users u ON u.id=r.owner WHERE r.owner IS NOT NULL").all()).results;
-    const z=[0,0,0];R.forEach(r=>z[MAP_Z(r.id)]++);const rul={};R.forEach(r=>{const k=r.owner;rul[k]=rul[k]||{name:r.name,n:0,reg:[]};rul[k].n++;rul[k].reg.push(MAP_R[r.id][0])});
+    const z=[0,0,0,0];R.forEach(r=>z[MAP_Z(r.id)]++);const rul={};R.forEach(r=>{const k=r.owner;rul[k]=rul[k]||{name:r.name,n:0,reg:[]};rul[k].n++;rul[k].reg.push(MAP_R[r.id][0])});
     const topA=(await env.DB.prepare("SELECT l.att AS uid,COALESCE(u.nick,u.name) AS name,SUM(l.win=1) AS caps,SUM(l.win IN (0,1)) AS fights FROM map_log l LEFT JOIN users u ON u.id=l.att WHERE l.t>=? GROUP BY l.att ORDER BY caps DESC,fights DESC LIMIT 7").bind(m0).all()).results;
     const hot=(await env.DB.prepare("SELECT rid,COUNT(*) AS n,SUM(win=1) AS caps FROM map_log WHERE t>=? AND win IN (0,1) GROUP BY rid ORDER BY n DESC LIMIT 5").bind(m0).all()).results.map(r=>({...r,name:MAP_R[r.rid][0]}));
     const pay=(await env.DB.prepare("SELECT item,COUNT(*) AS n,SUM(stars) AS s FROM payments WHERE item IN ('mflag','mpack','mpass','mstatue') AND status='done' AND created>=? GROUP BY item").bind(m0).all()).results;
