@@ -65,7 +65,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
     sh.addEventListener("touchend",()=>{if(y0==null)return;y0=null;sh.style.transform="";if(dy>90)menuClose()})}
   const B=menuBadges(),on=!ONLINE||!!(S&&S.shopOn);let h="";
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
-  if(S&&S.vt)h+=S.vt.ch?'<button type="button" class="drw-ban vt" data-go="vote"><i>⚔️</i><span><b>Выбор серии: ты проголосовал ✅</b><small>Смотри, за что голосуют остальные</small></span><em>›</em></button>':'<button type="button" class="drw-ban vt pulse" data-go="vote"><i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>'+(S.vt.opts||[]).map(o=>o.ic+' '+o.n.split(' ')[0].toLowerCase()).join(' или ')+'? · +🎴 за голос</small></span><em>›</em></button>';
+  if(S&&S.vt)h+=S.vt.ch?'<button type="button" class="drw-ban vt" data-go="vote"><i>⚔️</i><span><b>Выбор серии: ты проголосовал ✅</b><small>Смотри, за что голосуют остальные</small></span><em>›</em></button>':'<button type="button" class="drw-ban vt pulse" data-go="vote"><i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🛡 остаться или 🏃 отступить? · +🎴 за голос</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="stars"><i>⭐</i><span><b>Звёзды игрокам</b><small>Начислить звёзды на игровой баланс и написать игроку</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
@@ -975,7 +975,7 @@ function vtDraw(r){const sh=$("msheet");if(!sh)return;const shown=r.my||!r.on;
     sh.querySelectorAll(".vt-o").forEach(x=>x.disabled=true);const q=await act("vt_vote",{ch:o.k});if(!q){vtDraw(r);return}sfx.fanfare();burst(3);hapN("success");vtDraw(q)})}
 function vtStrip(){let b=$("vtstrip");const R=S&&ONLINE?S.vt:null;if(!R||R.ch){if(b)b.remove();return}
   if(!b){const hd=$("rdstrip")||$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="vtstrip";b.className="r3strip vtstrip";hd.after(b);b.onclick=()=>{hap("light");vtOpen()}
-    b.innerHTML=`<i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>${(S.vt.opts||[]).map(o=>o.ic+" "+o.n.split(" ")[0].toLowerCase()).join(" или ")}? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
+    b.innerHTML=`<i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🛡 остаться или 🏃 отступить? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
 setInterval(()=>{try{vtStrip()}catch(e){}},1500);
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="vt"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(vtOpen,1200)},400)}}
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vtadm"))return;const x=document.createElement("div");x.id="vtadm";x.className="srcbox r3adm";b.prepend(x);
@@ -1074,3 +1074,25 @@ async function alFight(r,i){const m=$("modal"),sh=$("msheet"),M=MAP_R[i];m.hidde
   try{if(r.won){sfx.fanfare();burst(4);hapN("success")}else{sfx.lose();hapN("error")}}catch(e){}$("alf-ok").onclick=async()=>{closeModal();await mapLoad();mapDraw()}}
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();
   if(q&&/^al\d+$/.test(q)){const t=setInterval(async()=>{if(!S||!ONLINE)return;clearInterval(t);const r=await act("al_join",{uid:+q.slice(2)});if(r){AL=r;hapN("success");toast("🤝 Вы теперь союзники с "+(r.mate?r.mate.name:"другом")+"!");mapView="a";try{openMap()}catch(e){}}},600)}}
+/* ===================== 🧭 «Что делать дальше?» — гид для новичков (ничего не скрываем, просто ведём по шагам) ===================== */
+const GUIDE=[
+ {k:"spin",ic:"🎴",n:"Открой 5 карточек",d:"Жми на большую карту на главном — вдруг легенда?",ok:()=>(S.nOp||0)>=5,go:()=>setTab("spin")},
+ {k:"dragon",ic:"🐉",n:"Выведи своего дракона",d:"Он растёт, дерётся на арене и держит логова",ok:()=>!!S.dg,go:()=>setTab("dragon")},
+ {k:"camp",ic:"🎯",n:"Потренируйся в лагере",d:"Удары по манекену дают руны для казино",ok:()=>!!(S.camp&&S.camp.total>0),go:()=>{try{openCamp()}catch(e){}}},
+ {k:"fight",ic:"⚔️",n:"Сыграй первый бой",d:"Карты сражаются по характеристикам — выбирай с умом",ok:()=>gFlag("fight"),go:()=>{gSet("fight");$("tab-fight").click()}},
+ {k:"map",ic:"🗺",n:"Захвати регион на карте мира",d:"Поставь флаг — регион приносит монеты каждый час",ok:()=>gFlag("map"),go:()=>{gSet("map");try{openMap()}catch(e){}}},
+ {k:"hof",ic:"🏛",n:"Поставь карты в Зал славы",d:"Дорогие карты сами приносят монеты",ok:()=>(S.hof||[]).length>0,go:()=>hofOpen()},
+ {k:"ally",ic:"🤝",n:"Найди напарника",d:"Земли союзов берут только вдвоём",ok:()=>gFlag("ally")||!!(typeof AL!=="undefined"&&AL&&AL.mate),go:()=>{gSet("ally");try{mapView="a";openMap()}catch(e){}}},
+ {k:"luck",ic:"🍀",n:"Надень оберег удачи",d:"Час повышенных шансов на Голограмму и Золото",ok:()=>!!S.luckN||(S.luckU||0)>0,go:()=>luckOpen()}];
+const gFlag=k=>{try{return localStorage.getItem("we-g-"+k)==="1"}catch(e){return false}},gSet=k=>{try{localStorage.setItem("we-g-"+k,"1")}catch(e){}};
+function guideOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const done=GUIDE.filter(g=>g.ok()).length,nx=GUIDE.find(g=>!g.ok());
+  sh.innerHTML='<div class="box nickbox gdbox"><h3>🧭 Что делать дальше?</h3><div class="gd-bar"><i style="width:'+(done/GUIDE.length*100)+'%"></i><span>'+done+' / '+GUIDE.length+'</span></div>'+
+   GUIDE.map(g=>{const ok=g.ok();return '<button type="button" class="gd-i'+(ok?" ok":g===nx?" nx":"")+'" data-g="'+g.k+'"><i>'+(ok?"✅":g.ic)+'</i><span><b>'+g.n+'</b><small>'+g.d+'</small></span>'+(ok?"":"<em>›</em>")+'</button>'}).join("")+
+   (done>=GUIDE.length?'<p class="gd-end">🏆 Ты прошёл всё! Теперь ты настоящий воин эпох</p>':'')+'<button type="button" class="ghost" id="gd-x">Закрыть</button></div>';
+  $("gd-x").onclick=closeModal;sh.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=GUIDE.find(x=>x.k===b.dataset.g);if(!g||g.ok())return;closeModal();menuClose&&menuClose();setTimeout(()=>g.go(),50)})}
+function guideChip(){if(!S||!ONLINE)return;let c=$("gd-chip");const left=GUIDE.filter(g=>!g.ok()).length,hide=!left||gFlag("hide")||(S.nOp||0)>400;
+  if(hide){if(c)c.remove();return}if(!c){c=document.createElement("button");c.type="button";c.id="gd-chip";c.className="gd-chip";c.onclick=guideOpen;document.body.appendChild(c)}
+  const nx=GUIDE.find(g=>!g.ok());c.innerHTML='<i>🧭</i><span><b>Что дальше?</b><small>'+nx.ic+' '+nx.n+'</small></span><em>'+left+'</em>'}
+setInterval(()=>{try{guideChip()}catch(e){}},2000);
+document.addEventListener("click",e=>{if(e.target.closest("#tab-fight"))gSet("fight");if(e.target.closest("#tab-map"))gSet("map")},true);
+if(new URLSearchParams(location.search).get("hof")){const t=setInterval(()=>{if(!S||!ONLINE)return;clearInterval(t);setTimeout(()=>{try{hofOpen()}catch(e){}},500)},500)}

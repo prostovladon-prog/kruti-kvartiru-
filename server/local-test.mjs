@@ -1223,7 +1223,8 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   q = await cm(A, "map_attack", { rid: 10, id: low(A).id }); ok(!q.ok && /Земли эпох/.test(q.err), "средняя зона закрыта до 50 прокруток");
   q = await cm(B, "map_attack", { rid: 30, id: low(B).id }); ok(!q.ok && /щитом/.test(q.err), "щит после захвата");
   db.prepare("UPDATE map_reg SET shield=0,claim_at=?,since=? WHERE id=30").run(Date.now() - 3 * 36e5, Date.now() - 3 * 36e5);
-  const cb = low(B); q = await cm(B, "map_attack", { rid: 30, id: cb.id, stat: 0 }); ok(q.ok && (q.res.won === 0 || q.res.won === 1) && q.res.rounds.length === 3, "бой за регион: 3 раунда");
+  const cb = low(B); q = await cm(B, "map_attack", { rid: 30, id: cb.id, stat: 0 }); ok(!q.ok && /новичок/.test(q.err), "регионы новичка под защитой 3 дня");
+  db.prepare("UPDATE users SET created=? WHERE id IN (?,?)").run(Date.now() - 4 * 864e5, A, B); q = await cm(B, "map_attack", { rid: 30, id: cb.id, stat: 0 }); ok(q.ok && (q.res.won === 0 || q.res.won === 1) && q.res.rounds.length === 3, "бой за регион: 3 раунда");
   const own30 = db.prepare("SELECT owner FROM map_reg WHERE id=30").get().owner; ok(own30 === (q.res.won ? B : A), "регион у победителя");
   if (!q.res.won) { q = await cm(A, "map_claim"); ok(q.ok && q.res.cash >= 170, "доход за 3 часа (" + (q.res && q.res.cash) + ")"); } else ok(db.prepare("SELECT away FROM cards WHERE id=?").get(ca.id).away === 0, "проигравший защитник вернулся владельцу");
   db.prepare("UPDATE users SET state=json_set(state,'$.mp',json('{\"d\":\"" + new Date().toISOString().slice(0, 10) + "\",\"used\":3,\"extra\":0,\"packs\":0}')) WHERE id=?").run(B);
