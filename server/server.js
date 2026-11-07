@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=57;const NEWB_MS=3*864e5;
+const SCHEMA_V=58;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -110,7 +110,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
  "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
  "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)",
- "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)","CREATE TABLE IF NOT EXISTS ep_vote (vid TEXT NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER, PRIMARY KEY(vid,uid))","CREATE TABLE IF NOT EXISTS ep_vote_soc (vid TEXT NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(vid,uid))","ALTER TABLE promo ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN owner2 INTEGER","ALTER TABLE hype ADD COLUMN big INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN hof_note INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN claim2_at INTEGER","ALTER TABLE promo_uses ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0"];
+ "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)","CREATE TABLE IF NOT EXISTS ep_vote (vid TEXT NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER, PRIMARY KEY(vid,uid))","CREATE TABLE IF NOT EXISTS ep_vote_soc (vid TEXT NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(vid,uid))","ALTER TABLE promo ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN owner2 INTEGER","ALTER TABLE hype ADD COLUMN big INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN hof_note INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN emp INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN claim2_at INTEGER","ALTER TABLE promo_uses ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -401,8 +401,10 @@ async function stateFor(env,me){
     if(nd)q.push(bump(env,"dau"),env.DB.prepare("INSERT OR IGNORE INTO user_days(uid,d) VALUES(?,?)").bind(me.id,td));try{await env.DB.batch(q)}catch(e){}}
   // числа для мирового топа: обновляем, только если изменились
   const worth=Math.round(cards.reduce((a,c)=>a+c.v,0)*100)/100,album=new Set(cards.filter(c=>c.h<NBASE).map(c=>c.h)).size,wins=S.totalWins||0;
-  if(Math.abs((u.worth||0)-worth)>.004||(u.album||0)!==album||(u.wins||0)!==wins)
-    await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=? WHERE id=?").bind(worth,album,wins,me.id).run();
+  const emp=empPower(S,cards);S.emp=emp;
+  if(Math.abs((u.worth||0)-worth)>.004||(u.album||0)!==album||(u.wins||0)!==wins||(u.emp||0)!==emp){
+    await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=?,emp=? WHERE id=?").bind(worth,album,wins,emp,me.id).run();
+    const r0=empRank(u.emp||0),r1=empRank(emp);if(r1>r0&&r1>=3&&(u.emp||0)>0)try{await hypeAdd(env,me.id,EMP.R[r1].ic+" поднял Империю до ранга «"+EMP.R[r1].n+"»!",r1>=4)}catch(e){}}
   return S;
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
@@ -505,7 +507,7 @@ async function cardInfo(env,p){
 
 /* ---------- мировой топ и лента выпадений ----------
    Списки общие для всех, поэтому держим их в памяти воркера 60 секунд, чтобы не нагружать базу. */
-const BOARDS={worth:"worth",album:"album",wins:"wins"};
+const BOARDS={worth:"worth",album:"album",wins:"wins",emp:"emp"};
 let topCache={};
 async function cached(key,ms,fn){const c=topCache[key];if(c&&Date.now()-c.t<ms)return c.v;const v=await fn();topCache[key]={t:Date.now(),v};return v}
 async function top(env,me,p){
@@ -524,9 +526,9 @@ async function top(env,me,p){
   }
   const col=BOARDS[kind];if(!col)fail("Нет такого рейтинга");
   const items=await cached(kind,60e3,async()=>{
-    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
+    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score,json_extract(state,'$.ava') AS ava FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
     const out=[];for(const r of rows){const b=await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();
-      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,card:b?pub(rowToCard(b)):null})}return out});
+      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,ava:r.ava==null?null:+r.ava,card:b?pub(rowToCard(b)):null})}return out});
   const mine=await env.DB.prepare(`SELECT ${col} AS score FROM users WHERE id=?`).bind(me.id).first();
   const score=mine?mine.score:0;
   const rank=score>0?(await env.DB.prepare(`SELECT COUNT(*)+1 AS n FROM users WHERE ${col}>?`).bind(score).first()).n:null;
@@ -1332,6 +1334,7 @@ async function mapAlAttack(env,me,rid,now){const m=await alMate(env,me.id);if(!m
     if(R&&R.owner)for(const u of [R.owner,R.owner2])if(u)try{await notify(env,u,"⚔️ Ваш союз потерял крепость «"+MAP_R[rid][0]+"»! Отбейте её вместе с напарником","🗺 На карту",PAGE+"?map=1")}catch(e){}}
   else if(R&&R.owner)await env.DB.prepare("UPDATE map_reg SET def_n=def_n+1 WHERE id=?").bind(rid).run();
   return {ally:1,won:win,rid,pa,pb,ch:Math.round(ch*100),rounds,me:{c:A1.c,pw:A1.pw},mate:{c:A2.c,pw:A2.pw},opp}}
+async function empR(env,uid){return empRank(((await env.DB.prepare("SELECT emp FROM users WHERE id=?").bind(uid).first())||{}).emp||0)}
 async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
   const U=async()=>{const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();return JSON.parse((u&&u.state)||"{}")};
   if(a==="map_get"){const R=await mapRegions(env),ids=R.filter(r=>r.card).map(r=>r.card),cards={};
@@ -1340,11 +1343,11 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=mapInc(r.id);cash+=Math.floor(I.c*h);runes+=Math.floor(I.r*h)}
     const ph=await env.DB.prepare("SELECT st FROM map_photo WHERE uid=?").bind(me.id).first();
     return {now,dgp:st.dg?{pow:mapDgPow(st.dg),el:dgEl(st.dg)}:null,regs:R.map(r=>({id:r.id,owner:r.owner,oname:r.oname,owner2:r.owner2||0,oname2:r.oname2||"",flag:r.flag||"",ph:r.ph===1?1:0,card:cards[r.card]||null,dg:mapDgLook(r.dgj),shield:r.shield>now?r.shield:0,def_n:r.def_n,statue:r.statue?1:0,since:r.since})),
-      att:{left:MAP.att+A.extra-A.used,packs:A.packs},inc:{cash,runes},z1:(st.nOp||0)>=MAP.z1Spins,z2:!!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage),ph:ph?ph.st:-1}}
+      att:{left:MAP.att+A.extra+EMP.att[await empR(env,me.id)]-A.used,packs:A.packs},regMax:EMP.reg[await empR(env,me.id)],inc:{cash,runes},z1:(st.nOp||0)>=MAP.z1Spins,z2:!!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage),ph:ph?ph.st:-1}}
   if(a==="map_claim"){const mine=(await env.DB.prepare("SELECT * FROM map_reg WHERE owner=? OR owner2=?").bind(me.id,me.id).all()).results;let cash=0,runes=0,n=0;
     for(const r of mine){const two=r.owner!==me.id,ca=two?(r.claim2_at||r.since):(r.claim_at||r.since),h=Math.min(MAP.capH,(now-ca)/36e5),I=mapInc(r.id),half=MAP_Z(r.id)===4?.5:1;const c=Math.floor(I.c*h*half),q=Math.floor(I.r*h*half);if(c<=0)continue;
       const u=await env.DB.prepare(two?"UPDATE map_reg SET claim2_at=? WHERE id=? AND owner2=? AND COALESCE(claim2_at,since)=?":"UPDATE map_reg SET claim_at=? WHERE id=? AND owner=? AND COALESCE(claim_at,since)=?").bind(now,r.id,me.id,ca).run();if(u.meta.changes===1){cash+=c;runes+=q;if(h>=1)n++}}
-    if(!cash&&!runes)fail("Доход ещё не накопился");await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});try{await kingCut(env,cash)}catch(e){}return {cash,runes}}
+    if(!cash&&!runes)fail("Доход ещё не накопился");{const k=1+EMP.inc*(await empR(env,me.id));cash=Math.floor(cash*k);runes=Math.floor(runes*k)}await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});try{await kingCut(env,cash)}catch(e){}return {cash,runes}}
   if(a==="map_leave"){const rid=p.rid|0,r=await env.DB.prepare("SELECT * FROM map_reg WHERE id=? AND (owner=? OR owner2=?)").bind(rid,me.id,me.id).first();if(!r)fail("Это не твой регион");
     await env.DB.prepare("DELETE FROM map_reg WHERE id=?").bind(rid).run();await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=? AND owner=?").bind(r.card,me.id).run();return {rid}}
   if(a==="map_attack"){const rid=p.rid|0;if(rid<0||rid>=MAP_R.length)fail("Нет такого региона");const z=MAP_Z(rid),st=await U();if(z===3)return mapDgAttack(env,me,rid,st,p,now);if(z===4)return mapAlAttack(env,me,rid,now);
@@ -1352,7 +1355,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();if(!c)fail("Выбери свою карточку");
     if(c.away||c.list_price!=null||c.room_id||c.part||c.f>=5)fail("Эта карточка сейчас недоступна для боя");if(z===0&&HEROES[c.h][2]>1)fail("На «Окраины» можно только обычных и редких воинов — дай шанс новичкам");
     const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner===me.id)fail("Это уже твой регион");
-    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND (id<50 OR id BETWEEN 68 AND 87)").bind(me.id).first())||{}).n||0;if(myN>=MAP.max)fail("У тебя уже "+MAP.max+" региона — это максимум. Оставь один, чтобы занять новый");
+    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND (id<50 OR id BETWEEN 68 AND 87)").bind(me.id).first())||{}).n||0;const er=await empR(env,me.id),mx=EMP.reg[er];if(myN>=mx)fail("У тебя уже "+mx+" рег. — максимум для ранга «"+EMP.R[er].n+"». Подними Империю, чтобы держать больше"+(er<EMP.R.length-1?"":""));
     if(R&&R.shield>now)fail("Регион под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
     if(R&&R.owner&&rid!==KING.throne){const ou=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(R.owner).first();if(ou&&ou.created>now-NEWB_MS)fail("🌱 Хозяин — новичок: первые 3 дня его регионы под защитой. Выбери другой регион")}
     const occupy=async()=>{const ok=await env.DB.prepare("UPDATE cards SET away=1,dest=? WHERE id=? AND owner=? AND away=0 AND list_price IS NULL AND room_id IS NULL").bind("map:"+rid,c.id,me.id).run();if(ok.meta.changes!==1)fail("Карточка занята");

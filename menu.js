@@ -8,7 +8,9 @@ const MENU_GROUPS=[
  ["Главное",[
   {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
   {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
+  {k:"emp",ic:"👑",n:"Империя",c:["#ffe066","#c47a00"]},
   {k:"hof",ic:"🏛",n:"Зал славы",c:["#ffe9a8","#b07a10"]},
+  {k:"theme",ic:"🎨",n:"Тема",c:["#ffc8f0","#8a2ab0"]},
   {k:"luck",ic:"🍀",n:"Оберег удачи",c:["#b8ffcf","#1e9a52"]},
   {k:"prof",ic:"👤",n:"Профиль",c:["#7cc8ff","#2a4fd0"]},
   {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]},
@@ -39,6 +41,8 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="riddle")return rdOpen();
   if(k==="vote")return vtOpen();
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
+  if(k==="emp")return empOpen();
+  if(k==="theme")return themeOpen();
   if(k==="hof")return hofOpen();
   if(k==="luck")return luckOpen();
   if(k==="cas"){if(typeof openCas==="function"&&ONLINE)openCas();else setTab("cas");return}
@@ -591,7 +595,7 @@ let mapView="w";async function openMap(){if(!ONLINE)return toast("Карта м�
   o.innerHTML='<div class="mp-load">🗺 Загружаю карту…</div>';await mapLoad();if(!MD){o.remove();return}mapDraw();try{if(!localStorage.getItem("we-maph")){localStorage.setItem("we-maph",1);mapHelp()}}catch(e){}}
 function mapDraw(){const o=$("mapscr");if(!o||!MD)return;const mine=MD.regs.filter(r=>r.owner===S.uid),P=S.mpass&&S.mpass.m===new Date(NOW()+3*3600e3).toISOString().slice(0,7)?S.mpass:{pts:0,prem:0,got:[],gotP:[]},lv=MPASS.th.filter(x=>P.pts>=x).length;
   const canClaim=P&&MPASS.th.some((t,i)=>i<lv&&(!P.got.includes(i)||P.prem&&!P.gotP.includes(i)));
-  o.innerHTML=`<div class="mp-top"><button type="button" class="mp-x" data-mb="x">✕</button><b>🗺 Карта мира</b><span class="mp-pill">⚔️ ${Math.max(0,MD.att.left)} · 🏰 ${mine.filter(r=>MAP_Z(r.id)<3).length}/${MAP.max}</span></div>
+  o.innerHTML=`<div class="mp-top"><button type="button" class="mp-x" data-mb="x">✕</button><b>🗺 Карта мира</b><span class="mp-pill">⚔️ ${Math.max(0,MD.att.left)} · 🏰 ${mine.filter(r=>MAP_Z(r.id)<3).length}/${MD.regMax||MAP.max}</span></div>
    <div class="mp-tabs"><button type="button" data-mb="vw" class="${mapView==="w"?"on":""}">🗺 Мир эпох</button><button type="button" data-mb="vd" class="dg${mapView==="d"?" on":""}">🐉 Драконы</button><button type="button" data-mb="va" class="al${mapView==="a"?" on":""}">🤝 Союзы<i>NEW</i></button></div>${mapView==="a"?alPanel():""}
    ${mapView==="a"?`<div class="mp-leg mp-dgl mp-all"><span>🤝 Крепости берут только вдвоём · сила = лучшие карты обоих · доход пополам · 1 крепость на пару</span></div>`:mapView==="d"?`<div class="mp-leg mp-dgl"><span>🐉 Логова держат только драконы · 1 логово на дракона · 🐲 Трон — доход ×${MAP.dthr}</span></div>`:`<div class="mp-leg"><span style="background:#22995a">🌱 Окраины${"" }</span><span style="background:#6a33d6">${MD.z1?"⚔️":"🔒"} Земли эпох${MD.z1?"":" · "+MAP.z1Spins+" 🎴"}</span><span style="background:#c07a10">${MD.z2?"👑":"🔒"} Сердце${MD.z2?"":" · 🐉 ст.3"}</span><button type="button" data-mb="help">❔</button></div>`}
    <div class="mp-map${mapView==="d"?" dgv":mapView==="a"?" alv":""}" id="mp-map"><svg id="mp-svg" viewBox="0 0 390 470" width="100%">${mapView==="a"?alLandSVG():mapView==="d"?dgLandSVG():mapSVG()}</svg><div class="mp-zm"><button type="button" data-z="1">＋</button><button type="button" data-z="-1">－</button><button type="button" data-z="0" class="mp-z0">⤢</button></div></div>
@@ -1015,7 +1019,7 @@ function luckBadge(){const st=$("stage");if(!st||!S)return;let b=$("lk-badge");c
   b.className="lk-badge"+(on?" on":"");b.innerHTML=on?'🍀 Удача ×1,25 · '+tleft(S.luckU-NOW()):'🍀 Оберег удачи'}
 setInterval(()=>{try{luckBadge();const t=$("lk-t");if(t&&S)t.textContent=tleft(S.luckU-NOW())}catch(e){}},1000);
 /* ===================== 🏛 Зал славы ===================== */
-function hofOpen(pick){const m=$("modal"),sh=$("msheet");m.hidden=false;const C=S.cards||[],ids=S.hof||[],slots=hofSlots(S),L=S.hofL||0,rate=hofRate(S,C),coll=hofColl(C),
+function hofOpen(pick){const m=$("modal"),sh=$("msheet");m.hidden=false;const C=S.cards||[],ids=S.hof||[],slots=hofSlots(S,S.cards),L=S.hofL||0,rate=hofRate(S,C),coll=hofColl(C),
     acc=Math.floor(rate*Math.min(HOF.cap,Math.max(0,NOW()-(S.hofAt||NOW())))/36e5),byId={};C.forEach(c=>byId[c.id]=c);
   if(pick){const sel=new Set(ids.filter(i=>byId[i])),top=C.slice().sort((a,b)=>(b.v||0)-(a.v||0)).slice(0,60);
     sh.innerHTML='<div class="box nickbox hofbox"><h3>🏛 Выбери карты для зала</h3><p class="cln">Мест: '+slots+'. Каждая карта приносит 0,5% своей цены в час (до 12 ч). Ставь самые дорогие!</p><div class="hof-pick" id="hof-pk">'+
@@ -1117,3 +1121,34 @@ setInterval(musTick,1000);
 $("snd").onclick=()=>{if(!muted&&MUS.on){MUS.on=false;toast("🎵 Музыка выключена, звуки остались")}else if(!muted&&!MUS.on){muted=true;toast("🔇 Звук выключен")}else{muted=false;MUS.on=true;toast("🔊 Звук и музыка включены");try{sfx.coin()}catch(e){}}
   try{localStorage.setItem("we-mus",MUS.on?"1":"0")}catch(e){}$("snd").setAttribute("aria-pressed",!muted);$("snd").textContent=muted?"🔇":MUS.on?"🔊":"🔈";if(!MUS.on||muted){if(MUS.el)MUS.el.pause()}else{MUS.cur="";musTick()}};
 try{if(!MUS.on)$("snd").textContent="🔈"}catch(e){}
+
+/* ===================== 👑 ИМПЕРИЯ ===================== */
+const empNow=()=>{const p=(S&&S.emp)||0,r=empRank(p),R=EMP.R[r],N=EMP.R[r+1];return {p,r,R,N,pc:N?Math.min(100,(p-R.p)/(N.p-R.p)*100):100}};
+function avaHTML(h,cls){return '<span class="ava '+(cls||"")+'">'+(h!=null&&HEROES[h]?portrait(h):'<i>👤</i>')+'</span>'}
+function empBar(){if(!S||!ONLINE)return;const sp=$("sec-spin");if(!sp)return;let b=$("emp-bar");if(!b){b=document.createElement("button");b.type="button";b.id="emp-bar";b.className="emp-bar";b.onclick=()=>empOpen();const h=$("hype");if(h&&h.parentNode===sp)h.after(b);else sp.insertBefore(b,sp.firstChild)}
+  const E=empNow(),trib=S.empD!==new Date(NOW()).toISOString().slice(0,10),sig=E.p+"|"+E.r+"|"+trib+"|"+S.ava;if(b.dataset.sig===sig)return;b.dataset.sig=sig;
+  b.innerHTML=avaHTML(S.ava,"sm")+'<span class="eb-t"><b>'+E.R.ic+' '+E.R.n+'</b><small>⚔️ '+fmtN(E.p)+(E.N?' · до «'+E.N.n+'» '+fmtN(E.N.p-E.p):' · высший ранг')+'</small><i class="eb-bar"><u style="width:'+E.pc+'%"></u></i></span>'+(trib?'<em class="eb-tr">💰 Дань</em>':'<em>›</em>')}
+setInterval(()=>{try{empBar()}catch(e){}},1500);
+function empOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const E=empNow(),C=S.cards||[],coll=hofColl(C),cardsP=C.reduce((a,c)=>a+cardPow(c),0),dgP=S.dg?(S.dg.lv||0)*EMP.dg:0,trib=S.empD!==new Date(NOW()).toISOString().slice(0,10);
+  const perk=i=>['🗺 '+EMP.reg[i]+' рег.','🏛 +'+EMP.hof[i]+' в Зале','⚔️ +'+EMP.att[i]+' атак','💰 +'+Math.round(EMP.inc*i*100)+'% дохода','🎁 дань '+fmtN(EMP.trib[i])+'🪙'+(EMP.tribSp[i]?' +'+EMP.tribSp[i]+'🎴':'')].filter((x,k)=>k===0||k===4||(k===1&&EMP.hof[i])||(k===2&&EMP.att[i])||(k===3&&i)).join(' · ');
+  sh.innerHTML='<div class="box nickbox empbox"><div class="emp-hd">'+avaHTML(S.ava,"lg")+'<div><small>ТВОЯ ИМПЕРИЯ</small><h3>'+E.R.ic+' '+E.R.n+'</h3><b>⚔️ '+fmtN(E.p)+' мощи</b></div></div>'+
+   '<div class="emp-pr"><i style="width:'+E.pc+'%"></i><span>'+(E.N?'до «'+E.N.ic+' '+E.N.n+'» ещё '+fmtN(E.N.p-E.p):'🌟 Высший ранг!')+'</span></div>'+
+   '<button type="button" class="craftbtn emp-trib" id="emp-trib"'+(trib?'':' disabled')+'>'+(trib?'💰 Собрать дань: +'+fmtN(EMP.trib[E.r])+' 🪙'+(EMP.tribSp[E.r]?' и '+EMP.tribSp[E.r]+' 🎴':''):'Дань собрана — завтра снова')+'</button>'+
+   '<div class="emp-src"><div><b>🎴 '+fmtN(cardsP)+'</b><small>армия: '+C.length+' карт</small></div><div><b>📚 '+fmtN(coll*EMP.coll)+'</b><small>коллекций: '+coll+'</small></div><div><b>🐉 '+fmtN(dgP)+'</b><small>дракон</small></div></div>'+
+   '<p class="emp-how">💡 Мощь дают <b>все</b> карты: редкость × отделка × уровень × звёзды. Золотая — в 6 раз сильнее обычной, Ошибка — в 12, Алмаз — в 14. Прокачивай, закаляй ★, собирай коллекции и расти дракона.</p>'+
+   '<div class="emp-rk">'+EMP.R.map((R,i)=>'<div class="'+(i===E.r?"on":i<E.r?"ok":"")+'"><i>'+R.ic+'</i><span><b>'+R.n+'</b><small>'+(i?'от ⚔️ '+fmtN(R.p)+' · ':'')+perk(i)+'</small></span>'+(i<E.r?'✅':i===E.r?'<em>ТЫ</em>':'')+'</div>').join("")+'</div>'+
+   '<div class="emp-b"><button type="button" class="ghost" id="emp-top">🏆 Топ Империй</button><button type="button" class="ghost" id="emp-ava">🖼 Аватар</button><button type="button" class="ghost" id="emp-th">🎨 Тема</button></div>'+
+   '<button type="button" class="ghost" id="emp-x">Закрыть</button></div>';
+  $("emp-x").onclick=closeModal;$("emp-top").onclick=()=>{closeModal();try{tpView="emp";setTab("top");renderTop(true)}catch(e){}};$("emp-ava").onclick=avaOpen;$("emp-th").onclick=themeOpen;
+  const t=$("emp-trib");if(t)t.onclick=async()=>{t.disabled=true;const r=await act("emp_trib");if(r){hapN("success");try{sfx.coin();burst(3)}catch(e){}toast("💰 Дань собрана: +"+fmtN(r.cash)+" 🪙"+(r.sp?" и "+r.sp+" 🎴":""));updCash&&updCash();empOpen()}else t.disabled=false}}
+/* 🖼 аватар: любой воин из своей коллекции */
+function avaOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const hs=[...new Set((S.cards||[]).map(c=>c.h))].filter(h=>HEROES[h]).sort((a,b)=>HEROES[b][2]-HEROES[a][2]);
+  sh.innerHTML='<div class="box nickbox avabox"><h3>🖼 Выбери аватар</h3><p class="cln">Любой воин из твоей коллекции. Его увидят в топе Империй и на твоей плашке.</p><div class="ava-g">'+hs.map(h=>'<button type="button" data-h="'+h+'" class="'+(S.ava===h?"on":"")+'" style="--hc:'+HT[HEROES[h][2]].c+'">'+avaHTML(h)+'<small>'+HEROES[h][0]+'</small></button>').join("")+'</div><button type="button" class="ghost" id="ava-x">Назад</button></div>';
+  $("ava-x").onclick=empOpen;sh.querySelector(".ava-g").onclick=async e=>{const b=e.target.closest("[data-h]");if(!b)return;const r=await act("ava_set",{h:+b.dataset.h});if(r){hapN("success");toast("🖼 Аватар обновлён");empBar();empOpen()}}}
+/* 🎨 темы */
+function themeApply(){const k=(S&&S.theme)||"";document.documentElement.dataset.theme=k;const T=THEMES.find(t=>t.k===k)||THEMES[0];try{tg&&tg.setHeaderColor&&tg.setHeaderColor(T.c[1]);tg&&tg.setBackgroundColor&&tg.setBackgroundColor(T.c[1])}catch(e){}}
+function themeOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;
+  sh.innerHTML='<div class="box nickbox thbox"><h3>🎨 Тема игры</h3><p class="cln">Меняет цвет всей игры. Выбирай под настроение!</p><div class="th-g">'+THEMES.map(t=>'<button type="button" data-k="'+t.k+'" class="'+(((S.theme||"")===t.k)?"on":"")+'" style="background:radial-gradient(circle at 50% 30%,'+t.c[0]+','+t.c[1]+')"><b>'+t.n+'</b></button>').join("")+'</div><button type="button" class="ghost" id="th-x">Назад</button></div>';
+  $("th-x").onclick=empOpen;sh.querySelector(".th-g").onclick=async e=>{const b=e.target.closest("[data-k]");if(!b)return;document.documentElement.dataset.theme=b.dataset.k;const r=await act("theme_set",{k:b.dataset.k});if(r){hapN("success");themeApply();themeOpen()}}}
+setInterval(()=>{try{if(S&&document.documentElement.dataset.theme!==(S.theme||""))themeApply()}catch(e){}},1500);
+{const _tr=topRow;topRow=function(it,i,kind){const d=_tr.apply(this,arguments);if(kind==="emp"){const r=empRank(it.score||0),sm=d.querySelector("small");if(sm)sm.textContent=EMP.R[r].ic+" "+EMP.R[r].n;if(it.ava!=null&&HEROES[it.ava]){const e=d.querySelector(".e");if(e)e.innerHTML=avaHTML(it.ava)}}return d}}

@@ -485,11 +485,24 @@ const HW_LUCK=[0,0,1,3,3], FW_LUCK=[0,2,3,3,2];
    Гарант: если 100 прокруток подряд не было ничего лучше Блестящей — 100-я точно Голограмма */
 const LUCK={boost:1.25,dur:36e5,day:3,pct:.03,min:300,pity:100};
 const luckPrice=(st,now)=>{const n=st.luckD===today(now)?(st.luckN||0):0;return Math.round(Math.max(LUCK.min,(st.cash||0)*LUCK.pct)*(n+1))};
+/* 👑 ИМПЕРИЯ: одна цель на всю игру. Каждая карта — воин армии и даёт ⚔️ Мощь (редкость × отделка × уровень × звёзды).
+   Ещё мощь дают коллекции героев и дракон. Мощь поднимает ранг Империи, а ранг открывает бонусы во всех разделах */
+const EMP={rar:[10,25,60,150,400],fin:[1,1.6,3,6,12,15,15,8,14],coll:500,dg:60,
+  R:[{n:"Племя",ic:"⛺",p:0},{n:"Деревня",ic:"🛖",p:600},{n:"Город",ic:"🏘",p:2500},{n:"Крепость",ic:"🏰",p:7000},{n:"Королевство",ic:"👑",p:18000},{n:"Империя",ic:"🏛",p:45000},{n:"Легенда эпох",ic:"🌟",p:120000}],
+  trib:[150,400,1000,2500,6000,15000,40000],tribSp:[0,0,1,1,2,3,5],inc:.05,
+  reg:[2,2,3,3,4,4,5],hof:[0,0,0,1,1,2,2],att:[0,0,0,0,1,1,2]};
+function cardPow(c){const H=HEROES[c.h];if(!H)return 0;const F=EMP.fin[c.f]||1;return Math.round(EMP.rar[H[2]||0]*F*(1+.06*(lvl(c)-1))*(1+.12*(c.stars||0))*(c.part?.5:1))}
+function empPower(st,cards){let p=0;for(const c of cards||[])p+=cardPow(c);p+=hofColl(cards||[])*EMP.coll;if(st&&st.dg)p+=(st.dg.lv||0)*EMP.dg;return p}
+/* 🎨 темы оформления и 🖼 аватар (герой из своей коллекции) */
+const THEMES=[{k:"",n:"Классика",c:["#2f63ff","#1d44c8"]},{k:"night",n:"Ночь",c:["#3a2a8a","#140d3a"]},{k:"royal",n:"Королевская",c:["#8a6410","#2a1a05"]},{k:"forest",n:"Лес",c:["#1f8a55","#0b3a24"]},
+  {k:"fire",n:"Пламя",c:["#c8361a","#4a0d0d"]},{k:"ocean",n:"Океан",c:["#0d8aa8","#062c3a"]},{k:"rose",n:"Роза",c:["#c8268a","#4a0a3a"]},{k:"ice",n:"Лёд",c:["#5ab4e8","#1a4a7a"]}];
+const BIGUPD={id:"nov7",sp:5};
+const empRank=p=>{let r=0;EMP.R.forEach((x,i)=>{if(p>=x.p)r=i});return r};
 /* 🏛 Зал славы: выставленные карточки приносят монеты — 0,5% ценности в час, копится до 12 ч. Собранная коллекция героя (все 4 отделки: обычная, блестящая, голограмма, золотая) — +10% к доходу зала, до +50% */
 const HOF={rate:.005,cap:12*36e5,slots:[2,3,4,5,6],slotP:[0,2000,8000,25000,80000],coll:.1,collMax:.5};
-const hofSlots=st=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)];
+const hofSlots=(st,cards)=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)]+(cards?EMP.hof[empRank(empPower(st,cards))]:0);
 function hofColl(cards){const m={};for(const c of cards)if(c.f<=3)(m[c.h]||(m[c.h]=new Set())).add(c.f);let n=0;for(const k in m)if(m[k].size>=4)n++;return n}
-function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=c.v||0;return v*HOF.rate*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))}
+function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=c.v||0;return v*HOF.rate*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))*(1+EMP.inc*empRank(empPower(st,cards)))}
 function rollCard(ctx,epic){
   const mt=epic===3?3:epic?2:0,pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]>=mt);
   const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
@@ -738,9 +751,13 @@ const ACTIONS={
   /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
   hh_claim(G){const e=hhNow(G.ctx.now);if(!e||e.k!=="gift")fail("Сейчас нет Часа подарков");if(G.st.hhGot===e.at)fail("Подарок этого часа уже забран");G.st.hhGot=e.at;G.st.spins+=3;return {sp:3}},
   seen(G){const k=String(G.p.k||"").slice(0,40);if(!k)fail("Нет ключа");const L=(G.st.seen||[]).filter(x=>x!==k);L.push(k);G.st.seen=L.slice(-60);return {}},
+  ava_set(G){const {st}=G;const h=G.p.h|0;if(h<0){delete st.ava;return {ava:null}}if(!G.cards.some(c=>c.h===h))fail("Аватаром можно поставить только воина из своей коллекции");st.ava=h;return {ava:h}},
+  theme_set(G){const {st}=G;const k=String(G.p.k||"");if(!THEMES.some(t=>t.k===k))fail("Нет такой темы");st.theme=k;return {theme:k}},
+  upd_gift(G){const {st}=G;if(st.updG===BIGUPD.id)fail("Подарок обновления уже получен");st.updG=BIGUPD.id;st.spins=(st.spins||0)+BIGUPD.sp;return {sp:BIGUPD.sp}},
+  emp_trib(G){const {st,ctx}=G;const d=today(ctx.now);if(st.empD===d)fail("Дань уже собрана — приходи завтра");const r=empRank(empPower(st,G.cards));st.empD=d;earn(st,EMP.trib[r]);if(EMP.tribSp[r])st.spins=(st.spins||0)+EMP.tribSp[r];return {cash:EMP.trib[r],sp:EMP.tribSp[r],r}},
   luck_buy(G){const {st,ctx}=G;const d=today(ctx.now);if(st.luckD!==d){st.luckD=d;st.luckN=0}if(st.luckN>=LUCK.day)fail("Сегодня обереги закончились — приходи завтра");
     const pr=luckPrice(st,ctx.now);pay(st,pr);st.luckN++;st.luckU=Math.max(st.luckU||0,ctx.now)+LUCK.dur;return {until:st.luckU,paid:pr,left:LUCK.day-st.luckN}},
-  hof_set(G){const {st}=G;const ids=[...new Set((G.p.ids||[]).map(x=>x|0))].slice(0,hofSlots(st));const own=new Set(G.cards.map(c=>c.id));
+  hof_set(G){const {st}=G;const ids=[...new Set((G.p.ids||[]).map(x=>x|0))].slice(0,hofSlots(st,G.cards));const own=new Set(G.cards.map(c=>c.id));
     for(const i of ids)if(!own.has(i))fail("Это не твоя карточка");hofClaim(G);st.hof=ids;return {hof:ids,rate:hofRate(st,G.cards)}},
   hof_claim(G){const g=hofClaim(G);if(g<1)fail("Зал ещё ничего не заработал");return {got:g}},
   hof_slot(G){const {st}=G;const L=st.hofL||0;if(L>=HOF.slots.length-1)fail("Все места в зале открыты");pay(st,HOF.slotP[L+1]);st.hofL=L+1;return {slots:hofSlots(st)}},
@@ -1172,7 +1189,7 @@ function mapGive(G,R){const {st,ctx}=G,o={};if(R.sp){st.spins+=R.sp;o.sp=R.sp}if
   if(R.leg){const pool=HEROES.map((H,k)=>k).filter(k=>isBase(k)&&HEROES[k][2]===3);const c=makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],0);c.how="pass";G.cards.push(c);noteCard(st,c);o.card=c}
   if(R.flag){st.mflags=st.mflags||[];if(!st.mflags.includes(R.flag))st.mflags.push(R.flag);st.mflagOn=R.flag;o.flag=R.flag}return o}
 Object.assign(ACTIONS,{
-  map_use(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);if(A.used>=MAP.att+A.extra)fail("Атаки на сегодня закончились"+(A.packs<MAP.packMax?" — можно купить ещё "+MAP.pack:" — новые завтра"));A.used++;return {left:MAP.att+A.extra-A.used}},
+  map_use(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);if(A.used>=MAP.att+A.extra+EMP.att[empRank(empPower(G.st,G.cards))])fail("Атаки на сегодня закончились"+(A.packs<MAP.packMax?" — можно купить ещё "+MAP.pack:" — новые завтра"));A.used++;return {left:MAP.att+A.extra-A.used}},
   map_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.cash)earn(st,p.cash);if(p.runes)camp(st,ctx.now).runes+=p.runes;if(p.pts){const P=mapPass(st,ctx.now);P.pts+=p.pts}return {}},
   mpack_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);A.extra+=MAP.pack;A.packs++;return {extra:A.extra}},
   mpass_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const P=mapPass(G.st,G.ctx.now);P.prem=1;return {}},
@@ -1180,4 +1197,4 @@ Object.assign(ACTIONS,{
     if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
   mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
   mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={BIGUPD,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,UPD,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

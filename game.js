@@ -1927,7 +1927,7 @@ function renderShop(){document.querySelectorAll("#sh-seg button").forEach(b=>b.s
 /* ---------- мировой топ ----------
    С сервером это настоящие игроки. Без сервера показываем пример с ботами. */
 let tpView="worth";const tpCache={};let tpLoading={};
-const TP={worth:{t:"Самые богатые коллекции",u:v=>fmt(v)},cards:{t:"Самые дорогие карточки в мире",u:v=>fmt(v)},album:{t:"Больше всего разных воинов",u:v=>v+" из "+NHEROES},wins:{t:"Больше всего побед в боях",u:v=>fmtN(v)+" побед"}};
+const TP={emp:{t:"Топ Империй — самые могучие армии",u:v=>"⚔️ "+fmtN(v)},worth:{t:"Самые богатые коллекции",u:v=>fmt(v)},cards:{t:"Самые дорогие карточки в мире",u:v=>fmt(v)},album:{t:"Больше всего разных воинов",u:v=>v+" из "+NHEROES},wins:{t:"Больше всего побед в боях",u:v=>fmtN(v)+" побед"}};
 Object.assign(LOCAL,{nick(p){const n=checkNick(p.nick);if(n===S.nick)throw new GameError("Это уже твой ник");
   if(SELLERS.some(x=>x.toLowerCase()===n.toLowerCase()))throw new GameError("Ник «"+n+"» уже занят. Придумай другой");
   const cost=S.nick?NICK_COST:0;if(S.cash<cost)throw new GameError("Смена ника стоит "+cost+" 🪙, не хватает монет");S.cash-=cost;S.nick=n;return {nick:n,cost}},

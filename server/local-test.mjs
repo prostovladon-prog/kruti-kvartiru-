@@ -910,6 +910,15 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await call(A, "cas_hl_go", { bet: 1000 }); ok(r.ok && r.res.hl.c >= 1 && r.res.hl.c <= 13, "больше/меньше: первая карта");
   r = await call(A, "cas_hl_take"); ok(!r.ok, "забрать можно только после угаданной карты");
   const c = r.ok ? 0 : (await call(A, "sync")).S.cas.hl.c; r = await call(A, "cas_hl", { dir: c >= 7 ? "down" : "up" }); ok(r.ok && (r.res.win ? r.res.hl.m > .9 : !r.res.hl), "больше/меньше: ход");
+  // 👑 Империя
+  { let q = await call(A, "sync"); ok(q.S.emp > 0, "мощь Империи считается: " + q.S.emp);
+    const u = db.prepare("SELECT emp FROM users WHERE id=?").get(A); ok(u.emp === q.S.emp, "мощь записана для топа");
+    q = await call(A, "emp_trib"); ok(q.ok && q.res.cash >= 150, "дань собрана: " + (q.res && q.res.cash)); q = await call(A, "emp_trib"); ok(!q.ok, "дань раз в день");
+    const h = q.S ? q.S.cards[0].h : (await call(A, "sync")).S.cards[0].h; q = await call(A, "ava_set", { h }); ok(q.ok && q.S.ava === h, "аватар — свой воин");
+    q = await call(A, "ava_set", { h: 999 }); ok(!q.ok, "чужого воина аватаром не поставить");
+    q = await call(A, "theme_set", { k: "night" }); ok(q.ok && q.S.theme === "night", "тема сменилась"); q = await call(A, "theme_set", { k: "xxx" }); ok(!q.ok, "несуществующая тема");
+    q = await call(A, "upd_gift"); ok(q.ok && q.res.sp === 5, "подарок обновления"); q = await call(A, "upd_gift"); ok(!q.ok, "подарок обновления один раз");
+    q = await call(A, "top", { kind: "emp" }); ok(q.ok && q.res.items.length > 0 && q.res.items[0].score > 0, "топ Империй"); }
   // 🍀 оберег удачи + 🏛 зал славы
   { db.prepare("UPDATE users SET cash=100000 WHERE id=?").run(A);
     let q = await call(A, "luck_buy"); ok(q.ok && q.res.paid === 3000 && q.res.until > Date.now() + 35e5 && q.S.cash === 97000, "оберег: 3% монет (" + (q.res && q.res.paid) + ")");

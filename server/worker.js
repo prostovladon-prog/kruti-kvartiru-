@@ -487,11 +487,24 @@ const HW_LUCK=[0,0,1,3,3], FW_LUCK=[0,2,3,3,2];
    Гарант: если 100 прокруток подряд не было ничего лучше Блестящей — 100-я точно Голограмма */
 const LUCK={boost:1.25,dur:36e5,day:3,pct:.03,min:300,pity:100};
 const luckPrice=(st,now)=>{const n=st.luckD===today(now)?(st.luckN||0):0;return Math.round(Math.max(LUCK.min,(st.cash||0)*LUCK.pct)*(n+1))};
+/* 👑 ИМПЕРИЯ: одна цель на всю игру. Каждая карта — воин армии и даёт ⚔️ Мощь (редкость × отделка × уровень × звёзды).
+   Ещё мощь дают коллекции героев и дракон. Мощь поднимает ранг Империи, а ранг открывает бонусы во всех разделах */
+const EMP={rar:[10,25,60,150,400],fin:[1,1.6,3,6,12,15,15,8,14],coll:500,dg:60,
+  R:[{n:"Племя",ic:"⛺",p:0},{n:"Деревня",ic:"🛖",p:600},{n:"Город",ic:"🏘",p:2500},{n:"Крепость",ic:"🏰",p:7000},{n:"Королевство",ic:"👑",p:18000},{n:"Империя",ic:"🏛",p:45000},{n:"Легенда эпох",ic:"🌟",p:120000}],
+  trib:[150,400,1000,2500,6000,15000,40000],tribSp:[0,0,1,1,2,3,5],inc:.05,
+  reg:[2,2,3,3,4,4,5],hof:[0,0,0,1,1,2,2],att:[0,0,0,0,1,1,2]};
+function cardPow(c){const H=HEROES[c.h];if(!H)return 0;const F=EMP.fin[c.f]||1;return Math.round(EMP.rar[H[2]||0]*F*(1+.06*(lvl(c)-1))*(1+.12*(c.stars||0))*(c.part?.5:1))}
+function empPower(st,cards){let p=0;for(const c of cards||[])p+=cardPow(c);p+=hofColl(cards||[])*EMP.coll;if(st&&st.dg)p+=(st.dg.lv||0)*EMP.dg;return p}
+/* 🎨 темы оформления и 🖼 аватар (герой из своей коллекции) */
+const THEMES=[{k:"",n:"Классика",c:["#2f63ff","#1d44c8"]},{k:"night",n:"Ночь",c:["#3a2a8a","#140d3a"]},{k:"royal",n:"Королевская",c:["#8a6410","#2a1a05"]},{k:"forest",n:"Лес",c:["#1f8a55","#0b3a24"]},
+  {k:"fire",n:"Пламя",c:["#c8361a","#4a0d0d"]},{k:"ocean",n:"Океан",c:["#0d8aa8","#062c3a"]},{k:"rose",n:"Роза",c:["#c8268a","#4a0a3a"]},{k:"ice",n:"Лёд",c:["#5ab4e8","#1a4a7a"]}];
+const BIGUPD={id:"nov7",sp:5};
+const empRank=p=>{let r=0;EMP.R.forEach((x,i)=>{if(p>=x.p)r=i});return r};
 /* 🏛 Зал славы: выставленные карточки приносят монеты — 0,5% ценности в час, копится до 12 ч. Собранная коллекция героя (все 4 отделки: обычная, блестящая, голограмма, золотая) — +10% к доходу зала, до +50% */
 const HOF={rate:.005,cap:12*36e5,slots:[2,3,4,5,6],slotP:[0,2000,8000,25000,80000],coll:.1,collMax:.5};
-const hofSlots=st=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)];
+const hofSlots=(st,cards)=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)]+(cards?EMP.hof[empRank(empPower(st,cards))]:0);
 function hofColl(cards){const m={};for(const c of cards)if(c.f<=3)(m[c.h]||(m[c.h]=new Set())).add(c.f);let n=0;for(const k in m)if(m[k].size>=4)n++;return n}
-function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=c.v||0;return v*HOF.rate*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))}
+function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=c.v||0;return v*HOF.rate*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))*(1+EMP.inc*empRank(empPower(st,cards)))}
 function rollCard(ctx,epic){
   const mt=epic===3?3:epic?2:0,pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]>=mt);
   const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
@@ -740,9 +753,13 @@ const ACTIONS={
   /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
   hh_claim(G){const e=hhNow(G.ctx.now);if(!e||e.k!=="gift")fail("Сейчас нет Часа подарков");if(G.st.hhGot===e.at)fail("Подарок этого часа уже забран");G.st.hhGot=e.at;G.st.spins+=3;return {sp:3}},
   seen(G){const k=String(G.p.k||"").slice(0,40);if(!k)fail("Нет ключа");const L=(G.st.seen||[]).filter(x=>x!==k);L.push(k);G.st.seen=L.slice(-60);return {}},
+  ava_set(G){const {st}=G;const h=G.p.h|0;if(h<0){delete st.ava;return {ava:null}}if(!G.cards.some(c=>c.h===h))fail("Аватаром можно поставить только воина из своей коллекции");st.ava=h;return {ava:h}},
+  theme_set(G){const {st}=G;const k=String(G.p.k||"");if(!THEMES.some(t=>t.k===k))fail("Нет такой темы");st.theme=k;return {theme:k}},
+  upd_gift(G){const {st}=G;if(st.updG===BIGUPD.id)fail("Подарок обновления уже получен");st.updG=BIGUPD.id;st.spins=(st.spins||0)+BIGUPD.sp;return {sp:BIGUPD.sp}},
+  emp_trib(G){const {st,ctx}=G;const d=today(ctx.now);if(st.empD===d)fail("Дань уже собрана — приходи завтра");const r=empRank(empPower(st,G.cards));st.empD=d;earn(st,EMP.trib[r]);if(EMP.tribSp[r])st.spins=(st.spins||0)+EMP.tribSp[r];return {cash:EMP.trib[r],sp:EMP.tribSp[r],r}},
   luck_buy(G){const {st,ctx}=G;const d=today(ctx.now);if(st.luckD!==d){st.luckD=d;st.luckN=0}if(st.luckN>=LUCK.day)fail("Сегодня обереги закончились — приходи завтра");
     const pr=luckPrice(st,ctx.now);pay(st,pr);st.luckN++;st.luckU=Math.max(st.luckU||0,ctx.now)+LUCK.dur;return {until:st.luckU,paid:pr,left:LUCK.day-st.luckN}},
-  hof_set(G){const {st}=G;const ids=[...new Set((G.p.ids||[]).map(x=>x|0))].slice(0,hofSlots(st));const own=new Set(G.cards.map(c=>c.id));
+  hof_set(G){const {st}=G;const ids=[...new Set((G.p.ids||[]).map(x=>x|0))].slice(0,hofSlots(st,G.cards));const own=new Set(G.cards.map(c=>c.id));
     for(const i of ids)if(!own.has(i))fail("Это не твоя карточка");hofClaim(G);st.hof=ids;return {hof:ids,rate:hofRate(st,G.cards)}},
   hof_claim(G){const g=hofClaim(G);if(g<1)fail("Зал ещё ничего не заработал");return {got:g}},
   hof_slot(G){const {st}=G;const L=st.hofL||0;if(L>=HOF.slots.length-1)fail("Все места в зале открыты");pay(st,HOF.slotP[L+1]);st.hofL=L+1;return {slots:hofSlots(st)}},
@@ -1174,7 +1191,7 @@ function mapGive(G,R){const {st,ctx}=G,o={};if(R.sp){st.spins+=R.sp;o.sp=R.sp}if
   if(R.leg){const pool=HEROES.map((H,k)=>k).filter(k=>isBase(k)&&HEROES[k][2]===3);const c=makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],0);c.how="pass";G.cards.push(c);noteCard(st,c);o.card=c}
   if(R.flag){st.mflags=st.mflags||[];if(!st.mflags.includes(R.flag))st.mflags.push(R.flag);st.mflagOn=R.flag;o.flag=R.flag}return o}
 Object.assign(ACTIONS,{
-  map_use(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);if(A.used>=MAP.att+A.extra)fail("Атаки на сегодня закончились"+(A.packs<MAP.packMax?" — можно купить ещё "+MAP.pack:" — новые завтра"));A.used++;return {left:MAP.att+A.extra-A.used}},
+  map_use(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);if(A.used>=MAP.att+A.extra+EMP.att[empRank(empPower(G.st,G.cards))])fail("Атаки на сегодня закончились"+(A.packs<MAP.packMax?" — можно купить ещё "+MAP.pack:" — новые завтра"));A.used++;return {left:MAP.att+A.extra-A.used}},
   map_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.cash)earn(st,p.cash);if(p.runes)camp(st,ctx.now).runes+=p.runes;if(p.pts){const P=mapPass(st,ctx.now);P.pts+=p.pts}return {}},
   mpack_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const A=mapAtt(G.st,G.ctx.now);A.extra+=MAP.pack;A.packs++;return {extra:A.extra}},
   mpass_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const P=mapPass(G.st,G.ctx.now);P.prem=1;return {}},
@@ -1182,7 +1199,7 @@ Object.assign(ACTIONS,{
     if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
   mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
   mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
-if(typeof module!=="undefined")module.exports={DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={BIGUPD,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,UPD,LUCK,luckPrice,HOF,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -1216,7 +1233,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=57;const NEWB_MS=3*864e5;
+const SCHEMA_V=58;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1297,7 +1314,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS sday (d TEXT PRIMARY KEY, uid INTEGER NOT NULL, pid INTEGER, t INTEGER)",
  "CREATE TABLE IF NOT EXISTS promo (code TEXT PRIMARY KEY, sp INTEGER NOT NULL DEFAULT 0, cash INTEGER NOT NULL DEFAULT 0, mx INTEGER NOT NULL DEFAULT 0, until INTEGER NOT NULL DEFAULT 0, created INTEGER, off INTEGER NOT NULL DEFAULT 0, x2 INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS promo_uses (code TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, x2 INTEGER NOT NULL DEFAULT 0, x2d INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(code,uid))",
  "CREATE TABLE IF NOT EXISTS map_reg (id INTEGER PRIMARY KEY, owner INTEGER, card INTEGER, since INTEGER, claim_at INTEGER, shield INTEGER NOT NULL DEFAULT 0, def_n INTEGER NOT NULL DEFAULT 0, statue INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS map_photo (uid INTEGER PRIMARY KEY, img TEXT, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE TABLE IF NOT EXISTS map_log (id INTEGER PRIMARY KEY AUTOINCREMENT, rid INTEGER, att INTEGER, def INTEGER, win INTEGER, t INTEGER)",
- "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)","CREATE TABLE IF NOT EXISTS ep_vote (vid TEXT NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER, PRIMARY KEY(vid,uid))","CREATE TABLE IF NOT EXISTS ep_vote_soc (vid TEXT NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(vid,uid))","ALTER TABLE promo ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN owner2 INTEGER","ALTER TABLE hype ADD COLUMN big INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN hof_note INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN claim2_at INTEGER","ALTER TABLE promo_uses ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0"];
+ "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)","CREATE TABLE IF NOT EXISTS ep_vote (vid TEXT NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER, PRIMARY KEY(vid,uid))","CREATE TABLE IF NOT EXISTS ep_vote_soc (vid TEXT NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(vid,uid))","ALTER TABLE promo ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN owner2 INTEGER","ALTER TABLE hype ADD COLUMN big INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN hof_note INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN emp INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN claim2_at INTEGER","ALTER TABLE promo_uses ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -1588,8 +1605,10 @@ async function stateFor(env,me){
     if(nd)q.push(bump(env,"dau"),env.DB.prepare("INSERT OR IGNORE INTO user_days(uid,d) VALUES(?,?)").bind(me.id,td));try{await env.DB.batch(q)}catch(e){}}
   // числа для мирового топа: обновляем, только если изменились
   const worth=Math.round(cards.reduce((a,c)=>a+c.v,0)*100)/100,album=new Set(cards.filter(c=>c.h<NBASE).map(c=>c.h)).size,wins=S.totalWins||0;
-  if(Math.abs((u.worth||0)-worth)>.004||(u.album||0)!==album||(u.wins||0)!==wins)
-    await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=? WHERE id=?").bind(worth,album,wins,me.id).run();
+  const emp=empPower(S,cards);S.emp=emp;
+  if(Math.abs((u.worth||0)-worth)>.004||(u.album||0)!==album||(u.wins||0)!==wins||(u.emp||0)!==emp){
+    await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=?,emp=? WHERE id=?").bind(worth,album,wins,emp,me.id).run();
+    const r0=empRank(u.emp||0),r1=empRank(emp);if(r1>r0&&r1>=3&&(u.emp||0)>0)try{await hypeAdd(env,me.id,EMP.R[r1].ic+" поднял Империю до ранга «"+EMP.R[r1].n+"»!",r1>=4)}catch(e){}}
   return S;
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
@@ -1692,7 +1711,7 @@ async function cardInfo(env,p){
 
 /* ---------- мировой топ и лента выпадений ----------
    Списки общие для всех, поэтому держим их в памяти воркера 60 секунд, чтобы не нагружать базу. */
-const BOARDS={worth:"worth",album:"album",wins:"wins"};
+const BOARDS={worth:"worth",album:"album",wins:"wins",emp:"emp"};
 let topCache={};
 async function cached(key,ms,fn){const c=topCache[key];if(c&&Date.now()-c.t<ms)return c.v;const v=await fn();topCache[key]={t:Date.now(),v};return v}
 async function top(env,me,p){
@@ -1711,9 +1730,9 @@ async function top(env,me,p){
   }
   const col=BOARDS[kind];if(!col)fail("Нет такого рейтинга");
   const items=await cached(kind,60e3,async()=>{
-    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
+    const rows=(await env.DB.prepare(`SELECT id,COALESCE(nick,name) AS name,pioneer AS pi,vip_until AS vu,${col} AS score,json_extract(state,'$.ava') AS ava FROM users WHERE ${col}>0 ORDER BY ${col} DESC LIMIT 50`).all()).results;
     const out=[];for(const r of rows){const b=await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();
-      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,card:b?pub(rowToCard(b)):null})}return out});
+      out.push({uid:r.id,name:r.name||"Игрок",pi:r.pi||0,vip:(r.vu||0)>Date.now()?1:0,score:r.score,ava:r.ava==null?null:+r.ava,card:b?pub(rowToCard(b)):null})}return out});
   const mine=await env.DB.prepare(`SELECT ${col} AS score FROM users WHERE id=?`).bind(me.id).first();
   const score=mine?mine.score:0;
   const rank=score>0?(await env.DB.prepare(`SELECT COUNT(*)+1 AS n FROM users WHERE ${col}>?`).bind(score).first()).n:null;
@@ -2519,6 +2538,7 @@ async function mapAlAttack(env,me,rid,now){const m=await alMate(env,me.id);if(!m
     if(R&&R.owner)for(const u of [R.owner,R.owner2])if(u)try{await notify(env,u,"⚔️ Ваш союз потерял крепость «"+MAP_R[rid][0]+"»! Отбейте её вместе с напарником","🗺 На карту",PAGE+"?map=1")}catch(e){}}
   else if(R&&R.owner)await env.DB.prepare("UPDATE map_reg SET def_n=def_n+1 WHERE id=?").bind(rid).run();
   return {ally:1,won:win,rid,pa,pb,ch:Math.round(ch*100),rounds,me:{c:A1.c,pw:A1.pw},mate:{c:A2.c,pw:A2.pw},opp}}
+async function empR(env,uid){return empRank(((await env.DB.prepare("SELECT emp FROM users WHERE id=?").bind(uid).first())||{}).emp||0)}
 async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
   const U=async()=>{const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();return JSON.parse((u&&u.state)||"{}")};
   if(a==="map_get"){const R=await mapRegions(env),ids=R.filter(r=>r.card).map(r=>r.card),cards={};
@@ -2527,11 +2547,11 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=mapInc(r.id);cash+=Math.floor(I.c*h);runes+=Math.floor(I.r*h)}
     const ph=await env.DB.prepare("SELECT st FROM map_photo WHERE uid=?").bind(me.id).first();
     return {now,dgp:st.dg?{pow:mapDgPow(st.dg),el:dgEl(st.dg)}:null,regs:R.map(r=>({id:r.id,owner:r.owner,oname:r.oname,owner2:r.owner2||0,oname2:r.oname2||"",flag:r.flag||"",ph:r.ph===1?1:0,card:cards[r.card]||null,dg:mapDgLook(r.dgj),shield:r.shield>now?r.shield:0,def_n:r.def_n,statue:r.statue?1:0,since:r.since})),
-      att:{left:MAP.att+A.extra-A.used,packs:A.packs},inc:{cash,runes},z1:(st.nOp||0)>=MAP.z1Spins,z2:!!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage),ph:ph?ph.st:-1}}
+      att:{left:MAP.att+A.extra+EMP.att[await empR(env,me.id)]-A.used,packs:A.packs},regMax:EMP.reg[await empR(env,me.id)],inc:{cash,runes},z1:(st.nOp||0)>=MAP.z1Spins,z2:!!(st.dg&&dgStage(st.dg.lv)>=MAP.z2Stage),ph:ph?ph.st:-1}}
   if(a==="map_claim"){const mine=(await env.DB.prepare("SELECT * FROM map_reg WHERE owner=? OR owner2=?").bind(me.id,me.id).all()).results;let cash=0,runes=0,n=0;
     for(const r of mine){const two=r.owner!==me.id,ca=two?(r.claim2_at||r.since):(r.claim_at||r.since),h=Math.min(MAP.capH,(now-ca)/36e5),I=mapInc(r.id),half=MAP_Z(r.id)===4?.5:1;const c=Math.floor(I.c*h*half),q=Math.floor(I.r*h*half);if(c<=0)continue;
       const u=await env.DB.prepare(two?"UPDATE map_reg SET claim2_at=? WHERE id=? AND owner2=? AND COALESCE(claim2_at,since)=?":"UPDATE map_reg SET claim_at=? WHERE id=? AND owner=? AND COALESCE(claim_at,since)=?").bind(now,r.id,me.id,ca).run();if(u.meta.changes===1){cash+=c;runes+=q;if(h>=1)n++}}
-    if(!cash&&!runes)fail("Доход ещё не накопился");await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});try{await kingCut(env,cash)}catch(e){}return {cash,runes}}
+    if(!cash&&!runes)fail("Доход ещё не накопился");{const k=1+EMP.inc*(await empR(env,me.id));cash=Math.floor(cash*k);runes=Math.floor(runes*k)}await doAction(env,me,"map_grant",{cash,runes,pts:n*MPASS.pts.claim},{grant:true});try{await kingCut(env,cash)}catch(e){}return {cash,runes}}
   if(a==="map_leave"){const rid=p.rid|0,r=await env.DB.prepare("SELECT * FROM map_reg WHERE id=? AND (owner=? OR owner2=?)").bind(rid,me.id,me.id).first();if(!r)fail("Это не твой регион");
     await env.DB.prepare("DELETE FROM map_reg WHERE id=?").bind(rid).run();await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE id=? AND owner=?").bind(r.card,me.id).run();return {rid}}
   if(a==="map_attack"){const rid=p.rid|0;if(rid<0||rid>=MAP_R.length)fail("Нет такого региона");const z=MAP_Z(rid),st=await U();if(z===3)return mapDgAttack(env,me,rid,st,p,now);if(z===4)return mapAlAttack(env,me,rid,now);
@@ -2539,7 +2559,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();if(!c)fail("Выбери свою карточку");
     if(c.away||c.list_price!=null||c.room_id||c.part||c.f>=5)fail("Эта карточка сейчас недоступна для боя");if(z===0&&HEROES[c.h][2]>1)fail("На «Окраины» можно только обычных и редких воинов — дай шанс новичкам");
     const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner===me.id)fail("Это уже твой регион");
-    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND (id<50 OR id BETWEEN 68 AND 87)").bind(me.id).first())||{}).n||0;if(myN>=MAP.max)fail("У тебя уже "+MAP.max+" региона — это максимум. Оставь один, чтобы занять новый");
+    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND (id<50 OR id BETWEEN 68 AND 87)").bind(me.id).first())||{}).n||0;const er=await empR(env,me.id),mx=EMP.reg[er];if(myN>=mx)fail("У тебя уже "+mx+" рег. — максимум для ранга «"+EMP.R[er].n+"». Подними Империю, чтобы держать больше"+(er<EMP.R.length-1?"":""));
     if(R&&R.shield>now)fail("Регион под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
     if(R&&R.owner&&rid!==KING.throne){const ou=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(R.owner).first();if(ou&&ou.created>now-NEWB_MS)fail("🌱 Хозяин — новичок: первые 3 дня его регионы под защитой. Выбери другой регион")}
     const occupy=async()=>{const ok=await env.DB.prepare("UPDATE cards SET away=1,dest=? WHERE id=? AND owner=? AND away=0 AND list_price IS NULL AND room_id IS NULL").bind("map:"+rid,c.id,me.id).run();if(ok.meta.changes!==1)fail("Карточка занята");
