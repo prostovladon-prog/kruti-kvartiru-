@@ -2244,6 +2244,23 @@ const P200={code:"ВОИН200",bon:200,until:Date.UTC(2026,10,6,20,59,59),id:"p2
   chan:"⭐ ТОЛЬКО СЕГОДНЯ: +200 ЗВЁЗД В ПОДАРОК!\n\nПополни игровой баланс на любую сумму — и получи сверху ещё 200 ⭐ бесплатно.\n\n🎟 Промокод: ВОИН200\nДействует до 23:59 — потом всё 🔥\n\n👉 @VoinyEpohBot",
   dm:"⭐ Воин, сегодня подарок!\n\nПополняешь игровой баланс на любую сумму — получаешь +200 ⭐ сверху бесплатно.\n\n🎟 Вводи промокод ВОИН200 в «Ещё → Промокод», потом пополняй баланс в «Донат и понт».\n⏳ Только до 23:59!"};
 let p200Busy=false;
+/* 🔥 Большое обновление 2.0: пост с фото в канал + рассылка в бота. Включается флагом on:true (после согласования с Владом) */
+const BLAST2={id:"upd2_0711",on:false,photo:"assets/post-update2.jpg",btn:"🎁 Забрать подарок",link:"?upd=1",
+  chan:"🔥 БОЛЬШОЕ ОБНОВЛЕНИЕ — ВОИНЫ ЭПОХ 2.0!\n\n👑 Империя — каждая карта теперь воин твоей армии. Расти от Племени до Легенды эпох и собирай дань каждый день\n🚀 Ракетка онлайн — один полёт на всех, забери до взрыва\n🐉 Земля драконов и 🤝 Земли союзов — новые земли для захвата\n💎 Алмазная серия — 51 редчайшая карта + 11 новых героев\n🏛 Зал славы, 💣 Сапёр, джекпот, музыка, темы и аватарки\n\n🎁 Всем подарок — 5 прокруток! Заходи и забирай 👇\n👉 @VoinyEpohBot",
+  dm:"🔥 Воин, вышло БОЛЬШОЕ обновление!\n\n👑 Твоя Империя, 🚀 ракетка онлайн, 🐉 Земля драконов, 🤝 захват земель вдвоём, 💎 алмазные карты и ещё куча всего.\n\n🎁 Тебя ждёт подарок — 5 прокруток. Заходи забрать!"};
+let b2Busy=false;
+async function blast2Tick(env){if(!BLAST2.on||b2Busy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();b2Busy=true;
+  try{const k="blast:"+BLAST2.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(st.done&&st.ch)return;
+    if(!st.ch&&st.chn<20&&now-st.cht>30e3){st.chn++;st.cht=now;await kvSet(env,k,st);const kb={inline_keyboard:[[{text:BLAST2.btn,url:"https://t.me/VoinyEpohBot"}]]};
+      let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
+      if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
+      if(!r.ok&&st.chn>=6)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:BLAST2.chan,reply_markup:kb});
+      if(r.ok){st.ch=1;await kvSet(env,k,st)}else console.error("blast2 chan",st.chn,r.description)}
+    if(st.done)return;const photo="https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo;
+    const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
+    for(const u of us){if(await notify(env,u.id,BLAST2.dm,BLAST2.btn,PAGE+BLAST2.link,photo))st.n++;st.after=u.id}
+    if(us.length<25){st.done=1;for(const a of ADMINS)await notify(env,a,"✅ Большое обновление: рассылка ушла "+st.n+" игрокам"+(st.ch?", пост в канале вышел":", пост в канал пока не вышел — пробую ещё")+".","⚔️ Открыть")}
+    await kvSet(env,k,st)}finally{b2Busy=false}}
 async function p200Tick(env){const now=Date.now();if(now>=P200.until)return;if(!(await cached("p200c",60e3,()=>kvGet(env,"p200code")))){
     await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon) VALUES(?,0,0,0,?,?,0,0,?)").bind(P200.code,P200.until,now,P200.bon).run();await kvSet(env,"p200code",{t:now});delete topCache.p200c}
   if(p200Busy||!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;p200Busy=true;
@@ -2301,7 +2318,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };

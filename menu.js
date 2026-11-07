@@ -1176,3 +1176,5 @@ function updOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const got=S&
   const g=$("upd-gift");if(g&&!got)g.onclick=async()=>{g.disabled=true;const r=await act("upd_gift");if(r){try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}hapN("success");try{sfx.fanfare();burst(5)}catch(e){}toast("🎁 +"+r.sp+" прокруток — удачи!");updCash&&updCash();setTimeout(()=>{closeModal();try{renderAll()}catch(e){}},900)}else g.disabled=false}}
 /* показать один раз после загрузки */
 {const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||$("onb")||document.querySelector(".hhpop"))return;let seen="";try{seen=localStorage.getItem("we-upd")}catch(e){}if(seen===BIGUPD.id||S.updG===BIGUPD.id){clearInterval(t);return}if(!$("modal").hidden)return;clearInterval(t);updI=0;updOpen()},1200)}
+
+if(new URLSearchParams(location.search).get("upd")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);setTimeout(()=>{updI=0;updOpen()},400)},500)}
