@@ -591,8 +591,8 @@ const MN={min:1e3,max:5e4,n:[1,3,5,10],ret:.96,size:25};
 const mnM=(mines,k)=>{let m=MN.ret;for(let i=0;i<k;i++)m*=(MN.size-i)/(MN.size-mines-i);return Math.floor(m*100)/100};
 /* 🎰 Джекпот: 1% всех ставок казино копится в общий банк, его срывает тот, кто выбьет 💎💎💎 в слотах. Кешбэк: 10% вчерашнего минуса в казино (до 50 000 рун) */
 const JP={cut:.01,seed:1e5},CSB={pct:.1,max:5e4};
-/* 🚀 Ракетка: множитель растёт e^(k·t), взрыв в случайный момент. P(дожить до ×x)=0.96/x — честные 96% отдачи */
-const RKT={min:1e3,max:5e4,k:.11,cap:100,ret:.96,bet:8e3,pause:4e3},rkM=ms=>Math.min(RKT.cap,Math.floor(100*Math.exp(RKT.k*Math.max(0,ms)/1e3))/100),rkCr=()=>{const u=Math.random();return Math.max(1,Math.min(RKT.cap,Math.floor(100*RKT.ret/(1-u))/100))};
+/* 🚀 Ракетка: множитель растёт e^(k·t), взрыв в случайный момент. P(дожить до ×x)=0.92/x — 92% отдачи */
+const RKT={min:1e3,max:5e4,k:.11,cap:100,ret:.92,bet:8e3,pause:4e3},rkM=ms=>Math.min(RKT.cap,Math.floor(100*Math.exp(RKT.k*Math.max(0,ms)/1e3))/100),rkCr=()=>{const u=Math.random();return Math.max(1,Math.min(RKT.cap,Math.floor(100*RKT.ret/(1-u))/100))};
 function rkEnd(st,ctx,K,take){const R=K.rk,m=rkM(ctx.now-R.t0);let w=0,at=R.cr;if(R.auto&&R.auto<R.cr&&m>=R.auto){w=Math.floor(R.b*R.auto);at=R.auto}else if(take&&m<R.cr){w=Math.floor(R.b*m);at=m}
   K.rk=null;if(w)camp(st,ctx.now).runes+=w;return {end:1,cr:R.cr,at,win:w,b:R.b}}
 /* обмен монет на руны пакетами по 10 000 💠. Цена — процент от монет игрока: 1-й пакет за день 1%, 2-й 2% … 5-й 5% (не меньше 1 000 🪙).

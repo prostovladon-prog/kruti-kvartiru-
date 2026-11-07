@@ -957,7 +957,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     db.prepare("UPDATE roc_round SET ct=? WHERE id=?").run(Date.now() - 10000, R.id); q = await call(A, "roc_state"); ok(q.res.id === R.id + 1 && q.res.ph === "bet" && q.res.hist[0] === 50, "новый раунд, в истории ×50");
     q = await call(A, "roc_bet", { bet: 1000 }); const R2 = rr(); db.prepare("UPDATE roc_round SET fs=?,cr=1.5,ct=? WHERE id=?").run(Date.now() - 10000, Date.now() - 1000, R2.id);
     q = await call(A, "roc_out"); ok(!q.ok && /взорвалась/.test(q.err), "после взрыва ставка сгорела");
-    let sum = 0; for (let i = 0; i < 20000; i++) { const u = Math.random(), cr = Math.max(1, Math.min(100, Math.floor(96 / (1 - u)) / 100)); if (cr >= 2) sum += 2 } ok(Math.abs(sum / 20000 - .96) < .03, "отдача ≈ 96%"); }
+    let sum = 0; for (let i = 0; i < 20000; i++) { const u = Math.random(), cr = Math.max(1, Math.min(100, Math.floor(92 / (1 - u)) / 100)); if (cr >= 2) sum += 2 } ok(Math.abs(sum / 20000 - .92) < .03, "отдача ≈ 92%"); }
   // голем
   r = await buy(A, { item: "golem" }); ok(r.ok && r.res.status === "done" && r.S.golemUntil > Date.now() + 6 * 864e5, "голем на неделю куплен");
   r = await call(A, "camp_tap", { n: 1 }); ok(r.ok && r.S.camp.gm === 1, "с големом энергии в 2 раза больше");
