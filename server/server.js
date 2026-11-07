@@ -1223,7 +1223,7 @@ async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;i
 async function mapSeason(env,now){const m=mapMon(now),k=await cached("mapseason",60e3,()=>kvGet(env,"map_season"));if(k&&k.m===m)return;
   if(k&&k.m!==m){await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%'").run();await env.DB.prepare("DELETE FROM map_reg").run()}
   await kvSet(env,"map_season",{m});delete topCache.mapseason}
-async function mapRegions(env){return (await env.DB.prepare("SELECT r.*,COALESCE(u.nick,u.name) AS oname,json_extract(u.state,'$.mflagOn') AS flag,(SELECT st FROM map_photo p WHERE p.uid=r.owner) AS ph,CASE WHEN r.id>=50 AND r.id<60 THEN json_extract(u.state,'$.dg') END AS dgj,COALESCE(u2.nick,u2.name) AS oname2 FROM map_reg r LEFT JOIN users u ON u.id=r.owner LEFT JOIN users u2 ON u2.id=r.owner2").all()).results}
+async function mapRegions(env){return (await env.DB.prepare("SELECT r.*,COALESCE(u.nick,u.name) AS oname,json_extract(u.state,'$.mflagOn') AS flag,(SELECT st FROM map_photo p WHERE p.uid=r.owner) AS ph,CASE WHEN (r.id BETWEEN 50 AND 59 OR r.id BETWEEN 88 AND 96) THEN json_extract(u.state,'$.dg') END AS dgj,COALESCE(u2.nick,u2.name) AS oname2 FROM map_reg r LEFT JOIN users u ON u.id=r.owner LEFT JOIN users u2 ON u2.id=r.owner2").all()).results}
 /* ---------- 👑 Король мира: кандидаты недели (топ-5 завоевателей) → голосование в воскресенье → корона на неделю ---------- */
 const KING={cand:5,minSpins:20,cut:.05,cutThrone:.10,throne:0,pts:{occ:3,cap:5,def:2,hold:3}};
 const mskDow=now=>(new Date(now+3*3600e3).getUTCDay()+6)%7;   // 0 — понедельник, 6 — воскресенье
@@ -1276,7 +1276,7 @@ const mapDgPow=D=>Math.round(dgPower(D)*(1+dgGemB(D,"ameth")));
 function mapDgLook(j){let D=null;try{D=j?JSON.parse(j):null}catch(e){}if(!D)return null;return {b:D.b|0,lv:D.lv|0,skin:D.skin||null,evo:D.evo||null,dn:D.name||"",pow:mapDgPow(D),el:dgEl(D)}}
 async function mapDgAttack(env,me,rid,st,p,now){const myD=st.dg;if(!myD||!(dgPower(myD)>0))fail("В Землю драконов пускают только с драконом — сначала выведи своего 🐉");
   const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner===me.id)fail("Это уже твоё логово");
-  const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND id>=50 AND id<60").bind(me.id).first())||{}).n||0;if(myN>=MAP.dmax)fail("Твой дракон уже охраняет логово — один дракон держит одно логово. Покинь его, чтобы занять новое");
+  const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND (id BETWEEN 50 AND 59 OR id BETWEEN 88 AND 96)").bind(me.id).first())||{}).n||0;if(myN>=MAP.dmax)fail("Твой дракон уже охраняет логово — один дракон держит одно логово. Покинь его, чтобы занять новое");
   if(R&&R.owner&&R.shield>now)fail("Логово под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
   const tac=String(p.tac||""),mp=mapDgPow(myD),look=D=>({b:D.b|0,lv:D.lv|0,skin:D.skin||null,evo:D.evo||null,dn:D.name||""});
   const occupy=async old=>{const q=old?env.DB.prepare("UPDATE map_reg SET owner=?,card=NULL,since=?,claim_at=?,shield=?,def_n=0,statue=0 WHERE id=? AND owner=?").bind(me.id,now,now,now+MAP.dshield,rid,old)
@@ -1317,7 +1317,7 @@ async function alApi(env,me,a,p){const now=Date.now();
   fail("Неизвестное действие")}
 async function mapAlAttack(env,me,rid,now){const m=await alMate(env,me.id);if(!m)fail("Земли союзов берут только вдвоём — сначала найди напарника");
   const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner&&(R.owner===me.id||R.owner2===me.id))fail("Это уже ваша крепость");
-  const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE id>=? AND (owner IN (?,?) OR owner2 IN (?,?))").bind(AL0,me.id,m,me.id,m).first())||{}).n||0;if(myN>=MAP.amax)fail("Ваш союз уже держит крепость. Одна пара — одна крепость");
+  const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE (id BETWEEN 60 AND 67 OR id BETWEEN 97 AND 104) AND (owner IN (?,?) OR owner2 IN (?,?))").bind(me.id,m,me.id,m).first())||{}).n||0;if(myN>=MAP.amax)fail("Ваш союз уже держит крепость. Одна пара — одна крепость");
   if(R&&R.owner&&R.shield>now)fail("Крепость под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
   const A1=await alBest(env,me.id),A2=await alBest(env,m),pa=A1.pw+A2.pw;if(!A1.pw||!A2.pw)fail("У обоих союзников должна быть боевая карточка");
   let pb,opp;if(R&&R.owner){await doAction(env,me,"map_use",{},{grant:true});const B1=await alBest(env,R.owner),B2=R.owner2?await alBest(env,R.owner2):{pw:0,c:null},fat=Math.min(MAP.afatMax,MAP.afat*(R.def_n||0));
@@ -1352,7 +1352,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();if(!c)fail("Выбери свою карточку");
     if(c.away||c.list_price!=null||c.room_id||c.part||c.f>=5)fail("Эта карточка сейчас недоступна для боя");if(z===0&&HEROES[c.h][2]>1)fail("На «Окраины» можно только обычных и редких воинов — дай шанс новичкам");
     const R=await env.DB.prepare("SELECT * FROM map_reg WHERE id=?").bind(rid).first();if(R&&R.owner===me.id)fail("Это уже твой регион");
-    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND id<50").bind(me.id).first())||{}).n||0;if(myN>=MAP.max)fail("У тебя уже "+MAP.max+" региона — это максимум. Оставь один, чтобы занять новый");
+    const myN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM map_reg WHERE owner=? AND (id<50 OR id BETWEEN 68 AND 87)").bind(me.id).first())||{}).n||0;if(myN>=MAP.max)fail("У тебя уже "+MAP.max+" региона — это максимум. Оставь один, чтобы занять новый");
     if(R&&R.shield>now)fail("Регион под щитом ещё "+Math.ceil((R.shield-now)/60e3)+" мин");
     if(R&&R.owner&&rid!==KING.throne){const ou=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(R.owner).first();if(ou&&ou.created>now-NEWB_MS)fail("🌱 Хозяин — новичок: первые 3 дня его регионы под защитой. Выбери другой регион")}
     const occupy=async()=>{const ok=await env.DB.prepare("UPDATE cards SET away=1,dest=? WHERE id=? AND owner=? AND away=0 AND list_price IS NULL AND room_id IS NULL").bind("map:"+rid,c.id,me.id).run();if(ok.meta.changes!==1)fail("Карточка занята");

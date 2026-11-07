@@ -992,7 +992,7 @@ function qLoop(){qRaf=0;if(!qOn())return;qRaf=requestAnimationFrame(qLoop);const
   if(ship){ship.style.left=(4+X*90)+"%";ship.style.top=(94-Y*83)+"%";ship.style.transform="rotate("+(-25-Y*20)+"deg)"}
   if(p){let d="M0 178";for(let k=1;k<=20;k++){const ss=s*k/20,mm=Math.exp(RKT.k*ss);d+=" L"+(12+Math.min(1,ss/22)*270).toFixed(1)+" "+(170-Math.min(1,Math.log(mm)/Math.log(30))*150).toFixed(1)}p.setAttribute("d",d)}
   const tk=$("rk-take");if(tk&&r.my)tk.textContent="💰 ЗАБРАТЬ "+fmtN(Math.floor(r.my.b*Math.floor(m*100)/100))+" 💠"}
-async function qBet(){if(qBusy)return;if(campView().runes<csBet){toast("Нужно ещё "+fmtN(csBet-campView().runes)+" рун — потренируйся в лагере");return}qBusy=true;
+async function qBet(){if(qBusy)return;if(campView().runes<csBet){toast("💠 Не хватает рун: нужно ещё "+fmtN(csBet-campView().runes)+". Обменяй монеты на руны вверху казино или выбери ставку меньше");try{const x=document.querySelector("#sec-cas .cs-ex,#sec-cas [id*=ex]");x&&x.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}return}qBusy=true;
   const r=await act("roc_bet",{bet:csBet,auto:qAuto});qBusy=false;if(r){ROQ=r;qOff=r.now-Date.now();hap("heavy");csBal();renderCas()}}
 async function qOut(){if(qBusy)return;qBusy=true;const b=$("rk-take");if(b)b.disabled=true;const r=await act("roc_out");qBusy=false;if(r){ROQ=r;const my=r.my;if(my&&my.out_m!=null){try{sfx.fanfare();hapN("success");if(my.out_m>=5)burst(3)}catch(e){}toast("💰 +"+fmtN(my.win)+" 💠 на "+qFmt(my.out_m))}csBal();renderCas()}else if(b)b.disabled=false}
 /* ===================== 🔥 БЕГУЩАЯ СТРОКА: крутые выпадения у всех ===================== */

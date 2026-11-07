@@ -525,8 +525,8 @@ function dgWishBar(){const D=dgOf(),pb=$("dgplay");let b=$("dgwish");if(!D||!pb|
 setInterval(()=>{try{dgWishBar()}catch(e){}},1500);
 {const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{dgWishBar()}catch(e){}}}
 /* ===================== 🐉 Земля драконов на карте мира: логова держат только драконы ===================== */
-const DGL_R=44;
-const DGL_CELLS=(()=>{const R=DGL_R,W=Math.sqrt(3)*R,cx=195,cy=246,o=[[0,0],[W,0],[W/2,-1.5*R],[-W/2,-1.5*R],[-W,0],[-W/2,1.5*R],[W/2,1.5*R],[0,-3*R],[-1.5*W,1.5*R],[1.5*W,1.5*R]];return o.map(([x,y])=>({x:cx+x,y:cy+y}))})();
+const DGL_R=31;
+const DGL_CELLS=hexIsland(MAP_DG.length,DGL_R,195,246).map((p,k)=>({...p,id:MAP_DG[k]}));
 function dgLandSVG(){const R=DGL_R,regs={};(MD.regs||[]).forEach(r=>regs[r.id]=r);const me=S.uid,col=u=>u===me?"#ffd23f":`hsl(${(u*2654435761>>>0)%360},85%,60%)`,lk=!MD.dgp;
   let h=`<defs><radialGradient id="dls" cx=".5" cy=".55" r=".75"><stop offset="0" stop-color="#5a1206"/><stop offset=".55" stop-color="#2a0806"/><stop offset="1" stop-color="#0c0204"/></radialGradient>
    <radialGradient id="dlg"><stop offset="0" stop-color="#ff7a1a" stop-opacity=".75"/><stop offset="1" stop-color="#ff3a00" stop-opacity="0"/></radialGradient>
@@ -541,21 +541,21 @@ function dgLandSVG(){const R=DGL_R,regs={};(MD.regs||[]).forEach(r=>regs[r.id]=r
    <text x="18" y="452" font-size="26">🌋</text><text x="342" y="452" font-size="24">🌋</text><text x="330" y="44" font-size="20" class="dl-fly">🐉</text><text x="22" y="40" font-size="16" class="dl-fly b">🐲</text>`;
   DGL_CELLS.forEach(p=>{h+=`<polygon points="${hexP(p.x,p.y+5,R+6)}" fill="#120404" opacity=".85"/><polygon points="${hexP(p.x,p.y+3,R+4)}" fill="#ff5a14" opacity=".35" filter="url(#dlb)"/>`});
   let fl="";
-  DGL_CELLS.forEach((p,k)=>{const i=DGL0+k,o=regs[i],M=MAP_R[i],thr=i===DGL_THRONE,mine=o&&o.owner===me;
+  DGL_CELLS.forEach(p=>{const i=p.id,o=regs[i],M=MAP_R[i],thr=i===DGL_THRONE,mine=o&&o.owner===me;
     h+=`<g data-rg="${i}" style="cursor:pointer"><polygon points="${hexP(p.x,p.y,R-1)}" fill="url(#${thr?"dlt":"dlh"})" stroke="${o&&o.owner?col(o.owner):"#ff9a5a"}" stroke-opacity="${o&&o.owner?1:.55}" stroke-width="${o&&o.owner?3.5:1.4}" opacity="${lk?.72:1}"/>
      <polygon points="${hexP(p.x,p.y-1,R-7)}" fill="none" stroke="#ffd9a8" stroke-opacity=".2"/>${i===mapSel?`<polygon points="${hexP(p.x,p.y,R+2)}" fill="none" stroke="#fff" stroke-width="4"/>`:""}
-     <text x="${p.x}" y="${p.y+4}" font-size="${thr?28:22}" text-anchor="middle">${o&&o.owner?"🐉":M[1]}</text>
-     <text x="${p.x}" y="${p.y+24}" font-size="7.6" font-weight="900" fill="#fff" stroke="#2a0604" stroke-width="2.2" paint-order="stroke" text-anchor="middle">${M[0].length>12?M[0].split(" ")[0]:M[0]}</text>
-     ${o&&o.dg?`<text x="${p.x}" y="${p.y-17}" font-size="7.4" font-weight="900" fill="#ffd23f" stroke="#2a0604" stroke-width="2" paint-order="stroke" text-anchor="middle">⚡${fmtN(o.dg.pow)}</text>`:""}
-     ${lk?`<text x="${p.x}" y="${p.y-12}" font-size="11" text-anchor="middle">🔒</text>`:""}${o&&o.shield?`<text x="${p.x-20}" y="${p.y-10}" font-size="10">🛡</text>`:""}<polygon points="${hexP(p.x,p.y,R)}" fill="transparent"/></g>`;
+     <text x="${p.x}" y="${p.y+4}" font-size="${thr?22:16}" text-anchor="middle">${o&&o.owner?"🐉":M[1]}</text>
+     <text x="${p.x}" y="${p.y+17}" font-size="6" font-weight="900" fill="#fff" stroke="#2a0604" stroke-width="2.2" paint-order="stroke" text-anchor="middle">${M[0].length>12?M[0].split(" ")[0]:M[0]}</text>
+     ${o&&o.dg?`<text x="${p.x}" y="${p.y-12}" font-size="6" font-weight="900" fill="#ffd23f" stroke="#2a0604" stroke-width="2" paint-order="stroke" text-anchor="middle">⚡${fmtN(o.dg.pow)}</text>`:""}
+     ${lk?`<text x="${p.x}" y="${p.y-9}" font-size="9" text-anchor="middle">🔒</text>`:""}${o&&o.shield?`<text x="${p.x-17}" y="${p.y-6}" font-size="8">🛡</text>`:""}<polygon points="${hexP(p.x,p.y,R)}" fill="transparent"/></g>`;
     if(o&&o.owner){const C=MFC[o.flag]||MFC[""],nm=mine?"🐉 ТЫ":String(o.oname||"?").slice(0,8),w=Math.max(26,nm.length*5+8);
-      fl+=`<g pointer-events="none"><line x1="${p.x+11}" y1="${p.y-33}" x2="${p.x+11}" y2="${p.y-12}" stroke="#2a1608" stroke-width="2"/><g transform="translate(${p.x+12},${p.y-33})">${o.flag==="photo"&&o.ph?`<image href="${API_URL.replace(/\/$/,"")}/mp/${o.owner}" width="18" height="12" preserveAspectRatio="xMidYMid slice" clip-path="url(#dlfc)"/>`:`<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="${C[0]}"/><path d="M0 0 h9 v12 h-9z" fill="${C[1]}" opacity=".6"/>`}<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="none" stroke="#fff" stroke-width=".8"/></g>
-       <rect x="${p.x-22}" y="${p.y-41}" width="${w}" height="11" rx="5.5" fill="${mine?"#ffd23f":"rgba(30,4,2,.88)"}"/><text x="${p.x-22+w/2}" y="${p.y-33}" font-size="6.8" font-weight="900" fill="${mine?"#3a0a00":"#fff"}" text-anchor="middle">${escH(nm)}</text></g>`}});
-  const t=DGL_CELLS[0];h+=`<g pointer-events="none"><circle cx="${t.x+17}" cy="${t.y-15}" r="8" fill="#3a1600" stroke="#ffd23f" stroke-width="1.5"/><text x="${t.x+17}" y="${t.y-11.4}" font-size="9" text-anchor="middle">👑</text></g>`;
+      fl+=`<g pointer-events="none"><line x1="${p.x+11}" y1="${p.y-27}" x2="${p.x+11}" y2="${p.y-12}" stroke="#2a1608" stroke-width="2"/><g transform="translate(${p.x+12},${p.y-27})">${o.flag==="photo"&&o.ph?`<image href="${API_URL.replace(/\/$/,"")}/mp/${o.owner}" width="18" height="12" preserveAspectRatio="xMidYMid slice" clip-path="url(#dlfc)"/>`:`<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="${C[0]}"/><path d="M0 0 h9 v12 h-9z" fill="${C[1]}" opacity=".6"/>`}<path d="M0 0 h18 l-5 6 l5 6 h-18z" fill="none" stroke="#fff" stroke-width=".8"/></g>
+       <rect x="${p.x-22}" y="${p.y-35}" width="${w}" height="10" rx="5.5" fill="${mine?"#ffd23f":"rgba(30,4,2,.88)"}"/><text x="${p.x-22+w/2}" y="${p.y-27.6}" font-size="6.2" font-weight="900" fill="${mine?"#3a0a00":"#fff"}" text-anchor="middle">${escH(nm)}</text></g>`}});
+  const t=DGL_CELLS[0];h+=`<g pointer-events="none"><circle cx="${t.x+15}" cy="${t.y-13}" r="7" fill="#3a1600" stroke="#ffd23f" stroke-width="1.5"/><text x="${t.x+15}" y="${t.y-10}" font-size="8" text-anchor="middle">👑</text></g>`;
   return h+fl}
 let mapDgTac="rush";
 function mapDgSheet(i){const r=(MD.regs||[]).find(x=>x.id===i)||{id:i},M=MAP_R[i],I=mapInc(i),m=$("modal"),sh=$("msheet"),mine=r.owner===S.uid,D=dgOf(),P=MD.dgp,thr=i===DGL_THRONE;m.hidden=false;
-  const myLair=(MD.regs||[]).find(x=>x.owner===S.uid&&x.id>=DGL0&&x.id<AL0);
+  const myLair=(MD.regs||[]).find(x=>x.owner===S.uid&&MAP_Z(x.id)===3);
   let body=`<div class="ms-h"><b>${M[1]} ${M[0]}</b><em style="background:${MAP.zc[3]}">🐉 ${MAP.zn[3]} · +${fmtN(I.c)} 🪙/ч${thr?" · 👑 ×"+MAP.dthr:""}</em></div>`;
   if(!D||!P)body+=`<p class="ms-lock">🥚 Сюда пускают только с драконом. Выведи своего дракона — и он сможет захватить логово!</p><button type="button" class="craftbtn" id="mdg-egg">🐉 К дракону</button>`;
   else if(mine)body+=`<p class="ms-sub">Твой дракон охраняет логово уже ${tleft(NOW()-r.since)}${r.shield?" · 🛡 щит ещё "+tleft(r.shield-NOW()):""} · отбито атак: ${r.def_n||0}</p><div class="mdg-v one"><div class="mdg-s me"><span>${dgMini(D)}</span><b>${escH(D.name||"Твой дракон")}</b><small>мощь ${dgFmt(P.pow)}</small></div></div>
