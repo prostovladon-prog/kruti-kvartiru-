@@ -1125,6 +1125,12 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
     if(p.socSp!=null)k.socSp=Math.max(0,Math.min(20,p.socSp|0));await kvSet(env,"ep_vote",k);return voteApi(env,me,"vt_get",{})}
   fail("Неизвестное действие")}
 
+
+/* 📚 Энциклопедия карт: сколько каждой ограниченной отделки уже выбито и кто держит «Ошибку печати» */
+async function catInfo(env){return cached("catinfo",60e3,async()=>{const c={};
+  for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS n FROM cards WHERE f>0 AND COALESCE(part,0)=0 GROUP BY h,f").all()).results)c[r.h+"-"+r.f]=r.n;
+  const err={};for(const r of (await env.DB.prepare("SELECT c.h,COALESCE(u.nick,u.name) AS name FROM cards c LEFT JOIN users u ON u.id=c.owner WHERE c.f=4 AND COALESCE(c.part,0)=0").all()).results)err[r.h]=r.name||"Игрок";
+  return {c,err,t:Date.now()}})}
 /* ---------- 🏆 «Турнир Эпох»: видео-турнир 10 воинов, зрители угадывают победителя каждого боя ---------- */
 const FT={id:"ft1",sp:2,hit:3,socSp:2,socWait:20,
   /* бои: числа — индекс героя, "W3" — победитель боя №3 (с нуля) */
@@ -2608,7 +2614,7 @@ async function handle(req,env){{
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
-      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(a==="cat_info")return J({ok:true,res:await catInfo(env)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(a==="roc_state"||a==="roc_bet"||a==="roc_out"){const res=await rocApi(env,me,a,p);return J({ok:true,res,S:a==="roc_state"?undefined:await stateFor(env,me)})}
       if(/^war_/.test(a)){const res=await warApi(env,me,a,p);return J({ok:true,res,S:a==="war_attack"?await stateFor(env,me):undefined})}
       if(/^al_/.test(a))return J({ok:true,res:await alApi(env,me,a,p)});
