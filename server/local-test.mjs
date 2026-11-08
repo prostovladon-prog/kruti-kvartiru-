@@ -917,7 +917,13 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     db.prepare("UPDATE tk SET lp=lp-60000 WHERE uid=?").run(A); q = await ct(A, "tk_ping", { act: 0 }); ok(q.res.got === 0, "без действий билет за время не идёт");
     await ct(A, "open"); q = await ct(A, "tk_ping", {}); ok(q.res.n === 2, "прокрутка +1 билет");
     await ct(A, "open", { bad: 1 }); await ct(A, "map_attack", { rid: 9999 }); q = await ct(A, "tk_ping", {}); ok(q.res.n >= 3 && q.res.n <= 4, "за ошибку билет не дают (" + q.res.n + ")");
-    await ct(B, "tk_ping", { act: 1 }); q = await ct(B, "tk_ping", {}); ok(q.res.top.length >= 2 && q.res.top[0].n >= q.res.top[1].n && q.res.rank === 2, "таблица лидеров и место"); }
+    await ct(B, "tk_ping", { act: 1 }); q = await ct(B, "tk_ping", {}); ok(q.res.top.length >= 2 && q.res.top[0].n >= q.res.top[1].n && q.res.rank === 2, "таблица лидеров и место");
+    const s0 = db.prepare("SELECT star_bal FROM users WHERE id=?").get(A).star_bal, rf = globalThis.fetch; globalThis.fetch = async () => new Response('{"ok":true}');
+    const envF = { ...env, TK_FIN: "1", NOTIFY_TEST: "1" }; await worker.tick(envF); globalThis.fetch = rf;
+    ok(db.prepare("SELECT star_bal FROM users WHERE id=?").get(A).star_bal === s0 + 300, "1 место: +300 ⭐ на баланс");
+    ok(db.prepare("SELECT k FROM gifts WHERE owner=? AND how='prize'").get(A), "1 место: NFT-подарок в игре");
+    ok(db.prepare("SELECT 1 FROM gifts WHERE owner=? AND how='prize'").get(B), "2 место тоже с подарком");
+    q = await ct(A, "tk_ping", {}); ok(q.res.fin && q.res.fin.w.length >= 2, "итоги видны в игре"); }
   // 👑 Империя
   { let q = await call(A, "sync"); ok(q.S.emp > 0, "мощь Империи считается: " + q.S.emp);
     const u = db.prepare("SELECT emp FROM users WHERE id=?").get(A); ok(u.emp === q.S.emp, "мощь записана для топа");

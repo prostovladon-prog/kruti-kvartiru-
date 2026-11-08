@@ -1234,3 +1234,4 @@ function tkOpen(){const m=$("modal"),sh=$("msheet"),T=TKS;if(!T)return;m.hidden=
 setInterval(()=>{try{tkPing();if(TKS)tkBar();const o=$("tkbox");if(o&&TKS){const t=o.querySelector(".tk-tm b");const now=Date.now()+TKS.off;if(t&&now<TKS.end)t.textContent=tkT((now<TKS.start?TKS.start:TKS.end)-now)}}catch(e){}},1000);
 /* после действий — быстрее обновить счёт */
 {const _act=act;act=async function(name,p){const r=await _act.apply(this,arguments);if(r&&TKS&&TKS.act&&TKS.act[name])setTimeout(()=>tkPing(true),400);return r}}
+if(new URLSearchParams(location.search).get("tk")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||!TKS)return;clearInterval(t);setTimeout(()=>tkOpen(),400)},500)}
