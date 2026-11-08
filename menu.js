@@ -35,13 +35,15 @@ const MENU_GROUPS=[
   {k:"craft",ic:"⚒",n:"Крафт",c:["#d0d6e0","#5a6478"]},
   {k:"trade",ic:"🔄",n:"Обмены",c:["#9ff7d6","#1a8a7a"]},
   {k:"odds",ic:"🎲",n:"Шансы",c:["#e0c8ff","#6a3ab0"]},
-  {k:"fs",ic:"📱",n:"Полный экран",c:["#c8f0ff","#2a7ab0"]}]]];
+  {k:"fs",ic:"📱",n:"Полный экран",c:["#c8f0ff","#2a7ab0"]},
+  {k:"home",ic:"📲",n:"Иконка на экран",c:["#d8ffc8","#2a9a3a"]}]]];
 function menuGo(k){menuClose();hap&&hap("light");
   if(k==="gold")return openGold();
   if(k==="don")return openGold("flex");
   if(k==="promo")return promoOpen();
   if(k==="riddle")return rdOpen();
   if(k==="vote")return vtOpen();
+  if(k==="home")return homeAdd();
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
   if(k==="upd"){updI=0;return updOpen()}
   if(k==="emp")return empOpen();
@@ -1235,3 +1237,14 @@ setInterval(()=>{try{tkPing();if(TKS)tkBar();const o=$("tkbox");if(o&&TKS){const
 /* после действий — быстрее обновить счёт */
 {const _act=act;act=async function(name,p){const r=await _act.apply(this,arguments);if(r&&TKS&&TKS.act&&TKS.act[name])setTimeout(()=>tkPing(true),400);return r}}
 if(new URLSearchParams(location.search).get("tk")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||!TKS)return;clearInterval(t);setTimeout(()=>tkOpen(),400)},500)}
+
+/* 📲 иконка игры на главном экране телефона (Telegram 8.0+) */
+function homeAdd(){try{if(tg&&tg.isVersionAtLeast&&tg.isVersionAtLeast("8.0")&&tg.addToHomeScreen){tg.addToHomeScreen();return}}catch(e){}
+  toast("Обнови Telegram до последней версии — тогда можно будет добавить иконку игры на экран")}
+try{if(tg&&tg.onEvent){tg.onEvent("homeScreenAdded",()=>{toast("📲 Иконка «Воинов Эпох» на экране! Теперь игра открывается одним нажатием");try{localStorage.setItem("we-home","1")}catch(e){}});
+  tg.onEvent("homeScreenChecked",e=>{try{if(e&&e.status==="added")localStorage.setItem("we-home","1")}catch(x){}})}}catch(e){}
+/* один раз мягко предложить игрокам, которые играют уже пару дней */
+setTimeout(()=>{try{if(!tg||!tg.isVersionAtLeast||!tg.isVersionAtLeast("8.0")||!tg.checkHomeScreenStatus)return;if(localStorage.getItem("we-home")||localStorage.getItem("we-home-ask"))return;if(!S||(S.nOp||0)<30)return;
+  tg.checkHomeScreenStatus(st=>{if(st!=="missed")return;localStorage.setItem("we-home-ask","1");const m=$("modal"),sh=$("msheet");if(!m.hidden)return;m.hidden=false;
+    sh.innerHTML='<div class="box nickbox" style="text-align:center"><div style="font-size:64px">📲</div><h3>Игра — одним нажатием</h3><p class="cln">Добавь иконку «Воинов Эпох» на экран телефона — и открывай игру сразу, без поиска бота.</p><button type="button" class="craftbtn" id="hm-ok">📲 Добавить на экран</button><button type="button" class="ghost" id="hm-x">Не сейчас</button></div>';
+    $("hm-x").onclick=closeModal;$("hm-ok").onclick=()=>{closeModal();homeAdd()}})}catch(e){}},25000);
