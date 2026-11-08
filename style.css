@@ -3144,4 +3144,4 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .ftu-champ{text-align:center;margin:8px 0}.ftu-champ svg{width:120px;height:120px}.ftu-champ b{display:block;font-size:17px;color:#ffd23f}.ftu-soon{text-align:center}
 .ftustrip{background:linear-gradient(100deg,#ff7a00,#b0100a);box-shadow:0 4px 0 #5a1000,0 0 20px rgba(255,120,0,.45)}
 .ftubox .cln{color:rgba(255,255,255,.85)}
-.ftu-rl p{font-size:12px;line-height:1.45;opacity:.85;margin:6px 0}
+.ftu-rl p{font-size:12px;line-height:1.45;color:#f3e6dc;margin:6px 0}
