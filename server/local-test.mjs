@@ -910,6 +910,14 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   r = await call(A, "cas_hl_go", { bet: 1000 }); ok(r.ok && r.res.hl.c >= 1 && r.res.hl.c <= 13, "больше/меньше: первая карта");
   r = await call(A, "cas_hl_take"); ok(!r.ok, "забрать можно только после угаданной карты");
   const c = r.ok ? 0 : (await call(A, "sync")).S.cas.hl.c; r = await call(A, "cas_hl", { dir: c >= 7 ? "down" : "up" }); ok(r.ok && (r.res.win ? r.res.hl.m > .9 : !r.res.hl), "больше/меньше: ход");
+  // 🎟 билетная гонка
+  { const envT = { ...env, TK_FORCE: "1" }; const ct = async (uid, a, p = {}) => (await worker.fetch(new Request("https://x/api", { method: "POST", headers: { "Content-Type": "application/json", "X-Dev-User": String(uid) }, body: JSON.stringify({ a, p }) }), envT)).json();
+    let q = await ct(A, "tk_ping", { act: 1 }); ok(q.ok && q.res.got === 1 && q.res.n === 1, "билет за минуту в игре");
+    q = await ct(A, "tk_ping", { act: 1 }); ok(q.res.got === 0 && q.res.n === 1, "не чаще раза в минуту");
+    db.prepare("UPDATE tk SET lp=lp-60000 WHERE uid=?").run(A); q = await ct(A, "tk_ping", { act: 0 }); ok(q.res.got === 0, "без действий билет за время не идёт");
+    await ct(A, "open"); q = await ct(A, "tk_ping", {}); ok(q.res.n === 2, "прокрутка +1 билет");
+    await ct(A, "open", { bad: 1 }); await ct(A, "map_attack", { rid: 9999 }); q = await ct(A, "tk_ping", {}); ok(q.res.n >= 3 && q.res.n <= 4, "за ошибку билет не дают (" + q.res.n + ")");
+    await ct(B, "tk_ping", { act: 1 }); q = await ct(B, "tk_ping", {}); ok(q.res.top.length >= 2 && q.res.top[0].n >= q.res.top[1].n && q.res.rank === 2, "таблица лидеров и место"); }
   // 👑 Империя
   { let q = await call(A, "sync"); ok(q.S.emp > 0, "мощь Империи считается: " + q.S.emp);
     const u = db.prepare("SELECT emp FROM users WHERE id=?").get(A); ok(u.emp === q.S.emp, "мощь записана для топа");

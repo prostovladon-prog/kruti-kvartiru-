@@ -1266,7 +1266,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=59;const NEWB_MS=3*864e5;
+const SCHEMA_V=60;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1332,6 +1332,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
     "CREATE TABLE IF NOT EXISTS ally (uid INTEGER PRIMARY KEY, mate INTEGER NOT NULL, t INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS ally_q (uid INTEGER PRIMARY KEY, t INTEGER NOT NULL, pw INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS roc_round (id INTEGER PRIMARY KEY, fs INTEGER NOT NULL, cr REAL NOT NULL, ct INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS roc_bet (rid INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, b INTEGER NOT NULL, auto REAL NOT NULL DEFAULT 0, out_m REAL, win INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL, PRIMARY KEY(rid,uid))",
+    "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
     "CREATE TABLE IF NOT EXISTS hype (id INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER NOT NULL, uid INTEGER NOT NULL, txt TEXT NOT NULL)",
     "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))","ALTER TABLE users ADD COLUMN dg_pow INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS users_dgpow ON users(dg_pow)","CREATE INDEX IF NOT EXISTS users_ref ON users(ref)",
  "CREATE TABLE IF NOT EXISTS ad_links (code TEXT PRIMARY KEY, name TEXT, created INTEGER, hidden INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS ad_clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, t INTEGER, ip TEXT)","CREATE INDEX IF NOT EXISTS ad_clicks_c ON ad_clicks(code,t)",
@@ -2537,6 +2538,27 @@ async function mapDgAttack(env,me,rid,st,p,now){const myD=st.dg;if(!myD||!(dgPow
 /* 🤝 Земли союзов: крепости берут и держат только вдвоём. Сила пары = лучшая боевая карта каждого (сумма 5 характеристик). Доход — пополам */
 /* ID в Telegram бывают больше 2^31 — «|0» их обрезает. Только так: */
 const uidOf=x=>{const n=Math.floor(Number(x));return Number.isSafeInteger(n)&&n>0?n:0};
+/* 🎟 БИЛЕТНАЯ ГОНКА: билеты за время в игре (1 в минуту, если игрок что-то делал) и за действия. Кто больше соберёт за окно конкурса — тот и победил (3 места) */
+const TK={id:"tk1108",start:Date.UTC(2026,10,8,5,0),end:Date.UTC(2026,10,8,19,0),min:1,
+  act:{open:1,open_multi:"n",fight:2,duel:2,fduel:2,conq_fight:2,rk_find:2,dga_fight:2,war_attack:3,map_attack:2,roc_bet:1,cas_slot:1,cas_mn_go:1,cas_hl_go:1,cas_case:1,emp_trib:5,hof_claim:2,luck_buy:3,al_find:2},
+  prizes:[{item:"empire",n:"👑 Сундук Империи"},{item:"legend",n:"🔥 Легендарный сундук"},{item:"general",n:"⚔️ Сундук полководца"}]};
+const TKREQ=new WeakMap(),tkLive=t=>!!TK.force||t>=TK.start&&t<TK.end;
+async function tkAdd(env,uid,n,ping){const now=Date.now();if(!tkLive(now)||!(n>0))return;
+  await env.DB.prepare("INSERT INTO tk(cid,uid,n,lp,t) VALUES(?,?,?,?,?) ON CONFLICT(cid,uid) DO UPDATE SET n=n+excluded.n,t=excluded.t"+(ping?",lp=excluded.lp":"")).bind(TK.id,uid,n,ping?now:0,now).run();delete TKC.v}
+async function tkAfter(req,env,resp){const x=TKREQ.get(req);if(!x||resp.status!==200)return;const j=await resp.clone().json();if(j&&j.ok)await tkAdd(env,x.uid,x.n)}
+const TKC={};
+async function tkTop(env){const now=Date.now();if(TKC.v&&now-TKC.t<5e3)return TKC.v;TKC.v=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name) AS name,json_extract(u.state,'$.ava') AS ava FROM tk t LEFT JOIN users u ON u.id=t.uid WHERE t.cid=? ORDER BY t.n DESC,t.t ASC LIMIT 20").bind(TK.id).all()).results;TKC.t=now;return TKC.v}
+async function tkPing(env,me,p){const now=Date.now();let my=await env.DB.prepare("SELECT n,lp FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first();let got=0;
+  if(p.act&&tkLive(now)&&(!my||now-(my.lp||0)>=55e3)){await tkAdd(env,me.id,TK.min,1);got=TK.min;my=await env.DB.prepare("SELECT n,lp FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first()}
+  const n=my?my.n:0,rank=n?((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk WHERE cid=? AND n>?").bind(TK.id,n).first()).c+1):0,cnt=((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk WHERE cid=?").bind(TK.id).first())||{}).c||0;
+  const fin=await kvGet(env,"tkfin:"+TK.id);return {id:TK.id,start:TK.start,end:TK.end,now,n,rank,cnt,got,top:(await tkTop(env)).map(x=>({uid:x.uid,n:x.n,name:x.name||"Игрок",ava:x.ava==null?null:+x.ava,me:x.uid===me.id?1:0})),prizes:TK.prizes.map(x=>x.n),act:TK.act,fin:fin||null}}
+async function tkFinish(env){const now=Date.now();if(now<TK.end||now>TK.end+3*864e5)return;const k="tkfin:"+TK.id;if(await kvGet(env,k))return;
+  const top=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name) AS name FROM tk t LEFT JOIN users u ON u.id=t.uid WHERE t.cid=? ORDER BY t.n DESC,t.t ASC LIMIT 3").bind(TK.id).all()).results;
+  await kvSet(env,k,{w:top.map((x,i)=>({name:x.name||"Игрок",n:x.n,prize:TK.prizes[i].n})),t:now});
+  for(let i=0;i<top.length;i++){const x=top[i],P=TK.prizes[i];try{await doAction(env,{id:x.uid,name:x.name||"Игрок"},"grant",{item:P.item,pid:"tk-"+TK.id+"-"+i},{grant:true})}catch(e){console.error("tk prize",e)}
+    try{await notify(env,x.uid,"🏆 Ты занял "+(i+1)+" место в Билетной гонке с "+x.n+" билетами!\n\nТвой приз — "+P.n+" — уже в игре. Поздравляем, воин! 🎉","🎁 Открыть",PAGE)}catch(e){}
+    try{await hypeAdd(env,x.uid,"🏆 "+(i+1)+" место в Билетной гонке · "+P.n,1)}catch(e){}}
+  for(const a of ADMINS)try{await notify(env,a,"🎟 Билетная гонка завершена!\n\n"+top.map((x,i)=>(i+1)+". "+(x.name||"Игрок")+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nПризы выданы автоматически.","⚔️ Открыть")}catch(e){}}
 async function alMate(env,uid){const r=await env.DB.prepare("SELECT mate FROM ally WHERE uid=?").bind(uid).first();return r?r.mate:0}
 async function alBest(env,uid){const R=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND COALESCE(away,0)=0 ORDER BY v DESC LIMIT 60").bind(uid).all()).results;let best=null,bp=0;
   for(const row of R){const c=rowToCard(row);if(FIN[c.f]&&FIN[c.f].excl)continue;if(c.part)continue;let s=0;for(let i=0;i<5;i++)s+=eff(c,i)||0;if(s>bp){bp=s;best=c}}return {c:best?pub(best):null,pw:bp}}
@@ -3598,9 +3620,9 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
-  async fetch(req,env){try{return await handle(req,env)}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
+  async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
 async function handle(req,env){{
     if(req.method==="OPTIONS")return new Response(null,{headers:CORS});
@@ -3624,6 +3646,9 @@ async function handle(req,env){{
     if(!me)return J({ok:false,err:"Открой игру через бота в Telegram"},401);
     let body;try{body=await req.json()}catch(e){return J({ok:false,err:"Плохой запрос"},400)}
     const a=String(body.a||""),p=body.p||{};
+    if(env.TK_FORCE)TK.force=1;
+    if(TK.act[a]&&tkLive(Date.now()))TKREQ.set(req,{uid:me.id,n:TK.act[a]==="n"?Math.max(1,Math.min(50,+p.n||1)):TK.act[a]});
+    if(a==="tk_ping")return J({ok:true,res:await tkPing(env,me,p)});
     await trackSrc(env,me);
     try{
       if(a==="market")return J({ok:true,res:await market(env,me),S:await stateFor(env,me)});
