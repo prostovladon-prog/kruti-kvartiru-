@@ -1224,7 +1224,7 @@ async function tkPing(force){if(!S||!ONLINE||document.hidden)return;const now=Da
   try{const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"tk_ping",p:{act:now-tkAct<3*6e4?1:0}})});const j=await r.json();
     if(j.ok){const was=TKS?TKS.n:-1;TKS=j.res;TKS.off=TKS.now-Date.now();if(was>=0&&TKS.n>was)tkFloat(TKS.n-was);tkBar();const o=$("tkbox");if(o)tkOpen()}}catch(e){}}
 function tkFloat(d){const e=document.createElement("div");e.className="tk-fl";e.textContent="+"+d+" 🎟";document.body.appendChild(e);setTimeout(()=>e.remove(),1600)}
-function tkBar(){const sp=$("sec-spin");if(!sp||!TKS)return;const now=Date.now()+TKS.off,show=now<TKS.end+6*36e5;let b=$("tk-bar");if(!show){if(b)b.remove();return}
+function tkBar(){const sp=$("sec-spin");if(!sp||!TKS)return;const now=Date.now()+TKS.off,show=now<TKS.end;let b=$("tk-bar");if(!show){if(b)b.remove();return}
   if(!b){b=document.createElement("button");b.type="button";b.id="tk-bar";b.className="tk-bar";b.onclick=()=>tkOpen();const e=$("emp-bar");if(e&&e.parentNode===sp)e.before(b);else sp.insertBefore(b,sp.firstChild)}
   const st=now<TKS.start?0:now<TKS.end?1:2;
   b.innerHTML='<i>🎟</i><span><b>'+(st===0?'Билетная гонка — старт в 08:00':st===1?'Билетная гонка идёт!':'🏆 Билетная гонка завершена')+'</b><small>'+(st===0?'через '+tkT(TKS.start-now)+' · 3 приза':st===1?'у тебя <u>'+TKS.n+'</u> 🎟'+(TKS.rank?' · место #'+TKS.rank:'')+' · до финиша '+tkT(TKS.end-now):'смотри победителей')+'</small></span><em>›</em>'}
