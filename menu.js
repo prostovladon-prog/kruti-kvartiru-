@@ -994,7 +994,7 @@ function vtDraw(r){const sh=$("msheet");if(!sh)return;const shown=r.my||!r.on;
    ${vtSocHtml(r)}${r.adm?vtAdmHtml(r):""}<button type="button" class="ghost" id="vt-x">Закрыть</button></div>`;
   $("vt-x").onclick=closeModal;vtSocBind(r);sh.querySelectorAll(".vt-o:not([disabled])").forEach(b=>b.onclick=async()=>{const o=r.opts.find(x=>x.k===b.dataset.k);if(!confirm("Твой выбор: «"+o.n+"»? Переголосовать нельзя"))return;
     sh.querySelectorAll(".vt-o").forEach(x=>x.disabled=true);const q=await act("vt_vote",{ch:o.k});if(!q){vtDraw(r);return}sfx.fanfare();burst(3);hapN("success");vtDraw(q)})}
-function vtStrip(){let b=$("vtstrip");const R=S&&ONLINE?S.vt:null;if(!R||R.ch){if(b)b.remove();return}
+function vtStrip(){let b=$("vtstrip");if(typeof vhStrip==="function"){if(b)b.remove();return}const R=S&&ONLINE?S.vt:null;if(!R||R.ch){if(b)b.remove();return}
   if(!b){const hd=$("rdstrip")||$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="vtstrip";b.className="r3strip vtstrip";hd.after(b);b.onclick=()=>{hap("light");vtOpen()}
     b.innerHTML=`<i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🛡 остаться или 🏃 отступить? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
 setInterval(()=>{try{vtStrip()}catch(e){}},1500);

@@ -44,7 +44,7 @@ function ftuAdm(r){const A=r.adm||{},F=r.cur>=0?r.fights[r.cur]:null;let h='<div
   else if(!r.fin)h+='<small>Финал завершён. Награды топ-3: 🥇 VIP (+ NFT-подарок в Telegram ты отправляешь сам), 🥈🥉 звёзды на игровой баланс.</small><label>VIP уровень (1 Серебро · 2 Золото · 3 Алмаз) <input id="fa-vt" type="number" min="1" max="3" value="3"></label><label>VIP дней <input id="fa-vd" type="number" min="1" max="90" value="30"></label><label>⭐ за 2 место <input id="fa-s2" type="number" min="0" value="200"></label><label>⭐ за 3 место <input id="fa-s3" type="number" min="0" value="100"></label><button type="button" class="craftbtn" id="fa-fin">🏆 Выдать награды</button>';
   else h+='<small>Награды выданы: '+(A.prz||[]).map((p,i)=>(i+1)+') '+rdEsc(p.name)+' (ID '+p.uid+', угадал '+p.n+')').join(" · ")+'. NFT-подарок 1 месту отправь в Telegram сам.</small>';
   return h+'</div>'}
-function ftuStrip(){let b=$("ftustrip");const R=S&&ONLINE?S.ft:null;if(!R||R.ch){if(b)b.remove();return}
+function ftuStrip(){let b=$("ftustrip");if(b)b.remove();return;const R=S&&ONLINE?S.ft:null;if(!R||R.ch){if(b)b.remove();return}
   const txt='<i>🏆</i><span><b>Турнир Эпох · бой '+R.n+'</b><small>'+ftuN(R.a)+' vs '+ftuN(R.b)+' — кто победит? Угадай · +🎴</small></span><em>▶</em>';
   if(!b){const hd=$("vtstrip")||$("rdstrip")||$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="ftustrip";b.className="r3strip vtstrip ftustrip";hd.after(b);b.onclick=()=>{hap("light");ftuOpen()}}
   if(b.dataset.n!==String(R.n)){b.dataset.n=R.n;b.innerHTML=txt}}
@@ -59,3 +59,13 @@ function voteHub(){const m=$("modal"),sh=$("msheet");m.hidden=false;const V=S&&S
    card("vh-ft","🏆","Кто победит в бою","Турнир Эпох: угадай победителя — призы лучшим предсказателям",F?(F.ch?"✅ голос принят":"🔥 бой "+F.n+": "+ftuN(F.a)+" vs "+ftuN(F.b)):"скоро старт",F&&!F.ch?"hot":"")+
    '<button type="button" class="ghost" id="vh-x">Закрыть</button></div>';
   $("vh-x").onclick=closeModal;$("vh-vt").onclick=()=>{hap("light");vtOpen()};$("vh-ft").onclick=()=>{hap("light");ftuOpen()}}
+
+/* 🗳 единая плашка «Голосование» сразу под бегущей строкой */
+function vhStrip(){const V=S&&ONLINE?S.vt:null,F=S&&ONLINE?S.ft:null;let b=$("vhstrip");const old=$("vtstrip");if(old)old.remove();
+  if(!V&&!F){if(b)b.remove();return}
+  const todo=[V&&!V.ch?"⚔️ Выбор серии":"",F&&!F.ch?"🏆 бой "+F.n+": "+ftuN(F.a)+" vs "+ftuN(F.b):""].filter(Boolean);
+  const txt='<i>🗳</i><span><b>Голосование'+(todo.length?' — голосуй!':' ✅')+'</b><small>'+(todo.length?todo.join(" · ")+" · +🎴":"Ты проголосовал везде — жди новую серию")+'</small></span><em>▶</em>';
+  if(!b){const sp=$("sec-spin"),hy=$("hype");if(!sp)return;b=document.createElement("button");b.type="button";b.id="vhstrip";b.onclick=()=>{hap("light");voteHub()};if(hy&&hy.parentNode===sp)hy.after(b);else sp.insertBefore(b,sp.firstChild)}
+  else{const hy=$("hype");if(hy&&b.previousElementSibling!==hy&&hy.parentNode===b.parentNode)hy.after(b)}
+  b.className="r3strip vtstrip vhstrip"+(todo.length?" hot":"");if(b.dataset.t!==txt){b.dataset.t=txt;b.innerHTML=txt}}
+setInterval(()=>{try{vhStrip()}catch(e){}},1500);

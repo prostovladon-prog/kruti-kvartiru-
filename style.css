@@ -3187,3 +3187,5 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .vh-c{display:grid;grid-template-columns:52px 1fr;gap:4px 10px;align-items:center;width:100%;text-align:left;margin-bottom:10px;border:2px solid rgba(255,255,255,.2);border-radius:16px;padding:12px;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(0,0,0,.25));color:#fff;font:inherit}
 .vh-c i{font-style:normal;font-size:40px;grid-row:1/3;text-align:center}.vh-c b{display:block;font-size:17px}.vh-c small{display:block;font-size:12px;opacity:.8;line-height:1.3}.vh-c em{grid-column:2;font-style:normal;font-weight:900;font-size:12.5px;color:#ffd23f}
 .vh-c.hot{border-color:#ffd23f;box-shadow:0 0 18px rgba(255,200,40,.45);animation:vhP 1.6s ease-in-out infinite}@keyframes vhP{50%{box-shadow:0 0 30px rgba(255,200,40,.75)}}
+.vhstrip{margin-top:6px;background:linear-gradient(100deg,#ff7a00,#c4100a);box-shadow:0 4px 0 #5a1000,0 0 20px rgba(255,120,0,.45)}.vhstrip:not(.hot){background:linear-gradient(100deg,#5a4a7a,#2a2040);box-shadow:0 4px 0 #120a20}
+.vhstrip.hot{animation:vhP2 1.8s ease-in-out infinite}@keyframes vhP2{50%{box-shadow:0 4px 0 #5a1000,0 0 32px rgba(255,170,40,.8)}}
