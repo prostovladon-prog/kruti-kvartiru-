@@ -1266,7 +1266,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=60;const NEWB_MS=3*864e5;
+const SCHEMA_V=61;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1332,6 +1332,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
     "CREATE TABLE IF NOT EXISTS ally (uid INTEGER PRIMARY KEY, mate INTEGER NOT NULL, t INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS ally_q (uid INTEGER PRIMARY KEY, t INTEGER NOT NULL, pw INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS roc_round (id INTEGER PRIMARY KEY, fs INTEGER NOT NULL, cr REAL NOT NULL, ct INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS roc_bet (rid INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, b INTEGER NOT NULL, auto REAL NOT NULL DEFAULT 0, out_m REAL, win INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL, PRIMARY KEY(rid,uid))",
+    "CREATE TABLE IF NOT EXISTS ft_vote (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER NOT NULL, hit INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tid,fid,uid))","CREATE TABLE IF NOT EXISTS ft_soc (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(tid,fid,uid))",
     "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
     "CREATE TABLE IF NOT EXISTS hype (id INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER NOT NULL, uid INTEGER NOT NULL, txt TEXT NOT NULL)",
     "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))","ALTER TABLE users ADD COLUMN dg_pow INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS users_dgpow ON users(dg_pow)","CREATE INDEX IF NOT EXISTS users_ref ON users(ref)",
@@ -1616,6 +1617,7 @@ async function stateFor(env,me){
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
   try{S.rd=await rdState(env,me)}catch(e){}
   try{S.vt=await vtState(env,me)}catch(e){}
+  try{S.ft=await ftState(env,me)}catch(e){}
   try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
   try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
   S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
@@ -2353,6 +2355,62 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
   if(!isAdmin(env,me.id))fail("Нет доступа");
   if(a==="vt_set"){const url=String(p.url||"").trim(),ig=String(p.urlIg||"").trim();for(const u of [url,ig])if(u&&!/^https:\/\/[^\s]{6,300}$/.test(u))fail("Ссылка должна начинаться с https://");let k=(await kvGet(env,"ep_vote"))||{id:C.id};if(k.id!==C.id)k={id:C.id};k.url=url;if(p.urlIg!=null)k.urlIg=ig;
     if(p.socSp!=null)k.socSp=Math.max(0,Math.min(20,p.socSp|0));await kvSet(env,"ep_vote",k);return voteApi(env,me,"vt_get",{})}
+  fail("Неизвестное действие")}
+
+/* ---------- 🏆 «Турнир Эпох»: видео-турнир 10 воинов, зрители угадывают победителя каждого боя ---------- */
+const FT={id:"ft1",sp:2,hit:3,socSp:2,socWait:20,
+  /* бои: числа — индекс героя, "W3" — победитель боя №3 (с нуля) */
+  plan:[[20,11],[21,26],[19,"W0"],[22,28],[14,"W1"],[27,23],["W2","W3"],["W4","W5"],["W6","W7"]],
+  stage:["Отбор","Отбор","Четвертьфинал","Четвертьфинал","Четвертьфинал","Четвертьфинал","Полуфинал","Полуфинал","ФИНАЛ"]};
+const ftW=h=>[1,1.2,1.45,1.75,2.1][HEROES[h][2]]||1;
+async function ftCfg(env){const k=await kvGet(env,"ft");return k&&k.id===FT.id?k:{id:FT.id,cur:-1,f:[],fin:0}}
+function ftSide(K,x){return typeof x==="number"?x:(K.f[+x.slice(1)]||{}).wh??null}
+function ftPair(K,i){return [ftSide(K,FT.plan[i][0]),ftSide(K,FT.plan[i][1])]}
+async function ftState(env,me){const K=await ftCfg(env);if(K.cur<0||K.fin)return null;const F=K.f[K.cur];if(!F||F.done)return null;
+  const r=await env.DB.prepare("SELECT ch FROM ft_vote WHERE tid=? AND fid=? AND uid=?").bind(K.id,K.cur,me.id).first();const [a,b]=ftPair(K,K.cur);return {n:K.cur+1,a,b,ch:r?r.ch:""}}
+async function ftTop(env,K,lim){return (await env.DB.prepare("SELECT v.uid,SUM(v.hit) AS n,COUNT(*) AS c,MIN(v.t) AS t0,COALESCE(u.nick,u.name) AS name FROM ft_vote v JOIN users u ON u.id=v.uid WHERE v.tid=? GROUP BY v.uid HAVING n>0 ORDER BY n DESC,c DESC,t0 ASC LIMIT ?").bind(K.id,lim).all()).results}
+async function ftApi(env,me,a,p){let K=await ftCfg(env);const now=Date.now(),adm=isAdmin(env,me.id);
+  const pub=async()=>{K=await ftCfg(env);const out={id:K.id,cur:K.cur,fin:K.fin||0,sp:FT.sp,hit:FT.hit,socSp:FT.socSp,stage:FT.stage,fights:[]};
+    const mine={};for(const r of (await env.DB.prepare("SELECT fid,ch,hit FROM ft_vote WHERE tid=? AND uid=?").bind(K.id,me.id).all()).results)mine[r.fid]=r;
+    for(let i=0;i<FT.plan.length;i++){const [x,y]=ftPair(K,i),F=K.f[i]||{};const o={a:x,b:y,st:F.done?2:i===K.cur?1:0,my:mine[i]?mine[i].ch:""};
+      if(F.done){o.w=F.w}
+      if(F.done||(i===K.cur&&(o.my||adm))){const R=(await env.DB.prepare("SELECT ch,COUNT(*) AS n FROM ft_vote WHERE tid=? AND fid=? GROUP BY ch").bind(K.id,i).all()).results;const c={a:0,b:0};R.forEach(r=>c[r.ch]=r.n);const t=c.a+c.b;o.tot=t;o.pa=t?Math.round(c.a*100/t):0;o.pb=t?100-o.pa:0}
+      out.fights.push(o)}
+    const F=K.f[K.cur];if(F&&!F.done){out.url=F.url||"";out.urlIg=F.urlIg||"";const so=await env.DB.prepare("SELECT open_t,got_t FROM ft_soc WHERE tid=? AND fid=? AND uid=?").bind(K.id,K.cur,me.id).first();
+      out.soc={open:so&&so.open_t?so.open_t:0,got:so&&so.got_t?1:0,left:so&&so.open_t&&!so.got_t?Math.max(0,Math.ceil((so.open_t+FT.socWait*1e3-now)/1e3)):null}}
+    out.myHit=Object.values(mine).reduce((x,r)=>x+(r.hit||0),0);out.myDone=Object.keys(mine).filter(i=>K.f[i]&&K.f[i].done).length;
+    out.top=(await ftTop(env,K,10)).map(r=>({uid:r.uid,name:r.name,n:r.n}));
+    if(adm)out.adm={w:F&&!F.done?F.w:null,url:F?F.url||"":"",urlIg:F?F.urlIg||"":"",soc:F?((await env.DB.prepare("SELECT COUNT(*) AS n FROM ft_soc WHERE tid=? AND fid=? AND got_t IS NOT NULL").bind(K.id,K.cur).first())||{}).n||0:0,prz:K.prz||null};
+    return out};
+  const open=i=>{const [x,y]=ftPair(K,i);const pa=ftW(x)/(ftW(x)+ftW(y));K.f[i]={w:Math.random()<pa?"a":"b",start:now};K.cur=i};
+  if(a==="ft_get")return pub();
+  const cur=()=>{const F=K.f[K.cur];if(K.cur<0||!F||F.done||K.fin)fail("Сейчас голосования нет — жди новую серию");return F};
+  if(a==="ft_vote"){cur();const ch=p.ch==="a"||p.ch==="b"?p.ch:fail("Выбери воина");
+    const r=await env.DB.prepare("INSERT OR IGNORE INTO ft_vote(tid,fid,uid,ch,t) VALUES(?,?,?,?,?)").bind(K.id,K.cur,me.id,ch,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже голосовал в этом бою");
+    if(FT.sp)await doAction(env,me,"tour_prize",{sp:FT.sp,cash:0},{tour:1});const res=await pub();res.hit=1;return res}
+  if(a==="ft_open"){const F=cur();if(!F.url&&!F.urlIg)fail("Видео ещё не добавлено");await env.DB.prepare("INSERT OR IGNORE INTO ft_soc(tid,fid,uid,open_t) VALUES(?,?,?,?)").bind(K.id,K.cur,me.id,now).run();return pub()}
+  if(a==="ft_soc"){const F=cur();if(!F.url&&!F.urlIg)fail("Видео ещё не добавлено");const so=await env.DB.prepare("SELECT open_t,got_t FROM ft_soc WHERE tid=? AND fid=? AND uid=?").bind(K.id,K.cur,me.id).first();
+    if(!so||!so.open_t)fail("Сначала открой видео по кнопке");if(so.got_t)fail("Награда за лайк уже у тебя");if(now-so.open_t<FT.socWait*1e3)fail("Посмотри видео и поставь лайк — кнопка откроется через "+Math.ceil((so.open_t+FT.socWait*1e3-now)/1e3)+" сек");
+    const u=await env.DB.prepare("UPDATE ft_soc SET got_t=? WHERE tid=? AND fid=? AND uid=? AND got_t IS NULL").bind(now,K.id,K.cur,me.id).run();if(!u.meta||u.meta.changes!==1)fail("Награда за лайк уже у тебя");
+    if(FT.socSp)await doAction(env,me,"tour_prize",{sp:FT.socSp,cash:0},{tour:1});const res=await pub();res.hit=1;return res}
+  if(!adm)fail("Нет доступа");
+  if(a==="ft_start"){if(K.cur>=0)fail("Турнир уже идёт");open(0);await kvSet(env,"ft",K);return pub()}
+  if(a==="ft_set"){const F=cur();for(const u of [p.url,p.urlIg])if(u&&!/^https:\/\/[^\s]{6,300}$/.test(String(u).trim()))fail("Ссылка должна начинаться с https://");F.url=String(p.url||"").trim();F.urlIg=String(p.urlIg||"").trim();await kvSet(env,"ft",K);return pub()}
+  /* итог текущего боя (угадавшим +hit прокруток) и сразу открыть следующий */
+  if(a==="ft_next"){const F=cur(),i=K.cur;const [x,y]=ftPair(K,i);F.done=1;F.end=now;F.wh=F.w==="a"?x:y;
+    await env.DB.prepare("UPDATE ft_vote SET hit=CASE WHEN ch=? THEN 1 ELSE 0 END WHERE tid=? AND fid=?").bind(F.w,K.id,i).run();
+    if(FT.hit)await env.DB.prepare("UPDATE users SET gift_spins=gift_spins+? WHERE id IN (SELECT uid FROM ft_vote WHERE tid=? AND fid=? AND ch=?)").bind(FT.hit,K.id,i,F.w).run();
+    if(i+1<FT.plan.length)open(i+1);await kvSet(env,"ft",K);
+    try{await hypeAdd(env,0,"🏆 Турнир Эпох: "+HEROES[F.wh][0]+" побеждает в бою №"+(i+1)+"!",1)}catch(e){}return pub()}
+  /* награды за весь турнир: 1 место — VIP (+NFT-подарок Telegram вручную), 2–3 — звёзды на игровой баланс */
+  if(a==="ft_fin"){if(K.fin)fail("Награды уже выданы");if(!K.f[FT.plan.length-1]||!K.f[FT.plan.length-1].done)fail("Сначала подведи итог финала");
+    const T=await ftTop(env,K,3);const vd=Math.max(1,Math.min(90,p.vd|0||30)),vt=Math.max(1,Math.min(3,p.vt|0||3)),s2=Math.max(0,Math.min(5000,p.s2|0)),s3=Math.max(0,Math.min(5000,p.s3|0));
+    const prz=[];for(let k=0;k<T.length;k++){const r=T[k];
+      if(k===0){const u=await env.DB.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").bind(r.uid).first()||{};await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(Math.max(now,u.vip_until||0)+vd*864e5,Math.max(u.vip_t||0,vt),r.uid).run();
+        await notify(env,r.uid,"🥇 Ты лучший предсказатель Турнира Эпох — угадал "+r.n+" боёв! VIP уже твой, а NFT-подарок в Telegram пришлём лично 🎁","🏆 Открыть игру")}
+      else{const s=k===1?s2:s3;if(s)await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(s,r.uid).run();await notify(env,r.uid,(k===1?"🥈":"🥉")+" "+(k+1)+" место в Турнире Эпох — угадано "+r.n+" боёв! +"+s+" ⭐ на игровой баланс","🏆 Открыть игру")}
+      prz.push({uid:r.uid,name:r.name,n:r.n})}
+    K.fin=1;K.prz=prz;await kvSet(env,"ft",K);return pub()}
   fail("Неизвестное действие")}
 /* ---------- 🧩 «Загадка серии»: мультики «Хроники Эпох» заканчиваются вопросом, ответ ищут в игре ----------
    Подсказка 1 видна сразу, подсказка 2 — после 3 неверных попыток. Всего 10 попыток. За верный ответ — прокрутки, первые 10 попадают в следующую серию. */
@@ -3719,7 +3777,7 @@ async function handle(req,env){{
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
-      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(a==="roc_state"||a==="roc_bet"||a==="roc_out"){const res=await rocApi(env,me,a,p);return J({ok:true,res,S:a==="roc_state"?undefined:await stateFor(env,me)})}
       if(/^war_/.test(a)){const res=await warApi(env,me,a,p);return J({ok:true,res,S:a==="war_attack"?await stateFor(env,me):undefined})}
       if(/^al_/.test(a))return J({ok:true,res:await alApi(env,me,a,p)});
