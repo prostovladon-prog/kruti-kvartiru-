@@ -3145,3 +3145,15 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .ftustrip{background:linear-gradient(100deg,#ff7a00,#b0100a);box-shadow:0 4px 0 #5a1000,0 0 20px rgba(255,120,0,.45)}
 .ftubox .cln{color:rgba(255,255,255,.85)}
 .ftu-rl p{font-size:12px;line-height:1.45;color:#f3e6dc;margin:6px 0}
+/* 🎬 Звезда Эпох */
+.modal:has(.vcbox){align-items:flex-start;padding-top:calc(14px + var(--st,env(safe-area-inset-top,0px)))}
+.vcbox{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0,#4a1a9a,#0e0626 70%)!important;color:#fff}.vcbox>*{position:relative}.vcbox .ghost{color:#fff;border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.08)}.vcbox .cln{color:rgba(255,255,255,.85)}
+.vc-big{text-align:center;font-weight:900;font-size:13px;letter-spacing:1.5px;color:#ffd23f}.vc-logo{text-align:center;font-weight:900;font-size:26px;background:linear-gradient(180deg,#fff,#e0c8ff 50%,#b07aff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(180,120,255,.6))}
+.vc-tm{text-align:center;font-size:12.5px;opacity:.9;margin:4px 0 10px}
+.vc-pz{display:flex;flex-direction:column;gap:6px}.vc-p{display:flex;gap:10px;align-items:center;border-radius:14px;padding:8px 11px;background:linear-gradient(90deg,rgba(255,210,63,.18),rgba(255,255,255,.04));border:1px solid rgba(255,210,63,.35)}
+.vc-p i{font-style:normal;font-size:28px}.vc-p b{display:block;font-size:22px;color:#ffd23f;line-height:1}.vc-p small{display:block;font-size:11.5px;opacity:.85;margin-top:2px;line-height:1.3}
+.vc-how{margin-top:10px;font-size:12.5px;background:rgba(0,0,0,.25);border-radius:12px;padding:8px 10px}.vc-how ol{margin:4px 0 0;padding-left:18px;line-height:1.45}
+.vc-f{margin-top:10px;display:flex;flex-direction:column;gap:5px}.vc-f small{opacity:.8;font-size:11.5px}.vc-f input,.vc-f textarea,.vt-adm input{border:2px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:#fff;border-radius:11px;padding:9px 11px;font:inherit;font-size:13px;width:100%}
+.vc-al{max-height:240px;overflow:auto;font-size:12px;line-height:1.4}.vc-al>div{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.1);word-break:break-all}.vc-al a{color:#9fd0ff}
+.vc-win{border-radius:12px;padding:8px 11px;background:rgba(255,210,63,.15);margin-bottom:8px;font-size:14px}
+.vcstrip{background:linear-gradient(100deg,#8a3aff,#3a0a9a);box-shadow:0 4px 0 #1e0560,0 0 20px rgba(160,90,255,.5)}

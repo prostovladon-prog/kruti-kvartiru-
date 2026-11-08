@@ -1914,7 +1914,7 @@ $("auc-go").onclick=()=>{setTab("shop");shView="buy";renderShop();setTimeout(()=
 /* ---------- титулы ---------- */
 function openTitles(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const own=S.titles||[];
   sh.innerHTML='<div class="box nickbox"><h3>🎖 Титулы</h3><p>Покупаются за деньги игры один раз и навсегда. Титул виден рядом с ником в топах, чате и рейтинге.</p><div class="ttll"></div><button type="button" class="ghost" id="ttl-x">Закрыть</button></div>';
-  const L=sh.querySelector(".ttll");for(const k in TITLES){const T=TITLES[k],has=own.includes(k);if(T.pass&&!has)continue;const d=document.createElement("div");d.className="ttli"+(S.title===k?" on":"");
+  const L=sh.querySelector(".ttll");for(const k in TITLES){const T=TITLES[k],has=own.includes(k);if((T.pass||T.ex)&&!has)continue;const d=document.createElement("div");d.className="ttli"+(S.title===k?" on":"");
     d.innerHTML='<span class="ttlb'+(T.stars?" ttls":"")+(k==="author"?" ttla":"")+'">'+T.ic+" "+T.n+'</span><b class="num">'+(T.pass?"сезон":T.stars?"⭐ "+fmtN(T.stars):fmtC(T.price))+'</b>';const b=document.createElement("button");b.type="button";b.className=has?"ghost":"craftbtn";
     b.textContent=has?(S.title===k?"Снять":"Надеть"):"Купить";b.onclick=async()=>{if(!has&&T.stars){closeModal();openGold("flex");return}if(!has&&S.cash<T.price){toast("Не хватает "+fmt(T.price-S.cash));return}b.disabled=true;
       const r=await act(has?"title_set":"title_buy",{k:has&&S.title===k?"":k});b.disabled=false;if(!r)return;sfx.coin();Object.keys(tpCache).forEach(x=>delete tpCache[x]);renderAll();openTitles();if(!has)toast("Теперь ты «"+T.n+"»!")};d.appendChild(b);L.appendChild(d)}

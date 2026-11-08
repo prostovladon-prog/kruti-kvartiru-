@@ -26,7 +26,8 @@ const MENU_GROUPS=[
   {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
   {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]},
   {k:"vote",ic:"⚔️",n:"Выбор серии",c:["#ffd0c0","#d03a1a"]},
-  {k:"ftu",ic:"🏆",n:"Турнир Эпох",c:["#ffe08a","#b0300a"]}]],
+  {k:"ftu",ic:"🏆",n:"Турнир Эпох",c:["#ffe08a","#b0300a"]},
+  {k:"vc",ic:"🎬",n:"Конкурс на 210 $",c:["#d8c8ff","#6a2ad0"]}]],
  ["Сражения",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
   {k:"clan",ic:"🛡",n:"Клан",c:["#b9a2ff","#4b2a9a"]},
@@ -46,6 +47,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="riddle")return rdOpen();
   if(k==="vote")return vtOpen();
   if(k==="ftu")return ftuOpen();
+  if(k==="vc")return vcOpen();
   if(k==="home")return homeAdd();
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
   if(k==="teach")return teachOpen();

@@ -1032,7 +1032,7 @@ const ACTIONS={
     pay(st,T.price);const card=makeCard(ctx,T.h,T.f,{stats:T.stats,hue:T.hue});card.v=T.v;card.how="trader";addCard(G,card);return {card,price:T.price}},
   trader_give(G){const T=G.ctx.trader;if(!T)fail("Неизвестное действие");const c=burnable(freeCard(G,G.p.id));if(c.h!==T.h)fail("Торговец ищет другого воина");
     const got=Math.round(c.v*T.k*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
-  title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");if(T.pass)fail("Этот титул — награда сезонного пропуска");if(T.sup)fail("Этот титул дают за поддержку проекта от "+SUP.title+" ⭐");if(T.stars)fail("Этот титул покупается за ⭐ в Сокровищнице");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
+  title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");if(T.ex)fail("Этот титул — награда конкурса «Звезда Эпох»");if(T.pass)fail("Этот титул — награда сезонного пропуска");if(T.sup)fail("Этот титул дают за поддержку проекта от "+SUP.title+" ⭐");if(T.stars)fail("Этот титул покупается за ⭐ в Сокровищнице");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
     pay(st,T.price);st.titles.push(G.p.k);st.title=G.p.k;return {k:G.p.k}},
   title_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const k=G.p.k,st=G.st;if(!TITLES[k])fail("Нет такого титула");st.titles=st.titles||[];const newT=!st.titles.includes(k);if(newT)st.titles.push(k);if(!G.p.keep||!st.title)st.title=k;return {k,newT}},
   cos_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,p}=G,t=p.t==="pbg"?"pbg":"dfx",L=t==="pbg"?PBG:DFX;if(!L[p.k])fail("Нет такого");st[t]=st[t]||[];const nw=!st[t].includes(p.k);if(nw)st[t].push(p.k);st[t+"On"]=p.k;return {t,k:p.k,nw}},
@@ -1177,7 +1177,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
 /* титулы за деньги игры: покупаются один раз навсегда, деньги сгорают. Виден рядом с ником в топах, чате и рейтинге */
 const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8},season:{n:"Герой сезона",ic:"🎖",price:0,pass:1},
   immortal:{n:"Бессмертный",ic:"🔥",price:0,stars:300},emperor:{n:"Император",ic:"🏛",price:0,stars:700},author:{n:"Соавтор",ic:"✍️",price:0,stars:2000,month:3},
-  patron:{n:"Меценат",ic:"❤️",price:0,sup:1}};
+  patron:{n:"Меценат",ic:"❤️",price:0,sup:1},vstar:{n:"Звезда Эпох",ic:"🎬",price:0,ex:1}};
 /* 🎨 косметика за ⭐: анимация выпадения карточки и фон профиля (видят все, кто открывает твою витрину) */
 const DFX={storm:{n:"Гроза",ic:"⚡",stars:249},fire:{n:"Пламя",ic:"🔥",stars:249},stars:{n:"Звездопад",ic:"🌠",stars:249}};
 const PBG={space:{n:"Космос",ic:"🌌",stars:199},lava:{n:"Лава",ic:"🌋",stars:199},aurora:{n:"Северное сияние",ic:"🌈",stars:199},gold:{n:"Золото",ic:"💰",stars:299}};
@@ -1266,7 +1266,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=61;const NEWB_MS=3*864e5;
+const SCHEMA_V=62;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1332,6 +1332,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
     "CREATE TABLE IF NOT EXISTS ally (uid INTEGER PRIMARY KEY, mate INTEGER NOT NULL, t INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS ally_q (uid INTEGER PRIMARY KEY, t INTEGER NOT NULL, pw INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS roc_round (id INTEGER PRIMARY KEY, fs INTEGER NOT NULL, cr REAL NOT NULL, ct INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS roc_bet (rid INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, b INTEGER NOT NULL, auto REAL NOT NULL DEFAULT 0, out_m REAL, win INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL, PRIMARY KEY(rid,uid))",
+    "CREATE TABLE IF NOT EXISTS vc_part (uid INTEGER PRIMARY KEY, acc TEXT NOT NULL, vids TEXT, t INTEGER NOT NULL, upd INTEGER)",
     "CREATE TABLE IF NOT EXISTS ft_vote (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER NOT NULL, hit INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tid,fid,uid))","CREATE TABLE IF NOT EXISTS ft_soc (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(tid,fid,uid))",
     "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
     "CREATE TABLE IF NOT EXISTS hype (id INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER NOT NULL, uid INTEGER NOT NULL, txt TEXT NOT NULL)",
@@ -1618,6 +1619,7 @@ async function stateFor(env,me){
   try{S.rd=await rdState(env,me)}catch(e){}
   try{S.vt=await vtState(env,me)}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
+  try{const now=Date.now();if(now>=VC.start&&now<VC.end){const r=await env.DB.prepare("SELECT uid FROM vc_part WHERE uid=?").bind(me.id).first();S.vc={end:VC.end,j:r?1:0}}}catch(e){}
   try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
   try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
   S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
@@ -3616,6 +3618,53 @@ let b2Busy=false;
 const BLAST_TK={id:"tk1108_ann",on:true,at:Date.UTC(2026,10,8,5,0),until:Date.UTC(2026,10,8,17,0),photo:"assets/post-tk.jpg",btn:"🎟 Участвовать",link:"?tk=1",
   chan:"🎟 БИЛЕТНАЯ ГОНКА — СТАРТ!\n\nСегодня с 08:00 до 22:00 собирай билеты:\n⏱ 1 билет за каждую минуту в игре\n🎴 за прокрутки, ⚔️ бои, 🏰 войну армий, 🎰 казино и дань Империи\n\nКто к 22:00 соберёт больше всех — забирает приз:\n🥇 300 ⭐ + 👑 Корона Эпох\n🥈 200 ⭐ + 🪶 Перо феникса\n🥉 100 ⭐ + 🐉 Дракончик\n\nЗвёзды — на игровой баланс, подарки — NFT в игре. Таблица лидеров — прямо в игре 👇\n👉 @VoinyEpohBot",
   dm:"🎟 Воин, стартовала БИЛЕТНАЯ ГОНКА!\n\nСегодня до 22:00 за каждую минуту в игре и за любые действия ты получаешь билеты. Топ-3 забирают 300/200/100 ⭐ + NFT-подарки 🏆\n\nЗаходи — гонка уже идёт!"};
+
+/* ---------- 🎬 «Звезда Эпох»: конкурс видео 08.11 22:00 – 11.11 22:00 (Минск). Победителей выбирает админ после проверки ---------- */
+const VC={id:"vc1",start:Date.UTC(2026,10,8,19,0),end:Date.UTC(2026,10,11,19,0),gifts:["crown","egg","feather","ring","hourglass","dragon","horn","lamp"]};
+const VC_OK=u=>/^https:\/\/([a-z0-9-]+\.)*(tiktok\.com|youtube\.com|youtu\.be|instagram\.com)(\/[^\s]*)?$/i.test(u)&&u.length<=300;
+async function vcApi(env,me,a,p){const now=Date.now(),adm=isAdmin(env,me.id),on=now>=VC.start&&now<VC.end;
+  const pub=async()=>{const r=await env.DB.prepare("SELECT acc,vids,t FROM vc_part WHERE uid=?").bind(me.id).first();const n=(await env.DB.prepare("SELECT COUNT(*) AS n FROM vc_part").first()).n;
+    const o={start:VC.start,end:VC.end,on:on?1:0,n,my:r?{acc:r.acc,vids:JSON.parse(r.vids||"[]")}:null,win:(await kvGet(env,"vc_win"))||null};
+    if(adm)o.adm=(await env.DB.prepare("SELECT v.uid,v.acc,v.vids,v.t,COALESCE(u.nick,u.name) AS name FROM vc_part v JOIN users u ON u.id=v.uid ORDER BY v.t").all()).results.map(x=>({uid:x.uid,name:x.name,acc:x.acc,vids:JSON.parse(x.vids||"[]"),t:x.t}));
+    return o};
+  if(a==="vc_get")return pub();
+  if(a==="vc_join"){if(now<VC.start)fail("Конкурс начнётся 08.11 в 22:00");if(now>=VC.end)fail("Конкурс завершён — итоги после проверки");
+    const acc=String(p.acc||"").trim();if(!VC_OK(acc))fail("Вставь ссылку на свой аккаунт в TikTok, YouTube или Instagram (начинается с https://)");
+    const vids=(Array.isArray(p.vids)?p.vids:[]).map(x=>String(x||"").trim()).filter(Boolean).slice(0,10);for(const v of vids)if(!VC_OK(v))fail("Ссылка на видео должна быть из TikTok, YouTube или Instagram: "+v.slice(0,60));
+    await env.DB.prepare("INSERT INTO vc_part(uid,acc,vids,t,upd) VALUES(?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET acc=excluded.acc,vids=excluded.vids,upd=excluded.upd").bind(me.id,acc,JSON.stringify(vids),now,now).run();
+    const res=await pub();res.ok1=1;return res}
+  if(!adm)fail("Нет доступа");
+  if(a==="vc_win"){if(await kvGet(env,"vc_win"))fail("Награды уже выданы");const U=(p.u||[]).map(uidOf);if(U.length!==3||U.some(x=>!x)||new Set(U).size!==3)fail("Укажи 3 разных ID победителей");
+    const log=[];for(let i=0;i<3;i++){const uid=U[i],u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(uid).first();if(!u)fail("Нет игрока с ID "+uid);}
+    for(let i=0;i<3;i++){const uid=U[i],u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(uid).first(),me2={id:uid,name:u.name||"Игрок"},got=[];
+      try{await doAction(env,me2,"grant",{item:"mythic",pid:"vc1:"+uid},{grant:true});got.push("Мифический сундук")}catch(e){got.push("⚠️ сундук: "+e.message)}
+      if(i<2){let g=null;for(const k of VC.gifts){try{g=await giftMint(env,uid,k,"prize")}catch(e){}if(g)break}got.push(g?"NFT-подарок":"⚠️ NFT-подарки закончились")}
+      if(i===0){try{await doAction(env,me2,"title_grant",{k:"vstar"},{grant:true});got.push("статус «Звезда Эпох»")}catch(e){got.push("⚠️ статус: "+e.message)}}
+      const st=i===0?300:i===2?100:0;if(st){await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(st,uid).run();got.push(st+" ⭐")}
+      await notify(env,uid,["🥇","🥈","🥉"][i]+" Ты — "+(i+1)+" место в конкурсе «Звезда Эпох»! Твоё видео собрало больше всех просмотров 🎬\n\nВ игре уже: "+got.join(", ")+".\nСекретный приз и денежную часть приза ("+["100","70","40"][i]+" $) администратор передаст тебе лично — жди сообщение 🎁","🎁 Открыть игру");
+      log.push({uid,name:u.name,got})}
+    await kvSet(env,"vc_win",log);try{await hypeAdd(env,0,"🎬 Итоги «Звезды Эпох»: "+log.map((x,i)=>["🥇","🥈","🥉"][i]+" "+x.name).join(" · "),1)}catch(e){}return pub()}
+  fail("Неизвестное действие")}
+const VC_PR="__PR__",VC_PRT="🥇 100 $ (Мифический сундук + NFT-подарок в игре + статус «Звезда Эпох» + 300⭐ + секретный приз)\n🥈 70 $ (Мифический сундук + NFT-подарок в игре + секретный приз)\n🥉 40 $ (Мифический сундук + 100⭐ + секретный подарок)";
+const VC_B=[
+ {id:"vc1_start",at:Date.UTC(2026,10,8,19,15),btn:"🎬 Участвовать",
+  chan:"🎬 ОГРОМНЫЙ КОНКУРС НА 210 $ — «ЗВЕЗДА ЭПОХ»!\n\nСнимай видео про «Воины Эпох» → выкладывай в TikTok / YouTube / Instagram → собирай просмотры → забирай призы!\n\n"+VC_PR+"\n\n📌 Как участвовать: выложи видео → в игре нажми «🎬 Звезда Эпох», отправь ссылку на свой аккаунт и нажми «Участвовать».\nВидео — сколько угодно, засчитаем твоё лучшее по просмотрам и комментариям.\n⏳ До среды 11.11, 22:00 (Минск)\n⛔ Накрутка запрещена — дисквалификация.\n👉 @VoinyEpohBot",
+  dm:"🎬 Воин, стартовал ОГРОМНЫЙ КОНКУРС НА 210 $ — «ЗВЕЗДА ЭПОХ»!\n\nСними видео про «Воины Эпох» и выложи в TikTok, YouTube или Instagram. Чьё видео наберёт больше всех просмотров — тот и победил!\n\n"+VC_PR+"\n\n📌 Видео — сколько хочешь, засчитаем лучшее.\n👉 В игре: «🎬 Звезда Эпох» → ссылка на аккаунт → «Участвовать»\n⏳ До среды 11.11, 22:00\n⛔ Накрутка запрещена — дисквалификация"},
+ {id:"vc1_d1",at:Date.UTC(2026,10,9,5,0),btn:"🎬 Участвовать",
+  chan:"🎬 Конкурс «Звезда Эпох» на 210 $ идёт!\n\nЕщё не снял видео? Одно удачное видео — и 100 $ твои. Покажи свою коллекцию, редкий дроп или битву в «Воинах Эпох».\n\n"+VC_PR+"\n\n⏳ До среды 22:00 · 👉 @VoinyEpohBot",
+  dm:"🎬 Конкурс «Звезда Эпох» на 210 $ идёт! Ещё не снял видео? Одно удачное видео — и 100 $ твои. Покажи свою коллекцию, редкий дроп или битву.\n\n"+VC_PR+"\n\n⏳ До среды 22:00"},
+ {id:"vc1_d2",at:Date.UTC(2026,10,10,5,0),btn:"🎬 Участвовать",
+  chan:"🔥 Осталось 1,5 дня! Видео набирают просмотры не сразу — выкладывай сегодня, чтобы успеть.\n\n🎬 «Звезда Эпох» — конкурс на 210 $\n"+VC_PR+"\n\n👉 @VoinyEpohBot",
+  dm:"🔥 Осталось 1,5 дня конкурса «Звезда Эпох»! Видео набирают просмотры не сразу — выкладывай сегодня, чтобы успеть. Призы до 100 $ 🎬"},
+ {id:"vc1_d3",at:Date.UTC(2026,10,11,5,0),btn:"🎬 Участвовать",
+  chan:"⏰ ПОСЛЕДНИЙ ДЕНЬ! Конкурс «Звезда Эпох» на 210 $ заканчивается сегодня в 22:00.\n\nУспей выложить видео и нажать «Участвовать» в игре!\n\n"+VC_PR+"\n\n👉 @VoinyEpohBot",
+  dm:"⏰ ПОСЛЕДНИЙ ДЕНЬ! Конкурс «Звезда Эпох» заканчивается сегодня в 22:00. Успей выложить видео и нажать «Участвовать»! Призы до 100 $ 🎬"},
+ {id:"vc1_d4",at:Date.UTC(2026,10,11,15,0),btn:"🎬 Участвовать",
+  chan:"🚨 4 часа до конца конкурса «Звезда Эпох»! Финальный рывок — делись своими видео с друзьями 🎬\n\n👉 @VoinyEpohBot",
+  dm:"🚨 4 часа до конца конкурса «Звезда Эпох»! Финальный рывок — делись своими видео с друзьями 🎬"}
+].map(b=>Object.assign(b,{on:true,until:b.at+4*36e5,photo:"assets/post-vc.jpg",link:"?vc=1",chan:b.chan.split(VC_PR).join(VC_PRT),dm:b.dm.split(VC_PR).join(VC_PRT)}));
+let vcBusy=false;
+async function vcBlastTick(env){const now=Date.now();if(vcBusy)return;const B=VC_B.find(b=>now>=b.at&&now<b.until);if(!B)return;vcBusy=true;try{await blastRun(env,B)}finally{vcBusy=false}}
 let btkBusy=false;
 async function blastTkTick(env){const now=Date.now();if(!BLAST_TK.on||btkBusy||now<BLAST_TK.at||now>BLAST_TK.until)return;btkBusy=true;try{await blastRun(env,BLAST_TK)}finally{btkBusy=false}}
 async function blast2Tick(env){if(!BLAST2.on||b2Busy)return;b2Busy=true;try{await blastRun(env,BLAST2)}finally{b2Busy=false}}
@@ -3688,7 +3737,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -3777,7 +3826,7 @@ async function handle(req,env){{
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
-      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(a==="roc_state"||a==="roc_bet"||a==="roc_out"){const res=await rocApi(env,me,a,p);return J({ok:true,res,S:a==="roc_state"?undefined:await stateFor(env,me)})}
       if(/^war_/.test(a)){const res=await warApi(env,me,a,p);return J({ok:true,res,S:a==="war_attack"?await stateFor(env,me):undefined})}
       if(/^al_/.test(a))return J({ok:true,res:await alApi(env,me,a,p)});

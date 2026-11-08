@@ -1030,7 +1030,7 @@ const ACTIONS={
     pay(st,T.price);const card=makeCard(ctx,T.h,T.f,{stats:T.stats,hue:T.hue});card.v=T.v;card.how="trader";addCard(G,card);return {card,price:T.price}},
   trader_give(G){const T=G.ctx.trader;if(!T)fail("Неизвестное действие");const c=burnable(freeCard(G,G.p.id));if(c.h!==T.h)fail("Торговец ищет другого воина");
     const got=Math.round(c.v*T.k*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
-  title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");if(T.pass)fail("Этот титул — награда сезонного пропуска");if(T.sup)fail("Этот титул дают за поддержку проекта от "+SUP.title+" ⭐");if(T.stars)fail("Этот титул покупается за ⭐ в Сокровищнице");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
+  title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");if(T.ex)fail("Этот титул — награда конкурса «Звезда Эпох»");if(T.pass)fail("Этот титул — награда сезонного пропуска");if(T.sup)fail("Этот титул дают за поддержку проекта от "+SUP.title+" ⭐");if(T.stars)fail("Этот титул покупается за ⭐ в Сокровищнице");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
     pay(st,T.price);st.titles.push(G.p.k);st.title=G.p.k;return {k:G.p.k}},
   title_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const k=G.p.k,st=G.st;if(!TITLES[k])fail("Нет такого титула");st.titles=st.titles||[];const newT=!st.titles.includes(k);if(newT)st.titles.push(k);if(!G.p.keep||!st.title)st.title=k;return {k,newT}},
   cos_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,p}=G,t=p.t==="pbg"?"pbg":"dfx",L=t==="pbg"?PBG:DFX;if(!L[p.k])fail("Нет такого");st[t]=st[t]||[];const nw=!st[t].includes(p.k);if(nw)st[t].push(p.k);st[t+"On"]=p.k;return {t,k:p.k,nw}},
@@ -1175,7 +1175,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
 /* титулы за деньги игры: покупаются один раз навсегда, деньги сгорают. Виден рядом с ником в топах, чате и рейтинге */
 const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8},season:{n:"Герой сезона",ic:"🎖",price:0,pass:1},
   immortal:{n:"Бессмертный",ic:"🔥",price:0,stars:300},emperor:{n:"Император",ic:"🏛",price:0,stars:700},author:{n:"Соавтор",ic:"✍️",price:0,stars:2000,month:3},
-  patron:{n:"Меценат",ic:"❤️",price:0,sup:1}};
+  patron:{n:"Меценат",ic:"❤️",price:0,sup:1},vstar:{n:"Звезда Эпох",ic:"🎬",price:0,ex:1}};
 /* 🎨 косметика за ⭐: анимация выпадения карточки и фон профиля (видят все, кто открывает твою витрину) */
 const DFX={storm:{n:"Гроза",ic:"⚡",stars:249},fire:{n:"Пламя",ic:"🔥",stars:249},stars:{n:"Звездопад",ic:"🌠",stars:249}};
 const PBG={space:{n:"Космос",ic:"🌌",stars:199},lava:{n:"Лава",ic:"🌋",stars:199},aurora:{n:"Северное сияние",ic:"🌈",stars:199},gold:{n:"Золото",ic:"💰",stars:299}};
