@@ -2267,17 +2267,25 @@ function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scroll
     d.querySelector(".cht").textContent=new Date(m.t).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     d.querySelector(".chx").textContent=m.text;
     n.onclick=()=>{if(ONLINE&&m.uid>0&&m.uid!==S.uid){closeChat();openParam("u_"+m.uid)}};
+    if(S.admin&&ONLINE){const p=document.createElement("div");p.className="chadm";p.innerHTML='<button type="button">📌 Закрепить</button>';p.children[0].onclick=async()=>{const r=await act("chat_pin",{id:m.id});if(r){chatPin=r.pin;drawPin();toast("📌 Закреплено вверху чата")}};d.appendChild(p)}
     if(S.admin&&ONLINE&&!mine){const a=document.createElement("div");a.className="chadm";a.innerHTML='<button type="button">Удалить</button><button type="button">Мут 24 ч</button>';
       a.children[0].onclick=async()=>{if(await act("chat_del",{id:m.id})){chatItems=chatItems.filter(x=>x.id!==m.id);drawChat()}};
       a.children[1].onclick=async()=>{if(await act("chat_mute",{uid:m.uid,hours:24})){chatItems=chatItems.filter(x=>x.uid!==m.uid);drawChat();toast(m.name+": мут на 24 часа")}};d.appendChild(a)}
     box.appendChild(d)});
   if(atEnd||box.dataset.first!=="1"){box.scrollTop=box.scrollHeight;box.dataset.first="1"}
   const last=chatItems.length?chatItems[chatItems.length-1].id:0;if(ONLINE)try{localStorage.setItem(CHAT_SEEN,String(Math.max(last,S.chatLast||0)))}catch(e){}chatDot()}
+let chatPin=null;
+function drawPin(){const b=$("ch-pin");if(!b)return;if(!chatPin||!chatPin.text){b.hidden=true;return}b.hidden=false;
+  b.innerHTML='<i>📌</i><div><b></b><span></span></div>'+(S.admin&&ONLINE?'<button type="button" class="chunpin">✕</button>':'');b.querySelector("b").textContent="Закреплено · "+chatPin.name;b.querySelector("span").innerHTML=rdEsc(chatPin.text).replace(/https:\/\/[^\s<]+/g,u=>'<a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>');b.querySelectorAll("a").forEach(a=>a.onclick=e=>{e.stopPropagation();e.preventDefault();try{tg&&tg.openLink?tg.openLink(a.href):open(a.href)}catch(x){open(a.href)}});
+  const u=b.querySelector(".chunpin");if(u)u.onclick=async e=>{e.stopPropagation();if(!confirm("Открепить сообщение?"))return;const r=await act("chat_unpin");if(r){chatPin=null;drawPin()}};
+  b.onclick=()=>b.classList.toggle("open")}
 async function pullChat(){if(!chatOpen)return;const last=chatItems.length?chatItems[chatItems.length-1].id:0;const r=await act("chat_get",{after:ONLINE?last:0});
+  if(r&&"pin" in r&&JSON.stringify(r.pin)!==JSON.stringify(chatPin)){chatPin=r.pin;drawPin()}
   if(r&&chatOpen){if(!ONLINE||!last)chatItems=r.items;else if(r.items.length)chatItems=chatItems.concat(r.items.filter(x=>x.id>last)).slice(-80);else return;drawChat()}}
 function openChat(){chatOpen=true;const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  sh.innerHTML='<div class="chwrap"><div class="chtop"><b>Чат игроков</b><button type="button" class="x" id="ch-x">Закрыть</button></div><div class="chlist" id="ch-list"><p class="chempty">Загружаю…</p></div><div class="chin"><input type="text" id="ch-in" maxlength="200" placeholder="Сообщение…" autocomplete="off"><button type="button" class="mini2" id="ch-send">➤</button></div><small class="chrule">Без мата, ссылок и спама. Нажми на ник, чтобы открыть витрину игрока и вызвать его на бой.</small></div>';
-  $("ch-x").onclick=closeChat;
+  sh.innerHTML='<div class="chwrap"><div class="chtop"><b>Чат игроков</b><button type="button" class="x" id="ch-x">Закрыть</button></div><div class="chpin" id="ch-pin" hidden></div>'+(S.admin&&ONLINE?'<button type="button" class="chpinw" id="ch-pinw">📌 Закрепить своё объявление</button>':'')+'<div class="chlist" id="ch-list"><p class="chempty">Загружаю…</p></div><div class="chin"><input type="text" id="ch-in" maxlength="200" placeholder="Сообщение…" autocomplete="off"><button type="button" class="mini2" id="ch-send">➤</button></div><small class="chrule">Без мата, ссылок и спама. Нажми на ник, чтобы открыть витрину игрока и вызвать его на бой.</small></div>';
+  $("ch-x").onclick=closeChat;drawPin();
+  if($("ch-pinw"))$("ch-pinw").onclick=async()=>{const t=prompt("Текст закреплённого сообщения (ссылки можно):",chatPin&&chatPin.text||"");if(t==null||!t.trim())return;const r=await act("chat_pin",{text:t});if(r){chatPin=r.pin;drawPin();toast("📌 Закреплено вверху чата")}};
   const send=async()=>{const i=$("ch-in"),t=i.value.trim();if(!t)return;$("ch-send").disabled=true;const r=await act("chat_send",{text:t});$("ch-send").disabled=false;
     if(!r)return;i.value="";chatItems=r.items;$("ch-list").dataset.first="0";drawChat();hap("light")};
   $("ch-send").onclick=send;$("ch-in").onkeydown=e=>{if(e.key==="Enter")send()};

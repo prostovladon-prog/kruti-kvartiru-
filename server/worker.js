@@ -1900,7 +1900,7 @@ const CHAT_BAD=/(?<![а-яёa-z])(х[уy][йеёяию]\S*|п[иi]зд\S*|[её]
 const CHAT_LINK=/(https?:\/\/|www\.|t\.me\/|telegram\.(me|dog)|\.(ru|com|net|org|me|io|gg|xyz|su|by|ua|info|site|online)\b)/i;
 async function chatGet(env,p){
   const rows=(await env.DB.prepare("SELECT c.id,c.uid,c.name,c.text,c.t,COALESCE(u.pioneer,0) AS pi,CASE WHEN u.vip_until>? THEN 1 ELSE 0 END AS vip FROM chat c LEFT JOIN users u ON u.id=c.uid WHERE c.id>? ORDER BY c.id DESC LIMIT 60").bind(Date.now(),p.after|0).all()).results.reverse();
-  const K=await kingCur(env);return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0,k:K&&K.uid===r.uid?1:0}))};
+  const K=await kingCur(env);const pin=await cached("chatpin",15e3,()=>kvGet(env,"chat_pin"));return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0,k:K&&K.uid===r.uid?1:0})),pin:pin&&pin.text?pin:null};
 }
 /* 💬 чат клана и 🔍 поиск игроков */
 async function socApi(env,me,a,p){const now=Date.now();
@@ -1932,6 +1932,9 @@ async function chatSend(env,me,p){
 async function chatAdmin(env,me,a,p){
   if(!isAdmin(env,me.id))fail("Нет доступа");
   if(a==="chat_del"){await env.DB.prepare("DELETE FROM chat WHERE id=?").bind(p.id|0).run();return {}}
+  if(a==="chat_pin"){let P;if(p.id){const m=await env.DB.prepare("SELECT id,name,text,t FROM chat WHERE id=?").bind(p.id|0).first();if(!m)fail("Сообщение не найдено");P={id:m.id,name:m.name,text:m.text,t:m.t}}else{const t=String(p.text||"").replace(/\s+/g," ").trim().slice(0,300);if(!t)fail("Пустое сообщение");P={id:0,name:"Администрация",text:t,t:Date.now()}}
+    await kvSet(env,"chat_pin",P);delete topCache.chatpin;return {pin:P}}
+  if(a==="chat_unpin"){await kvSet(env,"chat_pin",{});delete topCache.chatpin;return {pin:null}}
   const h=Math.max(0,Math.min(24*30,+p.hours||24));
   await env.DB.prepare("UPDATE users SET muted=? WHERE id=?").bind(h?Date.now()+h*36e5:0,Math.floor(+p.uid||0)).run();
   if(h)await env.DB.prepare("DELETE FROM chat WHERE uid=?").bind(Math.floor(+p.uid||0)).run();
@@ -3790,7 +3793,7 @@ async function handle(req,env){{
       if(a==="stake_set"){await env.DB.prepare("UPDATE users SET stake=? WHERE id=?").bind(p.on?1:0,me.id).run();return J({ok:true,res:{on:!!p.on},S:await stateFor(env,me)})}
       if(a==="chat_get")return J({ok:true,res:await chatGet(env,p)});
       if(a==="chat_send")return J({ok:true,res:await chatSend(env,me,p)});
-      if(a==="chat_del"||a==="chat_mute")return J({ok:true,res:await chatAdmin(env,me,a,p)});
+      if(a==="chat_del"||a==="chat_mute"||a==="chat_pin"||a==="chat_unpin")return J({ok:true,res:await chatAdmin(env,me,a,p)});
       if(a==="nick"){const res=await setNick(env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}

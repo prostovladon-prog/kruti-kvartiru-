@@ -3157,3 +3157,8 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .vc-al{max-height:240px;overflow:auto;font-size:12px;line-height:1.4}.vc-al>div{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.1);word-break:break-all}.vc-al a{color:#9fd0ff}
 .vc-win{border-radius:12px;padding:8px 11px;background:rgba(255,210,63,.15);margin-bottom:8px;font-size:14px}
 .vcstrip{background:linear-gradient(100deg,#8a3aff,#3a0a9a);box-shadow:0 4px 0 #1e0560,0 0 20px rgba(160,90,255,.5)}
+/* 📌 закреп в чате */
+.chpin{flex:0 0 auto;display:flex;gap:8px;align-items:flex-start;margin:6px 0;padding:8px 10px;border-radius:12px;background:linear-gradient(90deg,#fff3c4,#ffe08a);border:2px solid var(--ink,#1a1a2e);box-shadow:0 3px 0 var(--ink,#1a1a2e);cursor:pointer;color:#2a1a00}
+.chpin i{font-style:normal;font-size:18px}.chpin>div{flex:1;min-width:0}.chpin b{display:block;font-size:11px;color:#8a4a00}.chpin span{display:block;font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chpin.open span{white-space:normal}
+.chunpin{border:0;background:rgba(0,0,0,.12);border-radius:8px;width:26px;height:26px;font-weight:900;color:#2a1a00}
+.chpinw{flex:0 0 auto;display:block;width:100%;margin:4px 0;border:2px dashed rgba(0,0,0,.3);background:rgba(255,224,138,.25);border-radius:10px;padding:6px;font:inherit;font-size:12px;font-weight:800;color:#ffe08a;border-color:rgba(255,224,138,.5)}
