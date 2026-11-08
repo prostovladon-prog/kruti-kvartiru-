@@ -26,8 +26,7 @@ const MENU_GROUPS=[
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
   {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
   {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]},
-  {k:"vote",ic:"⚔️",n:"Выбор серии",c:["#ffd0c0","#d03a1a"]},
-  {k:"ftu",ic:"🏆",n:"Турнир Эпох",c:["#ffe08a","#b0300a"]},
+  {k:"votes",ic:"🗳",n:"Голосование",c:["#ffd0c0","#d03a1a"]},
   {k:"vc",ic:"🎬",n:"Конкурс на 210 $",c:["#d8c8ff","#6a2ad0"]}]],
  ["Сражения",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
@@ -48,6 +47,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="riddle")return rdOpen();
   if(k==="vote")return vtOpen();
   if(k==="ftu")return ftuOpen();
+  if(k==="votes")return voteHub();
   if(k==="vc")return vcOpen();
   if(k==="home")return homeAdd();
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
@@ -86,6 +86,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
   const B=menuBadges(),on=!ONLINE||!!(S&&S.shopOn);let h="";
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
   if(S&&S.vt)h+=S.vt.ch?'<button type="button" class="drw-ban vt" data-go="vote"><i>⚔️</i><span><b>Выбор серии: ты проголосовал ✅</b><small>Смотри, за что голосуют остальные</small></span><em>›</em></button>':'<button type="button" class="drw-ban vt pulse" data-go="vote"><i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🛡 остаться или 🏃 отступить? · +🎴 за голос</small></span><em>›</em></button>';
+  if(S&&S.ft&&!S.ft.ch)h+='<button type="button" class="drw-ban vt pulse" data-go="ftu"><i>🏆</i><span><b>Кто победит в бою '+S.ft.n+'?</b><small>'+ftuN(S.ft.a)+' vs '+ftuN(S.ft.b)+' · угадай и получи 🎴</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="stars"><i>⭐</i><span><b>Звёзды игрокам</b><small>Начислить звёзды на игровой баланс и написать игроку</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});

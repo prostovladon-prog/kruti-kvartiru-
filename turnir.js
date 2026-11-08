@@ -50,3 +50,12 @@ function ftuStrip(){let b=$("ftustrip");const R=S&&ONLINE?S.ft:null;if(!R||R.ch)
   if(b.dataset.n!==String(R.n)){b.dataset.n=R.n;b.innerHTML=txt}}
 setInterval(()=>{try{ftuStrip()}catch(e){}},1500);
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="ft"||INITP.get("ft")){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(ftuOpen,1200)},400)}}
+
+/* 🗳 Голосование: одна страница — «Выбор серии» и «Кто победит в бою» */
+function voteHub(){const m=$("modal"),sh=$("msheet");m.hidden=false;const V=S&&S.vt,F=S&&S.ft;
+  const card=(id,ic,t,sub,st,cls)=>'<button type="button" class="vh-c '+cls+'" id="'+id+'"><i>'+ic+'</i><span><b>'+t+'</b><small>'+sub+'</small></span><em>'+st+'</em></button>';
+  sh.innerHTML='<div class="box nickbox vhbox"><div class="vh-hd">🗳 <b>Голосование</b><small>Решай, что будет дальше — и получай 🎴 за голоса</small></div>'+
+   card("vh-vt","⚔️","Выбор серии","Голосуй, что будет в следующей серии мультсериала",V?(V.ch?"✅ голос принят":"🔥 голосуй!"):"скоро новое",V&&!V.ch?"hot":"")+
+   card("vh-ft","🏆","Кто победит в бою","Турнир Эпох: угадай победителя — призы лучшим предсказателям",F?(F.ch?"✅ голос принят":"🔥 бой "+F.n+": "+ftuN(F.a)+" vs "+ftuN(F.b)):"скоро старт",F&&!F.ch?"hot":"")+
+   '<button type="button" class="ghost" id="vh-x">Закрыть</button></div>';
+  $("vh-x").onclick=closeModal;$("vh-vt").onclick=()=>{hap("light");vtOpen()};$("vh-ft").onclick=()=>{hap("light");ftuOpen()}}
