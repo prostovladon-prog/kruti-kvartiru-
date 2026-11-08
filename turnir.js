@@ -10,17 +10,17 @@ function ftuDraw(r){const sh=$("msheet");if(!sh)return;const F=r.cur>=0?r.fights
   else if(r.fin||(F&&F.st===2)){const fin=r.fights[r.fights.length-1];main='<div class="ftu-champ">'+ftuP(fin.w==="a"?fin.a:fin.b)+'<b>👑 Чемпион турнира: '+ftuN(fin.w==="a"?fin.a:fin.b)+'</b></div>'}
   else{const opt=k=>{const h=F[k],pc=k==="a"?F.pa:F.pb;return '<button type="button" class="ftu-o ftu-'+k+(F.my===k?" on":"")+'" data-k="'+k+'" '+(shown?"disabled":"")+'><div class="ftu-art">'+ftuP(h)+'</div><b>'+ftuN(h)+'</b>'+(shown?'<u style="width:'+pc+'%"></u><em>'+pc+'%</em>':'<small>Он победит!</small>')+'</button>'};
     main='<div class="ftu-st">'+r.stage[r.cur]+' · БОЙ '+(r.cur+1)+' из '+r.fights.length+'</div><div class="ftu-vs">'+opt("a")+'<div class="ftu-x">VS</div>'+opt("b")+'</div>'+
-     (F.my?'<p class="cln">✅ Ставка принята: <b>'+ftuN(F[F.my])+'</b>. Проголосовало: <b>'+F.tot+'</b>. Кто победил — в следующей серии!</p>':'<p class="cln">Кто победит? Один голос на бой · за голос <b>+'+r.sp+' 🎴</b> · угадаешь — ещё <b>+'+r.hit+' 🎴</b> и очко в турнире</p>')+ftuSoc(r)}
+     (F.my?'<p class="cln">✅ Голос принят: <b>'+ftuN(F[F.my])+'</b>. Проголосовало: <b>'+F.tot+'</b>. Кто победил — в следующей серии!</p>':'<p class="cln">Кто победит? Один голос на бой · за голос <b>+'+r.sp+' 🎴</b> · угадаешь — ещё <b>+'+r.hit+' 🎴</b> и очко в турнире</p>')+ftuSoc(r)}
   const br=r.fights.map((f,i)=>{const w=f.st===2?(f.w==="a"?f.a:f.b):null;const nm=k=>{const h=f[k];return '<span class="'+(w!=null?(h===w?"win":"lose"):"")+'">'+ftuN(h)+'</span>'};
     return '<div class="ftu-bi'+(f.st===1?" now":"")+'"><i>'+(i+1)+'</i>'+nm("a")+'<small>vs</small>'+nm("b")+(f.st===2&&f.my?'<em>'+(f.my===f.w?"✅":"❌")+'</em>':f.my?'<em>🗳</em>':'')+'</div>'}).join("");
   const top=r.top.length?r.top.map((t,i)=>'<div class="ftu-tr'+(t.uid===S.uid?" me":"")+'"><i>'+(["🥇","🥈","🥉"][i]||i+1)+'</i><span>'+rdEsc(t.name)+'</span><b>'+t.n+'</b></div>').join(""):'<small class="cln">Пока никто не угадал — первые итоги после боя №1</small>';
   sh.innerHTML='<div class="box nickbox ftubox"><div class="kg-rays"></div><div class="ftu-logo">🏆 ТУРНИР ЭПОХ</div><div class="ftu-sub">10 воинов · новая серия каждый день · выживет один</div>'+main+
    '<div class="ftu-sc">🎯 Ты угадал: <b>'+r.myHit+'</b> из <b>'+r.myDone+'</b></div>'+
-   '<div class="ftu-pz"><b>Призы лучшим предсказателям турнира</b><div>🥇 NFT-подарок в Telegram + VIP-статус</div><div>🥈 🥉 Звёзды*</div><small>Кто угадает больше всех боёв. *звёзды начисляются на игровой баланс</small></div>'+
+   '<div class="ftu-pz"><b>Призы лучшим предсказателям турнира</b><div>🥇 NFT-подарок в Telegram + VIP-статус</div><div>🥈 🥉 Звёзды*</div><small>Кто угадает больше всех боёв. Участие бесплатное. *звёзды начисляются на игровой баланс</small></div>'+
    '<details class="ftu-d" open><summary>🏅 Лучшие предсказатели</summary>'+top+'</details><details class="ftu-d"><summary>⚔️ Сетка турнира</summary>'+br+'</details>'+
    (r.adm?ftuAdm(r):"")+'<button type="button" class="ghost" id="ftu-x">Закрыть</button></div>';
   $("ftu-x").onclick=closeModal;ftuBind(r);
-  sh.querySelectorAll(".ftu-o:not([disabled])").forEach(b=>b.onclick=async()=>{const k=b.dataset.k;if(!confirm("Ставишь на «"+ftuN(F[k])+"»? Переголосовать нельзя"))return;
+  sh.querySelectorAll(".ftu-o:not([disabled])").forEach(b=>b.onclick=async()=>{const k=b.dataset.k;if(!confirm("Голосуешь за «"+ftuN(F[k])+"»? Переголосовать нельзя"))return;
     sh.querySelectorAll(".ftu-o").forEach(x=>x.disabled=true);const q=await act("ft_vote",{ch:k});if(!q){ftuDraw(r);return}sfx.fanfare();burst(3);hapN("success");ftuDraw(q)})}
 function ftuSoc(r){if(!r.url&&!r.urlIg)return "";const S2=r.soc||{};
   const claim=S2.got?'<p class="cln vt-sgot">✅ Награда получена <b>+'+r.socSp+'&nbsp;🎴</b></p>':S2.open?'<button type="button" class="craftbtn vt-like" id="ftu-like" '+(S2.left>0?"disabled":"")+'>'+(S2.left>0?'⏳ Смотри видео… '+S2.left+' сек':'❤️ Я лайкнул и написал комментарий · +'+r.socSp+' 🎴')+'</button>':"";
