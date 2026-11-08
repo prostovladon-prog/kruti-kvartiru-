@@ -3675,6 +3675,9 @@ let p300Busy=false;
 async function p300Tick(env){const now=Date.now();let K=await cached("p300k",30e3,()=>kvGet(env,"p300"));
   if(!K){if(now>P300.last)return;K={start:now,until:now+P300.dur};await kvSet(env,"p300",K);delete topCache.p300k;
     await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,0,0,0,?,?,0,0,?,?)").bind(P300.code,K.until,now,P300.bon,P300.bmin).run()}
+  /* в базе уже был старый ВОИН300 — перезаписываем его новыми условиями, старые активации сбрасываем, чтобы новый код мог ввести каждый */
+  if(!K.fix&&now<K.until){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,0,0,0,?,?,0,0,?,?) ON CONFLICT(code) DO UPDATE SET sp=0,cash=0,mx=0,until=excluded.until,off=0,x2=0,bon=excluded.bon,bmin=excluded.bmin").bind(P300.code,K.until,now,P300.bon,P300.bmin).run();
+    await env.DB.prepare("DELETE FROM promo_uses WHERE code=? AND (t IS NULL OR t<?)").bind(P300.code,now).run();K.fix=1;await kvSet(env,"p300",K);delete topCache.p300k}
   if(now>=K.until||p300Busy)return;p300Busy=true;
   try{const d=new Date(K.until+TZ),hm=String(d.getUTCHours()).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0");
     const B=Object.assign({},P300,{on:true,
