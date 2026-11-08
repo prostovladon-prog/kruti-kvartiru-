@@ -2966,9 +2966,9 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       if(r){b=Math.min(n,r.x2);await env.DB.prepare("UPDATE promo_uses SET x2d=1 WHERE code=? AND uid=?").bind(r.code,P.uid).run()}
       /* +N ⭐ сверху по промокоду: один раз, если пополнил до конца срока (оплата пришла чуть позже — всё равно засчитываем, срок проверяем по времени счёта) */
       const rb=await env.DB.prepare("SELECT code,bon FROM promo_uses WHERE uid=? AND bon>0 AND bon_until>? AND bmin<=? ORDER BY bon DESC LIMIT 1").bind(P.uid,Math.min(Date.now(),(P.t||P.created||Date.now())+36e5),n).first();
-      if(rb){const u=await env.DB.prepare("UPDATE promo_uses SET bon=0 WHERE code=? AND uid=? AND bon>0").bind(rb.code,P.uid).run();if(u.meta&&u.meta.changes===1)b+=rb.bon}
+      let pg=null;if(rb){const u=await env.DB.prepare("UPDATE promo_uses SET bon=0 WHERE code=? AND uid=? AND bon>0").bind(rb.code,P.uid).run();if(u.meta&&u.meta.changes===1){b+=rb.bon;if(rb.code===P300.code){for(const k of P300.gifts){try{pg=await giftMint(env,P.uid,k,"prize")}catch(e){}if(pg){pg=GIFTS[k].n;break}}}}}
       await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(n+b,P.uid).run();res={n,b};
-      msg="⭐ Баланс пополнен: +"+n+" ⭐"+(b?" и +"+b+" ⭐ в подарок по промокоду — итого "+(n+b)+" ⭐!":"!")+"\n\nТрать на любые покупки в игре — при оплате выбирай «Оплатить с баланса»."}
+      msg="⭐ Баланс пополнен: +"+n+" ⭐"+(b?" и +"+b+" ⭐ в подарок по промокоду — итого "+(n+b)+" ⭐!":"!")+(pg?"\n\n🎁 И NFT-подарок «"+pg+"» — уже в твоей коллекции подарков!":"")+"\n\nТрать на любые покупки в игре — при оплате выбирай «Оплатить с баланса»."}
     else if(P.item==="support"){const u=await env.DB.prepare("SELECT name,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       const tot=(((await env.DB.prepare("SELECT SUM(stars) AS s FROM payments WHERE uid=? AND item='support' AND (status='done' OR id=?)").bind(P.uid,P.id).first())||{}).s)||0;let ttl=0;
       if(tot>=SUP.title){const g=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"title_grant",{k:"patron",keep:1},{grant:true})).res;ttl=g.newT?1:0;
@@ -3668,6 +3668,19 @@ const VC_B=[
 ].map(b=>Object.assign(b,{on:true,until:b.at+3*36e5,photo:"assets/post-vc.jpg",link:"?vc=1",chan:b.chan.split(VC_PR).join(VC_PRT),dm:b.dm.split(VC_PR).join(VC_PRT)}));
 let vcBusy=false;
 async function vcBlastTick(env){const now=Date.now();if(vcBusy)return;const B=VC_B.find(b=>now>=b.at&&now<b.until);if(!B)return;vcBusy=true;try{await blastRun(env,B)}finally{vcBusy=false}}
+
+/* ⭐ ВОИН300: 2 часа с момента запуска (после voiny-update). Пополнение от 150 ⭐ → +300 ⭐ сверху и NFT-подарок за 100 ⭐ */
+const P300={code:"ВОИН300",bon:300,bmin:150,dur:2*36e5,last:Date.UTC(2026,10,9,2,0),id:"p300_0811",photo:"assets/post-p300.jpg",btn:"⭐ Пополнить баланс",link:"?shop=flex",gifts:["feather","ring","hourglass","wheel","trident","mask"]};
+let p300Busy=false;
+async function p300Tick(env){const now=Date.now();let K=await cached("p300k",30e3,()=>kvGet(env,"p300"));
+  if(!K){if(now>P300.last)return;K={start:now,until:now+P300.dur};await kvSet(env,"p300",K);delete topCache.p300k;
+    await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,0,0,0,?,?,0,0,?,?)").bind(P300.code,K.until,now,P300.bon,P300.bmin).run()}
+  if(now>=K.until||p300Busy)return;p300Busy=true;
+  try{const d=new Date(K.until+TZ),hm=String(d.getUTCHours()).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0");
+    const B=Object.assign({},P300,{on:true,
+      chan:"⭐ ПРОМОКОД НА +300 ЗВЁЗД!\n\nПополни игровой баланс от 150 ⭐ — и получи сверху ещё 300 ⭐ + NFT-подарок в игре стоимостью 100 ⭐ 🎁\n\n🎟 Промокод: ВОИН300\n⏳ Действует всего 2 часа — до "+hm+" (Минск)\n\n👉 @VoinyEpohBot",
+      dm:"⭐ Воин, промокод на +300 звёзд!\n\nПополняешь игровой баланс от 150 ⭐ — получаешь сверху +300 ⭐ и NFT-подарок в игре стоимостью 100 ⭐ 🎁\n\n🎟 Вводи ВОИН300 в «Ещё → Промокод», потом пополняй баланс в «Донат и понт».\n⏳ Только 2 часа — до "+hm+"!"});
+    await blastRun(env,B)}finally{p300Busy=false}}
 let btkBusy=false;
 async function blastTkTick(env){const now=Date.now();if(!BLAST_TK.on||btkBusy||now<BLAST_TK.at||now>BLAST_TK.until)return;btkBusy=true;try{await blastRun(env,BLAST_TK)}finally{btkBusy=false}}
 async function blast2Tick(env){if(!BLAST2.on||b2Busy)return;b2Busy=true;try{await blastRun(env,BLAST2)}finally{b2Busy=false}}
@@ -3740,7 +3753,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal",e);return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
