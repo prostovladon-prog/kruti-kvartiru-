@@ -1209,7 +1209,7 @@ async function rfApi(env,me,a,p){const now=Date.now();
 /* 👑 Админка: короткая сводка + воронка нового обучения */
 const TUT_T=Date.UTC(2026,10,9,18,20);
 async function admDash(env){const PD="status IN ('paid','done') AND COALESCE(charge,'')<>'bal'",now=Date.now(),d0=(dayNum(now))*864e5-TZ,one=async(q,...a)=>(await env.DB.prepare(q).bind(...a).first())||{};
-  const U=await one("SELECT COUNT(*) AS n,SUM(created>=?) AS t,SUM(created>=?) AS y,SUM(created>=?) AS w,SUM(updated>=?) AS on5,SUM(updated>=?) AS a1 FROM users",d0,d0-864e5,d0-6*864e5,now-5*6e4,d0);
+  const U=await one("SELECT COUNT(*) AS n,SUM(created>=?) AS t,SUM(created>=? AND created<?) AS y,SUM(created>=?) AS w,SUM(updated>=?) AS on5 FROM users",d0,d0-864e5,d0,d0-6*864e5,now-5*6e4);U.a1=(await one("SELECT COUNT(*) AS n FROM user_days WHERE d=?",dayNum(now))).n||0;
   const A7=await one("SELECT COUNT(DISTINCT uid) AS n FROM user_days WHERE d>=?",dayNum(now)-6);
   const st=async(a,b)=>(await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=? AND COALESCE(paid,created)<?`,a,b));
   const sT=await st(d0,now+1),sY=await st(d0-864e5,d0),sW=await st(d0-6*864e5,now+1);
