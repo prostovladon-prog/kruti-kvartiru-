@@ -552,7 +552,7 @@ async function setNick(env,me,p){
   let r;try{r=await env.DB.prepare("UPDATE users SET nick=?,nick_key=?,cash=cash-? WHERE id=? AND cash>=?").bind(n,nickKey(n),cost,me.id,cost).run()}
   catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Ник «"+n+"» уже занят. Придумай другой");throw e}
   if(r.meta.changes!==1)fail("Смена ника стоит "+cost+" 🪙, не хватает монет");
-  topCache={};return {nick:n,cost};
+  topCache={};let gift=0;if(!u.nick){try{await doAction(env,me,"tour_prize",{sp:3,cash:0},{tour:1});gift=3}catch(e){}}return {nick:n,cost,gift};
 }
 
 /* серии дней подряд: острова последовательных дней (d − номер строки одинаковый), mx — лучшая серия, cur — серия, которая длится до сегодня */

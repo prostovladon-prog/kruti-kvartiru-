@@ -3210,3 +3210,66 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .rf-st{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0}.rf-st>div{background:rgba(255,255,255,.08);border-radius:10px;padding:6px 8px}.rf-st b{display:block;font-size:18px}.rf-st small{font-size:10.5px;opacity:.8}
 .rf-gf{display:block;font-style:normal;font-size:11px;font-weight:900;color:#3ddc84;margin-top:2px}
 .rf-act{font-size:19px;padding:14px;animation:vhP 1.4s ease-in-out infinite}
+/* 🎓 Обучение 2.0 */
+#tut,#nks,#sbg{position:fixed;inset:0;z-index:100000;background:radial-gradient(ellipse at 50% 30%,#1c1430,#05040a 70%);color:#fff;display:flex;flex-direction:column;padding:calc(10px + var(--st,env(safe-area-inset-top,0px))) 18px calc(18px + env(safe-area-inset-bottom,0px));overflow:hidden;animation:tuIn .35s ease}
+@keyframes tuIn{from{opacity:0}}
+.tu-top{display:flex;justify-content:space-between}.tu-top button{border:0;background:none;color:rgba(255,255,255,.6);font:inherit;font-weight:800;font-size:15px;padding:8px 4px}
+.tu-stage,.nk-stage{position:relative;flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.tu-glow{position:absolute;width:120%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 45%,transparent),transparent 60%);animation:tuG 3s ease-in-out infinite}@keyframes tuG{50%{transform:scale(1.08);opacity:.8}}
+.tu-sc{position:relative;width:min(88vw,360px);height:min(52vh,340px);display:flex;align-items:center;justify-content:center;animation:tuS .5s cubic-bezier(.2,1.4,.4,1)}@keyframes tuS{from{transform:scale(.7);opacity:0}}
+.tu-txt{text-align:center;padding-top:6px}.tu-txt h2{margin:0 0 6px;font-size:28px;font-weight:900;letter-spacing:-.01em}.tu-txt p{margin:0 auto 12px;max-width:340px;font-size:15px;line-height:1.4;color:rgba(255,255,255,.75)}
+.tu-pg{height:5px;border-radius:3px;background:rgba(255,255,255,.12);max-width:300px;margin:0 auto}.tu-pg i{display:block;height:100%;border-radius:3px;background:#3ddc84;transition:width .3s}.tu-txt>small{display:block;margin:6px 0 12px;font-size:12px;color:rgba(255,255,255,.5)}
+.tu-next{display:block;width:100%;border:0;border-radius:18px;padding:17px;font:inherit;font-weight:900;font-size:18px;background:linear-gradient(180deg,#46e88f,#22b45e);color:#06240f;box-shadow:0 6px 0 #0e6a34}.tu-next:active{transform:translateY(3px);box-shadow:0 3px 0 #0e6a34}
+.tu-open{display:block;width:100%;margin-top:10px;border:0;border-radius:18px;padding:15px;font:inherit;font-weight:800;font-size:16px;background:rgba(255,255,255,.1);color:#fff}
+.tu-c{width:120px;height:120px;border-radius:22px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fff1cf,#e0a050 60%,#5a2a08);box-shadow:0 10px 30px rgba(0,0,0,.5)}.tu-c svg{width:100%;height:100%}.tu-c.tu-big{width:190px;height:190px;border-radius:30px}
+/* 1 крутка */
+.tu-flip{width:180px;height:240px;position:relative;transform-style:preserve-3d;animation:tuF 3.2s ease-in-out infinite}@keyframes tuF{0%,15%{transform:rotateY(0)}35%,85%{transform:rotateY(180deg)}100%{transform:rotateY(360deg)}}
+.tu-back,.tu-front{position:absolute;inset:0;border-radius:22px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.tu-back{background:repeating-linear-gradient(45deg,#3a1a7a 0 12px,#2a0a5a 12px 24px);border:4px solid #ffd23f;font-size:90px;font-weight:900;color:#ffd23f}
+.tu-front{transform:rotateY(180deg);background:radial-gradient(circle at 50% 40%,#fff1cf,#e0a050 60%,#5a2a08);border:4px solid #bf5af2;box-shadow:0 0 40px #bf5af2}.tu-front svg{width:170px;height:170px}.tu-front b{color:#3a1600;font-size:18px}
+.tu-burst{position:absolute;width:300px;height:300px;border-radius:50%;background:repeating-conic-gradient(rgba(255,220,120,.25) 0 8deg,transparent 8deg 20deg);animation:tuB 3.2s linear infinite;z-index:-1}@keyframes tuB{0%,30%{opacity:0;transform:scale(.5) rotate(0)}45%,85%{opacity:1;transform:scale(1) rotate(40deg)}100%{opacity:0}}
+/* 2 редкость */
+.tu-row{display:flex;gap:6px;align-items:flex-end}.tu-r{text-align:center;animation:tuU .6s var(--d) both}@keyframes tuU{from{transform:translateY(40px);opacity:0}}
+.tu-r svg{width:62px;height:62px;border-radius:12px;background:#1a1028;box-shadow:0 0 calc(6px + var(--d)*40) var(--c);border:2px solid var(--c)}.tu-r small{display:block;font-size:9.5px;font-weight:800;color:var(--c);margin-top:4px}
+.tu-r:nth-child(5) svg{width:78px;height:78px;animation:tuP 1.4s ease-in-out infinite}@keyframes tuP{50%{box-shadow:0 0 40px var(--c)}}
+/* 3 отделки */
+.tu-fin{position:relative;width:200px;height:200px;border-radius:30px;overflow:hidden;animation:tuFn 4s linear infinite}.tu-fin .tu-c{width:200px;height:200px}
+@keyframes tuFn{0%,24%{filter:none;box-shadow:0 0 20px #fff}25%,49%{filter:hue-rotate(90deg) saturate(1.6);box-shadow:0 0 40px #6be4ff}50%,74%{filter:sepia(1) saturate(4) hue-rotate(5deg) brightness(1.1);box-shadow:0 0 50px #ffcc33}75%,100%{filter:invert(.15) hue-rotate(160deg) saturate(2);box-shadow:0 0 50px #ff2e63}}
+.tu-fl{position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.55) 45%,transparent 60%);animation:tuSh 1.6s linear infinite}@keyframes tuSh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.tu-cnt{position:absolute;bottom:0;padding:8px 16px;border-radius:14px;background:rgba(0,0,0,.6);text-align:center;font-size:13px}.tu-cnt span{display:block;color:#ffcc33;font-weight:900}.tu-cnt i{font-style:normal;color:#ff6b8a;animation:tuBl 1s steps(2) infinite}@keyframes tuBl{50%{opacity:.3}}
+/* 4 цена */
+.tu-price{position:absolute;bottom:0;display:flex;gap:6px}.tu-price b{padding:6px 10px;border-radius:10px;background:#1a3a1a;color:#7dff9a;font-size:14px;animation:tuU .5s both}.tu-price b:nth-child(2){animation-delay:.4s}.tu-price b:nth-child(3){animation-delay:.8s}.tu-price b:nth-child(4){animation-delay:1.2s;background:#ffd23f;color:#3a1600}
+/* 5 империя */
+.tu-emp{width:300px;text-align:center}.tu-rk{display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:rgba(255,255,255,.7);margin-bottom:6px}.tu-bar{height:22px;border-radius:11px;background:rgba(255,255,255,.1);overflow:hidden}.tu-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff9a1a,#ffd23f);animation:tuBr 3s ease-in-out infinite}@keyframes tuBr{from{width:5%}to{width:100%}}.tu-emp b{display:block;margin-top:14px;font-size:22px;color:#ffd23f}
+/* 6 дуэль */
+.tu-vs{display:flex;align-items:center;gap:8px}.tu-vs>b{font-size:34px;font-weight:900;color:#ffd23f;text-shadow:0 0 18px #ff5a00}.tu-vs .l{animation:tuHL 1.6s ease-in-out infinite}.tu-vs .r{animation:tuHR 1.6s ease-in-out infinite .8s}
+@keyframes tuHL{0%,100%{transform:none}40%{transform:translateX(26px) rotate(6deg)}}@keyframes tuHR{0%,100%{transform:none}40%{transform:translateX(-26px) rotate(-6deg)}}
+.tu-hp{position:absolute;bottom:20px;width:280px;display:flex;gap:10px}.tu-hp i{flex:1;height:10px;border-radius:5px;background:#3ddc84;transform-origin:left;animation:tuHp 3.2s linear infinite}.tu-hp .b{background:#ff3b30;animation-delay:.8s}@keyframes tuHp{from{transform:scaleX(1)}to{transform:scaleX(.1)}}
+/* 7 война */
+.tu-war{display:flex;align-items:center;gap:8px}.tu-war>div{display:flex;flex-direction:column;gap:4px}.tu-war .s{width:52px;height:52px;border-radius:10px}.tu-war>b{font-size:30px;animation:tuP2 .8s ease-in-out infinite}@keyframes tuP2{50%{transform:scale(1.4)}}
+.tu-war .e{animation:tuDie 3s ease-in infinite}.tu-war .e:nth-child(2){animation-delay:.4s}.tu-war .e:nth-child(3){animation-delay:.8s}@keyframes tuDie{0%,50%{opacity:1;transform:none}70%,100%{opacity:.2;transform:translateX(20px) rotate(20deg)}}
+.tu-win{position:absolute;bottom:4px;font-size:30px;font-weight:900;color:#ffd23f;text-shadow:0 0 20px #ff9a00;animation:tuWn 3s infinite}@keyframes tuWn{0%,60%{opacity:0;transform:scale(2)}75%,100%{opacity:1;transform:scale(1)}}
+/* 8 карта */
+.tu-map{position:relative;width:280px;height:220px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tu-map i{border-radius:14px;background:linear-gradient(135deg,#2a5a3a,#1a3a24);border:2px solid rgba(255,255,255,.15)}.tu-map i.me{animation:tuMe 3s infinite}@keyframes tuMe{0%,40%{background:#2a5a3a}55%,100%{background:#0a84ff;box-shadow:0 0 24px #0a84ff}}
+.tu-flag{position:absolute;left:44%;top:0;font-size:44px;animation:tuFg 3s infinite}@keyframes tuFg{0%{transform:translateY(-80px);opacity:0}40%{transform:translateY(64px);opacity:1}100%{transform:translateY(64px)}}
+.tu-map em{position:absolute;right:-10px;bottom:-8px;font-style:normal;font-weight:900;color:#ffd23f;animation:tuUp 3s infinite}@keyframes tuUp{0%,55%{opacity:0;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-40px)}}
+/* 9 дракон */
+.tu-egg{position:relative;width:200px;height:200px;font-size:140px;text-align:center;line-height:200px}.tu-e1{position:absolute;inset:0;animation:tuEg 3.4s infinite}.tu-e2{position:absolute;inset:0;animation:tuDr 3.4s infinite}
+@keyframes tuEg{0%,10%{transform:rotate(0)}15%{transform:rotate(-12deg)}20%{transform:rotate(12deg)}25%{transform:rotate(-8deg)}30%,45%{transform:rotate(0);opacity:1}55%,100%{opacity:0;transform:scale(1.4)}}
+@keyframes tuDr{0%,45%{opacity:0;transform:scale(.3)}60%,100%{opacity:1;transform:scale(1)}}
+/* 10 казино */
+.tu-cas{display:flex;gap:16px;align-items:flex-end}.tu-rk2{font-size:70px;text-align:center;animation:tuRk 2.4s ease-in infinite}.tu-rk2 small{display:block;font-size:22px;font-weight:900;color:#3ddc84}@keyframes tuRk{0%{transform:translateY(60px)}80%{transform:translateY(-60px) rotate(-10deg)}100%{transform:translateY(-60px);opacity:0}}
+.tu-pl{position:relative;width:140px;height:200px;background:radial-gradient(circle,#ffe8a8 3px,transparent 4px) 0 0/28px 28px;border-radius:14px;border:2px solid rgba(255,255,255,.15)}.tu-pl span{position:absolute;left:55px;top:0;font-size:28px;animation:tuCn 2.4s infinite}@keyframes tuCn{0%{transform:translate(0,0)}25%{transform:translate(-14px,50px)}50%{transform:translate(8px,100px)}75%{transform:translate(-6px,150px)}100%{transform:translate(4px,170px)}}
+/* 11 друзья */
+.tu-fr{position:relative;width:300px;height:200px;font-size:60px}.tu-fr span{position:absolute}.tu-fr .a{left:0;top:70px;animation:tuSn 3s infinite}.tu-fr .b{right:10px;top:60px}.tu-fr .c{left:110px;top:120px;font-size:30px;font-weight:900;color:#3ddc84;animation:tuUp2 3s infinite}.tu-fr em{position:absolute;left:0;right:0;top:0;text-align:center;font-style:normal;font-size:30px;font-weight:900;color:#ffd23f;text-shadow:0 0 20px #ff9a00}
+@keyframes tuSn{0%{transform:none}40%{transform:translateX(190px) rotate(10deg);opacity:1}50%,100%{opacity:0;transform:translateX(190px)}}@keyframes tuUp2{0%,50%{opacity:0;transform:translateY(20px)}65%,90%{opacity:1;transform:none}100%{opacity:0}}
+/* 12 подарки */
+.tu-ev{position:relative;width:240px;height:240px}.tu-box{position:absolute;left:60px;top:80px;font-size:110px;animation:tuBx 2.6s infinite}@keyframes tuBx{0%,20%{transform:rotate(0)}25%{transform:rotate(-10deg)}30%{transform:rotate(10deg)}35%,100%{transform:rotate(0) scale(1.1)}}
+.tu-ev span{position:absolute;left:105px;top:110px;font-size:34px;opacity:0;animation:tuPop 2.6s infinite}.tu-ev span{--a:calc(var(--i) * 60deg)}@keyframes tuPop{0%,35%{opacity:0;transform:none}50%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(-120px)}}
+.tu-go .tu-c{animation:tuP3 1.6s ease-in-out infinite}@keyframes tuP3{50%{transform:scale(1.06);box-shadow:0 0 50px #ffd23f}}
+/* ник */
+.nk-card{width:220px;padding:18px;border-radius:26px;text-align:center;background:linear-gradient(160deg,#3a2a6a,#160c30);border:3px solid #ffd23f;box-shadow:0 0 50px rgba(255,210,63,.35);animation:tuS .5s}.nk-pt{width:130px;height:130px;margin:0 auto 10px;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fff1cf,#e0a050 60%,#5a2a08)}.nk-pt svg{width:100%;height:100%}
+.nk-card b{display:block;font-size:22px;color:#ffd23f;word-break:break-all;min-height:28px}.nk-card small{color:rgba(255,255,255,.6)}
+.nk-row{display:flex;gap:8px;margin-bottom:4px}.nk-row input{flex:1;min-width:0;border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:16px;padding:14px;font:inherit;font-size:17px;font-weight:700}.nk-row button{width:58px;border:0;border-radius:16px;font-size:26px;background:rgba(255,255,255,.12)}
+#nks .nkerr,#sbg .nkerr{display:block;min-height:18px;color:#ff8a8a;font-size:12px;margin-bottom:8px}
+.sb-ic{font-size:120px;animation:tuP3 1.6s ease-in-out infinite;filter:drop-shadow(0 0 30px #0a84ff)}

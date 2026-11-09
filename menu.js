@@ -8,6 +8,7 @@ const MENU_GROUPS=[
  ["Главное",[
   {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
   {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
+  {k:"tut",ic:"🎓",n:"Как играть",c:["#d0ffd8","#1a9a50"]},
   {k:"teach",ic:"🧙",n:"Мудрец (вопросы)",c:["#c8e8ff","#3a5ab0"]},
   {k:"enc",ic:"📚",n:"Энциклопедия карт",c:["#ffe8b0","#a0600a"]},
   {k:"upd",ic:"🆕",n:"Обновление",c:["#ff9ad5","#c42a8a"]},
@@ -52,6 +53,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="home")return homeAdd();
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
   if(k==="teach")return teachOpen();
+  if(k==="tut")return tutOpen(true);
   if(k==="enc")return encOpen();
   if(k==="upd"){updI=0;return updOpen()}
   if(k==="emp")return empOpen();
