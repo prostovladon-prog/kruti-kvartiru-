@@ -927,8 +927,12 @@ async function aucCur(env){const now=Date.now(),day=dayOf(now),d=new Date(now+TZ
   let A=await env.DB.prepare("SELECT * FROM auc WHERE day=?").bind(day).first();
   if(!A&&now>=start-6*3600e3){const ctx=await makeCtx(env,false),R=Math.random;let h,f;
     const errFree=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]<=2&&ctx.issuedOf(i,4)<1);
-    if(R()<.5&&errFree.length){h=errFree[Math.floor(R()*errFree.length)];f=4}
-    else{const pool=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]>=3&&ctx.issuedOf(i,3)<FIN[3].run);h=pool[Math.floor(R()*pool.length)];f=3}
+    const gold=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]>=3&&ctx.issuedOf(i,3)<FIN[3].run);
+    /* тиражи кончаются: если золотых легенд/мифов не осталось — голограмма легенды/мифа или золото эпика */
+    const holo=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]>=3&&ctx.issuedOf(i,2)<FIN[2].run),gEp=HEROES.map((H,i)=>i).filter(i=>i<NBASE&&HEROES[i][2]===2&&ctx.issuedOf(i,3)<FIN[3].run);
+    const pick=L=>L[Math.floor(R()*L.length)];
+    if(errFree.length&&(R()<.5||!gold.length)){h=pick(errFree);f=4}else if(gold.length){h=pick(gold);f=3}else if(gEp.length){h=pick(gEp);f=3}else if(holo.length){h=pick(holo);f=2}
+    if(h==null)return await env.DB.prepare("SELECT * FROM auc ORDER BY id DESC LIMIT 1").first();
     const B=cardBody(h,f),v=priceOf(h,f,2,"123457",B.top);
     try{await env.DB.prepare("INSERT INTO auc(day,h,f,stats,hue,v,min,start,until) VALUES(?,?,?,?,?,?,?,?,?)").bind(day,h,f,JSON.stringify(B.stats),B.hue,v,Math.round(v*.5),start,start+AUC_MS).run()}catch(e){}
     A=await env.DB.prepare("SELECT * FROM auc WHERE day=?").bind(day).first()}
