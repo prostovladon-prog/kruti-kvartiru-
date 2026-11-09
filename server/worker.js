@@ -2343,19 +2343,21 @@ async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_stop"){const C=await ref3Cur(env);if(!C||now>=C.end)fail("Акция не идёт");C.end=now;await kvSet(env,"ref3",C);delete topCache.ref3;return {end:now}}
   fail("Неизвестное действие")}
 /* ---------- ⚔️ «Выбор серии»: зрители решают, что будет в следующей серии ---------- */
-const VOTE_DEFAULT={id:"ep3",ep:3,title:"«Тайная тропа»",q:"Предатель показал персам тайную тропу — спартанцев окружают. Что сделает Леонид?",
-  opts:[{k:"s",ic:"🛡",n:"Остаться и сражаться",d:"до последнего — и войти в историю навсегда"},{k:"r",ic:"🏃",n:"Отступить",d:"спасти своих воинов, но изменить историю"}],
-  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,7,15,0),end:Date.UTC(2026,10,14,21,0)};
+const VOTE_DEFAULT={id:"ep4",ep:4,gate:1,title:"«Битва в тени»",q:"Леонид пал. Ксеркс предлагает последним спартанцам сложить оружие и сохранить жизнь. Что ответит Диенек?",
+  opts:[{k:"f",ic:"⚔️",n:"Последний бой на холме",d:"стоять до конца — и стать легендой"},{k:"y",ic:"🏳",n:"Принять предложение",d:"выжить и рассказать Спарте правду"}],
+  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,9,12,0),end:Date.UTC(2026,10,17,21,0)};
+/* gate: голосование открывается для игроков, только когда админ добавил ссылку на серию */
+const vtOpenFor=(env,me,C)=>!C.gate||C.url||C.urlIg||isAdmin(env,me.id);
 async function vtCfg(env){const k=await kvGet(env,"ep_vote");return k&&k.id===VOTE_DEFAULT.id?{...VOTE_DEFAULT,...k}:VOTE_DEFAULT}
-async function vtState(env,me){const C=await vtCfg(env),now=Date.now();if(now<C.start||now>=C.end)return null;const r=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();return {id:C.id,ep:C.ep,ch:r?r.ch:""}}
+async function vtState(env,me){const C=await vtCfg(env),now=Date.now();if(now<C.start||now>=C.end||!vtOpenFor(env,me,C))return null;const r=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();return {id:C.id,ep:C.ep,ch:r?r.ch:""}}
 async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
   const pub=async()=>{const R=(await env.DB.prepare("SELECT ch,COUNT(*) AS n FROM ep_vote WHERE vid=? GROUP BY ch").bind(C.id).all()).results;const cnt={};R.forEach(r=>cnt[r.ch]=r.n);const tot=R.reduce((x,r)=>x+r.n,0);
     const my=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();
     const so=await env.DB.prepare("SELECT open_t,got_t FROM ep_vote_soc WHERE vid=? AND uid=?").bind(C.id,me.id).first();const adm=isAdmin(env,me.id);
     const admx=adm?{cnt,soc:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=? AND got_t IS NOT NULL").bind(C.id).first())||{}).n||0,opened:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=?").bind(C.id).first())||{}).n||0}:undefined;
-    return {on:now>=C.start&&now<C.end?1:0,id:C.id,ep:C.ep,title:C.title,q:C.q,sp:C.sp,end:C.end,url:C.url||"",urlIg:C.urlIg||"",socSp:C.socSp,socWait:C.socWait,soc:{open:so&&so.open_t?so.open_t:0,got:so&&so.got_t?1:0,left:so&&so.open_t&&!so.got_t?Math.max(0,Math.ceil((so.open_t+C.socWait*1e3-now)/1e3)):null},adm:admx,my:my?my.ch:"",tot,opts:C.opts.map(o=>({...o,c:my||now>=C.end?(cnt[o.k]||0):undefined,pc:my||now>=C.end?(tot?Math.round((cnt[o.k]||0)*100/tot):0):undefined}))}};
+    return {on:now>=C.start&&now<C.end&&vtOpenFor(env,me,C)?1:0,id:C.id,ep:C.ep,title:C.title,q:C.q,sp:C.sp,end:C.end,url:C.url||"",urlIg:C.urlIg||"",socSp:C.socSp,socWait:C.socWait,soc:{open:so&&so.open_t?so.open_t:0,got:so&&so.got_t?1:0,left:so&&so.open_t&&!so.got_t?Math.max(0,Math.ceil((so.open_t+C.socWait*1e3-now)/1e3)):null},adm:admx,my:my?my.ch:"",tot,opts:C.opts.map(o=>({...o,c:my||now>=C.end?(cnt[o.k]||0):undefined,pc:my||now>=C.end?(tot?Math.round((cnt[o.k]||0)*100/tot):0):undefined}))}};
   if(a==="vt_get")return pub();
-  if(a==="vt_vote"){if(now<C.start)fail("Голосование ещё не началось");if(now>=C.end)fail("Голосование закончено — смотри следующую серию");const ch=String(p.ch||"");if(!C.opts.some(o=>o.k===ch))fail("Выбери вариант");
+  if(a==="vt_vote"){if(now<C.start||!vtOpenFor(env,me,C))fail("Голосование откроется с выходом новой серии");if(now>=C.end)fail("Голосование закончено — смотри следующую серию");const ch=String(p.ch||"");if(!C.opts.some(o=>o.k===ch))fail("Выбери вариант");
     const r=await env.DB.prepare("INSERT OR IGNORE INTO ep_vote(vid,uid,ch,t) VALUES(?,?,?,?)").bind(C.id,me.id,ch,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже проголосовал");
     if(C.sp)await doAction(env,me,"tour_prize",{sp:C.sp,cash:0},{tour:1});const res=await pub();res.hit=1;return res}
   /* ссылка на видео: открыл → через socWait секунд можно забрать награду за лайк и комментарий (проверить лайки TikTok нельзя — честное слово + таймер) */
