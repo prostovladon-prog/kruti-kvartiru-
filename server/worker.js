@@ -2411,7 +2411,7 @@ async function catInfo(env){return cached("catinfo",60e3,async()=>{const c={};
 
 /* ---------- 🎁 Реф-кейс и 🪙 Плинко: 1 прокрутка = 1 приглашённый друг, который начал играть (≥10 открытий), только новые приглашения ---------- */
 const RF={start:Date.UTC(2026,10,9,4,30),giftCut:Date.UTC(2026,10,9,5,0),op:10,gifts:Object.keys(GIFTS).sort((a,b)=>(GIFTS[a].stars||1e9)-(GIFTS[b].stars||1e9)),
-  P:[{k:"0",n:"Пусто",w:22.05},{k:"s1",n:"1 ⭐",st:1,w:20},{k:"s2",n:"2 ⭐",st:2,w:17},{k:"s3",n:"3 ⭐",st:3,w:13},{k:"s5",n:"5 ⭐",st:5,w:10},{k:"s10",n:"10 ⭐",st:10,w:6},{k:"s15",n:"15 ⭐",st:15,w:4},
+  P:[{k:"0",n:"Пусто",w:12.05},{k:"x2",n:"x2 к пополнению (до 400 ⭐)",x2:400,w:3},{k:"b50",n:"+50 ⭐ к любому пополнению",bon:50,w:4},{k:"b60",n:"+60 ⭐ к любому пополнению",bon:60,w:3},{k:"s1",n:"1 ⭐",st:1,w:20},{k:"s2",n:"2 ⭐",st:2,w:17},{k:"s3",n:"3 ⭐",st:3,w:13},{k:"s5",n:"5 ⭐",st:5,w:10},{k:"s10",n:"10 ⭐",st:10,w:6},{k:"s15",n:"15 ⭐",st:15,w:4},
      {k:"ch",n:"Сундук промокодов",chest:"promo",w:4},{k:"s25",n:"25 ⭐",st:25,w:2},{k:"s50",n:"50 ⭐",st:50,w:1},{k:"nft",n:"NFT-подарок",gift:1,w:.6},{k:"s100",n:"100 ⭐",st:100,w:.3},{k:"s500",n:"500 ⭐",st:500,w:.05}]};
 async function rfInfo(env,uid){const e=await env.DB.prepare("SELECT SUM(CASE WHEN COALESCE(json_extract(state,'$.nOp'),0)>=? THEN 1 ELSE 0 END) AS ok,COUNT(*) AS all_ FROM users WHERE ref=? AND created>=?").bind(RF.op,uid,RF.start).first()||{};
   const u=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g NOT LIKE '%*') AS used,(SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g LIKE '%*') AS gu,(SELECT created FROM users WHERE id=?) AS cr").bind(uid,uid,uid).first()||{};
@@ -2435,7 +2435,7 @@ async function rfApi(env,me,a,p){const now=Date.now();
     const gs=I.gift&&I.left-I.gift<1;if(gs)P=RF.P.find(x=>x.k==="s5");
     const ins=gs?await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM rf_spin WHERE uid=? AND g LIKE '%*') RETURNING id").bind(me.id,g+"*",P.k,null,now,me.id).first()
       :await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g NOT LIKE '%*')<? RETURNING id").bind(me.id,g,P.k,null,now,me.id,I.ok).first();if(!ins||!ins.id)fail("Нет прокруток");
-    let code=null;if(P.k!=="0"){for(let i=0;i<5&&!code;i++){const c="РЕФ"+Math.random().toString(36).slice(2,8).toUpperCase();const q=await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,st,gift,chest) VALUES(?,0,0,1,0,?,0,0,?,?,?)").bind(c,now,P.st||0,P.gift?1:0,P.chest||null).run();if(q.meta&&q.meta.changes===1)code=c}}
+    let code=null;if(P.k!=="0"){for(let i=0;i<5&&!code;i++){const c="РЕФ"+Math.random().toString(36).slice(2,8).toUpperCase();const q=await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin,st,gift,chest) VALUES(?,0,0,1,?,?,0,?,?,0,?,?,?)").bind(c,P.x2||P.bon?now+3*864e5:0,now,P.x2||0,P.bon||0,P.st||0,P.gift?1:0,P.chest||null).run();if(q.meta&&q.meta.changes===1)code=c}}
     if(code)await env.DB.prepare("UPDATE rf_spin SET code=? WHERE id=?").bind(code,ins.id).run();
     if(["s100","s500","nft","s50"].includes(P.k))try{await hypeAdd(env,me.id,(me.name||"Игрок")+" выбил "+P.n+" в "+(g==="pl"?"🪙 Плинко":"🎁 Реф-кейсе")+"!",P.k==="s500")}catch(e){}
     const res=await rfApi(env,me,"rf_get",{});res.win={k:P.k,n:P.n,code};return res}
