@@ -33,8 +33,8 @@ small.note{display:block;margin-top:12px;color:rgba(255,255,255,.55);font-size:1
 <button class="play" id="go">▶ Играть бесплатно</button>
 <small class="note">Открывается прямо в Telegram — ничего не нужно скачивать</small>
 <script>
-/* метка объявления: play.html?s=fb1 → в боте startapp=s_fb1 (видно в «Реклама: ссылки и статистика») */
+/* метка объявления: play.html?s=fb1 → в боте /start s_fb1 (видно в «Реклама: ссылки и статистика») */
 const tag=(new URLSearchParams(location.search).get("s")||"fb").replace(/[^a-zA-Z0-9_]/g,"").slice(0,30)||"fb";
-const url="https://t.me/VoinyEpohBot?startapp=s_"+tag;
+const url="https://t.me/VoinyEpohBot?start=s_"+tag;
 document.getElementById("go").onclick=()=>{try{fbq('track','Lead',{content_name:tag})}catch(e){}setTimeout(()=>{location.href=url},300)};
 </script></body></html>
