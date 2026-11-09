@@ -54,6 +54,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="fs"){const on=!(tg&&tg.isFullscreen);try{localStorage.setItem("we-fs",on?"1":"0")}catch(e){}if(!fsApply(on))toast("Полный экран работает в Telegram на телефоне (версия 8.0+). Обнови Telegram");else toast(on?"📱 Полный экран включён":"Полный экран выключен");return}
   if(k==="teach")return teachOpen();
   if(k==="tut")return tutOpen(true);
+  if(k==="admin")return admOpen();
   if(k==="enc")return encOpen();
   if(k==="upd"){updI=0;return updOpen()}
   if(k==="emp")return empOpen();
@@ -89,6 +90,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
   if(S&&S.vt)h+=S.vt.ch?'<button type="button" class="drw-ban vt" data-go="vote"><i>⚔️</i><span><b>Выбор серии: ты проголосовал ✅</b><small>Смотри, за что голосуют остальные</small></span><em>›</em></button>':'<button type="button" class="drw-ban vt pulse" data-go="vote"><i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🛡 остаться или 🏃 отступить? · +🎴 за голос</small></span><em>›</em></button>';
   if(S&&S.ft&&!S.ft.ch)h+='<button type="button" class="drw-ban vt pulse" data-go="ftu"><i>🏆</i><span><b>Кто победит в бою '+S.ft.n+'?</b><small>'+ftuN(S.ft.a)+' vs '+ftuN(S.ft.b)+' · угадай и получи 🎴</small></span><em>›</em></button>';
+  if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="admin"><i>👑</i><span><b>Админка</b><small>Онлайн, доход, новички, обучение и быстрые действия</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="stars"><i>⭐</i><span><b>Звёзды игрокам</b><small>Начислить звёзды на игровой баланс и написать игроку</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
@@ -853,7 +855,7 @@ setInterval(()=>{try{const C=chData;if(!C||!C.chest||C.phase!=="on"||!S||!ONLINE
   load()}catch(e){}}}
 
 /* ---------- 🎥 режим эфира: «открываю за тебя» (только админ) ---------- */
-MENU_GROUPS[0][1].push({k:"live",ic:"🎥",n:"Эфир",c:["#ff7a8a","#c0102a"]});
+/* «Эфир» убран из меню по просьбе админа */
 {const _mo=menuOpen;menuOpen=function(){_mo.apply(this,arguments);if(!(S&&S.admin))document.querySelectorAll('.drw-i[data-go="live"]').forEach(b=>b.remove())}}
 {const _mg=menuGo;menuGo=function(k){if(k==="live"){menuClose();return liveOpen()}return _mg.apply(this,arguments)}}
 let LV=null;

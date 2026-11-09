@@ -2442,6 +2442,18 @@ async function rfApi(env,me,a,p){const now=Date.now();
     if(["s100","s500","nft","s50"].includes(P.k))try{await hypeAdd(env,me.id,(me.name||"Игрок")+" выбил "+P.n+" в "+(g==="pl"?"🪙 Плинко":"🎁 Реф-кейсе")+"!",P.k==="s500")}catch(e){}
     const res=await rfApi(env,me,"rf_get",{});res.win={k:P.k,n:P.n,code};return res}
   fail("Неизвестное действие")}
+
+/* 👑 Админка: короткая сводка + воронка нового обучения */
+const TUT_T=Date.UTC(2026,10,9,18,20);
+async function admDash(env){const PD="status IN ('paid','done') AND COALESCE(charge,'')<>'bal'",now=Date.now(),d0=(dayNum(now))*864e5-TZ,one=async(q,...a)=>(await env.DB.prepare(q).bind(...a).first())||{};
+  const U=await one("SELECT COUNT(*) AS n,SUM(created>=?) AS t,SUM(created>=?) AS y,SUM(created>=?) AS w,SUM(updated>=?) AS on5,SUM(updated>=?) AS a1 FROM users",d0,d0-864e5,d0-6*864e5,now-5*6e4,d0);
+  const A7=await one("SELECT COUNT(DISTINCT uid) AS n FROM user_days WHERE d>=?",dayNum(now)-6);
+  const st=async(a,b)=>(await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=? AND COALESCE(paid,created)<?`,a,b));
+  const sT=await st(d0,now+1),sY=await st(d0-864e5,d0),sW=await st(d0-6*864e5,now+1);
+  const days=[];for(let i=6;i>=0;i--){const a=d0-i*864e5;days.push({d:new Date(a+TZ).toISOString().slice(5,10),n:(await one("SELECT COUNT(*) AS n FROM users WHERE created>=? AND created<?",a,a+864e5)).n||0,a:(await one("SELECT COUNT(*) AS n FROM user_days WHERE d=?",dayNum(a))).n||0,s:(await st(a,a+864e5)).s||0})}
+  const F=await one("SELECT COUNT(*) AS n,SUM(COALESCE(nick,'')<>'') AS nk,SUM(COALESCE(json_extract(state,'$.nOp'),0)>=15) AS o15,SUM(COALESCE(json_extract(state,'$.subGot2'),0)=1) AS sub,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=users.id AND x.d>CAST((users.created+?)/86400000 AS INTEGER))) AS back FROM users WHERE created>=?",TZ,TUT_T);
+  const R=await one("SELECT COUNT(*) AS reg FROM users WHERE ref IS NOT NULL AND created>=?",RF.start);
+  return {U:{n:U.n||0,t:U.t||0,y:U.y||0,w:U.w||0,on:U.on5||0,a1:U.a1||0,a7:A7.n||0},S:{t:sT.s||0,tu:sT.u||0,y:sY.s||0,w:sW.s||0},days,F:{since:TUT_T,n:F.n||0,nk:F.nk||0,o15:F.o15||0,sub:F.sub||0,back:F.back||0},ref:R.reg||0}}
 /* ---------- 🏆 «Турнир Эпох»: видео-турнир 10 воинов, зрители угадывают победителя каждого боя ---------- */
 const FT={id:"ft1",auto:Date.UTC(2026,10,8,20,50),sp:2,hit:3,socSp:2,socWait:20,
   /* бои: числа — индекс героя, "W3" — победитель боя №3 (с нуля) */
@@ -3942,7 +3954,7 @@ async function handle(req,env){{
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
-      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^rs_/.test(a))return J({ok:true,res:await rsApi(env,me,a,p)});if(/^rf_/.test(a))return J({ok:true,res:await rfApi(env,me,a,p)});if(a==="cat_info")return J({ok:true,res:await catInfo(env)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^rs_/.test(a))return J({ok:true,res:await rsApi(env,me,a,p)});if(a==="adm_dash"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await admDash(env)})}if(/^rf_/.test(a))return J({ok:true,res:await rfApi(env,me,a,p)});if(a==="cat_info")return J({ok:true,res:await catInfo(env)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(a==="roc_state"||a==="roc_bet"||a==="roc_out"){const res=await rocApi(env,me,a,p);return J({ok:true,res,S:a==="roc_state"?undefined:await stateFor(env,me)})}
       if(/^war_/.test(a)){const res=await warApi(env,me,a,p);return J({ok:true,res,S:a==="war_attack"?await stateFor(env,me):undefined})}
       if(/^al_/.test(a))return J({ok:true,res:await alApi(env,me,a,p)});
