@@ -1196,9 +1196,10 @@ async function rfApi(env,me,a,p){const now=Date.now();
     const L=RF.P.filter(x=>!(pity&&x.k==="0"));let r=Math.random()*L.reduce((a,x)=>a+x.w,0),P=L[0];for(const x of L){if(r<x.w){P=x;break}r-=x.w}
     /* подарочная первая прокрутка для всех игроков: всегда 5 ⭐, на шансы и счётчики не влияет */
     const gs=I.gift&&I.left-I.gift<1;if(gs)P=RF.P.find(x=>x.k==="s5");
+    const ins=gs?await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM rf_spin WHERE uid=? AND g LIKE '%*') RETURNING id").bind(me.id,g+"*",P.k,null,now,me.id).first()
+      :await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g NOT LIKE '%*')<? RETURNING id").bind(me.id,g,P.k,null,now,me.id,I.ok).first();if(!ins||!ins.id)fail("Нет прокруток");
     let code=null;if(P.k!=="0"){for(let i=0;i<5&&!code;i++){const c="РЕФ"+Math.random().toString(36).slice(2,8).toUpperCase();const q=await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,st,gift,chest) VALUES(?,0,0,1,0,?,0,0,?,?,?)").bind(c,now,P.st||0,P.gift?1:0,P.chest||null).run();if(q.meta&&q.meta.changes===1)code=c}}
-    const ins=gs?await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM rf_spin WHERE uid=? AND g LIKE '%*')").bind(me.id,g+"*",P.k,code,now,me.id).run()
-      :await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g NOT LIKE '%*')<?").bind(me.id,g,P.k,code,now,me.id,I.ok).run();if(!ins.meta||ins.meta.changes!==1)fail("Нет прокруток");
+    if(code)await env.DB.prepare("UPDATE rf_spin SET code=? WHERE id=?").bind(code,ins.id).run();
     if(["s100","s500","nft","s50"].includes(P.k))try{await hypeAdd(env,me.id,(me.name||"Игрок")+" выбил "+P.n+" в "+(g==="pl"?"🪙 Плинко":"🎁 Реф-кейсе")+"!",P.k==="s500")}catch(e){}
     const res=await rfApi(env,me,"rf_get",{});res.win={k:P.k,n:P.n,code};return res}
   fail("Неизвестное действие")}
@@ -1294,6 +1295,8 @@ async function promoApi(env,me,a,p){const now=Date.now();
     if(!P||P.off)fail("Такого промокода нет. Проверь, как он написан");if(P.until&&now>P.until)fail("Срок промокода закончился");
     if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
     const r=await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t) VALUES(?,?,?)").bind(code,me.id,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже активировал этот промокод");
+    /* одновременная активация одного кода двумя людьми: кто не влез в лимит — откатываем */
+    if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=? AND (t<? OR (t=? AND uid<=?))").bind(code,now,now,me.id).first())||{}).n||0;if(n>P.mx){await env.DB.prepare("DELETE FROM promo_uses WHERE code=? AND uid=?").bind(code,me.id).run();fail("Промокод уже активировали максимальное число раз")}}
     if(P.x2)await env.DB.prepare("UPDATE promo_uses SET x2=? WHERE code=? AND uid=?").bind(P.x2,code,me.id).run();
     if(P.bon)await env.DB.prepare("UPDATE promo_uses SET bon=?,bon_until=?,bmin=? WHERE code=? AND uid=?").bind(P.bon,P.until||9e15,P.bmin||0,code,me.id).run();
     if(P.sp||P.cash)await doAction(env,me,"tour_prize",{sp:P.sp,cash:P.cash},{tour:1});
