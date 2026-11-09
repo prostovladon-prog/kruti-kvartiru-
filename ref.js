@@ -51,3 +51,5 @@ function rfDrop(b){return new Promise(res=>{const G=rfGeo(),mv=[];for(let i=0;i<
   const pts=[[G.W/2,20]];let k=0;for(let r=0;r<G.rows;r++){k+=mv[r];pts.push([G.W/2+(k-(r+1)/2)*G.dx,G.top+r*G.dy+G.dy/2])}pts.push([G.W/2+(b-G.mid)*G.dx,G.by+20]);
   let i=0,t0=performance.now();const step=150;const f=now=>{const s=(now-t0)/step;i=Math.floor(s);if(i>=pts.length-1){rfDraw(1,pts[pts.length-1][0],pts[pts.length-1][1]);res();return}
     const a=pts[i],z=pts[i+1],u=s-i,x=a[0]+(z[0]-a[0])*u,y=a[1]+(z[1]-a[1])*u*u-Math.sin(u*Math.PI)*14;rfDraw(1,x,y);if(u<.08&&i>0)try{sfx.tick&&sfx.tick()}catch(e){};requestAnimationFrame(f)};requestAnimationFrame(f)})}
+
+{const q=new URLSearchParams(location.search).get("cas");if(q){const t=setInterval(()=>{try{if(!S)return}catch(e){return}clearInterval(t);setTimeout(()=>openCas(q==="pl"?"pl":"rc"),1200)},400)}}
