@@ -255,7 +255,7 @@ openShowcase=function(F){_openShowcase(F);if(!F||F.shelf==null)return;shOther=F;
   $("ws-give").onclick=()=>giftTo(null)};
 
 /* ---------- казино рун ---------- */
-let csTab="case",csBet=1000,csBusy=false;
+let csTab="rc",csBet=1000,csBusy=false;
 function openCas(t){if(!ONLINE){toast("Казино работает в игре через бота");return}if(t)csTab=t;campFlush();setTab("cas");renderCas()}
 function casK(){const K=S.cas||{};return K.d===new Date(Date.now()+3*3600e3).toISOString().slice(0,10)?K:{n:0,cs:0}}
 function csBal(){$("cs-ru").textContent=fmtN(campView().runes);const K=casK();$("cs-day").innerHTML="руны для игры<br>в казино"}

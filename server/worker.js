@@ -1266,7 +1266,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=62;const NEWB_MS=3*864e5;
+const SCHEMA_V=63;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1332,6 +1332,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS clan_boss (clan INTEGER NOT NULL, week TEXT NOT NULL, lvl INTEGER NOT NULL DEFAULT 1, hp INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, total INTEGER NOT NULL DEFAULT 0, kills INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week))",
     "CREATE TABLE IF NOT EXISTS ally (uid INTEGER PRIMARY KEY, mate INTEGER NOT NULL, t INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS ally_q (uid INTEGER PRIMARY KEY, t INTEGER NOT NULL, pw INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS roc_round (id INTEGER PRIMARY KEY, fs INTEGER NOT NULL, cr REAL NOT NULL, ct INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS roc_bet (rid INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, b INTEGER NOT NULL, auto REAL NOT NULL DEFAULT 0, out_m REAL, win INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL, PRIMARY KEY(rid,uid))",
+    "CREATE TABLE IF NOT EXISTS rs_user (uid INTEGER PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0, last TEXT, n INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS rs_code (code TEXT PRIMARY KEY, owner INTEGER NOT NULL, k TEXT NOT NULL, v INTEGER NOT NULL, t INTEGER NOT NULL, used_by INTEGER, used_t INTEGER)","CREATE INDEX IF NOT EXISTS rs_code_o ON rs_code(owner,t)",
+    "CREATE TABLE IF NOT EXISTS rf_spin (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT, k TEXT, code TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS rf_spin_u ON rf_spin(uid)","ALTER TABLE promo ADD COLUMN st INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN gift INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN chest TEXT",
     "CREATE TABLE IF NOT EXISTS vc_part (uid INTEGER PRIMARY KEY, acc TEXT NOT NULL, vids TEXT, t INTEGER NOT NULL, upd INTEGER)",
     "CREATE TABLE IF NOT EXISTS ft_vote (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER NOT NULL, hit INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tid,fid,uid))","CREATE TABLE IF NOT EXISTS ft_soc (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(tid,fid,uid))",
     "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
@@ -1619,6 +1621,7 @@ async function stateFor(env,me){
   try{S.rd=await rdState(env,me)}catch(e){}
   try{S.vt=await vtState(env,me)}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
+  try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
   try{const now=Date.now();if(now>=VC.start&&now<VC.end){const r=await env.DB.prepare("SELECT uid FROM vc_part WHERE uid=?").bind(me.id).first();S.vc={end:VC.end,j:r?1:0}}}catch(e){}
   try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
   try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
@@ -2367,11 +2370,71 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
   fail("Неизвестное действие")}
 
 
+
+/* 🎰 «Слот друзей»: 1 приглашённый друг, который сыграл 10 прокруток = 1 прокрутка слота. Приз — промокод (звёзды / сундук / NFT) или «пусто».
+   Ожидание ≈ 8 ⭐ номинала на друга: 70% — 1–15 ⭐, 20% — пусто, 500 ⭐ — 0,2%. Двух «пусто» подряд не бывает, каждая 10-я прокрутка — минимум 10 ⭐ */
+const RS={start:Date.UTC(2026,10,9,5,0),need:10,
+  P:[{k:"none",v:0,w:200},{k:"st",v:1,w:211},{k:"st",v:2,w:170},{k:"st",v:3,w:130},{k:"st",v:5,w:100},{k:"st",v:10,w:55},{k:"st",v:15,w:35},
+     {k:"chest",v:50,w:50},{k:"st",v:25,w:25},{k:"st",v:50,w:12},{k:"st",v:100,w:5},{k:"nft",v:100,w:6},{k:"st",v:500,w:1}],
+  gifts:["feather","ring","hourglass","wheel","trident","mask"]};
+async function rsCount(env,uid){const r=await env.DB.prepare("SELECT SUM(COALESCE(json_extract(state,'$.nOp'),0)>=?) AS a,COUNT(*) AS n FROM users WHERE ref=? AND created>=?").bind(RS.need,uid,RS.start).first()||{};
+  const u=await env.DB.prepare("SELECT used,last,n FROM rs_user WHERE uid=?").bind(uid).first()||{used:0,n:0};const act=r.a||0;return {act,pend:(r.n||0)-act,used:u.used||0,n:u.n||0,last:u.last||"",sp:Math.max(0,act-(u.used||0))}}
+function rsName(k,v){return k==="st"?v+" ⭐":k==="chest"?"Малый сундук":k==="nft"?"NFT-подарок":"Пусто"}
+async function rsGrant(env,me,C){if(C.k==="st"){await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(C.v,me.id).run();return "+"+C.v+" ⭐ на игровой баланс"}
+  if(C.k==="chest"){await doAction(env,me,"grant",{item:"small",pid:"rs:"+C.code},{grant:true});return "🎁 Малый сундук"}
+  if(C.k==="nft"){for(const k of RS.gifts){let g=null;try{g=await giftMint(env,me.id,k,"prize")}catch(e){}if(g)return "🎁 NFT-подарок «"+GIFTS[k].n+"»"}await env.DB.prepare("UPDATE users SET star_bal=star_bal+100 WHERE id=?").bind(me.id).run();return "+100 ⭐ (подарки закончились — выдали звёздами)"}
+  fail("Пустой код")}
+async function rsUse(env,me,code){const C=await env.DB.prepare("SELECT * FROM rs_code WHERE code=?").bind(code).first();if(!C)return null;if(C.used_by)fail("Этот промокод уже активирован");
+  const u=await env.DB.prepare("UPDATE rs_code SET used_by=?,used_t=? WHERE code=? AND used_by IS NULL").bind(me.id,Date.now(),code).run();if(!u.meta||u.meta.changes!==1)fail("Этот промокод уже активирован");
+  const msg=await rsGrant(env,me,C);if(C.owner!==me.id)try{await notify(env,C.owner,"🎟 Твой подарочный промокод "+code+" активировал друг — "+rsName(C.k,C.v)+"!","🎰 Слот друзей")}catch(e){}
+  return {code,rs:1,msg,k:C.k,v:C.v}}
+async function rsApi(env,me,a,p){const now=Date.now();
+  const pub=async()=>{const R=await rsCount(env,me.id);const codes=(await env.DB.prepare("SELECT code,k,v,t,used_by FROM rs_code WHERE owner=? ORDER BY t DESC LIMIT 20").bind(me.id).all()).results.map(c=>({code:c.code,k:c.k,v:c.v,t:c.t,used:c.used_by?1:0,self:c.used_by===me.id?1:0}));
+    const tot=RS.P.reduce((x,y)=>x+y.w,0);return Object.assign(R,{need:RS.need,codes,odds:RS.P.map(x=>({k:x.k,v:x.v,p:x.w/tot*100}))})};
+  if(a==="rs_get")return pub();
+  if(a==="rs_spin"){const R=await rsCount(env,me.id);if(R.sp<1)fail("Нет прокрутов — пригласи друга: когда он сыграет "+RS.need+" прокруток, ты получишь прокрутку слота");
+    await env.DB.prepare("INSERT OR IGNORE INTO rs_user(uid) VALUES(?)").bind(me.id).run();
+    const u=await env.DB.prepare("UPDATE rs_user SET used=used+1,n=n+1 WHERE uid=? AND used=?").bind(me.id,R.used).run();if(!u.meta||u.meta.changes!==1)fail("Подожди секунду и крути снова");
+    let L=RS.P.slice();if(R.last==="none")L=L.filter(x=>x.k!=="none");if((R.n+1)%10===0)L=L.filter(x=>x.k!=="none"&&!(x.k==="st"&&x.v<10));
+    const tot=L.reduce((x,y)=>x+y.w,0);let r=Math.random()*tot,P=L[0];for(const x of L){r-=x.w;if(r<0){P=x;break}}
+    await env.DB.prepare("UPDATE rs_user SET last=? WHERE uid=?").bind(P.k,me.id).run();let code=null;
+    if(P.k!=="none"){for(let i=0;i<5&&!code;i++){const c="СЛОТ"+Math.random().toString(36).slice(2,8).toUpperCase();const r2=await env.DB.prepare("INSERT OR IGNORE INTO rs_code(code,owner,k,v,t) VALUES(?,?,?,?,?)").bind(c,me.id,P.k,P.v,now).run();if(r2.meta&&r2.meta.changes===1)code=c}}
+    if(P.k==="st"&&P.v>=100||P.k==="nft")try{await hypeAdd(env,me.id,"🎰 "+me.name+" выбил в Слоте друзей "+rsName(P.k,P.v)+"!",P.v>=500?1:0)}catch(e){}
+    const res=await pub();res.win={k:P.k,v:P.v,code};return res}
+  if(a==="rs_use"){const r=await rsUse(env,me,promoKey(p.code));if(!r)fail("Код не найден");const res=await pub();res.use=r;return res}
+  fail("Неизвестное действие")}
 /* 📚 Энциклопедия карт: сколько каждой ограниченной отделки уже выбито и кто держит «Ошибку печати» */
 async function catInfo(env){return cached("catinfo",60e3,async()=>{const c={};
   for(const r of (await env.DB.prepare("SELECT h,f,COUNT(*) AS n FROM cards WHERE f>0 AND COALESCE(part,0)=0 GROUP BY h,f").all()).results)c[r.h+"-"+r.f]=r.n;
   const err={};for(const r of (await env.DB.prepare("SELECT c.h,COALESCE(u.nick,u.name) AS name FROM cards c LEFT JOIN users u ON u.id=c.owner WHERE c.f=4 AND COALESCE(c.part,0)=0").all()).results)err[r.h]=r.name||"Игрок";
   return {c,err,t:Date.now()}})}
+
+/* ---------- 🎁 Реф-кейс и 🪙 Плинко: 1 прокрутка = 1 приглашённый друг, который начал играть (≥10 открытий), только новые приглашения ---------- */
+const RF={start:Date.UTC(2026,10,9,4,30),op:10,gifts:Object.keys(GIFTS).sort((a,b)=>(GIFTS[a].stars||1e9)-(GIFTS[b].stars||1e9)),
+  P:[{k:"0",n:"Пусто",w:22.05},{k:"s1",n:"1 ⭐",st:1,w:20},{k:"s2",n:"2 ⭐",st:2,w:17},{k:"s3",n:"3 ⭐",st:3,w:13},{k:"s5",n:"5 ⭐",st:5,w:10},{k:"s10",n:"10 ⭐",st:10,w:6},{k:"s15",n:"15 ⭐",st:15,w:4},
+     {k:"ch",n:"Сундук промокодов",chest:"promo",w:4},{k:"s25",n:"25 ⭐",st:25,w:2},{k:"s50",n:"50 ⭐",st:50,w:1},{k:"nft",n:"NFT-подарок",gift:1,w:.6},{k:"s100",n:"100 ⭐",st:100,w:.3},{k:"s500",n:"500 ⭐",st:500,w:.05}]};
+async function rfInfo(env,uid){const e=await env.DB.prepare("SELECT SUM(CASE WHEN COALESCE(json_extract(state,'$.nOp'),0)>=? THEN 1 ELSE 0 END) AS ok,COUNT(*) AS all_ FROM users WHERE ref=? AND created>=?").bind(RF.op,uid,RF.start).first()||{};
+  const used=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rf_spin WHERE uid=?").bind(uid).first())||{}).n||0;return {ok:e.ok||0,pend:(e.all_||0)-(e.ok||0),used,left:Math.max(0,(e.ok||0)-used)}}
+async function rfApi(env,me,a,p){const now=Date.now();
+  if(a==="rf_get"){const I=await rfInfo(env,me.id);
+    const fr=(await env.DB.prepare("SELECT COALESCE(nick,name) AS name,COALESCE(json_extract(state,'$.nOp'),0) AS op FROM users WHERE ref=? AND created>=? ORDER BY created DESC LIMIT 30").bind(me.id,RF.start).all()).results;
+    const my=(await env.DB.prepare("SELECT s.k,s.code,s.t,s.g,(SELECT COUNT(*) FROM promo_uses u WHERE u.code=s.code) AS used FROM rf_spin s WHERE s.uid=? ORDER BY s.id DESC LIMIT 20").bind(me.id).all()).results;
+    const big=(await env.DB.prepare("SELECT s.k,COALESCE(u.nick,u.name) AS name FROM rf_spin s JOIN users u ON u.id=s.uid WHERE s.k IN ('s50','s100','s500','nft','s25') ORDER BY s.id DESC LIMIT 8").all()).results;
+    const o=Object.assign(I,{op:RF.op,fr,my,big,P:RF.P.map(x=>({k:x.k,n:x.n,w:x.w}))});
+    if(isAdmin(env,me.id)){const T=await env.DB.prepare("SELECT COUNT(*) AS reg,SUM(CASE WHEN COALESCE(json_extract(state,'$.nOp'),0)>=? THEN 1 ELSE 0 END) AS ok,COUNT(DISTINCT ref) AS inv FROM users WHERE ref IS NOT NULL AND created>=?").bind(RF.op,RF.start).first()||{};
+      const G=(await env.DB.prepare("SELECT g,k,COUNT(*) AS n FROM rf_spin GROUP BY g,k").all()).results;
+      const act=(await env.DB.prepare("SELECT p.st,p.gift,p.chest,COUNT(u.uid) AS n FROM rf_spin s JOIN promo p ON p.code=s.code JOIN promo_uses u ON u.code=s.code GROUP BY s.code").all()).results;
+      const top=(await env.DB.prepare("SELECT u.ref AS uid,COALESCE(i.nick,i.name) AS name,COUNT(*) AS reg,SUM(CASE WHEN COALESCE(json_extract(u.state,'$.nOp'),0)>=? THEN 1 ELSE 0 END) AS ok FROM users u JOIN users i ON i.id=u.ref WHERE u.ref IS NOT NULL AND u.created>=? GROUP BY u.ref ORDER BY ok DESC,reg DESC LIMIT 15").bind(RF.op,RF.start).all()).results;
+      o.adm={reg:T.reg||0,ok:T.ok||0,inv:T.inv||0,G,stAct:act.reduce((x,r)=>x+(r.st||0),0),giftAct:act.filter(r=>r.gift).length,chestAct:act.filter(r=>r.chest).length,top}}
+    return o}
+  if(a==="rf_spin"){const g=p.g==="pl"?"pl":"rc";const I=await rfInfo(env,me.id);if(I.left<1)fail("Нет прокруток — пригласи друга: когда он сделает "+RF.op+" открытий, у тебя появится прокрутка");
+    const last=(await env.DB.prepare("SELECT k FROM rf_spin WHERE uid=? ORDER BY id DESC LIMIT 2").bind(me.id).all()).results;const pity=last.length===2&&last.every(x=>x.k==="0");
+    const L=RF.P.filter(x=>!(pity&&x.k==="0"));let r=Math.random()*L.reduce((a,x)=>a+x.w,0),P=L[0];for(const x of L){if(r<x.w){P=x;break}r-=x.w}
+    let code=null;if(P.k!=="0"){for(let i=0;i<5&&!code;i++){const c="РЕФ"+Math.random().toString(36).slice(2,8).toUpperCase();const q=await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,st,gift,chest) VALUES(?,0,0,1,0,?,0,0,?,?,?)").bind(c,now,P.st||0,P.gift?1:0,P.chest||null).run();if(q.meta&&q.meta.changes===1)code=c}}
+    const ins=await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM rf_spin WHERE uid=?)<?").bind(me.id,g,P.k,code,now,me.id,I.ok).run();if(!ins.meta||ins.meta.changes!==1)fail("Нет прокруток");
+    if(["s100","s500","nft","s50"].includes(P.k))try{await hypeAdd(env,me.id,(me.name||"Игрок")+" выбил "+P.n+" в "+(g==="pl"?"🪙 Плинко":"🎁 Реф-кейсе")+"!",P.k==="s500")}catch(e){}
+    const res=await rfApi(env,me,"rf_get",{});res.win={k:P.k,n:P.n,code};return res}
+  fail("Неизвестное действие")}
 /* ---------- 🏆 «Турнир Эпох»: видео-турнир 10 воинов, зрители угадывают победителя каждого боя ---------- */
 const FT={id:"ft1",auto:Date.UTC(2026,10,8,20,50),sp:2,hit:3,socSp:2,socWait:20,
   /* бои: числа — индекс героя, "W3" — победитель боя №3 (с нуля) */
@@ -2459,13 +2522,18 @@ async function riddleApi(env,me,a,p){const C=await rdCfg(env),now=Date.now();
   fail("Неизвестное действие")}
 async function promoApi(env,me,a,p){const now=Date.now();
   if(a==="promo_use"&&/^\d{6}$/.test(promoKey(p.code))){const L=await liveClaim(env,me,promoKey(p.code));if(L)return L}
+  if(a==="promo_use"&&/^СЛОТ/.test(promoKey(p.code))){const R=await rsUse(env,me,promoKey(p.code));if(R)return R}
   if(a==="promo_use"){const code=promoKey(p.code);if(!code)fail("Введи промокод");const P=await env.DB.prepare("SELECT * FROM promo WHERE code=?").bind(code).first();
     if(!P||P.off)fail("Такого промокода нет. Проверь, как он написан");if(P.until&&now>P.until)fail("Срок промокода закончился");
     if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
     const r=await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t) VALUES(?,?,?)").bind(code,me.id,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже активировал этот промокод");
     if(P.x2)await env.DB.prepare("UPDATE promo_uses SET x2=? WHERE code=? AND uid=?").bind(P.x2,code,me.id).run();
     if(P.bon)await env.DB.prepare("UPDATE promo_uses SET bon=?,bon_until=?,bmin=? WHERE code=? AND uid=?").bind(P.bon,P.until||9e15,P.bmin||0,code,me.id).run();
-    if(P.sp||P.cash)await doAction(env,me,"tour_prize",{sp:P.sp,cash:P.cash},{tour:1});return {code,sp:P.sp,cash:P.cash,x2:P.x2||0,bon:P.bon||0,bmin:P.bmin||0,until:P.until||0}}
+    if(P.sp||P.cash)await doAction(env,me,"tour_prize",{sp:P.sp,cash:P.cash},{tour:1});
+    let st=0,gift=null,chest=null;if(P.st){st=P.st;await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(st,me.id).run()}
+    if(P.gift){for(const k of RF.gifts){try{const g=await giftMint(env,me.id,k,"prize");if(g){gift=GIFTS[k].n;break}}catch(e){}}if(!gift){st+=50;await env.DB.prepare("UPDATE users SET star_bal=star_bal+50 WHERE id=?").bind(me.id).run()}}
+    if(P.chest){try{await doAction(env,me,"grant",{item:P.chest,pid:"pc:"+code},{grant:true});chest=SHOP[P.chest].n}catch(e){}}
+    return {code,sp:P.sp,cash:P.cash,x2:P.x2||0,bon:P.bon||0,bmin:P.bmin||0,until:P.until||0,st,gift,chest}}
   if(a==="promo_x2"){const L=await bonList(env,me.id);return {x2:await x2Left(env,me.id),bon:L.length?L[0].bon:0,bons:L}}
   if(!isAdmin(env,me.id))fail("Нет доступа");
   if(a==="pcode_set"){const code=promoKey(p.code);if(code.length<2)fail("Код — от 2 символов: буквы, цифры, _ и -");const sp=Math.max(0,Math.min(100,p.sp|0)),cash=Math.max(0,Math.min(1e6,p.cash|0)),x2=Math.max(0,Math.min(5000,p.x2|0)),bon=Math.max(0,Math.min(5000,p.bon|0)),bmin=bon?Math.max(0,Math.min(2500,p.bmin|0)):0;if(!sp&&!cash&&!x2&&!bon)fail("Укажи награду");
@@ -3858,7 +3926,7 @@ async function handle(req,env){{
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
-      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(a==="cat_info")return J({ok:true,res:await catInfo(env)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
+      if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^rs_/.test(a))return J({ok:true,res:await rsApi(env,me,a,p)});if(/^rf_/.test(a))return J({ok:true,res:await rfApi(env,me,a,p)});if(a==="cat_info")return J({ok:true,res:await catInfo(env)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
       if(a==="roc_state"||a==="roc_bet"||a==="roc_out"){const res=await rocApi(env,me,a,p);return J({ok:true,res,S:a==="roc_state"?undefined:await stateFor(env,me)})}
       if(/^war_/.test(a)){const res=await warApi(env,me,a,p);return J({ok:true,res,S:a==="war_attack"?await stateFor(env,me):undefined})}
       if(/^al_/.test(a))return J({ok:true,res:await alApi(env,me,a,p)});
