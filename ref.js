@@ -15,8 +15,8 @@ renderCas=function(){if(!S||$("sec-cas").hidden)return;if(csTab!=="rc"&&csTab!==
     '<button type="button" class="rf-inv" id="rf-inv">📨 Позвать друга</button></div>';
   const game=pl?'<div class="rf-pl"><canvas id="rf-cv" width="680" height="760"></canvas></div>':'<div class="rf-rc"><div class="rf-ptr"></div><div class="rf-strip" id="rf-strip">'+rfStrip(null)+'</div></div>';
   const btn=R.left?'<button type="button" class="rf-go" id="rf-go">'+(pl?'🪙 Бросить монетку':'🎁 Открыть кейс')+' · 1 🎟</button>':'<button type="button" class="rf-go inv" id="rf-go">📨 Позови друга — получи прокрутку</button>';
-  const prizes='<div class="rf-box"><b>📦 Что внутри — шансы честные</b><div class="rf-grid">'+R.P.slice().reverse().map(x=>rfTile(x.k,x.w)).join("")+'</div><small>Выигрыш приходит промокодом: активируй сам или подари другу. После двух «Пусто» подряд третья прокрутка точно с призом.</small></div>';
-  const my=R.my.length?'<div class="rf-box"><b>🎟 Мои промокоды</b>'+R.my.map(m=>'<div class="rf-my"><i>'+rfIco(m.k)+'</i><span>'+rfLbl(m.k)+'</span>'+(m.code?'<code>'+m.code+'</code>'+(m.used?'<em>✅</em>':'<button type="button" class="mini2" data-act="'+m.code+'">Забрать</button><button type="button" class="mini2" data-gf="'+m.code+'">Подарить</button>'):'<em>—</em>')+'</div>').join("")+'</div>':"";
+  const prizes='<div class="rf-box"><b>📦 Что внутри — шансы честные</b><div class="rf-grid">'+R.P.slice().reverse().map(x=>rfTile(x.k,x.w)).join("")+'</div><small>Выигрыш приходит личным промокодом — забери его одной кнопкой. После двух «Пусто» подряд третья прокрутка точно с призом.</small></div>';
+  const my=R.my.length?'<div class="rf-box"><b>🎟 Мои промокоды</b>'+R.my.map(m=>'<div class="rf-my"><i>'+rfIco(m.k)+'</i><span>'+rfLbl(m.k)+'</span>'+(m.code?'<code>'+m.code+'</code>'+(m.used?'<em>✅</em>':'<button type="button" class="mini2" data-act="'+m.code+'">Забрать</button>'):'<em>—</em>')+'</div>').join("")+'</div>':"";
   const fr=R.fr.length?'<div class="rf-box"><b>👥 Мои приглашённые</b>'+R.fr.map(f=>'<div class="rf-f"><span>'+rdEsc(f.name)+'</span><em>'+(f.op>=R.op?'✅ играет':'⏳ '+f.op+'/'+R.op)+'</em></div>').join("")+'</div>':"";
   const big=R.big.length?'<div class="rf-big">🔥 '+R.big.map(x=>rdEsc(x.name)+' — '+rfLbl(x.k)).join(" · ")+'</div>':"";
   B.innerHTML='<div class="rf-wrap">'+top+big+game+btn+prizes+my+fr+(R.adm?rfAdm(R):"")+'</div>';
@@ -33,9 +33,9 @@ async function rfSpin(){if(RFX.busy)return;RFX.busy=true;const g=csTab;$("rf-go"
   RFX.d=r;RFX.busy=false;rfWin(w)}
 function rfWin(w){const m=$("modal"),sh=$("msheet");m.hidden=false;const ok=w.k!=="0";if(ok){sfx.fanfare();burst(w.k==="s500"||w.k==="nft"||w.k==="s100"?6:3);hapN("success")}else hapN("warning");
   sh.innerHTML='<div class="box nickbox rfwin"><div class="rf-wi" style="--c:'+rfCol(w.k)+'">'+rfIco(w.k)+'</div><h3>'+(ok?'Выпало: '+w.n+'!':'Пусто… в этот раз не повезло')+'</h3>'+
-    (ok?'<p class="cln">Твой промокод:</p><code class="rf-code">'+w.code+'</code><button type="button" class="craftbtn" id="rw-a">✅ Забрать себе</button><button type="button" class="ghost" id="rw-g">🎁 Подарить другу</button>':'<p class="cln">Следующая прокрутка — шанс на джекпот 500 ⭐. Позови ещё друга!</p><button type="button" class="craftbtn" id="rw-i">📨 Позвать друга</button>')+
+    (ok?'<p class="cln">Твой промокод:</p><code class="rf-code">'+w.code+'</code><button type="button" class="craftbtn" id="rw-a">✅ Забрать себе</button>':'<p class="cln">Следующая прокрутка — шанс на джекпот 500 ⭐. Позови ещё друга!</p><button type="button" class="craftbtn" id="rw-i">📨 Позвать друга</button>')+
     '<button type="button" class="ghost" id="rw-x">Закрыть</button></div>';
-  $("rw-x").onclick=()=>{closeModal();renderCas()};if(ok){$("rw-a").onclick=()=>rfActivate(w.code);$("rw-g").onclick=()=>rfGift(w.code)}else $("rw-i").onclick=rfInvite}
+  $("rw-x").onclick=()=>{closeModal();renderCas()};if(ok){$("rw-a").onclick=()=>rfActivate(w.code)}else $("rw-i").onclick=rfInvite}
 async function rfActivate(code){const r=await act("promo_use",{code});if(!r)return;sfx.fanfare();burst(3);hapN("success");toast("🎁 "+(r.st?"+"+r.st+" ⭐ на баланс":"")+(r.gift?" NFT «"+r.gift+"»":"")+(r.chest?" 📦 "+r.chest:""));closeModal();try{pullStars&&pullStars()}catch(e){}rfLoad()}
 function rfGift(code){hap("light");sendLink("🎁 Дарю тебе промокод в «Воинах Эпох»: "+code+" — вводи в «Ещё → Промокод»!",linkFor("r_"+S.uid))}
 function rfAdm(R){const A=R.adm,n=g=>A.G.filter(x=>x.g===g).reduce((a,x)=>a+x.n,0),cnt=k=>A.G.filter(x=>x.k===k).reduce((a,x)=>a+x.n,0);

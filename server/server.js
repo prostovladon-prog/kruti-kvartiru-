@@ -1292,7 +1292,9 @@ async function promoApi(env,me,a,p){const now=Date.now();
   if(a==="promo_use"&&/^\d{6}$/.test(promoKey(p.code))){const L=await liveClaim(env,me,promoKey(p.code));if(L)return L}
   if(a==="promo_use"&&/^СЛОТ/.test(promoKey(p.code))){const R=await rsUse(env,me,promoKey(p.code));if(R)return R}
   if(a==="promo_use"){const code=promoKey(p.code);if(!code)fail("Введи промокод");const P=await env.DB.prepare("SELECT * FROM promo WHERE code=?").bind(code).first();
-    if(!P||P.off)fail("Такого промокода нет. Проверь, как он написан");if(P.until&&now>P.until)fail("Срок промокода закончился");
+    if(!P||P.off)fail("Такого промокода нет. Проверь, как он написан");
+    /* призы реф-слотов — личные: активировать может только тот, кто выиграл */
+    if(/^РЕФ/.test(code)){const w=await env.DB.prepare("SELECT uid FROM rf_spin WHERE code=?").bind(code).first();if(!w||w.uid!==me.id)fail("Это личный промокод из реф-слота — активировать его может только тот, кто выиграл")}if(P.until&&now>P.until)fail("Срок промокода закончился");
     if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
     const r=await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t) VALUES(?,?,?)").bind(code,me.id,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже активировал этот промокод");
     /* одновременная активация одного кода двумя людьми: кто не влез в лимит — откатываем */
