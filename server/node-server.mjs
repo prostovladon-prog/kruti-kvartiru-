@@ -9,6 +9,9 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
+// ошибки воркера печатают его код целиком (он загружен как data:-URL) — заменяем эту простыню на «worker.js» и режем длину
+{const clean=x=>{const v=x instanceof Error?(x.stack||String(x)):x;return typeof v==="string"?v.replace(/data:text\/javascript;base64,[A-Za-z0-9+/=]+/g,"worker.js").slice(0,2000):v};
+ for(const k of ["error","warn","log"]){const f=console[k].bind(console);console[k]=(...a)=>f(...a.map(clean))}}
 export function openDB(file) {
   const db = new DatabaseSync(file);
   db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=OFF;");
