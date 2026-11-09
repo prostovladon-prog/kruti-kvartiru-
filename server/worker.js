@@ -2410,11 +2410,12 @@ async function catInfo(env){return cached("catinfo",60e3,async()=>{const c={};
   return {c,err,t:Date.now()}})}
 
 /* ---------- 🎁 Реф-кейс и 🪙 Плинко: 1 прокрутка = 1 приглашённый друг, который начал играть (≥10 открытий), только новые приглашения ---------- */
-const RF={start:Date.UTC(2026,10,9,4,30),op:10,gifts:Object.keys(GIFTS).sort((a,b)=>(GIFTS[a].stars||1e9)-(GIFTS[b].stars||1e9)),
+const RF={start:Date.UTC(2026,10,9,4,30),giftCut:Date.UTC(2026,10,9,5,0),op:10,gifts:Object.keys(GIFTS).sort((a,b)=>(GIFTS[a].stars||1e9)-(GIFTS[b].stars||1e9)),
   P:[{k:"0",n:"Пусто",w:22.05},{k:"s1",n:"1 ⭐",st:1,w:20},{k:"s2",n:"2 ⭐",st:2,w:17},{k:"s3",n:"3 ⭐",st:3,w:13},{k:"s5",n:"5 ⭐",st:5,w:10},{k:"s10",n:"10 ⭐",st:10,w:6},{k:"s15",n:"15 ⭐",st:15,w:4},
      {k:"ch",n:"Сундук промокодов",chest:"promo",w:4},{k:"s25",n:"25 ⭐",st:25,w:2},{k:"s50",n:"50 ⭐",st:50,w:1},{k:"nft",n:"NFT-подарок",gift:1,w:.6},{k:"s100",n:"100 ⭐",st:100,w:.3},{k:"s500",n:"500 ⭐",st:500,w:.05}]};
 async function rfInfo(env,uid){const e=await env.DB.prepare("SELECT SUM(CASE WHEN COALESCE(json_extract(state,'$.nOp'),0)>=? THEN 1 ELSE 0 END) AS ok,COUNT(*) AS all_ FROM users WHERE ref=? AND created>=?").bind(RF.op,uid,RF.start).first()||{};
-  const used=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rf_spin WHERE uid=?").bind(uid).first())||{}).n||0;return {ok:e.ok||0,pend:(e.all_||0)-(e.ok||0),used,left:Math.max(0,(e.ok||0)-used)}}
+  const u=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g NOT LIKE '%*') AS used,(SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g LIKE '%*') AS gu,(SELECT created FROM users WHERE id=?) AS cr").bind(uid,uid,uid).first()||{};
+  const used=u.used||0,gift=(u.cr||0)<RF.giftCut&&!u.gu?1:0;return {ok:e.ok||0,pend:(e.all_||0)-(e.ok||0),used,gift,left:Math.max(0,(e.ok||0)-used)+gift}}
 async function rfApi(env,me,a,p){const now=Date.now();
   if(a==="rf_get"){const I=await rfInfo(env,me.id);
     const fr=(await env.DB.prepare("SELECT COALESCE(nick,name) AS name,COALESCE(json_extract(state,'$.nOp'),0) AS op FROM users WHERE ref=? AND created>=? ORDER BY created DESC LIMIT 30").bind(me.id,RF.start).all()).results;
@@ -2422,16 +2423,19 @@ async function rfApi(env,me,a,p){const now=Date.now();
     const big=(await env.DB.prepare("SELECT s.k,COALESCE(u.nick,u.name) AS name FROM rf_spin s JOIN users u ON u.id=s.uid WHERE s.k IN ('s50','s100','s500','nft','s25') ORDER BY s.id DESC LIMIT 8").all()).results;
     const o=Object.assign(I,{op:RF.op,fr,my,big,P:RF.P.map(x=>({k:x.k,n:x.n,w:x.w}))});
     if(isAdmin(env,me.id)){const T=await env.DB.prepare("SELECT COUNT(*) AS reg,SUM(CASE WHEN COALESCE(json_extract(state,'$.nOp'),0)>=? THEN 1 ELSE 0 END) AS ok,COUNT(DISTINCT ref) AS inv FROM users WHERE ref IS NOT NULL AND created>=?").bind(RF.op,RF.start).first()||{};
-      const G=(await env.DB.prepare("SELECT g,k,COUNT(*) AS n FROM rf_spin GROUP BY g,k").all()).results;
+      const G=(await env.DB.prepare("SELECT g,k,COUNT(*) AS n FROM rf_spin WHERE g NOT LIKE '%*' GROUP BY g,k").all()).results;o.giftN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rf_spin WHERE g LIKE '%*'").first())||{}).n||0;
       const act=(await env.DB.prepare("SELECT p.st,p.gift,p.chest,COUNT(u.uid) AS n FROM rf_spin s JOIN promo p ON p.code=s.code JOIN promo_uses u ON u.code=s.code GROUP BY s.code").all()).results;
       const top=(await env.DB.prepare("SELECT u.ref AS uid,COALESCE(i.nick,i.name) AS name,COUNT(*) AS reg,SUM(CASE WHEN COALESCE(json_extract(u.state,'$.nOp'),0)>=? THEN 1 ELSE 0 END) AS ok FROM users u JOIN users i ON i.id=u.ref WHERE u.ref IS NOT NULL AND u.created>=? GROUP BY u.ref ORDER BY ok DESC,reg DESC LIMIT 15").bind(RF.op,RF.start).all()).results;
       o.adm={reg:T.reg||0,ok:T.ok||0,inv:T.inv||0,G,stAct:act.reduce((x,r)=>x+(r.st||0),0),giftAct:act.filter(r=>r.gift).length,chestAct:act.filter(r=>r.chest).length,top}}
     return o}
   if(a==="rf_spin"){const g=p.g==="pl"?"pl":"rc";const I=await rfInfo(env,me.id);if(I.left<1)fail("Нет прокруток — пригласи друга: когда он сделает "+RF.op+" открытий, у тебя появится прокрутка");
-    const last=(await env.DB.prepare("SELECT k FROM rf_spin WHERE uid=? ORDER BY id DESC LIMIT 2").bind(me.id).all()).results;const pity=last.length===2&&last.every(x=>x.k==="0");
+    const last=(await env.DB.prepare("SELECT k FROM rf_spin WHERE uid=? AND g NOT LIKE '%*' ORDER BY id DESC LIMIT 2").bind(me.id).all()).results;const pity=last.length===2&&last.every(x=>x.k==="0");
     const L=RF.P.filter(x=>!(pity&&x.k==="0"));let r=Math.random()*L.reduce((a,x)=>a+x.w,0),P=L[0];for(const x of L){if(r<x.w){P=x;break}r-=x.w}
+    /* подарочная первая прокрутка для всех игроков: всегда 5 ⭐, на шансы и счётчики не влияет */
+    const gs=I.gift&&I.left-I.gift<1;if(gs)P=RF.P.find(x=>x.k==="s5");
     let code=null;if(P.k!=="0"){for(let i=0;i<5&&!code;i++){const c="РЕФ"+Math.random().toString(36).slice(2,8).toUpperCase();const q=await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,st,gift,chest) VALUES(?,0,0,1,0,?,0,0,?,?,?)").bind(c,now,P.st||0,P.gift?1:0,P.chest||null).run();if(q.meta&&q.meta.changes===1)code=c}}
-    const ins=await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM rf_spin WHERE uid=?)<?").bind(me.id,g,P.k,code,now,me.id,I.ok).run();if(!ins.meta||ins.meta.changes!==1)fail("Нет прокруток");
+    const ins=gs?await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM rf_spin WHERE uid=? AND g LIKE '%*')").bind(me.id,g+"*",P.k,code,now,me.id).run()
+      :await env.DB.prepare("INSERT INTO rf_spin(uid,g,k,code,t) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM rf_spin WHERE uid=? AND g NOT LIKE '%*')<?").bind(me.id,g,P.k,code,now,me.id,I.ok).run();if(!ins.meta||ins.meta.changes!==1)fail("Нет прокруток");
     if(["s100","s500","nft","s50"].includes(P.k))try{await hypeAdd(env,me.id,(me.name||"Игрок")+" выбил "+P.n+" в "+(g==="pl"?"🪙 Плинко":"🎁 Реф-кейсе")+"!",P.k==="s500")}catch(e){}
     const res=await rfApi(env,me,"rf_get",{});res.win={k:P.k,n:P.n,code};return res}
   fail("Неизвестное действие")}
@@ -3663,8 +3667,8 @@ const UPD={id:"upd0311map",cut:Date.UTC(2026,10,3,6,0),win:[[Date.UTC(2026,10,3,
  chan:"🗺 КРУПНОЕ ОБНОВЛЕНИЕ: КАРТА МИРА!\n\n50 земель от Рима до Киото — захватывай их своими воинами ⚔️\n\n🏰 Твои земли приносят монеты и руны каждый час\n🐉 Дракон помогает в бою — чем он сильнее, тем больше бонус\n🏛 Воин своей эпохи защищает «родную землю» сильнее\n🌱 Окраины открыты всем, 👑 Сердце мира — только для сильнейших\n🚩 Флаг со своим фото и статуи над твоими землями\n🎖 Пропуск завоевателя с наградами каждый месяц\n\n🥚 И главное: ДРАКОН ТЕПЕРЬ У ВСЕХ — яйцо разбивается сразу, без друзей и историй! А ещё с ним можно играть в мячик и исполнять его желания.\n\nКарта только открылась — все земли свободны. Успей занять свою первым 🔥\n\n👉 @VoinyEpohBot",
  dm:"🗺 КРУПНОЕ ОБНОВЛЕНИЕ: КАРТА МИРА!\n\n50 земель — захватывай их своими воинами ⚔️\n🏰 Земли приносят монеты и руны каждый час\n🐉 Твой дракон помогает в бою\n🚩 Флаги со своим фото и статуи над землями\n\n🥚 А ещё дракон теперь у всех — яйцо разбивается сразу!\n\nВсе земли пока свободны — займи свою первым 🔥"};
 /* ---------- разовое сообщение в игре (раздел «Сообщения», от администрации) — без рассылки в бота ---------- */
-const DMB={id:"dgst3110",from:Date.UTC(2026,9,31,9,0),to:Date.UTC(2026,10,7,21,0),where:"json_extract(state,'$.dg') IS NULL",
-  text:"🐉 ДРАКОН ТЕПЕРЬ ОТКРЫВАЕТСЯ ЗА ИСТОРИЮ!\n\nРаньше тайное яйцо будили только друзья. Теперь есть второй путь — быстрее:\n\n📲 Выложи историю с игрой в Telegram или Instagram со ссылкой на бота\n✅ Нажми «Я выложил» во вкладке «Тайна»\n🔨 Яйцо треснет сразу — и внутри твой дракон!\n\nДракон растёт 60 уровней, помогает в боях и каждый день приносит подарки. Не удаляй историю 24 часа 😉\n\nP.S. Эта же история участвует в розыгрыше NFT-подарка «Дракончик» — итоги 1.11 в 22:00."};
+const DMB={id:"rfslots0911",from:Date.UTC(2026,10,9,4,50),to:Date.UTC(2026,10,10,21,0),where:"created<"+Date.UTC(2026,10,8,5,0),
+  text:"🎰 В КАЗИНО НОВЫЕ СЛОТЫ — ВЫИГРЫВАЙ ЗВЁЗДЫ!\n\n🎁 Реф-кейс и 🪙 Плинко — в них выпадают ⭐ звёзды, NFT-подарки и сундуки. Джекпот — 500 ⭐!\n\n🎁 Тебе уже начислена 1 бесплатная прокрутка — заходи и забирай приз.\n\n👥 Новые прокрутки — за друзей: 1 приглашённый друг, который начал играть = 1 прокрутка.\n\nКазино → «🎁 Реф-кейс»"};
 async function dmBlast(env){const now=Date.now();if(now<DMB.from||now>DMB.to)return;if(await cached("dmb"+DMB.id,60e3,()=>kvGet(env,"dmb:"+DMB.id)))return;
   await kvSet(env,"dmb:"+DMB.id,{t:now});delete topCache["dmb"+DMB.id];const a=ADMINS[0];
   const r=await env.DB.prepare("INSERT INTO dm(a,b,text,t,adm) SELECT ?,id,?,?,1 FROM users WHERE id<>? AND "+DMB.where).bind(a,DMB.text,now,a).run();

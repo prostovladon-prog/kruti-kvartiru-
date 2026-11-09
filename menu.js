@@ -392,7 +392,7 @@ function hhTick(){let b=$("hhbar");const now=NOW(),e=S&&ONLINE?hhNow(now):null;
   b.innerHTML=`<span class="hhb-i">🍀${T.ic}</span><span class="hhb-t"><b>${T.n}</b><small>${T.d}</small></span><span class="hhb-c">${mm}:${ss}</span>`;
   document.querySelectorAll(".hhpop [data-hht]").forEach(x=>x.textContent=mm+":"+ss);
   let seen="";try{seen=localStorage.getItem("we-hh")||""}catch(_){}
-  if(seen!==String(e.at)&&!$("onb")&&!document.querySelector(".modal:not([hidden]),.hhpop")){try{localStorage.setItem("we-hh",e.at)}catch(_){}hhPop(e)}}
+  if(window.CSOK&&seen!==String(e.at)&&!$("onb")&&!document.querySelector(".modal:not([hidden]),.hhpop")){try{localStorage.setItem("we-hh",e.at)}catch(_){}hhPop(e)}}
 setInterval(()=>{try{if(!document.hidden)hhTick()}catch(err){}},1000);
 {const _r=renderAll;renderAll=function(){_r.apply(this,arguments);try{hhTick()}catch(e){}}}
 /* ---------- 💎 «почти достиг»: честно показываем, сколько реально осталось до гарантии эпика и до полной эпохи ---------- */
@@ -458,7 +458,7 @@ function sdayDraw(){let el=$("sdaybar");const d=S&&S.sday;if(!d||!ONLINE||!$("se
 document.addEventListener("click",e=>{const b=e.target.closest(".ttlb[data-ttl]");if(!b)return;const T=TITLES[b.dataset.ttl];if(!T||!(T.stars||T.sup))return;e.stopPropagation();hap("light");
   toast(T.ic+" «"+T.n+"» — "+(T.sup?"титул за поддержку проекта":"титул из «Донат и понт»")+". Открываю…");setTimeout(()=>openGold("flex"),700)},true);
 /* один раз рассказать, что донаты есть: тем, кто уже втянулся (30+ прокруток), не новичкам */
-setInterval(()=>{try{if(!S||!ONLINE||document.hidden||(S.nOp||0)<10||$("onb")||document.querySelector(".modal:not([hidden]),.hhpop"))return;let seen=0;try{seen=+localStorage.getItem("we-don1")||0}catch(e){}if(seen)return;
+setInterval(()=>{try{if(!window.CSOK||!S||!ONLINE||document.hidden||(S.nOp||0)<10||$("onb")||document.querySelector(".modal:not([hidden]),.hhpop"))return;let seen=0;try{seen=+localStorage.getItem("we-don1")||0}catch(e){}if(seen)return;
   try{localStorage.setItem("we-don1",1)}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
   sh.innerHTML='<div class="box nickbox dnann"><h3>⭐ Новое: Донат и понт</h3><div class="dnprev big">'+ttlTag("author")+' <b>'+escH(S.nick||S.name||"")+'</b></div><ul class="dnul"><li>✍️ <b>Стань Соавтором</b> — твою идею добавим в игру (3 места в месяц)</li><li>🎖 Титулы «Бессмертный» и «Император» рядом с ником</li><li>🌟 <b>Звезда дня</b> — тебя видят все на главной</li><li>❤️ Поддержать проект на любую сумму</li></ul><p class="cln">Только для красоты — на силу и шансы не влияет.</p><button type="button" class="craftbtn" id="dn-go">Посмотреть</button><button type="button" class="ghost" id="dn-x">Позже</button></div>';
   $("dn-go").onclick=()=>{closeModal();openGold("flex")};$("dn-x").onclick=closeModal}catch(e){}},20000);
@@ -1190,7 +1190,7 @@ function updOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const got=S&
   const n=$("upd-next");if(n&&X)n.onclick=()=>{updI++;hap("light");updOpen()};const t=$("upd-try");if(t)t.onclick=()=>{try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}X.go()};
   const g=$("upd-gift");if(g&&!got)g.onclick=async()=>{g.disabled=true;const r=await act("upd_gift");if(r){try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}hapN("success");try{sfx.fanfare();burst(5)}catch(e){}toast("🎁 +"+r.sp+" прокруток — удачи!");updCash&&updCash();setTimeout(()=>{closeModal();try{renderAll()}catch(e){}},900)}else g.disabled=false}}
 /* показать один раз после загрузки */
-{const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||$("onb")||document.querySelector(".hhpop"))return;let seen="";try{seen=localStorage.getItem("we-upd")}catch(e){}if(seen===BIGUPD.id||S.updG===BIGUPD.id){clearInterval(t);return}if(!$("modal").hidden)return;clearInterval(t);updI=0;updOpen()},1200)}
+{const t=setInterval(()=>{if(!window.CSOK||!S||!ONLINE||$("boot")||$("onb")||document.querySelector(".hhpop"))return;let seen="";try{seen=localStorage.getItem("we-upd")}catch(e){}if(seen===BIGUPD.id||S.updG===BIGUPD.id){clearInterval(t);return}if(!$("modal").hidden)return;clearInterval(t);updI=0;updOpen()},1200)}
 
 if(new URLSearchParams(location.search).get("upd")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);setTimeout(()=>{updI=0;updOpen()},400)},500)}
 

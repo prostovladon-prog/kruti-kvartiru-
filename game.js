@@ -1,3 +1,11 @@
+/* ☁️ отметки «уже видел» (we-*) дублируем в Telegram CloudStorage: на iPhone и с иконки на экране localStorage теряется — из-за этого снова лезли окна и старые сообщения чата казались новыми */
+(function(){window.CSOK=false;let CS=null;try{const W=window.Telegram&&Telegram.WebApp;if(W&&W.CloudStorage&&W.isVersionAtLeast&&W.isVersionAtLeast("6.9"))CS=W.CloudStorage}catch(e){}
+  const ok=k=>/^we-[A-Za-z0-9_-]{1,120}$/.test(k);
+  try{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){set.call(this,k,v);if(CS&&this===window.localStorage&&ok(k)&&String(v).length<4000)try{CS.setItem(k,String(v),()=>{})}catch(e){}}}catch(e){}
+  if(!CS){window.CSOK=true;return}const done=()=>{window.CSOK=true};setTimeout(done,2500);
+  try{CS.getKeys((e,keys)=>{if(e||!keys||!keys.length)return done();const K=keys.filter(ok).slice(0,500);if(!K.length)return done();
+    CS.getItems(K,(e2,v)=>{if(!e2&&v)for(const k of K){const x=v[k];if(x==null||x==="")continue;let cur=null;try{cur=localStorage.getItem(k)}catch(_){}
+      const n1=+x,n0=+cur;if(cur==null||(!isNaN(n1)&&!isNaN(n0)&&n1>n0))try{Storage.prototype.setItem.call(localStorage,k,x)}catch(_){}}done()})})}catch(e){done()}})();
 /* game.js — интерфейс «Воинов Эпох». Правила игры лежат в rules.js. */
 
 /* ---------- настройки ---------- */
