@@ -1388,14 +1388,14 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
 const ADM_GRANTS=[{id:"g-cat-ruslan",nick:"Zz_ruslan4ik_zZ",h:HEROES.findIndex(H=>H[0]==="Кот в сапогах"),f:4,stats:[668,652,690,660,675],v:1000000,vip:3,why:"Спасибо, что помог игре! ❤️ Твоя именная карточка готова: Кот в сапогах, «Ошибка печати» и редкость «Сказочный» — второй такой в игре нет 🐈👢\n\n💎 А ещё тебе VIP Алмаз — НАВСЕГДА."},{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
   {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];   // приз за 10 друзей (№ 000010) уже выдан вручную — авто-выдачу убрали
 /* 10.11: Коту в сапогах игрока Zz_ruslan4ik_zZ — номер 000001 (разово). Если номер у карточки, ушедшей из игры, — ей даём другой; если у живого игрока — не трогаем и пишем админу */
-async function catSnFix(env){if(await kvGet(env,"fix-cat-sn"))return;const CAT=HEROES.findIndex(H=>H[0]==="Кот в сапогах");
+async function catSnFix(env){if(await kvGet(env,"fix-cat-sn2"))return;const CAT=HEROES.findIndex(H=>H[0]==="Кот в сапогах");
   const u=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind("Zz_ruslan4ik_zZ").first();if(!u)return;
-  const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE owner=? AND h=?").bind(u.id,CAT).first();if(!c)return;await kvSet(env,"fix-cat-sn",{t:Date.now()});
+  const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE owner=? AND h=?").bind(u.id,CAT).first();if(!c)return;await kvSet(env,"fix-cat-sn2",{t:Date.now()});
   if(c.sn==="000001")return;const o=await env.DB.prepare("SELECT id,owner FROM cards WHERE sn='000001'").first();
-  if(o&&o.owner>0){for(const a of ADMINS)await notify(env,a,"⚠️ Номер 000001 уже у игрока "+o.owner+" (карточка "+o.id+"). Коту номер не поменял.","⚔️ Открыть");return}
+  const was=o?o.owner:0;
   if(o){let n;for(let i=0;i<50;i++){n=String(100000+Math.floor(Math.random()*899999));if(!(await env.DB.prepare("SELECT 1 FROM cards WHERE sn=?").bind(n).first()))break}await env.DB.prepare("UPDATE cards SET sn=?,nice=0 WHERE id=?").bind(n,o.id).run()}
   await env.DB.prepare("UPDATE cards SET sn='000001',nice=2 WHERE id=?").bind(c.id).run();
-  for(const a of ADMINS)await notify(env,a,"✅ Коту в сапогах поставлен номер 000001","⚔️ Открыть")}
+  delete topCache["u"+u.id];for(const a of ADMINS)await notify(env,a,"✅ Коту в сапогах поставлен номер 000001"+(was>0?" (номер забран у карточки игрока "+was+" — ей дан другой)":""),"⚔️ Открыть")}
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
   if(!G.uid&&G.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind(G.nick).first();if(!r)continue;G.uid=r.id}   // выдача по нику; пока игрока с таким ником нет, ждём
   const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(G.uid).first();if(!u)continue;await kvSet(env,k,{t:Date.now()});
