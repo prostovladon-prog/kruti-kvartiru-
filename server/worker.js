@@ -103,7 +103,7 @@ const HEROES=[
  ["Сигурд","Скандинавия", 3,"Убил дракона Фафнира и искупался в его крови.", {base: 1,"helm": "viking","weapon": "sword","shield": "round","shc": "#c0392b","armor": "mail","beard": "#d9a441","cape": "#7a1a1a","x": ["flames"],"fierce": 1,"hue": 10,"skin": 0,"p": [7, 5, 5, 6, 7]}],
  ["Бальдр","Мифы Скандинавии", 4,"Светлый бог, которого не берёт никакое оружие. Кроме веточки омелы.", {base: 1,"hair": "long","hairc": "#fff1b0","helm": "suncrown","weapon": "spear","armor": "cloth","cape": "#ffd60a","x": ["aura"],"glow": "#fff3a0","gold": 1,"hue": 50,"skin": 0,"p": [5, 8, 6, 7, 8]}],
  ["Робин Гуд","Легенды Британии", 2,"Грабит богатых, помогает бедным и не промахивается из лука.", {base: 1,"helm": "phood","weapon": "bow","armor": "cloth","cape": "#2a6a2a","hue": 110,"skin": 0,"stache": "#7a4a24","p": [5, 2, 7, 3, 5]}],
- ["Баба Яга","Сказки Руси",4,"Хозяйка ступы и тёмного леса. Летает быстрее ветра, видит всех насквозь. Именная карточка Руслана — второй такой нет.",{don:1,one:1,own:1,nick:"Zz_ruslan4ik_zZ",sn:"000001",rl:"Сказочный",rc:"#ff3df2",hue:290,p:[10,10,10,10,10]}],
+ ["Баба Яга","Сказки Руси",4,"Хозяйка ступы и тёмного леса. Летает быстрее ветра, видит всех насквозь. Второй такой нет.",{don:1,one:1,own:1,sn:"000001",rl:"Сказочный",rc:"#ff3df2",hue:290,p:[10,10,10,10,10]}],
  ["Кот в сапогах","Сказки Европы",4,"Маркиз хитрости: ни одна дверь, ни один замок и ни один король не устоят перед его поклоном. Именная карточка Zz_ruslan4ik_zZ.",{don:1,one:1,own:1,nick:"Zz_ruslan4ik_zZ",sn:"777777",rl:"Сказочный",rc:"#ffd23f",hue:40,p:[10,10,10,10,10]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
@@ -118,6 +118,8 @@ const THOR=HEROES.findIndex(H=>H[0]==="Тор"), THOR_P=.000001;
 /* редкость карточки: у именных (own) — своя, «круче мифической» */
 const tierOf=h=>{const W=HEROES[h][4];return W.rl?{k:W.rl,c:W.rc||"#ff3df2",b:HT[HEROES[h][2]].b}:HT[HEROES[h][2]]};
 const YAGA=HEROES.findIndex(H=>H[0]==="Баба Яга");
+/* 🏆 «Помогли игре» — доска почёта в донате */
+const HELPERS=[{n:"Zz_ruslan4ik_zZ",t:"🐈 Кот в сапогах — карточка мечты · 💎 VIP Алмаз навсегда"}];
 /* половинки: part 1 — левая (частая), part 2 — правая (в 5 раз реже, 300 на воина на весь мир).
    Целая карточка забирает номер тиража правой половинки (17/300). «Ошибка печати»: одна левая и одна правая на воина */
 const HALF_RUN=300, HALF_P={drop:.0035,right:.15,err:.004}, PART_K=["","Левая ½","Правая ½"];
@@ -2631,8 +2633,7 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
     if(await notify(env,u.id,"🍀 Счастливый час! "+T.ic+" "+T.n+": "+T.d+".\n\nДействует ещё "+left+" мин — потом обычные правила.","🍀 Успеть"))sent++}
   return sent}
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
-const ADM_GRANTS=[{id:"g-yaga-ruslan",nick:"Zz_ruslan4ik_zZ",h:YAGA,f:4,stats:[640,655,630,648,662],why:"Твоя именная карточка готова: Баба Яга, «Ошибка печати» № 000001 и редкость «Сказочный» — второй такой в игре нет ✨"},
-  {id:"g-cat-ruslan",nick:"Zz_ruslan4ik_zZ",h:HEROES.findIndex(H=>H[0]==="Кот в сапогах"),f:4,stats:[668,652,690,660,675],v:1000000,why:"Твоя именная карточка готова: Кот в сапогах, «Ошибка печати» и редкость «Сказочный» — второй такой в игре нет 🐈👢"},{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
+const ADM_GRANTS=[{id:"g-cat-ruslan",nick:"Zz_ruslan4ik_zZ",h:HEROES.findIndex(H=>H[0]==="Кот в сапогах"),f:4,stats:[668,652,690,660,675],v:1000000,vip:3,why:"Спасибо, что помог игре! ❤️ Твоя именная карточка готова: Кот в сапогах, «Ошибка печати» и редкость «Сказочный» — второй такой в игре нет 🐈👢\n\n💎 А ещё тебе VIP Алмаз — НАВСЕГДА."},{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
   {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];   // приз за 10 друзей (№ 000010) уже выдан вручную — авто-выдачу убрали
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
   if(!G.uid&&G.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind(G.nick).first();if(!r)continue;G.uid=r.id}   // выдача по нику; пока игрока с таким ником нет, ждём
@@ -2641,6 +2642,7 @@ async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;i
     for(const h of hs){try{r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",Object.assign({},G,{h}),{grant:true})).res;G.h=h;break}catch(e){err=e;if(!/Тираж/.test(e.message||""))break}}
     if(!r&&G.sn&&err&&/Номер/.test(err.message||""))for(const h of hs){try{r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",Object.assign({},G,{h,sn:null}),{grant:true})).res;G.h=h;break}catch(e){err=e}}
     if(!r)throw err||new Error("нет свободных карточек");
+    if(G.vip)await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(Date.UTC(2099,0,1),G.vip,G.uid).run();   // VIP навсегда
     await notify(env,G.uid,"🎁 "+G.why+"\n\n"+HEROES[G.h][0]+" · «"+FIN[G.f].k+"» № "+fmtSn(r.card.sn)+" уже в твоей коллекции!","🎴 Открыть игру");
     for(const a of ADMINS)await notify(env,a,"✅ Выдача "+G.id+": "+HEROES[G.h][0]+" ("+FIN[G.f].k+") выдана игроку "+G.uid,"⚔️ Открыть")}
   catch(e){console.error("grant",G.id,e&&e.message);for(const a of ADMINS)await notify(env,a,"⚠️ Выдача "+G.id+" не удалась: "+(e.message||e),"⚔️ Открыть")}}}

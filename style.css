@@ -3298,3 +3298,7 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .ownnick{position:absolute;left:50%;top:13%;transform:translateX(-50%) rotate(-3deg);z-index:6;white-space:nowrap;padding:5px 14px;border-radius:12px;font-weight:900;font-size:clamp(11px,3.4vw,15px);letter-spacing:.3px;color:#3a1600;
  background:linear-gradient(180deg,#fff6c8,#ffd23f 55%,#e09a1a);border:2px solid #1b0f22;box-shadow:0 4px 0 rgba(0,0,0,.35),0 0 18px rgba(255,210,63,.8);animation:ownNick 2.4s ease-in-out infinite}
 @keyframes ownNick{50%{box-shadow:0 4px 0 rgba(0,0,0,.35),0 0 30px rgba(255,61,242,.9)}}
+
+.helper{display:flex;flex-direction:column;gap:4px;margin:6px 0 14px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#3a1a6a,#6a1a4a);border:2px solid #ffd23f;box-shadow:0 0 24px rgba(255,210,63,.45)}
+.helper b{font-size:18px;font-weight:900;background:linear-gradient(90deg,#ffd23f,#fff6c8,#ff3df2,#ffd23f);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:megaTxt 3s linear infinite}
+.helper small{color:#f0e6ff;font-size:13px}

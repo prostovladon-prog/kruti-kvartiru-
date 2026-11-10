@@ -1385,8 +1385,7 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
     if(await notify(env,u.id,"🍀 Счастливый час! "+T.ic+" "+T.n+": "+T.d+".\n\nДействует ещё "+left+" мин — потом обычные правила.","🍀 Успеть"))sent++}
   return sent}
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
-const ADM_GRANTS=[{id:"g-yaga-ruslan",nick:"Zz_ruslan4ik_zZ",h:YAGA,f:4,stats:[640,655,630,648,662],why:"Твоя именная карточка готова: Баба Яга, «Ошибка печати» № 000001 и редкость «Сказочный» — второй такой в игре нет ✨"},
-  {id:"g-cat-ruslan",nick:"Zz_ruslan4ik_zZ",h:HEROES.findIndex(H=>H[0]==="Кот в сапогах"),f:4,stats:[668,652,690,660,675],v:1000000,why:"Твоя именная карточка готова: Кот в сапогах, «Ошибка печати» и редкость «Сказочный» — второй такой в игре нет 🐈👢"},{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
+const ADM_GRANTS=[{id:"g-cat-ruslan",nick:"Zz_ruslan4ik_zZ",h:HEROES.findIndex(H=>H[0]==="Кот в сапогах"),f:4,stats:[668,652,690,660,675],v:1000000,vip:3,why:"Спасибо, что помог игре! ❤️ Твоя именная карточка готова: Кот в сапогах, «Ошибка печати» и редкость «Сказочный» — второй такой в игре нет 🐈👢\n\n💎 А ещё тебе VIP Алмаз — НАВСЕГДА."},{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
   {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];   // приз за 10 друзей (№ 000010) уже выдан вручную — авто-выдачу убрали
 async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;if(await kvGet(env,k))continue;
   if(!G.uid&&G.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE lower(nick)=lower(?)").bind(G.nick).first();if(!r)continue;G.uid=r.id}   // выдача по нику; пока игрока с таким ником нет, ждём
@@ -1395,6 +1394,7 @@ async function admGrants(env){for(const G of ADM_GRANTS){const k="grant:"+G.id;i
     for(const h of hs){try{r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",Object.assign({},G,{h}),{grant:true})).res;G.h=h;break}catch(e){err=e;if(!/Тираж/.test(e.message||""))break}}
     if(!r&&G.sn&&err&&/Номер/.test(err.message||""))for(const h of hs){try{r=(await doAction(env,{id:G.uid,name:u.name||"Игрок"},"adm_card",Object.assign({},G,{h,sn:null}),{grant:true})).res;G.h=h;break}catch(e){err=e}}
     if(!r)throw err||new Error("нет свободных карточек");
+    if(G.vip)await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(Date.UTC(2099,0,1),G.vip,G.uid).run();   // VIP навсегда
     await notify(env,G.uid,"🎁 "+G.why+"\n\n"+HEROES[G.h][0]+" · «"+FIN[G.f].k+"» № "+fmtSn(r.card.sn)+" уже в твоей коллекции!","🎴 Открыть игру");
     for(const a of ADMINS)await notify(env,a,"✅ Выдача "+G.id+": "+HEROES[G.h][0]+" ("+FIN[G.f].k+") выдана игроку "+G.uid,"⚔️ Открыть")}
   catch(e){console.error("grant",G.id,e&&e.message);for(const a of ADMINS)await notify(env,a,"⚠️ Выдача "+G.id+" не удалась: "+(e.message||e),"⚔️ Открыть")}}}
