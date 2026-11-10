@@ -1619,7 +1619,7 @@ async function stateFor(env,me){
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,hype:await hypeList(env),uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
   try{S.rd=await rdState(env,me)}catch(e){}
-  try{S.vt=await vtState(env,me)}catch(e){}
+  try{const L=await vtState(env,me);S.vts=L;S.vt=L.find(x=>!x.ch)||L[0]||null}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
   try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
   try{const now=Date.now();if(now>=VC.start&&now<VC.end){const r=await env.DB.prepare("SELECT uid FROM vc_part WHERE uid=?").bind(me.id).first();S.vc={end:VC.end,j:r?1:0}}}catch(e){}
@@ -2343,14 +2343,21 @@ async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_stop"){const C=await ref3Cur(env);if(!C||now>=C.end)fail("Акция не идёт");C.end=now;await kvSet(env,"ref3",C);delete topCache.ref3;return {end:now}}
   fail("Неизвестное действие")}
 /* ---------- ⚔️ «Выбор серии»: зрители решают, что будет в следующей серии ---------- */
-const VOTE_DEFAULT={id:"sv1",ep:1,gate:0,ser:"СТАТЬ ВОИНОМ",title:"«Стать воином» · серия 1",q:"Ночь. Лагерь спит, а Тим один на посту. Перед ним главарь разбойников: «Мальчик. Последний шанс уйти». Что сделает Тим?",
+/* 🗳 несколько голосований за серии одновременно */
+const VOTES=[{id:"sv1",ep:1,gate:0,ser:"СТАТЬ ВОИНОМ",title:"«Стать воином» · серия 1",q:"Ночь. Лагерь спит, а Тим один на посту. Перед ним главарь разбойников: «Мальчик. Последний шанс уйти». Что сделает Тим?",
   opts:[{k:"a",ic:"🪵",n:"Ударить первым",d:"рискнуть всем и напасть на главаря с палкой"},{k:"b",ic:"🏃",n:"Отступить и позвать старика",d:"не геройствовать — привести того, кто учил его"}],
-  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,10,0,0),end:Date.UTC(2026,10,17,21,0)};
+  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,10,0,0),end:Date.UTC(2026,10,17,21,0)},
+ {id:"ep4",ep:4,gate:0,ser:"ХРОНИКИ ЭПОХ",title:"«Битва в тени» · серия 3",q:"Штука из будущего ожила — у героя одна попытка вернуться домой. Но его друг Диенек остался почти один на холме. Что выберет герой?",
+  opts:[{k:"h",ic:"⏳",n:"Вернуться в будущее",d:"спастись — и навсегда оставить друга в прошлом"},{k:"f",ic:"🛡",n:"Остаться и прикрыть друга",d:"встать рядом с Диенеком — даже если домой уже не вернуться"}],
+  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,9,12,0),end:Date.UTC(2026,10,17,21,0)}];
+const VOTE_DEFAULT=VOTES[0];
 /* gate: голосование открывается для игроков, только когда админ добавил ссылку на серию */
 const vtOpenFor=(env,me,C)=>!C.gate||C.url||C.urlIg||isAdmin(env,me.id);
-async function vtCfg(env){const k=await kvGet(env,"ep_vote");return k&&k.id===VOTE_DEFAULT.id?{...VOTE_DEFAULT,...k}:VOTE_DEFAULT}
-async function vtState(env,me){const C=await vtCfg(env),now=Date.now();if(now<C.start||now>=C.end||!vtOpenFor(env,me,C))return null;const r=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();return {id:C.id,ep:C.ep,ch:r?r.ch:""}}
-async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
+const vtKey=V=>V.id==="ep4"?"ep_vote":"ep_vote:"+V.id;
+async function vtCfg(env,vid){const V=VOTES.find(x=>x.id===vid)||VOTES[0];const k=await kvGet(env,vtKey(V));return k&&k.id===V.id?{...V,...k}:V}
+async function vtState(env,me){const now=Date.now(),out=[];for(const V of VOTES){const C=await vtCfg(env,V.id);if(now<C.start||now>=C.end||!vtOpenFor(env,me,C))continue;
+  const r=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();out.push({id:C.id,ep:C.ep,ser:C.ser||"",title:C.title,ch:r?r.ch:""})}return out}
+async function voteApi(env,me,a,p){const C=await vtCfg(env,p&&p.vid),now=Date.now();
   const pub=async()=>{const R=(await env.DB.prepare("SELECT ch,COUNT(*) AS n FROM ep_vote WHERE vid=? GROUP BY ch").bind(C.id).all()).results;const cnt={};R.forEach(r=>cnt[r.ch]=r.n);const tot=R.reduce((x,r)=>x+r.n,0);
     const my=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();
     const so=await env.DB.prepare("SELECT open_t,got_t FROM ep_vote_soc WHERE vid=? AND uid=?").bind(C.id,me.id).first();const adm=isAdmin(env,me.id);
@@ -2367,8 +2374,8 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
     const u=await env.DB.prepare("UPDATE ep_vote_soc SET got_t=? WHERE vid=? AND uid=? AND got_t IS NULL").bind(now,C.id,me.id).run();if(!u.meta||u.meta.changes!==1)fail("Награда за лайк уже у тебя");
     if(C.socSp)await doAction(env,me,"tour_prize",{sp:C.socSp,cash:0},{tour:1});const res=await pub();res.hit=1;return res}
   if(!isAdmin(env,me.id))fail("Нет доступа");
-  if(a==="vt_set"){const url=String(p.url||"").trim(),ig=String(p.urlIg||"").trim();for(const u of [url,ig])if(u&&!/^https:\/\/[^\s]{6,300}$/.test(u))fail("Ссылка должна начинаться с https://");let k=(await kvGet(env,"ep_vote"))||{id:C.id};if(k.id!==C.id)k={id:C.id};k.url=url;if(p.urlIg!=null)k.urlIg=ig;
-    if(p.socSp!=null)k.socSp=Math.max(0,Math.min(20,p.socSp|0));await kvSet(env,"ep_vote",k);return voteApi(env,me,"vt_get",{})}
+  if(a==="vt_set"){const url=String(p.url||"").trim(),ig=String(p.urlIg||"").trim();for(const u of [url,ig])if(u&&!/^https:\/\/[^\s]{6,300}$/.test(u))fail("Ссылка должна начинаться с https://");let k=(await kvGet(env,vtKey(C)))||{id:C.id};if(k.id!==C.id)k={id:C.id};k.url=url;if(p.urlIg!=null)k.urlIg=ig;
+    if(p.socSp!=null)k.socSp=Math.max(0,Math.min(20,p.socSp|0));await kvSet(env,vtKey(C),k);return voteApi(env,me,"vt_get",{vid:C.id})}
   fail("Неизвестное действие")}
 
 

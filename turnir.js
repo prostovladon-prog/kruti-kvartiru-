@@ -51,19 +51,18 @@ function ftuStrip(){let b=$("ftustrip");if(b)b.remove();return;const R=S&&ONLINE
 setInterval(()=>{try{ftuStrip()}catch(e){}},1500);
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="ft"||INITP.get("ft")){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(ftuOpen,1200)},400)}}
 
-/* 🗳 Голосование: одна страница — «Выбор серии» и «Кто победит в бою» */
-function voteHub(){const m=$("modal"),sh=$("msheet");m.hidden=false;const V=S&&S.vt,F=S&&S.ft;
-  const card=(id,ic,t,sub,st,cls)=>'<button type="button" class="vh-c '+cls+'" id="'+id+'"><i>'+ic+'</i><span><b>'+t+'</b><small>'+sub+'</small></span><em>'+st+'</em></button>';
-  sh.innerHTML='<div class="box nickbox vhbox"><div class="vh-hd">🗳 <b>Голосование</b><small>Решай, что будет дальше — и получай 🎴 за голоса</small></div>'+
-   card("vh-vt","⚔️","Выбор серии","Голосуй, что будет в следующей серии мультсериала",V?(V.ch?"✅ голос принят":"🔥 голосуй!"):"скоро новое",V&&!V.ch?"hot":"")+
-   card("vh-ft","🏆","Кто победит в бою","Турнир Эпох: угадай победителя — призы лучшим предсказателям",F?(F.ch?"✅ голос принят":"🔥 бой "+F.n+": "+ftuN(F.a)+" vs "+ftuN(F.b)):"скоро старт",F&&!F.ch?"hot":"")+
+/* 🗳 Голосование: все текущие «Выборы серии» на одной странице */
+function voteHub(){const m=$("modal"),sh=$("msheet");m.hidden=false;const L=(S&&S.vts)||[];
+  const card=(id,ic,t,sub,st,cls)=>'<button type="button" class="vh-c '+cls+'" data-vid="'+id+'"><i>'+ic+'</i><span><b>'+t+'</b><small>'+sub+'</small></span><em>'+st+'</em></button>';
+  sh.innerHTML='<div class="box nickbox vhbox"><div class="vh-hd">🗳 <b>Голосование</b><small>Решай, что будет в следующей серии — и получай 🎴 за голос</small></div>'+
+   (L.length?L.map(V=>card(V.id,V.id==="sv1"?"🪵":"⚔️",escH(V.title),escH(V.ser||"Выбор серии")+" · что будет дальше?",V.ch?"✅ голос принят":"🔥 голосуй!",V.ch?"":"hot")).join(""):'<p class="cln">Скоро новая серия и новое голосование!</p>')+
    '<button type="button" class="ghost" id="vh-x">Закрыть</button></div>';
-  $("vh-x").onclick=closeModal;$("vh-vt").onclick=()=>{hap("light");vtOpen()};$("vh-ft").onclick=()=>{hap("light");ftuOpen()}}
+  $("vh-x").onclick=closeModal;sh.querySelectorAll(".vh-c").forEach(b=>b.onclick=()=>{hap("light");vtOpen(b.dataset.vid)})}
 
 /* 🗳 единая плашка «Голосование» сразу под бегущей строкой */
-function vhStrip(){const V=S&&ONLINE?S.vt:null,F=S&&ONLINE?S.ft:null;let b=$("vhstrip");const old=$("vtstrip");if(old)old.remove();
-  if(!V&&!F){if(b)b.remove();return}
-  const todo=[V&&!V.ch?"⚔️ Выбор серии":"",F&&!F.ch?"🏆 бой "+F.n+": "+ftuN(F.a)+" vs "+ftuN(F.b):""].filter(Boolean);
+function vhStrip(){const L=S&&ONLINE?(S.vts||[]):[];let b=$("vhstrip");const old=$("vtstrip");if(old)old.remove();
+  if(!L.length){if(b)b.remove();return}
+  const todo=L.filter(x=>!x.ch).map(x=>x.title);
   const txt='<i>🗳</i><span><b>Голосование'+(todo.length?' — голосуй!':' ✅')+'</b><small>'+(todo.length?todo.join(" · ")+" · +🎴":"Ты проголосовал везде — жди новую серию")+'</small></span><em>▶</em>';
   if(!b){const sp=$("sec-spin"),hy=$("hype");if(!sp)return;b=document.createElement("button");b.type="button";b.id="vhstrip";b.onclick=()=>{hap("light");voteHub()};if(hy&&hy.parentNode===sp)hy.after(b);else sp.insertBefore(b,sp.firstChild)}
   else{const hy=$("hype");if(hy&&b.previousElementSibling!==hy&&hy.parentNode===b.parentNode)hy.after(b)}
