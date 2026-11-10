@@ -3293,3 +3293,8 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .face.front.mega .tier{background:linear-gradient(90deg,#ff3df2,#ffd23f,#5ad8ff,#ff3df2);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;font-weight:900;animation:megaTxt 2.5s linear infinite}
 @keyframes megaGlow{0%,100%{box-shadow:0 0 0 4px #ff3df2,0 0 40px rgba(255,61,242,.75),0 0 90px rgba(90,216,255,.45)}33%{box-shadow:0 0 0 4px #ffd23f,0 0 40px rgba(255,210,63,.75),0 0 90px rgba(255,61,242,.45)}66%{box-shadow:0 0 0 4px #5ad8ff,0 0 40px rgba(90,216,255,.75),0 0 90px rgba(255,210,63,.45)}}
 @keyframes megaTxt{to{background-position:300% 0}}
+
+/* именная карточка: ник владельца прямо на арте */
+.ownnick{position:absolute;left:50%;top:13%;transform:translateX(-50%) rotate(-3deg);z-index:6;white-space:nowrap;padding:5px 14px;border-radius:12px;font-weight:900;font-size:clamp(11px,3.4vw,15px);letter-spacing:.3px;color:#3a1600;
+ background:linear-gradient(180deg,#fff6c8,#ffd23f 55%,#e09a1a);border:2px solid #1b0f22;box-shadow:0 4px 0 rgba(0,0,0,.35),0 0 18px rgba(255,210,63,.8);animation:ownNick 2.4s ease-in-out infinite}
+@keyframes ownNick{50%{box-shadow:0 4px 0 rgba(0,0,0,.35),0 0 30px rgba(255,61,242,.9)}}

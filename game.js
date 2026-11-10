@@ -779,6 +779,7 @@ function fillFace(root,c){
   const rb=q(".ribbon");rb.hidden=!cl&&!c.cust;if(c.cust)rb.textContent="✍️ Именной номер";else if(cl)rb.textContent=cl.k+", ×"+cl.m;
   q(".foot b").textContent=fmt(c.v);
   const art=q(".art");
+  {let nb=art&&art.querySelector(".ownnick");if(H[4].nick){if(!nb){nb=document.createElement("div");nb.className="ownnick";art.appendChild(nb)}nb.textContent="👑 "+H[4].nick}else if(nb)nb.remove()}
   let sb=q(".stars");if(!sb){sb=document.createElement("div");sb.className="stars";art.appendChild(sb)}
   sb.hidden=!st;sb.innerHTML="★".repeat(st)+"<i>"+"★".repeat(STAR_MAX-st)+"</i>";
   const ER=c.f===4||c.f===DIA_F;root.style.clipPath=c.part?HALF_CLIP[c.part]:ER?tornPoly(sn):"";
