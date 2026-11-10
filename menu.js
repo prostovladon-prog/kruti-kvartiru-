@@ -972,7 +972,7 @@ function rdDraw(r,fx){const sh=$("msheet");if(!sh)return;
   else if(!r.on)body=`<p class="cln">Загадка закрыта. Ответ: <b>«${rdEsc(r.ans||"…")}»</b> — жди следующую серию в TikTok!</p>`;
   else if(!r.left)body=`<p class="cln">Попытки закончились 😔 Ответ: <b>«${rdEsc(r.ans)}»</b>. В следующей серии — новая загадка!</p>`;
   else body=`<input id="rd-in" maxlength="60" autocomplete="off" placeholder="Твой ответ"><button type="button" class="craftbtn" id="rd-go">Ответить</button><small class="rd-left">Попыток: ${r.left} из ${r.max}${r.last?` · последний ответ: «${rdEsc(r.last)}» — не то`:""}</small>`;
-  sh.innerHTML=`<div class="box nickbox rdbox${fx==="bad"?" rd-shake":""}"><div class="kg-rays"></div><div class="rd-ep">🎬 ХРОНИКИ ЭПОХ · ${rdEsc(r.title)}</div><div class="rd-ico">🧩</div><h3>Загадка серии</h3><p class="rd-q">${rdEsc(r.q)}</p>${hints}${body}
+  sh.innerHTML=`<div class="box nickbox rdbox${fx==="bad"?" rd-shake":""}"><div class="kg-rays"></div><div class="rd-ep">🎬 ${rdEsc(r.ser||"ХРОНИКИ ЭПОХ")} · ${rdEsc(r.title)}</div><div class="rd-ico">🧩</div><h3>Загадка серии</h3><p class="rd-q">${rdEsc(r.q)}</p>${hints}${body}
    <div class="rd-gift">🎁 За верный ответ: <b>+${r.sp} 🎴</b> · первые ${r.topN} — в следующую серию</div>${top}<button type="button" class="ghost" id="rd-x">Закрыть</button></div>`;
   $("rd-x").onclick=closeModal;const go=$("rd-go"),inp=$("rd-in");
   if(go){const send=async()=>{const v=(inp.value||"").trim();if(!v)return toast("Напиши ответ");go.disabled=true;const q=await act("rd_try",{a:v});go.disabled=false;if(!q)return;
@@ -994,14 +994,14 @@ async function vtOpen(){if(!ONLINE)return toast("Голосование рабо
   const r=await act("vt_get");if(!r){closeModal();return}vtDraw(r)}
 function vtDraw(r){const sh=$("msheet");if(!sh)return;const shown=r.my||!r.on;
   const opts=r.opts.map((o,i)=>`<button type="button" class="vt-o vt-o${i}${r.my===o.k?" on":""}" data-k="${o.k}" ${shown?"disabled":""}><i>${o.ic}</i><b>${rdEsc(o.n)}</b><small>${rdEsc(o.d)}</small>${shown?`<u style="width:${o.pc}%"></u><em>${o.pc}%</em>`:""}</button>`).join(`<div class="vt-vs">VS</div>`);
-  sh.innerHTML=`<div class="box nickbox vtbox"><div class="kg-rays"></div><div class="rd-ep">🎬 ХРОНИКИ ЭПОХ · ${rdEsc(r.title)}</div><h3>⚔️ Выбор серии</h3><p class="rd-q">${rdEsc(r.q)}</p><div class="vt-opts">${opts}</div>
+  sh.innerHTML=`<div class="box nickbox vtbox"><div class="kg-rays"></div><div class="rd-ep">🎬 ${rdEsc(r.ser||"ХРОНИКИ ЭПОХ")} · ${rdEsc(r.title)}</div><h3>⚔️ Выбор серии</h3><p class="rd-q">${rdEsc(r.q)}</p><div class="vt-opts">${opts}</div>
    ${r.my?`<p class="cln">✅ Твой голос принят${r.sp?` · +${r.sp} 🎴 уже у тебя`:""}. Проголосовало: <b>${r.tot}</b>. Как решит большинство — так и будет в следующей серии!</p>`:r.on?`<p class="cln">Один голос с аккаунта${r.sp?` · за голос <b>+${r.sp} 🎴</b>`:""}. Как решит большинство — так и будет в следующей серии</p>`:`<p class="cln">Голосование закончено — смотри, что выбрали, в следующей серии!</p>`}
    ${vtSocHtml(r)}${r.adm?vtAdmHtml(r):""}<button type="button" class="ghost" id="vt-x">Закрыть</button></div>`;
   $("vt-x").onclick=closeModal;vtSocBind(r);sh.querySelectorAll(".vt-o:not([disabled])").forEach(b=>b.onclick=async()=>{const o=r.opts.find(x=>x.k===b.dataset.k);if(!confirm("Твой выбор: «"+o.n+"»? Переголосовать нельзя"))return;
     sh.querySelectorAll(".vt-o").forEach(x=>x.disabled=true);const q=await act("vt_vote",{ch:o.k});if(!q){vtDraw(r);return}sfx.fanfare();burst(3);hapN("success");vtDraw(q)})}
 function vtStrip(){let b=$("vtstrip");if(typeof vhStrip==="function"){if(b)b.remove();return}const R=S&&ONLINE?S.vt:null;if(!R||R.ch){if(b)b.remove();return}
   if(!b){const hd=$("rdstrip")||$("r3strip")||$("cstrip")||document.querySelector("header");if(!hd)return;b=document.createElement("button");b.type="button";b.id="vtstrip";b.className="r3strip vtstrip";hd.after(b);b.onclick=()=>{hap("light");vtOpen()}
-    b.innerHTML=`<i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🛡 остаться или 🏃 отступить? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
+    b.innerHTML=`<i>⚔️</i><span><b>Выбор серии — голосуй!</b><small>🪵 ударить или 🏃 позвать старика? Решаешь ты · +🎴 за голос</small></span><em>▶</em>`}}
 setInterval(()=>{try{vtStrip()}catch(e){}},1500);
 {const q=new URLSearchParams(location.search).get("startapp")||(()=>{try{return tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")}catch(e){return ""}})();if(q==="vt"){const t=setInterval(()=>{if(!S)return;clearInterval(t);setTimeout(vtOpen,1200)},400)}}
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("vtadm"))return;const x=document.createElement("div");x.id="vtadm";x.className="srcbox r3adm";b.prepend(x);

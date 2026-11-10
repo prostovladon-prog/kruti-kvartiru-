@@ -1106,9 +1106,9 @@ async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_stop"){const C=await ref3Cur(env);if(!C||now>=C.end)fail("Акция не идёт");C.end=now;await kvSet(env,"ref3",C);delete topCache.ref3;return {end:now}}
   fail("Неизвестное действие")}
 /* ---------- ⚔️ «Выбор серии»: зрители решают, что будет в следующей серии ---------- */
-const VOTE_DEFAULT={id:"ep4",ep:4,gate:1,title:"«Битва в тени»",q:"Штука из будущего ожила — у героя одна попытка вернуться домой. Но его друг Диенек остался почти один на холме. Что выберет герой?",
-  opts:[{k:"h",ic:"⏳",n:"Вернуться в будущее",d:"спастись — и навсегда оставить друга в прошлом"},{k:"f",ic:"🛡",n:"Остаться и прикрыть друга",d:"встать рядом с Диенеком — даже если домой уже не вернуться"}],
-  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,9,12,0),end:Date.UTC(2026,10,17,21,0)};
+const VOTE_DEFAULT={id:"sv1",ep:1,gate:0,ser:"СТАТЬ ВОИНОМ",title:"«Стать воином» · серия 1",q:"Ночь. Лагерь спит, а Тим один на посту. Перед ним главарь разбойников: «Мальчик. Последний шанс уйти». Что сделает Тим?",
+  opts:[{k:"a",ic:"🪵",n:"Ударить первым",d:"рискнуть всем и напасть на главаря с палкой"},{k:"b",ic:"🏃",n:"Отступить и позвать старика",d:"не геройствовать — привести того, кто учил его"}],
+  sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,10,0,0),end:Date.UTC(2026,10,17,21,0)};
 /* gate: голосование открывается для игроков, только когда админ добавил ссылку на серию */
 const vtOpenFor=(env,me,C)=>!C.gate||C.url||C.urlIg||isAdmin(env,me.id);
 async function vtCfg(env){const k=await kvGet(env,"ep_vote");return k&&k.id===VOTE_DEFAULT.id?{...VOTE_DEFAULT,...k}:VOTE_DEFAULT}
@@ -1118,7 +1118,7 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env),now=Date.now();
     const my=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();
     const so=await env.DB.prepare("SELECT open_t,got_t FROM ep_vote_soc WHERE vid=? AND uid=?").bind(C.id,me.id).first();const adm=isAdmin(env,me.id);
     const admx=adm?{cnt,soc:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=? AND got_t IS NOT NULL").bind(C.id).first())||{}).n||0,opened:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=?").bind(C.id).first())||{}).n||0}:undefined;
-    return {on:now>=C.start&&now<C.end&&vtOpenFor(env,me,C)?1:0,id:C.id,ep:C.ep,title:C.title,q:C.q,sp:C.sp,end:C.end,url:C.url||"",urlIg:C.urlIg||"",socSp:C.socSp,socWait:C.socWait,soc:{open:so&&so.open_t?so.open_t:0,got:so&&so.got_t?1:0,left:so&&so.open_t&&!so.got_t?Math.max(0,Math.ceil((so.open_t+C.socWait*1e3-now)/1e3)):null},adm:admx,my:my?my.ch:"",tot,opts:C.opts.map(o=>({...o,c:my||now>=C.end?(cnt[o.k]||0):undefined,pc:my||now>=C.end?(tot?Math.round((cnt[o.k]||0)*100/tot):0):undefined}))}};
+    return {on:now>=C.start&&now<C.end&&vtOpenFor(env,me,C)?1:0,id:C.id,ep:C.ep,ser:C.ser||"",title:C.title,q:C.q,sp:C.sp,end:C.end,url:C.url||"",urlIg:C.urlIg||"",socSp:C.socSp,socWait:C.socWait,soc:{open:so&&so.open_t?so.open_t:0,got:so&&so.got_t?1:0,left:so&&so.open_t&&!so.got_t?Math.max(0,Math.ceil((so.open_t+C.socWait*1e3-now)/1e3)):null},adm:admx,my:my?my.ch:"",tot,opts:C.opts.map(o=>({...o,c:my||now>=C.end?(cnt[o.k]||0):undefined,pc:my||now>=C.end?(tot?Math.round((cnt[o.k]||0)*100/tot):0):undefined}))}};
   if(a==="vt_get")return pub();
   if(a==="vt_vote"){if(now<C.start||!vtOpenFor(env,me,C))fail("Голосование откроется с выходом новой серии");if(now>=C.end)fail("Голосование закончено — смотри следующую серию");const ch=String(p.ch||"");if(!C.opts.some(o=>o.k===ch))fail("Выбери вариант");
     const r=await env.DB.prepare("INSERT OR IGNORE INTO ep_vote(vid,uid,ch,t) VALUES(?,?,?,?)").bind(C.id,me.id,ch,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже проголосовал");
