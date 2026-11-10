@@ -81,6 +81,38 @@ function news(){const n=(S&&S.news)||[];if(!n.length)return;n.forEach(x=>toast("
 
 /* ---------- detailed illustrations for the top warriors ---------- */
 const DETAILED={
+ /* 🧙‍♀️ Баба Яга — анимированная: ступа парит, из неё выглядывает голова */
+ "Баба Яга":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+  <linearGradient id="yw${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a3418"/><stop offset=".45" stop-color="#a8703c"/><stop offset="1" stop-color="#4a2a12"/></linearGradient>
+  <radialGradient id="ys${u}" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#e9d2b0"/><stop offset="1" stop-color="#b8946a"/></radialGradient>
+  <radialGradient id="yg${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff3df2" stop-opacity=".55"/><stop offset="1" stop-color="#ff3df2" stop-opacity="0"/></radialGradient>
+  <clipPath id="yc${u}"><rect x="0" y="0" width="200" height="118"/></clipPath></defs>
+ <circle cx="100" cy="110" r="88" fill="url(#yg${u})"><animate attributeName="r" values="80;92;80" dur="2.4s" repeatCount="indefinite"/></circle>
+ <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -7;0 0" dur="2.4s" repeatCount="indefinite"/>
+  <g opacity=".7">${[0,1,2,3].map(i=>`<circle cx="${84+i*10}" cy="182" r="${6+i%2*3}" fill="#c9b8e8"><animate attributeName="cy" values="176;196" dur="1.2s" begin="${i*.3}s" repeatCount="indefinite"/><animate attributeName="opacity" values=".8;0" dur="1.2s" begin="${i*.3}s" repeatCount="indefinite"/></circle>`).join("")}</g>
+  <g transform="rotate(-24 150 120)"><path d="M150 30 L150 150" stroke="${INK}" stroke-width="9" stroke-linecap="round"/><path d="M150 30 L150 150" stroke="#8a5a2a" stroke-width="5" stroke-linecap="round"/>
+   <path d="M138 140 Q150 190 162 140 Z" fill="#d9b25a" stroke="${INK}" stroke-width="3"/><path d="M143 148 L141 178 M150 148 L150 184 M157 148 L159 178" stroke="#a8803a" stroke-width="2"/>
+   <animateTransform attributeName="transform" type="rotate" values="-24 150 120;-16 150 120;-24 150 120" dur="1.8s" repeatCount="indefinite"/></g>
+  <g clip-path="url(#yc${u})"><g><animateTransform attributeName="transform" type="translate" values="0 52;0 52;0 0;0 0;0 4;0 0;0 0;0 52" keyTimes="0;.18;.28;.55;.6;.65;.82;1" dur="4.2s" repeatCount="indefinite"/>
+   <path d="M68 92 Q60 44 100 36 Q140 44 132 92 Z" fill="#c8202e" stroke="${INK}" stroke-width="3.5"/>
+   ${[[80,52],[112,48],[96,66],[124,70],[74,74]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3.5" fill="#fff"/>`).join("")}
+   <ellipse cx="100" cy="82" rx="27" ry="30" fill="url(#ys${u})" stroke="${INK}" stroke-width="3.5"/>
+   <path d="M74 70 q-8 14 -2 30 M126 70 q8 14 2 30" stroke="#d8d8e0" stroke-width="5" fill="none" stroke-linecap="round"/>
+   <circle cx="90" cy="76" r="5.5" fill="#fff" stroke="${INK}" stroke-width="2"/><circle cx="110" cy="76" r="5.5" fill="#fff" stroke="${INK}" stroke-width="2"/>
+   <circle cx="91" cy="77" r="2.6" fill="#ff3df2"><animate attributeName="cx" values="89;93;89" dur="2.1s" repeatCount="indefinite"/></circle><circle cx="111" cy="77" r="2.6" fill="#ff3df2"><animate attributeName="cx" values="109;113;109" dur="2.1s" repeatCount="indefinite"/></circle>
+   <path d="M82 68 l12 4 M118 68 l-12 4" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+   <path d="M100 76 Q112 90 104 100 Q99 98 98 92" fill="#d9a07a" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><circle cx="107" cy="94" r="2.2" fill="#6a3a1a"/>
+   <path d="M86 104 Q100 112 114 104" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="96" y="104" width="5" height="6" fill="#fff6c8" stroke="${INK}" stroke-width="1.5"/>
+   <path d="M118 108 L132 116" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="M118 108 L132 116" stroke="#e9d2b0" stroke-width="4" stroke-linecap="round"/>
+  </g></g>
+  <path d="M52 112 L148 112 L136 176 Q100 186 64 176 Z" fill="url(#yw${u})" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="112" rx="50" ry="10" fill="#3a2010" stroke="${INK}" stroke-width="4"/>
+  <path d="M56 132 Q100 140 144 132 M60 156 Q100 164 140 156" stroke="#3a2010" stroke-width="5" fill="none"/>
+  <path d="M74 120 L72 170 M100 122 L100 178 M126 120 L128 170" stroke="#5a3418" stroke-width="2" opacity=".6"/>
+  <text x="100" y="152" text-anchor="middle" font-size="15" font-weight="900" fill="#ffd23f" stroke="${INK}" stroke-width="1" font-family="sans-serif">000001</text>
+ </g>
+ ${[0,1,2,3,4,5].map(i=>`<path d="M${30+i*28} ${30+(i%3)*22} l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3z" fill="#fff6c8"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="${i*.27}s" repeatCount="indefinite"/></path>`).join("")}
+</svg>`,
  // Спартанец
  "Спартанец":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
  <linearGradient id="bz${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe29a"/><stop offset=".45" stop-color="#d9993a"/><stop offset="1" stop-color="#7a4a14"/></linearGradient>
@@ -683,8 +715,8 @@ function diaFace(root,c){[...root.classList].filter(x=>x.startsWith("dia-")).for
   const D=c.f===DIA_F&&DIA[c.h];if(!D)return;root.classList.add("dia-"+D.c);const art=root.querySelector(".art");if(!art)return;
   art.insertAdjacentHTML("beforeend",'<div class="diam" style="left:'+D.x+'%;top:'+D.y+'%">'+DIA_GEM+'</div>'+(["pix","ink","water","cosmos","ice","fire","flare","sepia","rust","splash","half","scratch","gemrain","eclipse","aurora","dust","glass","vhs","comic","blueprint"].includes(D.c)?'<div class="dxtra">'+(D.c==="water"?"ОШИБКА · ".repeat(60):"")+'</div>':""))}
 function fillFace(root,c){
-  const q=s=>root.querySelector(s),H=HEROES[c.h],T=HT[H[2]],F=FIN[c.f],st=c.stars||0;
-  root.className="face front "+F.cls+(st?" star"+st:"");root.style.setProperty("--hc",T.c);
+  const q=s=>root.querySelector(s),H=HEROES[c.h],T=tierOf(c.h),F=FIN[c.f],st=c.stars||0;
+  root.className="face front "+F.cls+(st?" star"+st:"")+(H[4].rl?" mega":"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
   q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
@@ -860,7 +892,7 @@ function renderCol(){
   const pw=c=>[0,1,2,3,4].reduce((a,i)=>a+(c.stats?eff(c,i):0),0),tier=c=>HEROES[c.h][2];
   const cmp={v:(a,b)=>b.v-a.v,r:(a,b)=>tier(b)-tier(a)||b.v-a.v,f:(a,b)=>b.f-a.f||b.v-a.v,n:(a,b)=>(b.created||0)-(a.created||0)||String(b.id).localeCompare(String(a.id)),p:(a,b)=>pw(b)-pw(a)}[colSort];
   [...S.cards].sort(cmp).forEach(c=>{const t=tier(c),el=document.createElement("div");el.className="tl2"+(t===3?" leg":t===4?" myth":"");el.style.setProperty("--c",HT[t].c);
-    el.innerHTML=`<span class="rb">${HT[t].k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
+    el.innerHTML=`<span class="rb">${tierOf(c.h).k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
     const cb=el.querySelector(".cbtn");cb.setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");cb.onclick=()=>openCardView(c,{mine:true});
     if(colPick){const ok=sellableUI(c);el.classList.add(ok?"pick":"nopick");if(colSel.has(c.id))el.classList.add("sel");
       el.insertAdjacentHTML("beforeend",'<span class="pk">'+(colSel.has(c.id)?"✓":"")+'</span>');

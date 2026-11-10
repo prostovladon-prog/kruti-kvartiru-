@@ -102,7 +102,8 @@ const HEROES=[
  ["Диомед","Троянская война", 3,"Под Троей ранил даже богов. Афина сама вела его в бой.", {base: 1,"helm": "corinth","crest": "#2f5fd0","bronze": 1,"weapon": "spear","shield": "hoplon","armor": "plate","cape": "#1f3f9b","x": ["star"],"hue": 215,"skin": 1,"p": [7, 5, 6, 6, 6]}],
  ["Сигурд","Скандинавия", 3,"Убил дракона Фафнира и искупался в его крови.", {base: 1,"helm": "viking","weapon": "sword","shield": "round","shc": "#c0392b","armor": "mail","beard": "#d9a441","cape": "#7a1a1a","x": ["flames"],"fierce": 1,"hue": 10,"skin": 0,"p": [7, 5, 5, 6, 7]}],
  ["Бальдр","Мифы Скандинавии", 4,"Светлый бог, которого не берёт никакое оружие. Кроме веточки омелы.", {base: 1,"hair": "long","hairc": "#fff1b0","helm": "suncrown","weapon": "spear","armor": "cloth","cape": "#ffd60a","x": ["aura"],"glow": "#fff3a0","gold": 1,"hue": 50,"skin": 0,"p": [5, 8, 6, 7, 8]}],
- ["Робин Гуд","Легенды Британии", 2,"Грабит богатых, помогает бедным и не промахивается из лука.", {base: 1,"helm": "phood","weapon": "bow","armor": "cloth","cape": "#2a6a2a","hue": 110,"skin": 0,"stache": "#7a4a24","p": [5, 2, 7, 3, 5]}]
+ ["Робин Гуд","Легенды Британии", 2,"Грабит богатых, помогает бедным и не промахивается из лука.", {base: 1,"helm": "phood","weapon": "bow","armor": "cloth","cape": "#2a6a2a","hue": 110,"skin": 0,"stache": "#7a4a24","p": [5, 2, 7, 3, 5]}],
+ ["Баба Яга","Сказки Руси",4,"Хозяйка ступы и тёмного леса. Летает быстрее ветра, видит всех насквозь. Именная карточка Руслана — второй такой нет.",{don:1,one:1,own:1,sn:"000001",rl:"Сказочный",rc:"#ff3df2",hue:290,p:[10,10,10,10,10]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -113,6 +114,9 @@ const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROE
 const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
 /* Тор (ошибка печати, 1 из 1) — главный трофей игры: падает только из прокрутки, шанс 1 на миллион. В сундуках и в «Любой карточке» его нет */
 const THOR=HEROES.findIndex(H=>H[0]==="Тор"), THOR_P=.000001;
+/* редкость карточки: у именных (own) — своя, «круче мифической» */
+const tierOf=h=>{const W=HEROES[h][4];return W.rl?{k:W.rl,c:W.rc||"#ff3df2",b:HT[HEROES[h][2]].b}:HT[HEROES[h][2]]};
+const YAGA=HEROES.findIndex(H=>H[0]==="Баба Яга");
 /* половинки: part 1 — левая (частая), part 2 — правая (в 5 раз реже, 300 на воина на весь мир).
    Целая карточка забирает номер тиража правой половинки (17/300). «Ошибка печати»: одна левая и одна правая на воина */
 const HALF_RUN=300, HALF_P={drop:.0035,right:.15,err:.004}, PART_K=["","Левая ½","Правая ½"];
@@ -446,7 +450,7 @@ function rollHalf(ctx,rightP){let part=Math.random()<rightP?2:1,pool=COMP;
 function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tier).concat(extra||[]),h=pool[Math.floor(Math.random()*pool.length)];
   let f=pick(FIN.map(x=>x.w));if(FIN[f].dia)f=0;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;return makeCard(ctx,h,f)}
 /* легенда 1 из 1 (Тор и др.): только «Ошибка печати», свой номер. null — если все уже у игроков */
-function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1&&(h!==THOR||want1===THOR));if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
+function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1&&(h!==THOR||want1===THOR)&&(!HEROES[h][4].own||want1===h));if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
   const c=makeCard(ctx,h,4),want=HEROES[h][4].sn;if(want&&ctx.snFree(want)){ctx.takeSn(want);c.sn=want;c.v=priceOf(h,4,1,want,false)}return c}
 /* Близнец: свободная карточка из 2 на весь мир. null — если все уже разобраны */
 function rollDuo(ctx,want){const free=DUO.filter(h=>ctx.issuedOf(h,DUO_F)<DUO_RUN);if(!free.length)return null;const h=want!=null?want:free[Math.floor(Math.random()*free.length)];

@@ -3287,3 +3287,9 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .ad-bs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.ad-b{border:0;border-radius:12px;padding:8px 2px;background:rgba(255,255,255,.07);color:#fff;font:inherit;font-size:10.5px;font-weight:800}.ad-b i{display:block;font-style:normal;font-size:22px;margin-bottom:2px}
 .ad-n{display:block;margin-top:10px;font-size:11.5px;opacity:.7}
 .ad-all{margin-top:10px;font-size:16px;padding:14px}.adst .box{background:#fff;color:#1a1a2e;border-radius:16px}.adst #admin-stats{margin:0}
+
+/* 🧙‍♀️ «Сказочная» редкость (именные карточки) — живая радужная рамка */
+.face.front.mega{box-shadow:0 0 0 4px #ff3df2,0 0 40px rgba(255,61,242,.75),0 0 90px rgba(90,216,255,.45)!important;animation:megaGlow 3s linear infinite}
+.face.front.mega .tier{background:linear-gradient(90deg,#ff3df2,#ffd23f,#5ad8ff,#ff3df2);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;font-weight:900;animation:megaTxt 2.5s linear infinite}
+@keyframes megaGlow{0%,100%{box-shadow:0 0 0 4px #ff3df2,0 0 40px rgba(255,61,242,.75),0 0 90px rgba(90,216,255,.45)}33%{box-shadow:0 0 0 4px #ffd23f,0 0 40px rgba(255,210,63,.75),0 0 90px rgba(255,61,242,.45)}66%{box-shadow:0 0 0 4px #5ad8ff,0 0 40px rgba(90,216,255,.75),0 0 90px rgba(255,210,63,.45)}}
+@keyframes megaTxt{to{background-position:300% 0}}
