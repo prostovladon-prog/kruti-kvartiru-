@@ -1041,6 +1041,9 @@ $("cr-go").onclick=async()=>{
   if(crBusy)return;const p=crChance();if(!crSel.size||p<=0)return;
   crBusy=true;crLast=p;$("cr-go").disabled=true;
   const ids=[...crSel],amu=$("cr-amu").checked;
+  /* ингредиенты сгорают при любом исходе — честно предупреждаем, особенно про сильные карты */
+  {const L=ids.map(id=>S.cards.find(c=>c.id===id)).filter(Boolean),big=L.filter(c=>(c.stars||0)>0||c.f>=2||HEROES[c.h][2]>=3||lvl(c)>=4);
+   if(big.length&&!confirm("⚠️ Эти карточки СГОРЯТ при крафте — и при удаче, и при неудаче:\n\n"+big.map(c=>"• "+HEROES[c.h][0]+" ("+FIN[c.f].k+(c.stars?", ★"+c.stars:"")+", ур. "+lvl(c)+", цена "+fmt(c.v)+")").join("\n")+"\n\nПри удаче ты получишь новую карточку, а эти исчезнут навсегда. Продолжить?")){crBusy=false;$("cr-go").disabled=false;return}}
   const r=await act("craft",{ids,h:crH,f:crF,amu});
   if(!r){crBusy=false;renderCraft();return}
   $("cr-amu").checked=false;crLast=r.p;
