@@ -970,7 +970,7 @@ function step(){fc.clearRect(0,0,innerWidth,innerHeight);parts=parts.filter(p=>p
 /* ---------- craft ---------- */
 let crSel=new Set(),crH=19,crF=1,crBusy=false,crRot=0,crLast=null;
 function crSum(){return S.cards.filter(c=>crSel.has(c.id)).reduce((a,c)=>a+c.v,0)}
-function crChance(){const t=craftPrice(crH,crF),sum=crSum();if(!sum)return 0;const amu=$("cr-amu")&&$("cr-amu").checked?.1:0;return Math.min(CRAFT_MAX(crF,crH)+amu,HOUSE*sum/t+amu)}
+function crChance(){const t=craftPrice(crH,crF),sum=crSum();if(!sum)return 0;const amu=$("cr-amu")&&$("cr-amu").checked?amuBonus(crF,crH):0;return Math.min(CRAFT_MAX(crF,crH)+amu,HOUSE*sum/t+amu)}
 function arcPath(p){if(p<=0)return "";if(p>=.9999)return "M100 8 A92 92 0 1 1 99.99 8 Z";
   const a=p*2*Math.PI,x=100+92*Math.sin(a),y=100-92*Math.cos(a);return `M100 100 L100 8 A92 92 0 ${p>.5?1:0} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z`}
 function renderCraft(){
@@ -992,7 +992,7 @@ function renderCraft(){
   if(!craftable(crF))crF=1;FIN.forEach((F,i)=>{if(F.excl||F.dia||!craftable(i))return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
     b.onclick=()=>{if(crBusy)return;crF=i;renderCraft()};fb.appendChild(b)});
   const tg=$("cr-tgt");tg.innerHTML="";
-  HEROES.forEach((H,i)=>{if(!isBase(i))return;const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
+  HEROES.forEach((H,i)=>{if(!craftOk(i))return;const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",i===crH);b.setAttribute("aria-label",H[0]);b.title=H[0];b.innerHTML=portrait(i,null,1);
     b.onclick=()=>{if(crBusy)return;crH=i;renderCraft()};tg.appendChild(b)});
   const sel=tg.querySelector('[aria-pressed="true"]');if(sel&&!tg.dataset.scrolled){tg.dataset.scrolled="1";requestAnimationFrame(()=>{tg.scrollLeft=sel.offsetLeft-tg.clientWidth/2+sel.clientWidth/2})}
@@ -1008,13 +1008,13 @@ function renderCraft(){
     sl.appendChild(d)}
   const mineT=S.cards.some(c=>c.h===crH&&c.f===crF);
   $("cr-trun").textContent=left===Infinity?HT[HEROES[crH][2]].k:(left>0?"осталось "+left+" из "+F.run:mineT?"единственная уже у тебя":"все "+F.run+" уже у игроков");
-  const tv=targetPrice(crH,crF);$("cr-tv").textContent=fmt(tv);{const T=HEROES[crH][2];if(T>=3)$("cr-trun").textContent+=" · крафт ×"+CRAFT_TIER_K[T]+", шанс до "+Math.round(CRAFT_MAX(crF,crH)*100)+"%"}
+  const tv=targetPrice(crH,crF);$("cr-tv").textContent=fmt(tv);{const T=HEROES[crH][2];const mx=CRAFT_MAX(crF,crH)*100;if(T>=2||crF>=3)$("cr-trun").textContent+=" · "+(CRAFT_TIER_K[T]>1?"крафт ×"+CRAFT_TIER_K[T]+", ":"")+"шанс до "+(mx<1?mx.toFixed(1).replace(".",","):Math.round(mx))+"%"}
   // wheel
   let p=left>0?crChance():0;const showLast=!crSel.size&&crLast!=null;if(showLast)p=crLast;
   $("cr-f1").textContent=showLast?"—":fmt(crSum());$("cr-f2").textContent=fmt(craftPrice(crH,crF));
   $("cr-arc").setAttribute("d",arcPath(p));
   $("cr-p").textContent=(p*100<1&&p>0?"<1":Math.round(p*100))+"%";
-  $("cr-amu-t").textContent="Амулет удачи: +10% к шансу за "+fmt(amuCost(crH,crF));
+  {const ab=amuBonus(crF,crH)*100;$("cr-amu-t").textContent="Амулет удачи: +"+(ab<1?ab.toFixed(1).replace(".",","):Math.round(ab))+"% к шансу за "+fmt(amuCost(crH,crF))}
   const go=$("cr-go");go.disabled=crBusy||!crSel.size||left<=0||crChance()<=0;
   go.textContent=left<=0?(mineT&&F.run===1?"Эта карточка уже у тебя":"Все "+F.run+" уже выпали"):!crSel.size?"Положи карточки в горн":"🔥 Ковать · шанс "+$("cr-p").textContent;
   if(!crBusy&&crSel.size&&HOUSE*crSum()/craftPrice(crH,crF)>CRAFT_MAX(crF,crH))$("cr-res").textContent="Больше "+Math.round(CRAFT_MAX(crF,crH)*100)+"% шанса для этой цели не бывает. Выбери цель подороже или отдай меньше.";

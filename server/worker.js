@@ -178,8 +178,12 @@ const targetPrice=(h,f)=>{const [a,b]=HT[HEROES[h][2]].b;return Math.round((a+b)
 /* крафт: «Ошибку печати» скрафтить нельзя (только выбить), у золота шанс не больше 30%.
    Скрафченная карточка стоит около цены цели — без множителей за номер 1 и характеристики, иначе крафт «печатает» деньги */
 /* мифического скрафтить можно максимум с шансом 10% и в 10 раз дороже, легендарного — 30% и втрое дороже: иначе богатые штампуют мифов */
-const CRAFT_TIER_MAX=[PMAX,PMAX,PMAX,.3,.1], CRAFT_TIER_K=[1,1,1,3,10];
-const CRAFT_MAX=(f,h)=>Math.min(f>=3?.3:PMAX,h==null?PMAX:CRAFT_TIER_MAX[HEROES[h][2]]), craftable=f=>f<4;
+/* 10.11: самые редкие почти невозможно скрафтить — легендарный до 5%, мифический до 1%, золото до 15%, а золотой легендарный/мифический ещё вдвое реже */
+const CRAFT_TIER_MAX=[PMAX,PMAX,.5,.05,.01], CRAFT_TIER_K=[1,1,1,3,10];
+const CRAFT_MAX=(f,h)=>{const T=h==null?0:HEROES[h][2];let m=Math.min(f>=3?.15:PMAX,CRAFT_TIER_MAX[T]);if(f>=3&&T>=3)m*=.5;return m}, craftable=f=>f<4;
+/* амулет удачи: +20% от потолка, но не больше +10% — чтобы не пробивал потолок редких */
+const amuBonus=(f,h)=>Math.min(.1,CRAFT_MAX(f,h)*.2);
+const craftOk=h=>isBase(h)&&!isComp(h)&&!HEROES[h][4].one&&!HEROES[h][4].duo&&!HEROES[h][4].don&&!HEROES[h][4].collab;
 const craftPrice=(h,f)=>Math.round(targetPrice(h,f)*CRAFT_TIER_K[HEROES[h][2]]*100)/100;
 const amuCost=(h,f)=>Math.max(20,Math.round(craftPrice(h,f)*.15));
 const trainCost=c=>Math.round(40*Math.pow(lvl(c),1.6));
@@ -834,9 +838,9 @@ const ACTIONS={
     const got=Math.round(list.reduce((a,c)=>a+c.v*QUICK,0)*100)/100;burn(G,list.map(c=>c.id));earn(G.st,got);return {got,n:list.length}},
 
   craft(G){const {st,ctx,p}=G;const ids=[...new Set(p.ids||[])];if(!ids.length||ids.length>5)fail("Выбери от 1 до 5 карточек");
-    const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(isComp(h))fail("Составных воинов не крафтят: их собирают из половинок");if(!craftable(f))fail("«Ошибку печати» нельзя скрафтить — её можно только выбить");if(h>=NBASE)fail("Этого воина не крафтят");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
+    const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(isComp(h))fail("Составных воинов не крафтят: их собирают из половинок");if(!craftable(f))fail("«Ошибку печати» нельзя скрафтить — её можно только выбить");if(!craftOk(h))fail("Этого воина не крафтят");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
     if(FIN[f].run!==Infinity&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
-    const inp=ids.map(id=>notHalf(burnable(freeCard(G,id)),"Половинки нельзя сжигать в крафте")),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),cp=craftPrice(h,f),amu=p.amu?.1:0;
+    const inp=ids.map(id=>notHalf(burnable(freeCard(G,id)),"Половинки нельзя сжигать в крафте")),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),cp=craftPrice(h,f),amu=p.amu?amuBonus(f,h):0;
     if(amu)pay(st,amuCost(h,f));
     const pr=Math.min(CRAFT_MAX(f,h)+amu,HOUSE*sum/cp+amu);if(pr<=0)fail("Шанс слишком мал");
     burn(G,ids);day(st,ctx.now).crafts++;const win=!!ctx.luck||Math.random()<pr;let card=null;   // режим удачи администратора: крафт всегда удаётся
