@@ -81,6 +81,56 @@ function news(){const n=(S&&S.news)||[];if(!n.length)return;n.forEach(x=>toast("
 
 /* ---------- detailed illustrations for the top warriors ---------- */
 const DETAILED={
+ /* 🐈 Кот в сапогах — сапоги трясутся, кот выпрыгивает, снимает шляпу в поклоне и приземляется обратно */
+ "Кот в сапогах":u=>{const K='keyTimes="0;.22;.38;.5;.62;.74;.84;1" dur="4.8s" repeatCount="indefinite" calcMode="spline" keySplines="'+Array(7).fill(".4 0 .2 1").join(";")+'"';
+ return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+  <radialGradient id="kg${u}" cx=".5" cy=".55" r=".55"><stop offset="0" stop-color="#ffd23f" stop-opacity=".6"/><stop offset="1" stop-color="#ffd23f" stop-opacity="0"/></radialGradient>
+  <linearGradient id="kb${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a0a16"/><stop offset=".45" stop-color="#e0303f"/><stop offset="1" stop-color="#6a0812"/></linearGradient>
+  <linearGradient id="kc${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a6ae0"/><stop offset="1" stop-color="#1a2a7a"/></linearGradient>
+  <linearGradient id="kf${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9c4bc"/><stop offset="1" stop-color="#8a847c"/></linearGradient></defs>
+ <circle cx="100" cy="110" r="92" fill="url(#kg${u})"><animate attributeName="r" values="84;96;84" dur="2.4s" repeatCount="indefinite"/></circle>
+ <g transform="translate(12 22) scale(.88)"><ellipse cx="100" cy="192" rx="46" ry="6" fill="rgba(0,0,0,.35)"><animate attributeName="rx" values="46;46;46;30;30;46;46;46" ${K}/></ellipse>
+ <g><animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 2;0 -42;0 -46;0 4;0 0;0 0" ${K}/>
+  <path d="M60 104 Q30 96 34 66 Q38 52 48 58" fill="none" stroke="${INK}" stroke-width="11" stroke-linecap="round"/><path d="M60 104 Q30 96 34 66 Q38 52 48 58" fill="none" stroke="#a49e96" stroke-width="7" stroke-linecap="round">
+   <animate attributeName="d" values="M60 104 Q30 96 34 66 Q38 52 48 58;M60 104 Q26 100 28 72 Q30 58 22 52;M60 104 Q30 96 34 66 Q38 52 48 58" dur="1.6s" repeatCount="indefinite"/></path>
+  <path d="M84 120 L84 168 M116 120 L116 168" stroke="${INK}" stroke-width="16" stroke-linecap="round"/><path d="M84 120 L84 168 M116 120 L116 168" stroke="url(#kf${u})" stroke-width="11" stroke-linecap="round"/>
+  <ellipse cx="84" cy="170" rx="9" ry="6" fill="#e8e2da" stroke="${INK}" stroke-width="2.5"/><ellipse cx="116" cy="170" rx="9" ry="6" fill="#e8e2da" stroke="${INK}" stroke-width="2.5"/>
+  <path d="M70 80 Q100 70 130 80 L134 126 Q100 134 66 126 Z" fill="url(#kc${u})" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M100 76 L100 130" stroke="#ffd23f" stroke-width="2.5"/>${[88,100,112].map(y=>`<circle cx="100" cy="${y}" r="3" fill="#ffd23f" stroke="${INK}" stroke-width="1.2"/>`).join("")}
+  <path d="M90 76 Q100 92 110 76 Q100 82 90 76Z" fill="#fff" stroke="${INK}" stroke-width="2"/>
+  <path d="M66 112 Q100 120 134 112" stroke="#ffd23f" stroke-width="3" fill="none"/>
+  <g><animateTransform attributeName="transform" type="rotate" values="0 132 86;0 132 86;0 132 86;-30 132 86;-30 132 86;0 132 86;0 132 86;0 132 86" ${K}/>
+   <path d="M132 86 L150 108" stroke="${INK}" stroke-width="12" stroke-linecap="round"/><path d="M132 86 L150 108" stroke="url(#kc${u})" stroke-width="8" stroke-linecap="round"/>
+   <path d="M152 112 L160 186" stroke="${INK}" stroke-width="6" stroke-linecap="round"/><path d="M152 112 L160 186" stroke="#3a2010" stroke-width="3" stroke-linecap="round"/><circle cx="151" cy="110" r="6" fill="#ffd23f" stroke="${INK}" stroke-width="2"/></g>
+  <path d="M68 86 L54 104" stroke="${INK}" stroke-width="12" stroke-linecap="round"/><path d="M68 86 L54 104" stroke="url(#kc${u})" stroke-width="8" stroke-linecap="round"/><circle cx="53" cy="106" r="6" fill="#e8e2da" stroke="${INK}" stroke-width="2"/>
+  <g transform="translate(100 52)">
+   <path d="M-24 -10 L-30 -36 L-8 -22 Z M24 -10 L30 -36 L8 -22 Z" fill="#a49e96" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><path d="M-22 -14 L-26 -30 L-12 -21 Z M22 -14 L26 -30 L12 -21 Z" fill="#f2a0b0"/>
+   <ellipse cx="0" cy="0" rx="28" ry="24" fill="url(#kf${u})" stroke="${INK}" stroke-width="3.5"/>
+   <path d="M-6 -22 l2 8 M0 -23 l0 9 M6 -22 l-2 8" stroke="#6a6460" stroke-width="2.2" stroke-linecap="round"/>
+   <ellipse cx="0" cy="9" rx="13" ry="9" fill="#efeae4"/>
+   <ellipse cx="-11" cy="-2" rx="7" ry="8" fill="#b8ff6a" stroke="${INK}" stroke-width="2"/><ellipse cx="11" cy="-2" rx="7" ry="8" fill="#b8ff6a" stroke="${INK}" stroke-width="2"/>
+   <ellipse cx="-11" cy="-1" rx="2.2" ry="6" fill="${INK}"><animate attributeName="ry" values="6;6;.6;6;6" keyTimes="0;.9;.93;.96;1" dur="3.3s" repeatCount="indefinite"/></ellipse>
+   <ellipse cx="11" cy="-1" rx="2.2" ry="6" fill="${INK}"><animate attributeName="ry" values="6;6;6;.5;.5;6;6;6" ${K}/></ellipse>
+   <circle cx="-9" cy="-4" r="1.6" fill="#fff"/><circle cx="13" cy="-4" r="1.6" fill="#fff"/>
+   <path d="M-3 6 L3 6 L0 10 Z" fill="#f27a8a" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/><path d="M0 10 Q-5 15 -9 12 M0 10 Q5 15 9 12" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round"/>
+   <path d="M-14 8 L-34 4 M-14 11 L-33 13 M14 8 L34 4 M14 11 L33 13" stroke="${INK}" stroke-width="1.4"/>
+   <g><animateTransform attributeName="transform" type="rotate" values="0 26 -18;0 26 -18;0 26 -18;-35 26 -18;-35 26 -18;0 26 -18;0 26 -18;0 26 -18" ${K}/>
+    <animateTransform attributeName="transform" additive="sum" type="translate" values="0 0;0 0;0 0;26 -16;26 -16;0 0;0 0;0 0" ${K}/>
+    <ellipse cx="0" cy="-20" rx="38" ry="8" fill="#2a1a3a" stroke="${INK}" stroke-width="3"/><path d="M-20 -22 Q-18 -44 0 -44 Q18 -44 20 -22 Z" fill="#3a2650" stroke="${INK}" stroke-width="3"/>
+    <path d="M-20 -26 Q0 -22 20 -26" stroke="#ffd23f" stroke-width="3" fill="none"/>
+    <path d="M10 -40 Q34 -64 52 -48 Q36 -50 30 -42 Q40 -40 44 -32 Q28 -36 14 -34 Z" fill="#fff" stroke="${INK}" stroke-width="2"><animateTransform attributeName="transform" type="rotate" values="0 12 -38;-8 12 -38;0 12 -38" dur="1.2s" repeatCount="indefinite"/></path></g>
+  </g>
+ </g>
+ <g><animateTransform attributeName="transform" type="rotate" values="0 100 190;0 100 190;0 100 190;0 100 190;0 100 190;0 100 190;0 100 190;0 100 190" ${K}/>
+  ${[[84,-1],[116,1]].map(([x,sd],i)=>`<g><animateTransform attributeName="transform" type="rotate" values="0 ${x} 188;${4*sd} ${x} 188;${-9*sd} ${x} 188;${6*sd} ${x} 188;${-4*sd} ${x} 188;${3*sd} ${x} 188;0 ${x} 188;0 ${x} 188" keyTimes="0;.12;.22;.3;.38;.5;.6;1" dur="4.8s" repeatCount="indefinite"/>
+   <path d="M${x-13} 128 L${x+13} 128 L${x+13} 182 Q${x+13+sd*16} 182 ${x+15+sd*16} 190 L${x-13} 190 Z" fill="url(#kb${u})" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+   <path d="M${x-19} 118 L${x+19} 118 L${x+15} 134 L${x-15} 134 Z" fill="#b01828" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+   <rect x="${x-8}" y="150" width="16" height="10" rx="2" fill="none" stroke="#ffd23f" stroke-width="3"/><path d="M${x-11} 155 L${x+11} 155" stroke="#ffd23f" stroke-width="2"/>
+   <path d="M${x-8} 132 L${x-6} 176" stroke="#ff7a8a" stroke-width="2.5" opacity=".7"/></g>`).join("")}
+ </g>
+</g>
+ ${[0,1,2,3,4,5,6].map(i=>`<path d="M${26+i*25} ${24+(i%3)*24} l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3z" fill="#fff6c8"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="${i*.21}s" repeatCount="indefinite"/></path>`).join("")}
+</svg>`},
  /* 🧙‍♀️ Баба Яга — анимированная: ступа парит, из неё выглядывает голова */
  "Баба Яга":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
   <linearGradient id="yw${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a3418"/><stop offset=".45" stop-color="#a8703c"/><stop offset="1" stop-color="#4a2a12"/></linearGradient>
