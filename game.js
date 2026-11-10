@@ -2293,7 +2293,8 @@ function drawPin(){const b=$("ch-pin");if(!b)return;if(!chatPin||!chatPin.text){
 async function pullChat(){if(!chatOpen)return;const last=chatItems.length?chatItems[chatItems.length-1].id:0;const r=await act("chat_get",{after:ONLINE?last:0});
   if(r&&"pin" in r&&JSON.stringify(r.pin)!==JSON.stringify(chatPin)){chatPin=r.pin;drawPin()}
   if(r&&chatOpen){if(!ONLINE||!last)chatItems=r.items;else if(r.items.length)chatItems=chatItems.concat(r.items.filter(x=>x.id>last)).slice(-80);else return;drawChat()}}
-function openChat(){chatOpen=true;const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
+function openChat(){chatOpen=true;chatItems=[];   /* иначе при повторном открытии без новых сообщений висело «Загружаю…» */
+const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   sh.innerHTML='<div class="chwrap"><div class="chtop"><b>Чат игроков</b><button type="button" class="x" id="ch-x">Закрыть</button></div><div class="chpin" id="ch-pin" hidden></div>'+(S.admin&&ONLINE?'<button type="button" class="chpinw" id="ch-pinw">📌 Закрепить своё объявление</button>':'')+'<div class="chlist" id="ch-list"><p class="chempty">Загружаю…</p></div><div class="chin"><input type="text" id="ch-in" maxlength="200" placeholder="Сообщение…" autocomplete="off"><button type="button" class="mini2" id="ch-send">➤</button></div><small class="chrule">Без мата, ссылок и спама. Нажми на ник, чтобы открыть витрину игрока и вызвать его на бой.</small></div>';
   $("ch-x").onclick=closeChat;drawPin();
   if($("ch-pinw"))$("ch-pinw").onclick=async()=>{const t=prompt("Текст закреплённого сообщения (ссылки можно):",chatPin&&chatPin.text||"");if(t==null||!t.trim())return;const r=await act("chat_pin",{text:t});if(r){chatPin=r.pin;drawPin();toast("📌 Закреплено вверху чата")}};
