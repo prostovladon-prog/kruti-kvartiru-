@@ -1904,7 +1904,7 @@ async function shopInfo(env,me){
   const duos=await cached("shopduos",10e3,async()=>{const o={};for(const h of DUO)o[h]=0;for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DUO_F).all()).results)if(o[r.h]!=null)o[r.h]=r.n;return o});
   const dia=await cached("shopdia",8e3,async()=>{const o={};for(const h in DIA)o[h]=DIA[h].run;
     for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DIA_F).all()).results)if(o[r.h]!=null)o[r.h]=Math.max(0,DIA[r.h].run-r.n);return o});
-  return {comp,ones,duos,dia,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:await donors(env),mine,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
+  return {comp,ones,duos,dia,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:[],mine:0,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
 async function tgApi(env,method,body){let r;try{r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})}catch(e){return {ok:false,description:"network"}}return r.json().catch(()=>({ok:false}))}
 /* ---------- переезд на свой сервер: выгрузка базы и режим «технические работы» ----------
    Ключ выгрузки считается из токена бота, поэтому его знает только тот, у кого есть токен. */

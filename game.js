@@ -2203,7 +2203,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     v+='<button type="button" class="linkbtn" data-goto="chest">🧩 Сундуки с половинками →</button>'}
   if(goldTab==="flex"){
     const top=D.donors||[];v+=flexTop(D);
-    v+='<div class="ghd">👑 Топ донатеров месяца</div><p class="gnote">Первое место получает корону «Король Эпох» рядом с ником — её видят все в топах, чате и лагере. Новый месяц — новая гонка.</p><div class="dtop" id="dtop"></div>'+(D.mine?'<p class="gnote">Ты в этом месяце: <b>⭐ '+fmtN(D.mine)+'</b></p>':"");
+    /* 11.11: топ донатеров убран — суммы чужих донатов никто не видит */
     v+='<div class="ghd">✨ Переливающийся ник</div><p class="gnote">Ник с эффектом в топах, чате, лагере и на арене. '+(D.fx&&NFX[D.fx]?"Сейчас у тебя: <b>"+NFX[D.fx]+"</b>"+(D.fxUntil<9e15?" до "+new Date(D.fxUntil).toLocaleDateString("ru"):" навсегда")+".":"")+'</p><div class="fxg">'+
       Object.keys(NFX).map(k=>'<div class="fxc"><div class="fxn"><span class="nfx nfx-'+k+'"></span></div><small>'+NFX[k]+'</small><button type="button" class="buy sm" data-fx="'+k+'">30 дней · ⭐ '+NFX_PRICE.m+'</button><button type="button" class="buy sm alt" data-fx="'+k+'" data-forever="1">навсегда · ⭐ '+NFX_PRICE.f+'</button></div>').join("")+'</div>';
     v+='<div class="ghd">🏆 Помогли игре</div><p class="gnote">Эти люди поддержали «Воинов Эпох» — спасибо им! Купи «Карточку мечты», и твой ник тоже будет здесь навсегда.</p>'+HELPERS.map(x=>'<div class="helper"><b>👑 '+rdEsc(x.n)+'</b><small>'+x.t+'</small></div>').join('');
@@ -2212,7 +2212,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
       '<div class="joke j2"><div class="jk-h">👑 Карточка твоей мечты</div><p>Нарисуем <b>любого героя</b>, какого захочешь, с <b>любым номером</b>. Она будет только у тебя — в единственном экземпляре на весь мир. Дорого? Ну так это ж мечта 😅</p><button type="button" class="buy" data-buy="custom">⭐ 3 500</button></div>';
     v+='<div class="ghd">✍️ Свой номер на карточке</div><p class="gnote">Любой свободный номер из 6 цифр: дата рождения, 000 777, 123 456. Обычный — ⭐ 100, красивый дороже (×15 → ⭐ 1600). На карточке появится лента «Именной номер». Цена карточки не меняется — это чистый понт.</p><button type="button" class="craftbtn" id="num-pick">Выбрать карточку</button>'}
   B.innerHTML=v;
-  if(goldTab==="flex"){const T=$("dtop");if(!(D.donors||[]).length)T.innerHTML='<div class="cp-empty">'+(ONLINE?"В этом месяце ещё никого. Стань первым королём!":"Топ работает в игре через бота")+'</div>';
+  if(goldTab==="flex"&&$("dtop")){const T=$("dtop");if(!(D.donors||[]).length)T.innerHTML='<div class="cp-empty">'+(ONLINE?"В этом месяце ещё никого. Стань первым королём!":"Топ работает в игре через бота")+'</div>';
     (D.donors||[]).forEach((r,i)=>{const d=document.createElement("div");d.className="cpt"+(r.uid===S.uid?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent=i<3?["👑","🥈","🥉"][i]:i+1;fxName(d.children[1],"",r.name,r.uid);d.children[2].textContent="⭐ "+fmtN(r.s);T.append(d)});
     B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c));$("any-go").onclick=anyPick}}
 /* «любая карточка»: сначала воин, потом отделка */
