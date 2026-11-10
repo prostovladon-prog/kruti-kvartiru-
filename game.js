@@ -159,7 +159,7 @@ const DETAILED={
   <ellipse cx="100" cy="112" rx="50" ry="10" fill="#3a2010" stroke="${INK}" stroke-width="4"/>
   <path d="M56 132 Q100 140 144 132 M60 156 Q100 164 140 156" stroke="#3a2010" stroke-width="5" fill="none"/>
   <path d="M74 120 L72 170 M100 122 L100 178 M126 120 L128 170" stroke="#5a3418" stroke-width="2" opacity=".6"/>
-  <text x="100" y="152" text-anchor="middle" font-size="15" font-weight="900" fill="#ffd23f" stroke="${INK}" stroke-width="1" font-family="sans-serif">000001</text>
+  <text x="100" y="152" text-anchor="middle" font-size="15" font-weight="900" fill="#ffd23f" stroke="${INK}" stroke-width="1" font-family="sans-serif">000002</text>
  </g>
  ${[0,1,2,3,4,5].map(i=>`<path d="M${30+i*28} ${30+(i%3)*22} l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3z" fill="#fff6c8"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="${i*.27}s" repeatCount="indefinite"/></path>`).join("")}
 </svg>`,
