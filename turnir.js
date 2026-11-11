@@ -63,7 +63,7 @@ function voteHub(){const m=$("modal"),sh=$("msheet");m.hidden=false;const L=(S&&
 function vhStrip(){const L=S&&ONLINE?(S.vts||[]):[];let b=$("vhstrip");const old=$("vtstrip");if(old)old.remove();
   if(!L.length){if(b)b.remove();return}
   const todo=L.filter(x=>!x.ch).map(x=>x.title);
-  const txt='<i>🗳</i><span><b>Голосование'+(todo.length?' — голосуй!':' ✅')+'</b><small>'+(todo.length?todo.join(" · ")+" · +🎴":"Ты проголосовал везде — жди новую серию")+'</small></span><em>▶</em>';
+  const txt='<i>🗳</i><span><b>Голосование'+(todo.length?' — голосуй!':' ✅')+'</b></span><em>'+(todo.length?'<u class="vhn">'+todo.length+'</u>':'')+'▶</em>';
   if(!b){const sp=$("sec-spin"),hy=$("hype");if(!sp)return;b=document.createElement("button");b.type="button";b.id="vhstrip";b.onclick=()=>{hap("light");voteHub()};if(hy&&hy.parentNode===sp)hy.after(b);else sp.insertBefore(b,sp.firstChild)}
   else{const hy=$("hype");if(hy&&b.previousElementSibling!==hy&&hy.parentNode===b.parentNode)hy.after(b)}
   b.className="r3strip vtstrip vhstrip"+(todo.length?" hot":"");if(b.dataset.t!==txt){b.dataset.t=txt;b.innerHTML=txt}}

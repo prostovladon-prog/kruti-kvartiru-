@@ -1036,7 +1036,8 @@ function luckOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const now=N
    '<p class="lk-n">Сегодня осталось: '+(LUCK.day-n)+' из '+LUCK.day+' · каждый следующий дороже</p><button type="button" class="ghost" id="lk-x">Закрыть</button></div>';
   $("lk-x").onclick=closeModal;const g=$("lk-go");if(g)g.onclick=async()=>{g.disabled=true;const r=await act("luck_buy");if(r){hapN("success");try{sfx.fanfare();burst(2)}catch(e){}toast("🍀 Оберег надет на 1 час!");updCash&&updCash();luckBadge()}luckOpen()}}
 function luckBadge(){const st=$("stage");if(!st||!S)return;let b=$("lk-badge");const on=(S.luckU||0)>NOW();
-  if(!b){b=document.createElement("button");b.type="button";b.id="lk-badge";b.className="lk-badge";b.onclick=e=>{e.stopPropagation();luckOpen()};st.parentNode.insertBefore(b,st)}
+  if(!b){b=document.createElement("button");b.type="button";b.id="lk-badge";b.className="lk-badge";b.onclick=e=>{e.stopPropagation();luckOpen()}}
+  const hn=st.parentNode.querySelector(".hint");if(hn&&b.nextElementSibling!==hn)st.parentNode.insertBefore(b,hn);else if(!hn&&!b.parentNode)st.parentNode.insertBefore(b,st)
   b.className="lk-badge"+(on?" on":"");b.innerHTML=on?'🍀 Удача ×1,25 · '+tleft(S.luckU-NOW()):'🍀 Оберег удачи'}
 setInterval(()=>{try{luckBadge();const t=$("lk-t");if(t&&S)t.textContent=tleft(S.luckU-NOW())}catch(e){}},1000);
 /* ===================== 🏛 Зал славы ===================== */

@@ -3315,3 +3315,13 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 
 .vt-pub{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:8px 0;padding:10px 12px;border-radius:14px;background:rgba(255,80,80,.15);border:2px solid #ff5a5a}
 .vt-pub.on{background:rgba(61,220,132,.15);border-color:#3ddc84}.vt-pub span{font-weight:900;font-size:14px}.vt-pub .craftbtn{margin:0;width:auto;padding:10px 14px}
+
+/* компактный главный экран */
+.vhstrip{padding:7px 12px!important;margin-top:6px!important;border-radius:14px!important}.vhstrip i{font-size:18px!important}.vhstrip b{font-size:14px!important}.vhstrip small{display:none!important}
+.vhstrip em{font-style:normal;font-weight:900;display:flex;align-items:center;gap:6px}.vhn{text-decoration:none;background:#fff;color:#c4100a;border-radius:9px;min-width:18px;height:18px;padding:0 5px;font-size:12px;display:grid;place-items:center}
+.emp-bar{padding:6px 10px!important;gap:9px!important;border-radius:14px!important;margin:6px 12px 4px!important}
+.emp-bar .ava.md{width:38px!important;height:38px!important;border-width:2px!important}
+.emp-bar .eb-lv{min-width:18px;height:18px;font-size:10px;right:-5px;bottom:-3px;border-width:1px}
+.emp-bar .eb-k{display:none!important}.emp-bar .eb-t b{font-size:14px!important}.emp-bar .eb-t small{font-size:10.5px!important}.emp-bar .eb-bar{height:4px!important;margin-top:3px!important}
+.emp-bar .eb-tr{font-size:10.5px!important;padding:5px 8px!important}.emp-bar .eb-tr br{display:none}
+.lk-badge{margin:2px auto 6px}
