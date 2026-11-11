@@ -393,8 +393,10 @@ nav.tabs button[aria-selected="true"]{background:var(--yellow);color:var(--ink)}
 /* ---------- окно карточки ---------- */
 .cardview{position:relative;width:min(290px,78vw);aspect-ratio:5/7;margin:0 auto}
 .cardview .face{position:absolute;inset:0}
-.cardview.forged{animation:forged .7s cubic-bezier(.2,1.6,.4,1)}
-@keyframes forged{0%{transform:scale(.85);filter:brightness(3)}60%{filter:brightness(1.4)}100%{transform:scale(1);filter:none}}
+/* 11.11: без filter:brightness — на iPhone он ронял WebView (белый/синий экран после закалки и слияния) */
+.cardview{position:relative}.cardview.forged{animation:forged .7s cubic-bezier(.2,1.6,.4,1)}
+.cardview.forged::after{content:"";position:absolute;inset:0;border-radius:20px;background:radial-gradient(circle,#fff 0%,rgba(255,255,255,0) 70%);pointer-events:none;animation:forgedFl .7s ease-out forwards}
+@keyframes forged{0%{transform:scale(.85)}100%{transform:scale(1)}}@keyframes forgedFl{0%{opacity:.95}100%{opacity:0}}
 .forge{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .forge div{background:#eef0f8;border:2px solid var(--ink);border-radius:10px;padding:6px;text-align:center}
 .forge small{display:block;font-size:10.5px;color:#5a5f80;font-weight:700}

@@ -1015,7 +1015,7 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
     const b=fb.querySelector("button");b.disabled=!okL||cur.listed;if(cur.listed)b.textContent="Карточка на рынке";
     b.onclick=async()=>{b.disabled=true;const r=await act("forge",{id:cur.id});if(!r){draw();return}
       sfx.fanfare();hapN("success");burst(Math.min(4,r.stars));cv.classList.remove("forged");void cv.offsetWidth;cv.classList.add("forged");
-      draw();renderAll();toast(r.stars===3?"★3! Открыто прозвище: «"+epithet(cur)+"»":r.stars===5?"★5! Воин вознесён":"Закалка ★"+r.stars+"! Цена теперь "+fmt(r.v))};
+      draw();deferRender();toast(r.stars===3?"★3! Открыто прозвище: «"+epithet(cur)+"»":r.stars===5?"★5! Воин вознесён":"Закалка ★"+r.stars+"! Цена теперь "+fmt(r.v))};
     /* слияние душ: копии этого воина вместо уровня и монет */
     {const need=s+1,cp=S.cards.filter(x=>x.id!==cur.id&&x.h===cur.h&&!x.part&&!away(x)&&!FIN[x.f].excl).sort((a,b)=>(a.stars||0)-(b.stars||0)||a.f-b.f||a.v-b.v),use=cp.slice(0,need),okF=cp.length>=need&&!cur.listed;
      const word=n=>n===1?"копию":n<5?"копии":"копий",fu=document.createElement("div");fu.className="fuse";
@@ -1027,7 +1027,7 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
        bt.disabled=true;fu.classList.add("go");tone(200,.5,"sawtooth",.05,0,900);hap("heavy");await new Promise(z=>setTimeout(z,650));
        const r=await act("fuse",{id:cur.id,ids:use.map(x=>x.id)});if(!r){draw();return}
        sfx.fanfare();hapN("success");burst(Math.min(4,r.stars));cv.classList.remove("forged");void cv.offsetWidth;cv.classList.add("forged");
-       draw();renderAll();toast("🔥 Слияние душ: ★"+r.stars+"!"+(r.stars===3?" Открыто прозвище: «"+epithet(cur)+"»":""))}}}
+       draw();deferRender();toast("🔥 Слияние душ: ★"+r.stars+"!"+(r.stars===3?" Открыто прозвище: «"+epithet(cur)+"»":""))}}}
   draw()}
 
 $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))};
@@ -1720,7 +1720,9 @@ $("sh-show").onclick=()=>{const top=[...S.cards].sort((a,b)=>b.v-a.v).slice(0,3)
   sendLink("Глянь мою витрину в «Воинах Эпох»: "+top.map(c=>HEROES[c.h][0]).join(", ")+"!",linkFor(showcaseParam()))};
 $("du-friend").onclick=()=>{const me=S.cards.find(c=>c.id===duMine);if(!me){toast("Сначала выбери воина");return}
   sendLink("Вызываю тебя на бой! Мой "+HEROES[me.h][0]+", "+STN[duStat].toLowerCase()+" "+eff(me,duStat)+". Сможешь побить?",linkFor(challengeParam(me,duStat)))};
-function closeModal(){$("modal").hidden=true;$("msheet").innerHTML="";if(!closeModal.nw){closeModal.nw=1;setTimeout(()=>{try{newsUpd()}catch(e){}},800)}if(chatOpen){chatOpen=false;clearInterval(chatTimer)}}
+/* тяжёлую перерисовку альбома делаем после закрытия окна, а не под анимацией (iPhone падал по памяти) */
+function deferRender(){closeModal.dirty=1;try{updCash()}catch(e){}}
+function closeModal(){$("modal").hidden=true;$("msheet").innerHTML="";if(closeModal.dirty){closeModal.dirty=0;setTimeout(()=>{try{renderAll()}catch(e){}},60)}if(!closeModal.nw){closeModal.nw=1;setTimeout(()=>{try{newsUpd()}catch(e){}},800)}if(chatOpen){chatOpen=false;clearInterval(chatTimer)}}
 function bigMc(c,stat,show){const d=document.createElement("div");d.className="mc";d.style.setProperty("--hc",HT[HEROES[c.h][2]].c);d.innerHTML=mcHTML(c,stat,show);return d}
 function friendsGet(){try{return JSON.parse(localStorage.getItem("we-friends")||"{}")}catch(e){return {}}}
 function friendsPut(F){try{localStorage.setItem("we-friends",JSON.stringify(F))}catch(e){}}
