@@ -3270,9 +3270,9 @@ const PZ=C=>C.secret?"СЕКРЕТНОГО ПРИЗА":C.multi?"600 ⭐":C.prize
 const W1=C=>C.multi?"трёх победителей":"победителя";
 const ML=C=>"🥇 "+C.prizes[0]+"   🥈 "+C.prizes[1]+"   🥉 "+C.prizes[2]+"\n🏆 Три победителя — выиграть может любой!";
 const MNOTE="⭐ Звёзды зачисляются на игровой баланс — ими можно оплатить любые покупки в игре (VIP, пропуск, сундуки, подарки)";
-/* 📸 конкурс историй «Сундуки» 11.11 17:00 – 12.11 22:00: история с нашим фото + @VoinyEpohBot в нике или описании. Победители случайно, призы — сундуки */
-const CHAL_ST2={id:"2026-11-11",story:1,nk:1,chests:["mythic","legend","royal"],start:Date.UTC(2026,10,11,14,0),end:Date.UTC(2026,10,12,19,0),resAt:Date.UTC(2026,10,12,19,0),
-  prizes:["🐉 Мифический сундук (1000 ⭐)","⭐ Легендарный сундук (300 ⭐)","👑 Королевский сундук (250 ⭐)"],bal:[0,0,0],img:"assets/post-st2.jpg?v=1",storyImg:"assets/story-st2.jpg?v=1",ex:"assets/nick-example.jpg?v=1",slots:[17,21],chan:"@voinyepoh"};
+/* 📸 конкурс историй «Сундуки» 11.11 17:00 – 13.11 22:00: история с нашим фото + @VoinyEpohBot в нике или описании. Победители случайно, призы — сундуки */
+const CHAL_ST2={id:"2026-11-11",story:1,nk:1,chests:["mythic","legend","royal"],start:Date.UTC(2026,10,11,14,0),end:Date.UTC(2026,10,13,19,0),resAt:Date.UTC(2026,10,13,19,0),
+  prizes:["🐉 Мифический сундук (1000 ⭐)","⭐ Легендарный сундук (300 ⭐)","👑 Королевский сундук (250 ⭐)"],bal:[0,0,0],img:"assets/post-st2.jpg?v=2",storyImg:"assets/story-st2.jpg?v=1",ex:"assets/nick-example.jpg?v=1",slots:[17,21],chan:"@voinyepoh"};
 async function chalCfg(env){return await cached("chalcfg",30e3,async()=>{const k=await kvGet(env,"chal");return k&&k.id>=CHAL_ST2.id?k:CHAL_ST2})}   // старый конкурс в kv не мешает новому
 const tk=n=>n+" "+(n%10===1&&n%100!==11?"билет":n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?"билета":"билетов");
 const lotIn=(C,rows)=>rows.filter(r=>r.n>=C.min);
