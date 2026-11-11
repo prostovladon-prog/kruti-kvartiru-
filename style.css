@@ -3327,3 +3327,4 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .lk-badge{margin:2px auto 6px}
 .sty-ex{display:block;width:100%;border-radius:14px;border:2px solid rgba(255,255,255,.25);margin:4px 0 10px}
 .tpcus{display:flex;gap:6px;margin-top:7px}.tpcus input{flex:1;min-width:0;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:#fff;font:inherit;font-weight:800;font-size:15px}.tpcus .craftbtn{width:auto;margin:0;padding:10px 16px}
+.vt-own{margin:10px 0;padding:10px;border-radius:14px;background:rgba(0,0,0,.25);border:1px dashed rgba(255,210,63,.5);text-align:left}.vt-own textarea{width:100%;box-sizing:border-box;margin:6px 0;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;font:inherit;resize:vertical}.vt-own .craftbtn{margin:0}.vt-ownl{margin:6px 0;text-align:left}.vt-ownl summary{cursor:pointer;font-weight:800}

@@ -1108,6 +1108,15 @@ async function ref3Api(env,me,a,p){const now=Date.now();
 /* ---------- ⚔️ «Выбор серии»: зрители решают, что будет в следующей серии ---------- */
 /* 🗳 несколько голосований за серии одновременно */
 const VOTES=[
+ /* 11.11 вечер — вторые серии; gate:2 = скрыто, пока админ не включит */
+ {id:"we1b",ep:2,gate:2,ser:"ЧТО ЕСЛИ?",title:"«Что если?» · 200 солдат против армии Наполеона",q:"Снег, 200 солдат, 8 грузовиков и патронов на один бой. Против — 20 000 солдат Наполеона и сто пушек. Что делать?",
+  opts:[{k:"a",ic:"⚔️",n:"Удар в центр",d:"ударить первыми, пока пушки не зарядили"},{k:"b",ic:"🌙",n:"Плен Наполеона",d:"ночью пробраться в лагерь и взять его в плен"}],sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,11,0,0),end:Date.UTC(2026,11,31,21,0)},
+ {id:"we2b",ep:2,gate:2,ser:"ЧТО ЕСЛИ?",title:"«Что если?» · Богатыри против 1000 бойцов ММА",q:"Сто бойцов уже на полу. Но открылись все двери — и в зал вошла тысяча. Смогут ли три богатыря одолеть тысячу бойцов ММА?",
+  opts:[{k:"y",ic:"💪",n:"Смогут",d:"богатыри непобедимы"},{k:"n",ic:"😵",n:"Не смогут",d:"тысяча — это слишком много даже для них"}],sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,11,0,0),end:Date.UTC(2026,11,31,21,0)},
+ {id:"we3b",ep:2,gate:2,own:1,ser:"ЧТО ЕСЛИ?",title:"«Что если?» · Алёша против блогера · серия 2",q:"Блогер выиграл гонку и высмеял силушку богатырскую на весь интернет. Как Алёше его наказать?",
+  opts:[{k:"m",ic:"💰",n:"Реванш на деньги",d:"кто проиграет — тот платит"},{k:"f",ic:"🥊",n:"Бой ММА",d:"один на один, в клетке, без машины и камеры"}],sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,11,0,0),end:Date.UTC(2026,11,31,21,0)},
+ {id:"at2",ep:2,gate:2,ser:"АТАКА НА ВОИНОВ ЭПОХ",title:"«Атака на Воинов Эпох» · серия 2",q:"Глитч спрятался в сундуке и ест карты изнутри. Кого Мерлин возьмёт с собой внутрь кода?",
+  opts:[{k:"s",ic:"🛡",n:"Спартанец",d:"щит, копьё и никакой магии"},{k:"y",ic:"🔮",n:"Баба Яга",d:"на магию ответить магией"}],sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,11,0,0),end:Date.UTC(2026,11,31,21,0)},
  /* 11.11 — новые серии; gate:2 = скрыто, пока админ не нажмёт «Включить для всех» */
  {id:"we1",ep:1,gate:2,ser:"ЧТО ЕСЛИ?",title:"«Что если?» · 100 солдат против 1000 гладиаторов",q:"Сто солдат нашего времени с автоматами — против тысячи гладиаторов в Колизее, где гладиаторы знают каждый подземный ход. Кто победит?",
   opts:[{k:"a",ic:"🪖",n:"100 солдат",d:"техника и оружие будущего"},{k:"b",ic:"🛡",n:"1000 гладиаторов",d:"число, ярость и знание арены"}],sp:3,url:"",urlIg:"",socSp:3,socWait:20,start:Date.UTC(2026,10,10,0,0),end:Date.UTC(2026,11,31,21,0)},
@@ -1134,8 +1143,9 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env,p&&p.vid),now=Date.no
   const pub=async()=>{const R=(await env.DB.prepare("SELECT ch,COUNT(*) AS n FROM ep_vote WHERE vid=? GROUP BY ch").bind(C.id).all()).results;const cnt={};R.forEach(r=>cnt[r.ch]=r.n);const tot=R.reduce((x,r)=>x+r.n,0);
     const my=await env.DB.prepare("SELECT ch FROM ep_vote WHERE vid=? AND uid=?").bind(C.id,me.id).first();
     const so=await env.DB.prepare("SELECT open_t,got_t FROM ep_vote_soc WHERE vid=? AND uid=?").bind(C.id,me.id).first();const adm=isAdmin(env,me.id);
-    const admx=adm?{cnt,soc:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=? AND got_t IS NOT NULL").bind(C.id).first())||{}).n||0,opened:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=?").bind(C.id).first())||{}).n||0}:undefined;
-    return {on:now>=C.start&&now<C.end&&vtOpenFor(env,me,C)?1:0,id:C.id,ep:C.ep,ser:C.ser||"",gate:C.gate||0,pon:C.on?1:0,title:C.title,q:C.q,sp:C.sp,end:C.end,url:C.url||"",urlIg:C.urlIg||"",socSp:C.socSp,socWait:C.socWait,soc:{open:so&&so.open_t?so.open_t:0,got:so&&so.got_t?1:0,left:so&&so.open_t&&!so.got_t?Math.max(0,Math.ceil((so.open_t+C.socWait*1e3-now)/1e3)):null},adm:admx,my:my?my.ch:"",tot,opts:C.opts.map(o=>({...o,c:my||now>=C.end?(cnt[o.k]||0):undefined,pc:my||now>=C.end?(tot?Math.round((cnt[o.k]||0)*100/tot):0):undefined}))}};
+    const OWN=C.own?((await kvGet(env,"vtown:"+C.id))||[]):[],myOwn=OWN.find(x=>x.u===me.id);
+    const admx=adm?{own:C.own?OWN.slice(-40).reverse():undefined,ownN:OWN.length,cnt,soc:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=? AND got_t IS NOT NULL").bind(C.id).first())||{}).n||0,opened:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ep_vote_soc WHERE vid=?").bind(C.id).first())||{}).n||0}:undefined;
+    return {own:C.own?1:0,myOwn:myOwn?myOwn.t:"",on:now>=C.start&&now<C.end&&vtOpenFor(env,me,C)?1:0,id:C.id,ep:C.ep,ser:C.ser||"",gate:C.gate||0,pon:C.on?1:0,title:C.title,q:C.q,sp:C.sp,end:C.end,url:C.url||"",urlIg:C.urlIg||"",socSp:C.socSp,socWait:C.socWait,soc:{open:so&&so.open_t?so.open_t:0,got:so&&so.got_t?1:0,left:so&&so.open_t&&!so.got_t?Math.max(0,Math.ceil((so.open_t+C.socWait*1e3-now)/1e3)):null},adm:admx,my:my?my.ch:"",tot,opts:C.opts.map(o=>({...o,c:my||now>=C.end?(cnt[o.k]||0):undefined,pc:my||now>=C.end?(tot?Math.round((cnt[o.k]||0)*100/tot):0):undefined}))}};
   if(a==="vt_get")return pub();
   if(a==="vt_vote"){if(now<C.start||!vtOpenFor(env,me,C))fail("Голосование откроется с выходом новой серии");if(now>=C.end)fail("Голосование закончено — смотри следующую серию");const ch=String(p.ch||"");if(!C.opts.some(o=>o.k===ch))fail("Выбери вариант");
     const r=await env.DB.prepare("INSERT OR IGNORE INTO ep_vote(vid,uid,ch,t) VALUES(?,?,?,?)").bind(C.id,me.id,ch,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже проголосовал");
@@ -1146,6 +1156,8 @@ async function voteApi(env,me,a,p){const C=await vtCfg(env,p&&p.vid),now=Date.no
     if(!so||!so.open_t)fail("Сначала открой видео по кнопке");if(so.got_t)fail("Награда за лайк уже у тебя");if(now-so.open_t<C.socWait*1e3)fail("Посмотри видео до конца и поставь лайк — кнопка откроется через "+Math.ceil((so.open_t+C.socWait*1e3-now)/1e3)+" сек");
     const u=await env.DB.prepare("UPDATE ep_vote_soc SET got_t=? WHERE vid=? AND uid=? AND got_t IS NULL").bind(now,C.id,me.id).run();if(!u.meta||u.meta.changes!==1)fail("Награда за лайк уже у тебя");
     if(C.socSp)await doAction(env,me,"tour_prize",{sp:C.socSp,cash:0},{tour:1});const res=await pub();res.hit=1;return res}
+  if(a==="vt_own"){if(!C.own)fail("Тут нельзя предложить свой вариант");if(!vtOpenFor(env,me,C)||now>=C.end)fail("Голосование закрыто");const t=String(p.t||"").replace(/\s+/g," ").trim().slice(0,200);if(t.length<3)fail("Напиши хотя бы пару слов");
+    const L=(await kvGet(env,"vtown:"+C.id))||[];const i=L.findIndex(x=>x.u===me.id);const row={u:me.id,n:String(me.name||"Игрок").slice(0,40),t,at:now};if(i>=0)L[i]=row;else{L.push(row);if(L.length>1000)L.shift()}await kvSet(env,"vtown:"+C.id,L);return await pub()}
   if(!isAdmin(env,me.id))fail("Нет доступа");
   if(a==="vt_on"){if(!isAdmin(env,me.id))fail("Только для админа");let k=(await kvGet(env,vtKey(C)))||{id:C.id};if(k.id!==C.id)k={id:C.id};k.on=p.on?1:0;await kvSet(env,vtKey(C),k);return voteApi(env,me,"vt_get",{vid:C.id})}
   if(a==="vt_set"){const url=String(p.url||"").trim(),ig=String(p.urlIg||"").trim();for(const u of [url,ig])if(u&&!/^https:\/\/[^\s]{6,300}$/.test(u))fail("Ссылка должна начинаться с https://");let k=(await kvGet(env,vtKey(C)))||{id:C.id};if(k.id!==C.id)k={id:C.id};k.url=url;if(p.urlIg!=null)k.urlIg=ig;
