@@ -1765,7 +1765,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     return {item,stars:MPASS.stars,title:"🎖 Пропуск завоевателя",desc:"Премиум-награды карты мира на весь месяц: прокрутки, руны, гарантированный эпик, легендарная карточка и «Флаг завоевателя»",data:{m:mapMon(Date.now())}}}
   if(item==="mstatue"){const rid=p.rid|0,r=await env.DB.prepare("SELECT statue FROM map_reg WHERE id=? AND owner=?").bind(rid,uid).first();if(!r)fail("Статую можно поставить только в своём регионе");if(r.statue)fail("Статуя здесь уже стоит");
     return {item,stars:MAP.statue,title:"🗿 Статуя: "+MAP_R[rid][0],desc:"Статуя твоего воина в регионе «"+MAP_R[rid][0]+"» — её видят все на карте, пока ты держишь регион",data:{rid}}}
-  if(item==="bal"){const n=Math.floor(+p.n||0);if(!(n>=50&&n<=2500))fail("Сумма — от 50 до 2500 ⭐");const x=await x2Left(env,uid),b=Math.min(n,x),bn=await bonLeft(env,uid,n);
+  if(item==="bal"){const n=Math.floor(+p.n||0);if(!(n>=1&&n<=10000))fail("Сумма — от 1 до 10 000 ⭐");const x=await x2Left(env,uid),b=Math.min(n,x),bn=await bonLeft(env,uid,n);
     return {item,stars:n,title:"⭐ Пополнение баланса",desc:"+"+n+" ⭐ на игровой баланс «Воинов Эпох»"+(b?" и ещё +"+b+" ⭐ бонусом по промокоду (x2)":"")+(bn?" и +"+bn+" ⭐ в подарок по промокоду":"")+". Тратятся на любые покупки в игре",data:{n}}}
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{n}}}   /* n обязателен: при pre_checkout сумма проверяется ещё раз */
