@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=63;const NEWB_MS=3*864e5;
+const SCHEMA_V=64;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -96,7 +96,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS ally (uid INTEGER PRIMARY KEY, mate INTEGER NOT NULL, t INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS ally_q (uid INTEGER PRIMARY KEY, t INTEGER NOT NULL, pw INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS roc_round (id INTEGER PRIMARY KEY, fs INTEGER NOT NULL, cr REAL NOT NULL, ct INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS roc_bet (rid INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, b INTEGER NOT NULL, auto REAL NOT NULL DEFAULT 0, out_m REAL, win INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL, PRIMARY KEY(rid,uid))",
     "CREATE TABLE IF NOT EXISTS rs_user (uid INTEGER PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0, last TEXT, n INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS rs_code (code TEXT PRIMARY KEY, owner INTEGER NOT NULL, k TEXT NOT NULL, v INTEGER NOT NULL, t INTEGER NOT NULL, used_by INTEGER, used_t INTEGER)","CREATE INDEX IF NOT EXISTS rs_code_o ON rs_code(owner,t)",
-    "CREATE TABLE IF NOT EXISTS rf_spin (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT, k TEXT, code TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS rf_spin_u ON rf_spin(uid)","ALTER TABLE promo ADD COLUMN st INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN gift INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN chest TEXT",
+    "CREATE TABLE IF NOT EXISTS rf_box (uid INTEGER NOT NULL, n INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,n))","CREATE TABLE IF NOT EXISTS rf_spin (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT, k TEXT, code TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS rf_spin_u ON rf_spin(uid)","ALTER TABLE promo ADD COLUMN st INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN gift INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN chest TEXT",
     "CREATE TABLE IF NOT EXISTS vc_part (uid INTEGER PRIMARY KEY, acc TEXT NOT NULL, vids TEXT, t INTEGER NOT NULL, upd INTEGER)",
     "CREATE TABLE IF NOT EXISTS ft_vote (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER NOT NULL, hit INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tid,fid,uid))","CREATE TABLE IF NOT EXISTS ft_soc (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(tid,fid,uid))",
     "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
@@ -1195,12 +1195,18 @@ async function rfApi(env,me,a,p){const now=Date.now();
     const my=(await env.DB.prepare("SELECT s.k,s.code,s.t,s.g,(SELECT COUNT(*) FROM promo_uses u WHERE u.code=s.code) AS used FROM rf_spin s WHERE s.uid=? ORDER BY s.id DESC LIMIT 20").bind(me.id).all()).results;
     const big=(await env.DB.prepare("SELECT s.k,COALESCE(u.nick,u.name) AS name FROM rf_spin s JOIN users u ON u.id=s.uid WHERE s.k IN ('s50','s100','s500','nft','s25') ORDER BY s.id DESC LIMIT 8").all()).results;
     const o=Object.assign(I,{op:RF.op,fr,my,big,P:RF.P.map(x=>({k:x.k,n:x.n,w:x.w}))});
+    {const b=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rf_box WHERE uid=?").bind(me.id).first())||{}).n||0;o.box=Math.max(0,(I.ok||0)-b);o.boxGot=b}
     if(isAdmin(env,me.id)){const T=await env.DB.prepare("SELECT COUNT(*) AS reg,SUM(CASE WHEN (COALESCE(json_extract(state,'$.nOp'),0)>=? AND COALESCE(json_extract(state,'$.subGot2'),0)=1 AND COALESCE(nick,'')<>'') THEN 1 ELSE 0 END) AS ok,COUNT(DISTINCT ref) AS inv FROM users WHERE ref IS NOT NULL AND created>=?").bind(RF.op,RF.start).first()||{};
       const G=(await env.DB.prepare("SELECT g,k,COUNT(*) AS n FROM rf_spin WHERE g NOT LIKE '%*' GROUP BY g,k").all()).results;o.giftN=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rf_spin WHERE g LIKE '%*'").first())||{}).n||0;
       const act=(await env.DB.prepare("SELECT p.st,p.gift,p.chest,COUNT(u.uid) AS n FROM rf_spin s JOIN promo p ON p.code=s.code JOIN promo_uses u ON u.code=s.code WHERE s.g NOT LIKE '%*' GROUP BY s.code").all()).results;
       const top=(await env.DB.prepare("SELECT u.ref AS uid,COALESCE(i.nick,i.name) AS name,COUNT(*) AS reg,SUM(CASE WHEN (COALESCE(json_extract(u.state,'$.nOp'),0)>=? AND COALESCE(json_extract(u.state,'$.subGot2'),0)=1 AND COALESCE(u.nick,'')<>'') THEN 1 ELSE 0 END) AS ok FROM users u JOIN users i ON i.id=u.ref WHERE u.ref IS NOT NULL AND u.created>=? GROUP BY u.ref ORDER BY ok DESC,reg DESC LIMIT 15").bind(RF.op,RF.start).all()).results;
       o.adm={reg:T.reg||0,ok:T.ok||0,inv:T.inv||0,G,stAct:act.reduce((x,r)=>x+(r.st||0),0),giftAct:act.filter(r=>r.gift).length,chestAct:act.filter(r=>r.chest).length,top}}
     return o}
+  /* 🎁 Сундук друга: 1 сундук с карточками за каждого засчитанного друга */
+  if(a==="rf_box"){const I=await rfInfo(env,me.id),b=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rf_box WHERE uid=?").bind(me.id).first())||{}).n||0;
+    if(b>=(I.ok||0))fail("Сундуков нет — позови друга: когда он сделает "+RF.op+" открытий, подпишется на канал и поставит ник, тебе придёт сундук");
+    const ins=await env.DB.prepare("INSERT OR IGNORE INTO rf_box(uid,n,t) VALUES(?,?,?)").bind(me.id,b+1,now).run();if(ins.meta.changes!==1)fail("Подожди секунду и попробуй ещё раз");
+    const r=(await doAction(env,me,"grant",{item:"refbox",pid:"rfb_"+me.id+"_"+(b+1)},{grant:true})).res;return {cards:(r.cards||[]).map(pub),left:(I.ok||0)-b-1}}
   if(a==="rf_spin"){const g=p.g==="pl"?"pl":"rc";const I=await rfInfo(env,me.id);if(I.left<1)fail("Нет прокруток — пригласи друга: когда он сделает "+RF.op+" открытий, подпишется на канал и поставит ник, у тебя появится прокрутка");
     const last=(await env.DB.prepare("SELECT k FROM rf_spin WHERE uid=? AND g NOT LIKE '%*' ORDER BY id DESC LIMIT 2").bind(me.id).all()).results;const pity=last.length===2&&last.every(x=>x.k==="0");
     const L=RF.P.filter(x=>!(pity&&x.k==="0"));let r=Math.random()*L.reduce((a,x)=>a+x.w,0),P=L[0];for(const x of L){if(r<x.w){P=x;break}r-=x.w}
@@ -1694,7 +1700,7 @@ async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
   const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='mythic' AND month=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(monthOf(now),except||0,now-PAY_HOLD).first())||{}).n||0;
   return Math.max(0,I.month-n)}
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
-  if(I){
+  if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");

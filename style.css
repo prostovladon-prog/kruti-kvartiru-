@@ -3302,3 +3302,11 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .helper{display:flex;flex-direction:column;gap:4px;margin:6px 0 14px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#3a1a6a,#6a1a4a);border:2px solid #ffd23f;box-shadow:0 0 24px rgba(255,210,63,.45)}
 .helper b{font-size:18px;font-weight:900;background:linear-gradient(90deg,#ffd23f,#fff6c8,#ff3df2,#ffd23f);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:megaTxt 3s linear infinite}
 .helper small{color:#f0e6ff;font-size:13px}
+
+.rfbox{display:flex;align-items:center;gap:12px;margin:10px 0;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.06);border:2px dashed rgba(255,210,63,.4)}
+.rfbox.on{background:linear-gradient(135deg,#5a2a0a,#8a4a12);border:2px solid #ffd23f;box-shadow:0 0 22px rgba(255,210,63,.45);animation:rfbP 1.6s ease-in-out infinite}
+.rfbox i{font-style:normal;font-size:34px}.rfbox span{flex:1;display:flex;flex-direction:column}.rfbox b{font-size:16px}.rfbox small{font-size:12px;opacity:.85}
+.rfbox-go{border:0;border-radius:14px;padding:10px 14px;font-weight:900;background:linear-gradient(180deg,#46e88f,#22b45e);color:#06240f}
+@keyframes rfbP{50%{box-shadow:0 0 34px rgba(255,210,63,.75)}}
+.rfbx-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.rfbx-c{animation:rfbIn .5s both}.rfbx-c:nth-child(2){animation-delay:.15s}.rfbx-c:nth-child(3){animation-delay:.3s}
+@keyframes rfbIn{from{transform:scale(.3) rotateY(180deg);opacity:0}}

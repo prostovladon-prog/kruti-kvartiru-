@@ -19,7 +19,9 @@ renderCas=function(){if(!S||$("sec-cas").hidden)return;if(csTab!=="rc"&&csTab!==
   const my=R.my.length?'<div class="rf-box"><b>🎟 Мои промокоды</b>'+R.my.map(m=>'<div class="rf-my"><i>'+rfIco(m.k)+'</i><span>'+rfLbl(m.k)+'</span>'+(m.code?'<code>'+m.code+'</code>'+(m.used?'<em>✅</em>':'<button type="button" class="mini2" data-act="'+m.code+'">Активировать</button>'):'<em>—</em>')+'</div>').join("")+'</div>':"";
   const fr=R.fr.length?'<div class="rf-box"><b>👥 Мои приглашённые</b>'+R.fr.map(f=>'<div class="rf-f"><span>'+rdEsc(f.name)+'</span><em>'+(f.op>=R.op&&f.sub&&f.nk?'✅ засчитан':(f.op>=R.op?'✅':'⏳ '+f.op+'/'+R.op)+' · '+(f.sub?'✅':'❌')+' канал · '+(f.nk?'✅':'❌')+' ник')+'</em></div>').join("")+'</div>':"";
   const big=R.big.length?'<div class="rf-big">🔥 '+R.big.map(x=>rdEsc(x.name)+' — '+rfLbl(x.k)).join(" · ")+'</div>':"";
-  B.innerHTML='<div class="rf-wrap">'+top+big+game+btn+prizes+my+fr+(R.adm?rfAdm(R):"")+'</div>';
+  const boxH='<div class="rfbox'+(R.box?' on':'')+'"><i>📦</i><span><b>Сундук друга'+(R.box?' × '+R.box:'')+'</b><small>'+(R.box?'3 карточки, минимум 1 эпическая — открывай!':'За каждого друга — сундук с карточками (3 шт., мин. 1 эпик)')+'</small></span>'+(R.box?'<button type="button" class="rfbox-go" id="rf-box">Открыть</button>':'')+'</div>';
+  B.innerHTML='<div class="rf-wrap">'+top+boxH+big+game+btn+prizes+my+fr+(R.adm?rfAdm(R):"")+'</div>';
+  if($("rf-box"))$("rf-box").onclick=rfBox;
   $("rf-inv").onclick=rfInvite;$("rf-go").onclick=()=>R.left?rfSpin():rfInvite();
   B.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>rfActivate(b.dataset.act));B.querySelectorAll("[data-gf]").forEach(b=>b.onclick=()=>rfGift(b.dataset.gf));
   if(pl)rfDraw(-1,0,0)}
@@ -53,3 +55,9 @@ function rfDrop(b){return new Promise(res=>{const G=rfGeo(),mv=[];for(let i=0;i<
     const a=pts[i],z=pts[i+1],u=s-i,x=a[0]+(z[0]-a[0])*u,y=a[1]+(z[1]-a[1])*u*u-Math.sin(u*Math.PI)*14;rfDraw(1,x,y);if(u<.08&&i>0)try{sfx.tick&&sfx.tick()}catch(e){};requestAnimationFrame(f)};requestAnimationFrame(f)})}
 
 {const q=new URLSearchParams(location.search).get("cas");if(q){const t=setInterval(()=>{try{if(!S)return}catch(e){return}clearInterval(t);setTimeout(()=>openCas(q==="pl"?"pl":"rc"),1200)},400)}}
+
+/* 📦 Сундук друга: показать выпавшие карточки */
+async function rfBox(){const b=$("rf-box");if(b)b.disabled=true;const r=await act("rf_box");if(!r){if(b)b.disabled=false;return}
+  try{await act("sync")}catch(e){}try{sfx.fanfare();burst(3);hapN("success")}catch(e){}RFX.d=null;
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox rfbx"><h3>📦 Сундук друга</h3><p class="cln">Спасибо, что зовёшь друзей! Вот твои карточки:</p><div class="rfbx-g">'+r.cards.map(c=>'<div class="rfbx-c">'+miniSlot(c)+'</div>').join("")+'</div>'+(r.left>0?'<p class="cln">Ещё сундуков: <b>'+r.left+'</b></p>':'')+'<button type="button" class="craftbtn" id="rfbx-x">Забрать</button></div>';
+  $("rfbx-x").onclick=()=>{closeModal();renderCas()}}
