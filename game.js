@@ -2520,6 +2520,7 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
   else{S=loadLocal();touch(S,NOW());save()}
   renderAll();handleStart();
   if(new URLSearchParams(location.search).get("camp"))setTimeout(()=>{try{openCamp()}catch(e){}},600);
+  {const _rq=new URLSearchParams(location.search).get("ref");if(_rq)setTimeout(()=>{try{openCas("rc")}catch(e){}},700)}
   {const _sq=new URLSearchParams(location.search).get("shop");if(_sq)setTimeout(()=>{try{openGold(_sq==="flex"?"flex":undefined)}catch(e){}},600)}
   setTimeout(()=>{try{newsUpd()}catch(e){}},2500);
   const fromLink=new URLSearchParams(location.search).get("startapp")||((tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param")));

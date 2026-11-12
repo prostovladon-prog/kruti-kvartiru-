@@ -20,7 +20,8 @@ renderCas=function(){if(!S||$("sec-cas").hidden)return;if(csTab!=="rc"&&csTab!==
   const fr=R.fr.length?'<div class="rf-box"><b>👥 Мои приглашённые</b>'+R.fr.map(f=>'<div class="rf-f"><span>'+rdEsc(f.name)+'</span><em>'+(f.op>=R.op&&f.sub&&f.nk?'✅ засчитан':(f.op>=R.op?'✅':'⏳ '+f.op+'/'+R.op)+' · '+(f.sub?'✅':'❌')+' канал · '+(f.nk?'✅':'❌')+' ник')+'</em></div>').join("")+'</div>':"";
   const big=R.big.length?'<div class="rf-big">🔥 '+R.big.map(x=>rdEsc(x.name)+' — '+rfLbl(x.k)).join(" · ")+'</div>':"";
   const boxH='<div class="rfbox'+(R.box?' on':'')+'"><i>📦</i><span><b>Сундук друга'+(R.box?' × '+R.box:'')+'</b><small>'+(R.box?'3 карточки, минимум 1 эпическая — открывай!':'За каждого друга — сундук с карточками (3 шт., мин. 1 эпик)')+'</small></span>'+(R.box?'<button type="button" class="rfbox-go" id="rf-box">Открыть</button>':'')+'</div>';
-  B.innerHTML='<div class="rf-wrap">'+top+boxH+big+game+btn+prizes+my+fr+(R.adm?rfAdm(R):"")+'</div>';
+  const f3=R.f3?'<div class="rfbox on f3"><i>👥</i><span><b>Акция: 3 друга → 30 🎴 + VIP 7 дней</b><small>'+(R.f3.got?'✅ Выполнено — награда у тебя!':'Засчитано: <b>'+Math.min(R.f3.n,R.f3.need)+' / '+R.f3.need+'</b> · до '+new Date(R.f3.until+3*3600e3).toISOString().slice(8,10)+'.'+new Date(R.f3.until+3*3600e3).toISOString().slice(5,7))+'</small></span></div>':'';
+  B.innerHTML='<div class="rf-wrap">'+top+f3+boxH+big+game+btn+prizes+my+fr+(R.adm?rfAdm(R):"")+'</div>';
   if($("rf-box"))$("rf-box").onclick=rfBox;
   $("rf-inv").onclick=rfInvite;$("rf-go").onclick=()=>R.left?rfSpin():rfInvite();
   B.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>rfActivate(b.dataset.act));B.querySelectorAll("[data-gf]").forEach(b=>b.onclick=()=>rfGift(b.dataset.gf));
