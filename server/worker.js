@@ -3928,7 +3928,9 @@ let f3Busy=false,f3T=0;async function f3Tick(env){const now=Date.now();if(f3Busy
 /* 🟡 12.11: Колобок «Ошибка печати» — продажа только сегодня. Рассылка в бота + канал: сразу и напоминание в 19:00 (Минск) */
 const KOLTXT="🟡 НОВИНКА ТОЛЬКО НА ОДИН ДЕНЬ!\n\nКолобок — «Ошибка печати» 🔥\nАнимированная карточка: катится, подмигивает и убегает от всех 😏\n\n⭐ 1700 звёзд · Сокровищница\n⏳ Продаётся ТОЛЬКО СЕГОДНЯ до 23:59 по Минску\n\nПотом пропадёт — и неизвестно, вернётся ли.";
 const KOLB=[{id:"kolo_1211",at:Date.UTC(2026,10,12,11,45)},{id:"kolo_1211b",at:Date.UTC(2026,10,12,16,0),pre:"⏰ ОСТАЛОСЬ 5 ЧАСОВ!\n\n"}].map(b=>({...b,until:Date.UTC(2026,10,12,20,0),on:true,photo:"assets/post-kolo.jpg",btn:"🟡 Купить Колобка",link:"?shop=chest",dm:(b.pre||"")+KOLTXT,chan:(b.pre||"")+KOLTXT+"\n\n👉 @VoinyEpohBot"}));
-async function koloTick(env){const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
+const EPB={id:"epoha_post",at:Date.UTC(2026,10,12,19,0),until:Date.UTC(2026,10,12,21,0),on:true,photo:"assets/post-pervym.jpg",btn:"⚔️ Играть",link:"",dm:"",
+ chan:"🔥 ЗАЛЕТАЙ ПЕРВЫМ — ПОКА ЭТО ЕЩЁ НЕ У ВСЕХ\n\n⚔️ «Воины Эпох» — игра в Telegram, которая растёт каждый день. Уже 2300+ воинов, и это только начало.\n\n😎 Хочешь по-настоящему понтануться перед друзьями?\n• у каждой карточки своя редкость и своя отделка — они на вес золота\n• «Ошибки печати» в одном экземпляре на весь мир\n• номер в топе, твой ник на карточке и VIP-корона\n\n🏆 Те, кто зашёл первым, уже собирают самые редкие карточки. Через месяц такие будут стоить в разы дороже.\n\n🎁 Промокод ЭПОХА — только 24 часа!\n💰 5 000 монет + 🎴 30 прокруток + ⭐ 20 звёзд\n\n👉 @VoinyEpohBot\nПока ты читаешь — кто-то забирает карточку, которая одна в мире."};
+async function koloTick(env){const n=Date.now();if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
 let p150Busy=false;async function p150Tick(env){const now=Date.now();if(p150Busy||now<P150.at||now>P150.until)return;p150Busy=true;
   try{await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,0,0,0,?,?,0,0,150,150)").bind(P150.code,P150.until,now).run();await blastRun(env,P150)}finally{p150Busy=false}}
 let p250Busy=false;async function p250Tick(env){const now=Date.now();if(p250Busy||now<P250.at||now>P250.until)return;p250Busy=true;
@@ -3940,7 +3942,7 @@ let btkBusy=false;
 async function blastTkTick(env){const now=Date.now();if(!BLAST_TK.on||btkBusy||now<BLAST_TK.at||now>BLAST_TK.until)return;btkBusy=true;try{await blastRun(env,BLAST_TK)}finally{btkBusy=false}}
 async function blast2Tick(env){if(!BLAST2.on||b2Busy)return;b2Busy=true;try{await blastRun(env,BLAST2)}finally{b2Busy=false}}
 async function blastRun(env,BLAST2){if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
-  try{const k="blast:"+BLAST2.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(!BLAST2.chan)st.ch=1;if(st.done&&st.ch)return;
+  try{const k="blast:"+BLAST2.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(!BLAST2.chan)st.ch=1;if(!BLAST2.dm)st.done=1;if(st.done&&st.ch)return;
     if(!st.ch&&st.chn<20&&now-st.cht>30e3){st.chn++;st.cht=now;await kvSet(env,k,st);const kb={inline_keyboard:[[{text:BLAST2.btn,url:"https://t.me/VoinyEpohBot"}]]};
       let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
       if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
