@@ -3905,7 +3905,7 @@ const P250={id:"p250_1011",at:Date.UTC(2026,10,10,14,15),until:Date.UTC(2026,10,
 const P150={id:"p150_1111",at:Date.UTC(2026,10,11,13,30),until:Date.UTC(2026,10,11,20,59),on:true,photo:"assets/post-p150.jpg",btn:"⭐ Пополнить баланс",link:"?shop=flex",code:"ПОДАРОК150",sp:30,
  dm:"⭐ Акция только сегодня!\n\nПополни баланс от 150 ⭐ — и получи В ПОДАРОК:\n⭐ +150 звёзд на баланс\n🎴 +30 прокруток карточек\n\n🎟 Промокод: ПОДАРОК150\n1) Ещё → Промокод → ПОДАРОК150\n2) Пополни баланс от 150 ⭐\n3) Подарки придут сразу\n\n⏳ До 23:59 по Минску."};
 /* 🎥 промокоды стримеров: ЖЕНЯ — 5000 💰 + 30 прокруток + 20 ⭐; донаты активировавших отслеживаются (уведомление админу + promo_track) */
-const TRACK=["VISION","ЖЕНЯ"];let trkOk=0;
+const TRACK=["VISION","ЖЕНЯ","НОМЕРОК"];let trkOk=0;
 async function trackSeed(env){if(trkOk)return;trkOk=1;for(const c of TRACK)await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,st) VALUES(?,30,5000,0,0,?,0,0,20)").bind(c,Date.now()).run()}
 async function trackSum(env,code){return (await env.DB.prepare("SELECT COUNT(DISTINCT u.uid) AS users,(SELECT COUNT(*) FROM promo_uses WHERE code=?) AS acts,COALESCE(SUM(p.stars),0) AS stars,COUNT(p.id) AS pays FROM promo_uses u LEFT JOIN payments p ON p.uid=u.uid AND p.status='done' AND p.paid>=u.t AND p.stars>0 WHERE u.code=?").bind(code,code).first())||{}}
 async function trackDon(env,P){if(!(P.stars>0))return;for(const code of TRACK){const u=await env.DB.prepare("SELECT t FROM promo_uses WHERE code=? AND uid=?").bind(code,P.uid).first();if(!u||P.created<u.t)continue;
