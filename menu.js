@@ -863,9 +863,9 @@ function liveOpen(){if(!S||!S.admin)return;let o=$("lvscr");if(!o){o=document.cr
 function liveForm(last){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button type="button" class="lv-x" id="lv-x">✕</button><b><i class="lv-rec"></i> РЕЖИМ ЭФИРА</b></div>
   <div class="lv-brand">⚔️ Игра в Telegram · <b>Воины Эпох</b></div><div class="lv-hero"><div class="lv-ic">🎁</div><h2>Открываю за тебя</h2><p>Напиши ник в комментариях — открою карточку для тебя</p></div>
   <div class="lv-in"><input id="lv-nm" maxlength="32" placeholder="Ник зрителя из комментариев" autocomplete="off"><button type="button" id="lv-go">🎁 Открыть для него</button></div>
-  <button type="button" class="lv-wbtn" id="lv-wh">🎡 Колесо зрителей</button><div class="tt-box2" id="tt-box2"></div>
+  <button type="button" class="lv-wbtn" id="lv-wh">🎡 Колесо зрителей</button><button type="button" class="lv-wbtn" id="lv-sd" style="background:linear-gradient(180deg,#ffd23f,#f29a1a);color:#2a1000">⭐ Сундук в эфире</button><div class="tt-box2" id="tt-box2"></div>
   <div class="lv-hl"><b>Выдано за эфир</b><div id="lv-list"><p class="lv-mut">Загружаю…</p></div></div>`;$("lv-wh").onclick=()=>{hap("light");wheelForm()};ttBox();
-  $("lv-x").onclick=()=>{o.hidden=true};const i=$("lv-nm"),go=async()=>{const n=i.value.trim();if(!n){i.focus();return}$("lv-go").disabled=true;const r=await act("live_open",{name:n});$("lv-go").disabled=false;if(r)liveShow(r)};
+  $("lv-x").onclick=()=>{o.hidden=true};if($("lv-sd"))$("lv-sd").onclick=()=>{o.hidden=true;sdOpen()};const i=$("lv-nm"),go=async()=>{const n=i.value.trim();if(!n){i.focus();return}$("lv-go").disabled=true;const r=await act("live_open",{name:n});$("lv-go").disabled=false;if(r)liveShow(r)};
   $("lv-go").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()};liveList()}
 async function liveList(){const r=await act("live_list"),L=$("lv-list");if(!r||!L)return;
   L.innerHTML=r.list.length?r.list.map(x=>`<div class="lv-r${x.got?" got":x.exp?" exp":""}"><span><b>@${fnEsc(x.name)}</b><small>${x.h!=null?HEROES[x.h][0]+" · "+HT[HEROES[x.h][2]].k+(x.f?" · "+FIN[x.f].k:""):"?"}${x.sp?" · +"+x.sp+" 🎴":""}</small></span><em>${x.got?"✅ "+fnEsc(x.who||"забрал"):x.exp?"⌛ истёк":x.code}</em></div>`).join(""):'<p class="lv-mut">Пока никому не открывали</p>'}
@@ -1264,3 +1264,26 @@ setTimeout(()=>{try{if(!tg||!tg.isVersionAtLeast||!tg.isVersionAtLeast("8.0")||!
   tg.checkHomeScreenStatus(st=>{if(st!=="missed")return;localStorage.setItem("we-home-ask","1");const m=$("modal"),sh=$("msheet");if(!m.hidden)return;m.hidden=false;
     sh.innerHTML='<div class="box nickbox" style="text-align:center"><div style="font-size:64px">📲</div><h3>Игра — одним нажатием</h3><p class="cln">Добавь иконку «Воинов Эпох» на экран телефона — и открывай игру сразу, без поиска бота.</p><button type="button" class="craftbtn" id="hm-ok">📲 Добавить на экран</button><button type="button" class="ghost" id="hm-x">Не сейчас</button></div>';
     $("hm-x").onclick=closeModal;$("hm-ok").onclick=()=>{closeModal();homeAdd()}})}catch(e){}},25000);
+
+/* ⭐ «Сундук в эфире» — экран для захвата в стрим: код на звёзды, кто первый ввёл — забрал */
+const SD={code:null,stars:0,st:"idle",win:null,bank:null,poll:0,hide:0};
+const SD_CH=(open)=>`<svg viewBox="0 -40 200 210" class="sd-chest${open?" op":""}"><circle cx="100" cy="70" r="${open?115:0}" fill="#ffd23f" opacity=".35"/><rect x="14" y="70" width="172" height="90" rx="10" fill="#d9820b" stroke="#1a0a20" stroke-width="7"/><path d="M14 104 H186" stroke="#7a3a08" stroke-width="7"/><rect x="80" y="86" width="40" height="40" rx="8" fill="#fff3a0" stroke="#1a0a20" stroke-width="6"/><g class="sd-lid"><path d="M14 70 Q14 14 100 14 Q186 14 186 70Z" fill="#ffb21f" stroke="#1a0a20" stroke-width="7"/><path d="M60 22 V70 M140 22 V70" stroke="#7a3a08" stroke-width="7"/></g></svg>`;
+function sdOpen(){if(!S||!S.admin)return;let o=$("sdscr");if(!o){o=document.createElement("div");o.id="sdscr";o.className="sdscr";document.body.appendChild(o)}o.hidden=false;sdDraw();act("live_sd_bank",{}).then(b=>{if(b){SD.bank=b;sdDraw()}})}
+function sdDraw(){const o=$("sdscr");if(!o)return;const B=SD.bank,left=B?B.lim-B.used:null;
+  o.innerHTML=`<div class="sd-h">🎁 СУНДУК В ЭФИРЕ</div><div class="sd-bank">${B?`В банке: <b>${left} ⭐</b>`:""}</div>
+  <div class="sd-how">Забирай звёзды: Telegram → <b>@VoinyEpohBot</b> → Ещё → Промокод → введи код <b>первым!</b></div>
+  <div class="sd-stage">${SD.st==="open"||SD.st==="won"?`<div class="sd-prize">${SD.stars} ⭐</div>`:""}${SD_CH(SD.st==="open"||SD.st==="won")}</div>
+  ${SD.st==="open"||SD.st==="won"?`<div class="sd-code${SD.st==="won"?" got":""}">${SD.code.slice(0,3)} ${SD.code.slice(3)}</div>`:SD.st==="idle"?`<div class="sd-wait">Скоро откроем сундук… 👀</div>`:`<div class="sd-wait">Открываю…</div>`}
+  ${SD.st==="won"?`<div class="sd-win">🏆 Забрал: <span id="sd-wn"></span></div>`:SD.st==="open"?`<div class="sd-wait sm">⏳ Кто первый?</div>`:""}
+  <div class="sd-ctl"${SD.hide?" hidden":""}><div class="sd-row">${[5,10,25,50,100].map(n=>`<button type="button" data-sd="${n}">${n} ⭐</button>`).join("")}<button type="button" data-sd="0">🎲</button></div>
+   <div class="sd-row"><input id="sd-lim" type="number" min="0" placeholder="Лимит банка" value="${B?B.lim:""}"><button type="button" id="sd-sv">💾 Лимит</button><button type="button" id="sd-rs">↺ Обнулить</button><button type="button" id="sd-x">✕</button></div></div>
+  <button type="button" class="sd-eye" id="sd-eye">${SD.hide?"⚙️":"🙈"}</button>`;
+  const wn=$("sd-wn");if(wn)wn.textContent=SD.win||"";
+  o.querySelectorAll("[data-sd]").forEach(b=>b.onclick=()=>sdNew(+b.dataset.sd));
+  $("sd-x").onclick=()=>{clearInterval(SD.poll);o.hidden=true};$("sd-eye").onclick=()=>{SD.hide=!SD.hide;sdDraw()};
+  $("sd-sv").onclick=async()=>{const b=await act("live_sd_bank",{lim:+$("sd-lim").value||0});if(b){SD.bank=b;toast("Лимит: "+b.lim+" ⭐");sdDraw()}};
+  $("sd-rs").onclick=async()=>{const b=await act("live_sd_bank",{reset:1});if(b){SD.bank=b;toast("Банк обнулён");sdDraw()}}}
+async function sdNew(n){if(SD.st==="opening")return;const r=await act("live_sd_new",{stars:n});if(!r)return;clearInterval(SD.poll);SD.code=r.code;SD.stars=r.stars;SD.bank=r.bank;SD.win=null;SD.st="opening";sdDraw();
+  const o=$("sdscr");o.classList.add("shake");try{sfx.spin&&sfx.spin()}catch(e){}
+  setTimeout(()=>{o.classList.remove("shake");SD.st="open";sdDraw();try{sfx.fanfare()}catch(e){}try{burst(2)}catch(e){}},1800);
+  SD.poll=setInterval(async()=>{if(SD.st!=="open")return;const g=await act("live_sd_get",{code:SD.code});if(g&&g.by_uid){SD.win=g.name||"игрок";SD.st="won";clearInterval(SD.poll);sdDraw();try{sfx.fanfare()}catch(e){}try{burst(5)}catch(e){}}else if(g&&g.gone){clearInterval(SD.poll);SD.st="idle";sdDraw()}},2000)}

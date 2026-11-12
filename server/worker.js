@@ -1278,7 +1278,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=64;const NEWB_MS=3*864e5;
+const SCHEMA_V=65;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -1345,7 +1345,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS ally (uid INTEGER PRIMARY KEY, mate INTEGER NOT NULL, t INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS ally_q (uid INTEGER PRIMARY KEY, t INTEGER NOT NULL, pw INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS roc_round (id INTEGER PRIMARY KEY, fs INTEGER NOT NULL, cr REAL NOT NULL, ct INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS roc_bet (rid INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, b INTEGER NOT NULL, auto REAL NOT NULL DEFAULT 0, out_m REAL, win INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL, PRIMARY KEY(rid,uid))",
     "CREATE TABLE IF NOT EXISTS rs_user (uid INTEGER PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0, last TEXT, n INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS rs_code (code TEXT PRIMARY KEY, owner INTEGER NOT NULL, k TEXT NOT NULL, v INTEGER NOT NULL, t INTEGER NOT NULL, used_by INTEGER, used_t INTEGER)","CREATE INDEX IF NOT EXISTS rs_code_o ON rs_code(owner,t)",
-    "CREATE TABLE IF NOT EXISTS rf_box (uid INTEGER NOT NULL, n INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,n))","CREATE TABLE IF NOT EXISTS rf_spin (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT, k TEXT, code TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS rf_spin_u ON rf_spin(uid)","ALTER TABLE promo ADD COLUMN st INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN gift INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN chest TEXT",
+    "CREATE TABLE IF NOT EXISTS sd_drop (code TEXT PRIMARY KEY, stars INTEGER NOT NULL, t INTEGER, by_uid INTEGER, name TEXT, got_t INTEGER)","CREATE TABLE IF NOT EXISTS rf_box (uid INTEGER NOT NULL, n INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,n))","CREATE TABLE IF NOT EXISTS rf_spin (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT, k TEXT, code TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS rf_spin_u ON rf_spin(uid)","ALTER TABLE promo ADD COLUMN st INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN gift INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN chest TEXT",
     "CREATE TABLE IF NOT EXISTS vc_part (uid INTEGER PRIMARY KEY, acc TEXT NOT NULL, vids TEXT, t INTEGER NOT NULL, upd INTEGER)",
     "CREATE TABLE IF NOT EXISTS ft_vote (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER NOT NULL, hit INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tid,fid,uid))","CREATE TABLE IF NOT EXISTS ft_soc (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(tid,fid,uid))",
     "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
@@ -2313,6 +2313,15 @@ const promoKey=c=>String(c||"").toUpperCase().replace(/Ё/g,"Е").replace(/[^A-Z
 const LIVE_OWNER=-5,LIVE_TTL=48*36e5,LIVE_SP=[[3,22],[5,22],[7,16],[10,16],[15,10],[20,7],[30,5],[50,2]];
 const liveSp=()=>{let r=Math.random()*LIVE_SP.reduce((a,x)=>a+x[1],0);for(const [n,w] of LIVE_SP){r-=w;if(r<0)return n}return 3};
 async function liveApi(env,me,a,p){if(!isAdmin(env,me.id))fail("Нет доступа");const now=Date.now();
+  if(a==="live_sd_bank"){const B=(await kvGet(env,"sd_bank"))||{lim:300,used:0};if(p.lim!=null){B.lim=Math.max(0,Math.min(100000,Math.floor(+p.lim||0)))}if(p.reset)B.used=0;await kvSet(env,"sd_bank",B);return B}
+  if(a==="live_sd_new"){const B=(await kvGet(env,"sd_bank"))||{lim:300,used:0},left=B.lim-B.used;let n=Math.floor(+p.stars||0);
+    if(!n){const ok=SD_PR.filter(x=>x<=left);if(!ok.length)fail("Банк закончился — увеличь лимит");n=ok[Math.floor(Math.random()*ok.length)]}
+    if(n<1||n>1000)fail("Приз — от 1 до 1000 ⭐");if(n>left)fail("В банке осталось только "+left+" ⭐");
+    let code="";for(let i=0;i<20;i++){const c=String(100000+Math.floor(Math.random()*900000));if(!(await env.DB.prepare("SELECT 1 FROM sd_drop WHERE code=?").bind(c).first())&&!(await env.DB.prepare("SELECT 1 FROM live_drop WHERE code=?").bind(c).first())){code=c;break}}if(!code)fail("Попробуй ещё раз");
+    await env.DB.prepare("INSERT INTO sd_drop(code,stars,t) VALUES(?,?,?)").bind(code,n,now).run();B.used+=n;await kvSet(env,"sd_bank",B);return {code,stars:n,bank:B}}
+  if(a==="live_sd_get"){const D=await env.DB.prepare("SELECT code,stars,by_uid,name,got_t,t FROM sd_drop WHERE code=?").bind(String(p.code||"")).first();if(!D)fail("Нет такого кода");
+    if(!D.by_uid&&now>D.t+SD_TTL){const B=(await kvGet(env,"sd_bank"))||{lim:300,used:0};const del=await env.DB.prepare("DELETE FROM sd_drop WHERE code=? AND by_uid IS NULL").bind(D.code).run();if(del.meta.changes===1){B.used=Math.max(0,B.used-D.stars);await kvSet(env,"sd_bank",B)}return {...D,gone:1}}
+    return {...D,name:D.by_uid?D.name:null}}
   if(a==="live_open"){const name=String(p.name||"").trim().replace(/^@/,"").slice(0,32);if(!name)fail("Напиши ник зрителя");
     const r=(await doAction(env,me,"live_roll",{},{grant:true})).res,c=r&&r.card;if(!c||!c.id)fail("Не получилось открыть");
     const mv=await env.DB.prepare("UPDATE cards SET owner=?,away=0,dest=NULL WHERE id=? AND owner=?").bind(LIVE_OWNER,c.id,me.id).run();if(mv.meta.changes!==1)fail("Карточка не отложилась");
@@ -2326,6 +2335,12 @@ async function liveApi(env,me,a,p){if(!isAdmin(env,me.id))fail("Нет дост�
   if(a==="live_list"){const L=(await env.DB.prepare("SELECT d.*,c.h,c.f,c.v,COALESCE(u.nick,u.name) AS who FROM live_drop d LEFT JOIN cards c ON c.id=d.card LEFT JOIN users u ON u.id=d.by_uid ORDER BY d.t DESC LIMIT 60").all()).results;
     return {list:L.map(x=>({code:x.code,name:x.name,sp:x.sp||0,t:x.t,h:x.h,f:x.f,v:x.v,who:x.who||null,got:x.got_t||0,exp:!x.got_t&&now>x.t+LIVE_TTL?1:0}))}}
   fail("Неизвестное действие")}
+/* ⭐ «Сундук в эфире»: админ создаёт код на N звёзд, кто первый ввёл — забрал. Банк на стрим: kv sd_bank {lim,used} */
+const SD_TTL=30*60e3,SD_PR=[5,10,10,10,25,25,50,100];
+async function sdClaim(env,me,code){const D=await env.DB.prepare("SELECT * FROM sd_drop WHERE code=?").bind(code).first();if(!D)return null;const now=Date.now();
+  if(D.by_uid)fail(D.by_uid===me.id?"Ты уже забрал эти звёзды 😉":"Не успел — эти звёзды уже забрали! Жди следующий сундук");if(now>D.t+SD_TTL)fail("Код из сундука действовал 30 минут — срок закончился");
+  const g=await env.DB.prepare("UPDATE sd_drop SET by_uid=?,name=?,got_t=? WHERE code=? AND by_uid IS NULL").bind(me.id,String(me.name||"Игрок").slice(0,40),now,code).run();if(g.meta.changes!==1)fail("Не успел — эти звёзды уже забрали!");
+  await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(D.stars,me.id).run();return {code,st:D.stars,sp:0,cash:0}}
 async function liveClaim(env,me,code){const D=await env.DB.prepare("SELECT * FROM live_drop WHERE code=?").bind(code).first();if(!D)return null;const now=Date.now();
   if(D.by_uid)fail(D.by_uid===me.id?"Эта карточка уже твоя 😉":"Эту карточку уже забрали");if(now>D.t+LIVE_TTL)fail("Код с эфира действовал 48 часов — срок закончился");
   const g=await env.DB.prepare("UPDATE live_drop SET by_uid=?,got_t=? WHERE code=? AND by_uid IS NULL").bind(me.id,now,code).run();if(g.meta.changes!==1)fail("Эту карточку уже забрали");
@@ -2589,7 +2604,7 @@ async function riddleApi(env,me,a,p){const C=await rdCfg(env),now=Date.now();
     return {id:C.id,title:C.title,ok:L.filter(x=>x.ok_t).length,all:L.length,list:L.filter(x=>x.ok_t).slice(0,100)}}
   fail("Неизвестное действие")}
 async function promoApi(env,me,a,p){const now=Date.now();
-  if(a==="promo_use"&&/^\d{6}$/.test(promoKey(p.code))){const L=await liveClaim(env,me,promoKey(p.code));if(L)return L}
+  if(a==="promo_use"&&/^\d{6}$/.test(promoKey(p.code))){const Z=await sdClaim(env,me,promoKey(p.code));if(Z)return Z;const L=await liveClaim(env,me,promoKey(p.code));if(L)return L}
   if(a==="promo_use"&&/^СЛОТ/.test(promoKey(p.code))){const R=await rsUse(env,me,promoKey(p.code));if(R)return R}
   if(a==="promo_use"){const code=promoKey(p.code);if(!code)fail("Введи промокод");const P=await env.DB.prepare("SELECT * FROM promo WHERE code=?").bind(code).first();
     if(!P||P.off)fail("Такого промокода нет. Проверь, как он написан");
