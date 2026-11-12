@@ -132,6 +132,23 @@ const DETAILED={
  ${[0,1,2,3,4,5,6].map(i=>`<path d="M${26+i*25} ${24+(i%3)*24} l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3z" fill="#fff6c8"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="${i*.21}s" repeatCount="indefinite"/></path>`).join("")}
 </svg>`},
  /* 🧙‍♀️ Баба Яга — анимированная: ступа парит, из неё выглядывает голова */
+ "Колобок":u=>{const R='dur="5s" repeatCount="indefinite"';return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+  <radialGradient id="kb${u}" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff2a8"/><stop offset=".55" stop-color="#f7b733"/><stop offset="1" stop-color="#c06a10"/></radialGradient>
+  <linearGradient id="ks${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ad0ff"/><stop offset="1" stop-color="#d8f2ff"/></linearGradient></defs>
+  <rect width="200" height="200" fill="url(#ks${u})"/><circle cx="160" cy="38" r="18" fill="#fff3a0"/>
+  <path d="M0 120 Q40 96 80 112 Q120 128 160 104 Q185 92 200 100 V200 H0Z" fill="#4aa84a"/><path d="M0 150 Q100 132 200 150 V200 H0Z" fill="#c9a26a"/>
+  <g fill="#2f7a34"><path d="M22 118 l12 -38 l12 38z"/><path d="M168 106 l10 -32 l10 32z"/><path d="M60 114 l8 -26 l8 26z"/></g>
+  <ellipse cx="100" cy="178" rx="34" ry="7" fill="#000" opacity=".25"><animate attributeName="cx" values="-30;100;100;100;230" keyTimes="0;.3;.5;.7;1" ${R}/></ellipse>
+  <g><animateTransform attributeName="transform" type="translate" values="-130 0;0 0;0 -26;0 0;0 0;130 0" keyTimes="0;.3;.38;.46;.7;1" calcMode="spline" keySplines=".3 0 .4 1;.3 0 .5 1;.5 0 .7 1;0 0 1 1;.5 0 .9 .6" ${R}/>
+   <g><animateTransform attributeName="transform" type="rotate" values="-360 100 140;0 100 140;0 100 140;360 100 140" keyTimes="0;.3;.7;1" calcMode="spline" keySplines=".3 0 .4 1;0 0 1 1;.5 0 .9 .6" ${R}/>
+    <circle cx="100" cy="140" r="38" fill="url(#kb${u})" stroke="#0b0712" stroke-width="5"/>
+    <path d="M78 122 q6 -6 12 0 M110 122 q6 -6 12 0" stroke="#0b0712" stroke-width="4" fill="none" stroke-linecap="round"><animate attributeName="d" values="M78 122 q6 -6 12 0 M110 122 q6 -6 12 0;M78 122 q6 -6 12 0 M110 122 q6 -6 12 0;M78 124 q6 0 12 0 M110 122 q6 -6 12 0;M78 122 q6 -6 12 0 M110 122 q6 -6 12 0" keyTimes="0;.5;.56;.62" ${R}/></path>
+    <circle cx="84" cy="128" r="4.5" fill="#0b0712"/><circle cx="116" cy="128" r="4.5" fill="#0b0712"><animate attributeName="r" values="4.5;4.5;.6;4.5;4.5" keyTimes="0;.5;.55;.6;1" ${R}/></circle>
+    <ellipse cx="74" cy="142" rx="7" ry="4" fill="#ff7a5a" opacity=".6"/><ellipse cx="126" cy="142" rx="7" ry="4" fill="#ff7a5a" opacity=".6"/>
+    <path d="M84 150 Q100 166 116 150" stroke="#0b0712" stroke-width="4.5" fill="#8a1a1a" stroke-linecap="round"/><path d="M92 156 Q100 160 108 156" stroke="#ff8a8a" stroke-width="3" fill="none"/>
+    <path d="M84 112 q16 -10 32 0" stroke="#fff6c8" stroke-width="4" fill="none" opacity=".7"/></g></g>
+  <g opacity="0"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;.4;.44;.62;.66;1" ${R}/><rect x="116" y="58" width="76" height="30" rx="12" fill="#fff" stroke="#0b0712" stroke-width="3"/><path d="M126 86 l-8 12 l16 -10z" fill="#fff" stroke="#0b0712" stroke-width="3"/><text x="154" y="78" text-anchor="middle" font-size="13" font-weight="900" fill="#0b0712">Я ушёл!</text></g>
+ </svg>`},
  "Баба Яга":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
   <linearGradient id="yw${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a3418"/><stop offset=".45" stop-color="#a8703c"/><stop offset="1" stop-color="#4a2a12"/></linearGradient>
   <radialGradient id="ys${u}" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#e9d2b0"/><stop offset="1" stop-color="#b8946a"/></radialGradient>
@@ -773,7 +790,7 @@ function fillFace(root,c){
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
   const lb=q(".lvl");lb.hidden=lvl(c)<=1;lb.textContent="Ур. "+lvl(c);
-  q(".finish").textContent=compFin(c)||(F.dia&&DIA[c.h]?"💎 "+DIA[c.h].n+" "+c.no+"/"+DIA[c.h].run:F.k+(F.run===Infinity?"":" "+c.no+"/"+F.run));
+  q(".finish").textContent=compFin(c)||(F.dia&&DIA[c.h]?"💎 "+DIA[c.h].n+" "+c.no+"/"+DIA[c.h].run:F.k+(HEROES[c.h]&&HEROES[c.h][4].sale?" · № "+c.no:F.run===Infinity?"":" "+c.no+"/"+F.run));
   const sn=c.sn||"482913",cl=classify(sn),se=q(".foot .sn");
   se.innerHTML="<small>№</small>"+fmtSn(sn);se.classList.toggle("nice",!!cl);
   const rb=q(".ribbon");rb.hidden=!cl&&!c.cust;if(c.cust)rb.textContent="✍️ Именной номер";else if(cl)rb.textContent=cl.k+", ×"+cl.m;
@@ -1001,7 +1018,7 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
     const cl=classify(cur.sn);
     info.innerHTML="";const t=document.createElement("div");t.className="who";t.innerHTML="<span></span><small></small>";
     t.children[0].textContent=HEROES[cur.h][0]+((cur.stars||0)>=3?" «"+epithet(cur)+"»":"");
-    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+(isCollab(cur)?"Бесценная, 1 из 1, номер А777МР 77. Коллаборация «Воинов Эпох» и «Номерка» — такой больше нет ни у кого.":(cur.f===DIA_F&&DIA[cur.h]?"💎 Алмазная серия, «"+DIA[cur.h].n+"»":FIN[cur.f].k)+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+finRun(cur):"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.");
+    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+(isCollab(cur)?"Бесценная, 1 из 1, номер А777МР 77. Коллаборация «Воинов Эпох» и «Номерка» — такой больше нет ни у кого.":HEROES[cur.h][4].sale?"Ошибка печати одного дня · экземпляр № "+cur.no+", номер "+fmtSn(cur.sn)+". Продавался только 12.11 — больше не выпускается.":(cur.f===DIA_F&&DIA[cur.h]?"💎 Алмазная серия, «"+DIA[cur.h].n+"»":FIN[cur.f].k)+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+finRun(cur):"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.");
     {const fl=document.createElement("p");fl.className="cv-flavor";fl.textContent=HEROES[cur.h][3];t.appendChild(fl);const A=abil(cur.h),ab=document.createElement("p");if(isCollab(cur))ab.hidden=true;ab.className="cv-abil";ab.textContent="⚡ Способность в рейтинговом бою: "+A[0]+" "+A[1]+" — "+A[2]+" · "+WC_IC[wclass(cur.h)]+" "+WCLASS[wclass(cur.h)];t.appendChild(ab)}
     info.appendChild(t);
     if(FIN[cur.f].collab){fb.hidden=false;fb.innerHTML='<h3>💎 Бесценная</h3><p>Главный приз розыгрыша — подарок лично от «Номерка». У неё нет оценки: продать её можно только на рынке, и цену назначает сам владелец. В боях не участвует, сжечь или продать системе её нельзя.</p>';return}
@@ -2180,6 +2197,8 @@ let outAt=0;function outOffer(){if(!S||(ONLINE&&!S.shopOn)||NOW()-outAt<20*60e3|
   $("oo-buy").onclick=()=>{closeModal();buyItem({item:k})};$("oo-all").onclick=()=>{closeModal();openGold("chest")};$("oo-x").onclick=closeModal;return true}
 function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySelectorAll("#gold-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.g===goldTab));
   const D=goldData||{comp:{},mythLeft:SHOP.mythic.month,donors:[],mine:0};let v="";
+  if(SHOP.kolobok&&Date.now()<SHOP.kolobok.until){const K=SHOP.kolobok,ms=K.until-Date.now(),hh=Math.floor(ms/36e5),mm=Math.floor(ms%36e5/6e4);
+    v+='<div class="kolo"><div class="kolo-t">🔥 ТОЛЬКО СЕГОДНЯ · осталось <b>'+hh+' ч '+mm+' мин</b></div><div class="kolo-in"><div class="kolo-c">'+miniSlot({id:"kolo-demo",h:KOLO,f:4,no:1,sn:"000001",hue:40,stats:[540,520,500,520,520],v:0,xp:0,wins:0,stars:0})+'</div><div><h4>🟡 Колобок · Ошибка печати</h4><ul>'+K.d.map(x=>"<li>"+x+"</li>").join("")+'<li>⚔️ характеристики как у легенд — без дисбаланса</li></ul><button type="button" class="buy" data-buy="kolobok">⭐ '+K.stars+'</button></div></div></div>'}
   const offer=(k,tag)=>{const I=SHOP[k],[c1,c2,gl]=CHEST_COL[k],left=k==="mythic"?D.mythLeft:k==="twins"&&D.duos?DUO.reduce((a,h)=>a+Math.max(0,DUO_RUN-(D.duos[h]||0)),0):null;
     return `<div class="of${left===0?" sold":""}" style="--fr:linear-gradient(145deg,${c1},${gl} 30%,${c2} 60%,${c1} 85%,${c2});--gl:${gl}">${tag?'<span class="tag">'+tag+'</span>':""}<div class="in">${chestSVG(k,96)}<div><h4>${I.n}</h4><ul>${I.d.map(x=>"<li>"+x+"</li>").join("")}</ul>${left!=null?'<div class="mleft">'+(k==="twins"?'Близнецов осталось в мире: <b>'+left+' из '+DUO.length*DUO_RUN+'</b>':'осталось в этом месяце: <b>'+left+' из '+I.month+'</b>')+'</div>':""}<button type="button" class="buy" data-buy="${k}"${left===0?" disabled":""}>${left===0?"раскуплено":"⭐ "+I.stars}</button></div></div></div>`};
   if(goldTab==="chest"){

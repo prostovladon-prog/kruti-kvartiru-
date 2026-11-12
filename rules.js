@@ -103,6 +103,8 @@ const HEROES=[
  ["Робин Гуд","Легенды Британии", 2,"Грабит богатых, помогает бедным и не промахивается из лука.", {base: 1,"helm": "phood","weapon": "bow","armor": "cloth","cape": "#2a6a2a","hue": 110,"skin": 0,"stache": "#7a4a24","p": [5, 2, 7, 3, 5]}],
  ["Баба Яга","Сказки Руси",4,"Хозяйка ступы и тёмного леса. Летает быстрее ветра, видит всех насквозь. Второй такой нет.",{don:1,one:1,own:1,sn:"000002",rl:"Сказочный",rc:"#ff3df2",hue:290,p:[10,10,10,10,10]}],
  ["Кот в сапогах","Сказки Европы",4,"Маркиз хитрости: ни одна дверь, ни один замок и ни один король не устоят перед его поклоном. Именная карточка Zz_ruslan4ik_zZ.",{don:1,one:1,own:1,nick:"Zz_ruslan4ik_zZ",sn:"000001",rl:"Сказочный",rc:"#ffd23f",hue:40,p:[10,10,10,10,10]}],
+ /* Колобок — «Ошибка печати» одного дня (12.11): продаётся только сегодня за 1700 ⭐, у каждого покупателя свой № */
+ ["Колобок","Сказки Руси",4,"Я от бабушки ушёл, я от дедушки ушёл… Из печи вылез с ошибкой — и укатился в историю.",{don:1,own:1,sale:1,hue:40,p:[8,7,6,7,7]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -110,12 +112,12 @@ const isBase=h=>h<NBASE||!!(HEROES[h]&&HEROES[h][4].base), BASE=HEROES.map((H,i)
 const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h]&&HEROES[h][4].duo), DUO_F=7, DUO_RUN=2;
 const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
-const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
+const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one&&!HEROES[i][4].sale), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
 /* Тор (ошибка печати, 1 из 1) — главный трофей игры: падает только из прокрутки, шанс 1 на миллион. В сундуках и в «Любой карточке» его нет */
 const THOR=HEROES.findIndex(H=>H[0]==="Тор"), THOR_P=.000001;
 /* редкость карточки: у именных (own) — своя, «круче мифической» */
 const tierOf=h=>{const W=HEROES[h][4];return W.rl?{k:W.rl,c:W.rc||"#ff3df2",b:HT[HEROES[h][2]].b}:HT[HEROES[h][2]]};
-const YAGA=HEROES.findIndex(H=>H[0]==="Баба Яга");
+const YAGA=HEROES.findIndex(H=>H[0]==="Баба Яга"),KOLO=HEROES.findIndex(H=>H[0]==="Колобок");
 /* 🏆 «Помогли игре» — доска почёта в донате */
 const HELPERS=[{n:"Zz_ruslan4ik_zZ",t:"🐈 Кот в сапогах — карточка мечты · 💎 VIP Алмаз навсегда"}];
 /* половинки: part 1 — левая (частая), part 2 — правая (в 5 раз реже, 300 на воина на весь мир).
@@ -431,8 +433,8 @@ function priceOf(h,f,no,sn,top,part){const [a,b]=HT[HEROES[h][2]].b;let v=(a+Mat
   if(isComp(h)){v*=[5,.3,1.5][part|0];if(!part&&f===0&&no===1)v*=3}
   if(FIN[f].run!==Infinity&&no===1)v*=3;const cl=classify(sn);if(cl)v*=cl.m;if(top)v*=2;return Math.round(v*100)/100}
 function makeCard(ctx,h,f,preset){
-  if(FIN[f].run!==Infinity&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
-  const no=ctx.nextNo(h,f),sn=genNumber(ctx,f),B=cardBody(h,f,preset);
+  if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
+  const no=ctx.nextNo(h,f),sn=genNumber(ctx,HEROES[h][4].sale?0:f),B=cardBody(h,f,preset);
   return {id:ctx.newId(),h,f,no,sn,hue:B.hue,stats:B.stats,v:priceOf(h,f,no,sn,B.top),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0};
 }
 /* половинка составного воина. ctx.compLeft(h) — сколько правых мест тиража свободно, ctx.compSlot(h) — занять место,
@@ -475,7 +477,7 @@ SHOP.empire={n:"Сундук Империи",stars:499,sp:40,cards:6,leg:1,luckH
 const PROMO_BOX=[{w:55,sp:5},{w:25,bon:100,bmin:250},{w:12,bon:300,bmin:500},{w:5,sp:20},{w:3,bon:1000,bmin:1000}];
 const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
-function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab)fail("Такой карточки нет");const W=HEROES[h][4];
+function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale)fail("Такой карточки нет");const W=HEROES[h][4];
   if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
   if(W.one){if(f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");return rollOne(ctx,h)}
   if(W.duo){if(f!==DUO_F)fail("Близнецы бывают только с отделкой «Близнец»");return rollDuo(ctx,h)}
@@ -488,6 +490,7 @@ function rollDia(ctx){const L=Object.keys(DIA).map(Number).filter(h=>HEROES[h]&&
   const w=L.map(h=>DIA[h].run-ctx.issuedOf(h,DIA_F));try{return makeDia(ctx,L[pick(w)])}catch(e){return null}}   // чем больше осталось в тираже, тем чаще
 function makeDia(ctx,h){const D=DIA[h];if(!D||!HEROES[h])fail("Такой карточки нет в Алмазной серии");if(ctx.issuedOf(h,DIA_F)>=D.run)fail("Тираж «"+HEROES[h][0]+"» в Алмазной серии закончился");return makeCard(ctx,h,DIA_F)}
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
+SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
 SHOP.refbox={n:"Сундук друга",stars:0,noBuy:1,cards:3,epic:1,d:["🃏 <b>3</b> карточки","минимум <b>1 эпическая</b>","даётся за каждого приглашённого друга"]};
 SHOP.custom={n:"Карточка твоей мечты",stars:3500,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
 /* свой номер: 100 ⭐ + 100 ⭐ за каждый «икс» красивого номера (777 777 ×15 = 1600 ⭐) */
@@ -845,7 +848,7 @@ const ACTIONS={
 
   craft(G){const {st,ctx,p}=G;const ids=[...new Set(p.ids||[])];if(!ids.length||ids.length>5)fail("Выбери от 1 до 5 карточек");
     const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(isComp(h))fail("Составных воинов не крафтят: их собирают из половинок");if(!craftable(f))fail("«Ошибку печати» нельзя скрафтить — её можно только выбить");if(!craftOk(h))fail("Этого воина не крафтят");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
-    if(FIN[f].run!==Infinity&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
+    if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
     const inp=ids.map(id=>notHalf(burnable(freeCard(G,id)),"Половинки нельзя сжигать в крафте")),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),cp=craftPrice(h,f),amu=0;   /* 10.11: амулет удачи убран */
     if(amu)pay(st,amuCost(h,f));
     const pr=Math.min(CRAFT_MAX(f,h)+amu,HOUSE*sum/cp+amu);if(pr<=0)fail("Шанс слишком мал");
@@ -1026,6 +1029,7 @@ const ACTIONS={
     if(I.sp)st.spins+=I.sp;if(I.guar)st.guar=(st.guar||0)+I.guar;if(I.once)st.newbie=1;if(I.luckH)st.luckU=Math.max(st.luckU||0,ctx.now)+I.luckH*36e5;if(I.horn)st.warXD=today(ctx.now);
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
+    if(I.kolo)add(makeCard(ctx,KOLO,4));
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;
       {const dp=DIA_P[p.item];if(dp&&!ctx.noRare&&Math.random()<dp){const d=rollDia(ctx);if(d){add(d);n--}}}   // 💎 шанс на Алмазную серию
