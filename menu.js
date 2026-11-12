@@ -1273,10 +1273,10 @@ function sdOpen(){if(!S||!S.admin)return;let o=$("sdscr");if(!o){o=document.crea
 function sdDraw(){const o=$("sdscr");if(!o)return;const B=SD.bank,left=B?B.lim-B.used:null;
   o.innerHTML=`<div class="sd-h">🎁 СУНДУК В ЭФИРЕ</div><div class="sd-bank">${B?`В банке: <b>${left} ⭐</b>`:""}</div>
   <div class="sd-how">Забирай звёзды: Telegram → <b>@VoinyEpohBot</b> → Ещё → Промокод → введи код <b>первым!</b></div>
+  ${SD.auto?`<div class="sd-tmr top">🎁 Следующий сундук через <b id="sd-cd">${sdCd()}</b></div>`:""}
   <div class="sd-stage">${SD.st==="open"||SD.st==="won"?`<div class="sd-prize">${SD.stars} ⭐</div>`:""}${SD_CH(SD.st==="open"||SD.st==="won")}</div>
   ${SD.st==="open"||SD.st==="won"?`<div class="sd-code${SD.st==="won"?" got":""}">${SD.code.slice(0,3)} ${SD.code.slice(3)}</div>`:SD.st==="idle"?`<div class="sd-wait">Скоро откроем сундук… 👀</div>`:`<div class="sd-wait">Открываю…</div>`}
   ${SD.st==="won"?`<div class="sd-win">🏆 Забрал: <span id="sd-wn"></span></div>`:SD.st==="open"?`<div class="sd-wait sm">⏳ Кто первый?</div>`:""}
-  ${SD.auto?`<div class="sd-tmr">🎁 Следующий сундук через <b id="sd-cd">${sdCd()}</b></div>`:""}
   <div class="sd-ctl"${SD.hide?" hidden":""}><div class="sd-row"><button type="button" class="sd-big" id="sd-open">🎁 ОТКРЫТЬ</button><select id="sd-au">${[0,1,2,3,5].map(m=>`<option value="${m}"${SD.auto===m?" selected":""}>${m?"⏱ каждые "+m+" мин":"⏱ авто выкл"}</option>`).join("")}</select><button type="button" id="sd-more">${SD.more?"▾":"⚙️"}</button></div>
    <div class="sd-more"${SD.more?"":" hidden"}><div class="sd-row">${[5,10,25,50,100].map(n=>`<button type="button" data-sd="${n}">${n} ⭐</button>`).join("")}<button type="button" data-sd="0">🎲</button></div>
    <div class="sd-row"><input id="sd-lim" type="number" min="0" placeholder="Лимит банка" value="${B?B.lim:""}"><button type="button" id="sd-sv">💾 Лимит</button><button type="button" id="sd-rs">↺ Обнулить</button><button type="button" id="sd-x">✕</button></div></div></div>
