@@ -1262,14 +1262,14 @@ async function rfApi(env,me,a,p){const now=Date.now();
 /* 👑 Админка: короткая сводка + воронка нового обучения */
 const TUT_T=Date.UTC(2026,10,9,18,20);
 async function admDash(env){const PD="status IN ('paid','done') AND COALESCE(charge,'')<>'bal'",now=Date.now(),d0=(dayNum(now))*864e5-TZ,one=async(q,...a)=>(await env.DB.prepare(q).bind(...a).first())||{};
-  const U=await one("SELECT COUNT(*) AS n,SUM(created>=?) AS t,SUM(created>=? AND created<?) AS y,SUM(created>=?) AS w,SUM(updated>=?) AS on5 FROM users",d0,d0-864e5,d0,d0-6*864e5,now-5*6e4);U.a1=(await one("SELECT COUNT(*) AS n FROM user_days WHERE d=?",dayNum(now))).n||0;
+  const U=await one("SELECT COUNT(*) AS n,SUM(created>=?) AS t,SUM(created>=?1 AND seen>0) AS to_,SUM(created>=? AND created<?) AS y,SUM(created>=?) AS w,SUM(updated>=?) AS on5 FROM users",d0,d0-864e5,d0,d0-6*864e5,now-5*6e4);U.a1=(await one("SELECT COUNT(*) AS n FROM user_days WHERE d=?",dayNum(now))).n||0;
   const A7=await one("SELECT COUNT(DISTINCT uid) AS n FROM user_days WHERE d>=?",dayNum(now)-6);
   const st=async(a,b)=>(await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=? AND COALESCE(paid,created)<?`,a,b));
   const sT=await st(d0,now+1),sY=await st(d0-864e5,d0),sW=await st(d0-6*864e5,now+1);
   const days=[];for(let i=6;i>=0;i--){const a=d0-i*864e5;days.push({d:new Date(a+TZ).toISOString().slice(5,10),n:(await one("SELECT COUNT(*) AS n FROM users WHERE created>=? AND created<?",a,a+864e5)).n||0,a:(await one("SELECT COUNT(*) AS n FROM user_days WHERE d=?",dayNum(a))).n||0,s:(await st(a,a+864e5)).s||0})}
   const F=await one("SELECT COUNT(*) AS n,SUM(COALESCE(nick,'')<>'') AS nk,SUM(COALESCE(json_extract(state,'$.nOp'),0)>=15) AS o15,SUM(COALESCE(json_extract(state,'$.subGot2'),0)=1) AS sub,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=users.id AND x.d>CAST((users.created+?)/86400000 AS INTEGER))) AS back FROM users WHERE created>=?",TZ,TUT_T);
   const R=await one("SELECT COUNT(*) AS reg FROM users WHERE ref IS NOT NULL AND created>=?",RF.start);
-  return {U:{n:U.n||0,t:U.t||0,y:U.y||0,w:U.w||0,on:U.on5||0,a1:U.a1||0,a7:A7.n||0},S:{t:sT.s||0,tu:sT.u||0,y:sY.s||0,w:sW.s||0},days,F:{since:TUT_T,n:F.n||0,nk:F.nk||0,o15:F.o15||0,sub:F.sub||0,back:F.back||0},ref:R.reg||0}}
+  return {U:{n:U.n||0,t:U.t||0,to_:U.to_||0,y:U.y||0,w:U.w||0,on:U.on5||0,a1:U.a1||0,a7:A7.n||0},S:{t:sT.s||0,tu:sT.u||0,y:sY.s||0,w:sW.s||0},days,F:{since:TUT_T,n:F.n||0,nk:F.nk||0,o15:F.o15||0,sub:F.sub||0,back:F.back||0},ref:R.reg||0}}
 /* ---------- 🏆 «Турнир Эпох»: видео-турнир 10 воинов, зрители угадывают победителя каждого боя ---------- */
 const FT={id:"ft1",auto:Date.UTC(2026,10,8,20,50),sp:2,hit:3,socSp:2,socWait:20,
   /* бои: числа — индекс героя, "W3" — победитель боя №3 (с нуля) */
