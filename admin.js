@@ -7,7 +7,7 @@ function admDraw(R){const sh=$("msheet");if(!sh)return;const U=R.U,F=R.F,n=x=>Nu
   const step=(l,v,base)=>'<div class="ad-f"><span>'+l+'</span><div><i style="width:'+(base?v/base*100:0)+'%"></i></div><b>'+n(v)+'</b><u>'+pc(v,base)+'</u></div>';
   const go=(k,ic,t)=>'<button type="button" class="ad-b" data-k="'+k+'"><i>'+ic+'</i>'+t+'</button>';
   sh.innerHTML='<div class="box nickbox admbox"><div class="ad-hd"><b>👑 Админка</b><button type="button" id="ad-rl">⟳</button></div>'+
-   '<div class="ad-g">'+tile(n(U.on),"онлайн сейчас","#3ddc84")+tile(n(U.a1),"играли сегодня","#0a84ff")+tile(n(U.t),"новых сегодня","#ffb020",(U.to_!=null?"открыли игру "+n(U.to_)+" · ":"")+"вчера "+n(U.y))+tile(n(R.S.t)+" ⭐","доход сегодня","#ffd23f",n(R.S.tu)+" покупателей · вчера "+n(R.S.y))+'</div>'+
+   '<div class="ad-g">'+tile(n(U.on),"онлайн сейчас","#3ddc84","📨 в рассылке: "+n(U.pm||0)+" из "+n(U.n||0))+tile(n(U.a1),"играли сегодня","#0a84ff")+tile(n(U.t),"новых сегодня","#ffb020",(U.to_!=null?"открыли игру "+n(U.to_)+" · ":"")+"вчера "+n(U.y))+tile(n(R.S.t)+" ⭐","доход сегодня","#ffd23f",n(R.S.tu)+" покупателей · вчера "+n(R.S.y))+'</div>'+
    '<div class="ad-s"><h4>📅 Неделя</h4><div class="ad-g3">'+tile(n(U.w),"новых за 7 дней","#ffb020")+tile(n(U.a7),"активных за 7 дней","#0a84ff")+tile(n(R.S.w)+" ⭐","доход за 7 дней","#ffd23f")+'</div>'+chart+'</div>'+
    '<div class="ad-s"><h4>🎓 Новое обучение <small>с '+new Date(F.since).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</small></h4>'+
     step("Пришли новые",F.n,F.n)+step("Прошли обучение и поставили ник",F.nk,F.n)+step("Сделали 15 открытий",F.o15,F.n)+step("Подписались на канал",F.sub,F.n)+step("Вернулись на следующий день",F.back,F.n)+'</div>'+
