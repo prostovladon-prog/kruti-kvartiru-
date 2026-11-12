@@ -1267,7 +1267,7 @@ setTimeout(()=>{try{if(!tg||!tg.isVersionAtLeast||!tg.isVersionAtLeast("8.0")||!
     $("hm-x").onclick=closeModal;$("hm-ok").onclick=()=>{closeModal();homeAdd()}})}catch(e){}},25000);
 
 /* ⭐ «Сундук в эфире» — экран для захвата в стрим: код на звёзды, кто первый ввёл — забрал */
-const SD={code:null,stars:0,st:"idle",win:null,bank:null,poll:0,hide:0};
+const SD={code:null,stars:0,st:"idle",win:null,bank:null,poll:0,hide:0,auto:0,next:0,tk:0};
 const SD_CH=(open)=>`<svg viewBox="0 -40 200 210" class="sd-chest${open?" op":""}"><circle cx="100" cy="70" r="${open?115:0}" fill="#ffd23f" opacity=".35"/><rect x="14" y="70" width="172" height="90" rx="10" fill="#d9820b" stroke="#1a0a20" stroke-width="7"/><path d="M14 104 H186" stroke="#7a3a08" stroke-width="7"/><rect x="80" y="86" width="40" height="40" rx="8" fill="#fff3a0" stroke="#1a0a20" stroke-width="6"/><g class="sd-lid"><path d="M14 70 Q14 14 100 14 Q186 14 186 70Z" fill="#ffb21f" stroke="#1a0a20" stroke-width="7"/><path d="M60 22 V70 M140 22 V70" stroke="#7a3a08" stroke-width="7"/></g></svg>`;
 function sdOpen(){if(!S||!S.admin)return;let o=$("sdscr");if(!o){o=document.createElement("div");o.id="sdscr";o.className="sdscr";document.body.appendChild(o)}o.hidden=false;sdDraw();act("live_sd_bank",{}).then(b=>{if(b){SD.bank=b;sdDraw()}})}
 function sdDraw(){const o=$("sdscr");if(!o)return;const B=SD.bank,left=B?B.lim-B.used:null;
@@ -1276,15 +1276,20 @@ function sdDraw(){const o=$("sdscr");if(!o)return;const B=SD.bank,left=B?B.lim-B
   <div class="sd-stage">${SD.st==="open"||SD.st==="won"?`<div class="sd-prize">${SD.stars} ⭐</div>`:""}${SD_CH(SD.st==="open"||SD.st==="won")}</div>
   ${SD.st==="open"||SD.st==="won"?`<div class="sd-code${SD.st==="won"?" got":""}">${SD.code.slice(0,3)} ${SD.code.slice(3)}</div>`:SD.st==="idle"?`<div class="sd-wait">Скоро откроем сундук… 👀</div>`:`<div class="sd-wait">Открываю…</div>`}
   ${SD.st==="won"?`<div class="sd-win">🏆 Забрал: <span id="sd-wn"></span></div>`:SD.st==="open"?`<div class="sd-wait sm">⏳ Кто первый?</div>`:""}
-  <div class="sd-ctl"${SD.hide?" hidden":""}><div class="sd-row">${[5,10,25,50,100].map(n=>`<button type="button" data-sd="${n}">${n} ⭐</button>`).join("")}<button type="button" data-sd="0">🎲</button></div>
-   <div class="sd-row"><input id="sd-lim" type="number" min="0" placeholder="Лимит банка" value="${B?B.lim:""}"><button type="button" id="sd-sv">💾 Лимит</button><button type="button" id="sd-rs">↺ Обнулить</button><button type="button" id="sd-x">✕</button></div></div>
+  ${SD.auto?`<div class="sd-tmr">🎁 Следующий сундук через <b id="sd-cd">${sdCd()}</b></div>`:""}
+  <div class="sd-ctl"${SD.hide?" hidden":""}><div class="sd-row"><button type="button" class="sd-big" id="sd-open">🎁 ОТКРЫТЬ</button><select id="sd-au">${[0,1,2,3,5].map(m=>`<option value="${m}"${SD.auto===m?" selected":""}>${m?"⏱ каждые "+m+" мин":"⏱ авто выкл"}</option>`).join("")}</select><button type="button" id="sd-more">${SD.more?"▾":"⚙️"}</button></div>
+   <div class="sd-more"${SD.more?"":" hidden"}><div class="sd-row">${[5,10,25,50,100].map(n=>`<button type="button" data-sd="${n}">${n} ⭐</button>`).join("")}<button type="button" data-sd="0">🎲</button></div>
+   <div class="sd-row"><input id="sd-lim" type="number" min="0" placeholder="Лимит банка" value="${B?B.lim:""}"><button type="button" id="sd-sv">💾 Лимит</button><button type="button" id="sd-rs">↺ Обнулить</button><button type="button" id="sd-x">✕</button></div></div></div>
   <button type="button" class="sd-eye" id="sd-eye">${SD.hide?"⚙️":"🙈"}</button>`;
   const wn=$("sd-wn");if(wn)wn.textContent=SD.win||"";
-  o.querySelectorAll("[data-sd]").forEach(b=>b.onclick=()=>sdNew(+b.dataset.sd));
-  $("sd-x").onclick=()=>{clearInterval(SD.poll);o.hidden=true};$("sd-eye").onclick=()=>{SD.hide=!SD.hide;sdDraw()};
+  o.querySelectorAll("[data-sd]").forEach(b=>b.onclick=()=>sdNew(+b.dataset.sd));$("sd-open").onclick=()=>sdNew(0);
+  $("sd-au").onchange=e=>{SD.auto=+e.target.value;clearInterval(SD.tk);if(SD.auto){SD.next=Date.now()+SD.auto*6e4;SD.tk=setInterval(sdTick,500)}sdDraw()};$("sd-more").onclick=()=>{SD.more=!SD.more;sdDraw()};
+  $("sd-x").onclick=()=>{clearInterval(SD.poll);clearInterval(SD.tk);SD.auto=0;o.hidden=true};$("sd-eye").onclick=()=>{SD.hide=!SD.hide;sdDraw()};
   $("sd-sv").onclick=async()=>{const b=await act("live_sd_bank",{lim:+$("sd-lim").value||0});if(b){SD.bank=b;toast("Лимит: "+b.lim+" ⭐");sdDraw()}};
   $("sd-rs").onclick=async()=>{const b=await act("live_sd_bank",{reset:1});if(b){SD.bank=b;toast("Банк обнулён");sdDraw()}}}
-async function sdNew(n){if(SD.st==="opening")return;const r=await act("live_sd_new",{stars:n});if(!r)return;clearInterval(SD.poll);SD.code=r.code;SD.stars=r.stars;SD.bank=r.bank;SD.win=null;SD.st="opening";sdDraw();
+function sdCd(){const s=Math.max(0,Math.ceil((SD.next-Date.now())/1e3));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+function sdTick(){if(!SD.auto)return;const e=$("sd-cd");if(e)e.textContent=sdCd();if(Date.now()>=SD.next&&SD.st!=="opening"){SD.next=Date.now()+SD.auto*6e4;sdNew(0)}}
+async function sdNew(n){if(SD.st==="opening")return;if(SD.auto)SD.next=Date.now()+SD.auto*6e4;const r=await act("live_sd_new",{stars:n});if(!r)return;clearInterval(SD.poll);SD.code=r.code;SD.stars=r.stars;SD.bank=r.bank;SD.win=null;SD.st="opening";sdDraw();
   const o=$("sdscr");o.classList.add("shake");try{sfx.spin&&sfx.spin()}catch(e){}
   setTimeout(()=>{o.classList.remove("shake");SD.st="open";sdDraw();try{sfx.fanfare()}catch(e){}try{burst(2)}catch(e){}},1800);
   SD.poll=setInterval(async()=>{if(SD.st!=="open")return;const g=await act("live_sd_get",{code:SD.code});if(g&&g.by_uid){SD.win=g.name||"игрок";SD.st="won";clearInterval(SD.poll);sdDraw();try{sfx.fanfare()}catch(e){}try{burst(5)}catch(e){}}else if(g&&g.gone){clearInterval(SD.poll);SD.st="idle";sdDraw()}},2000)}
