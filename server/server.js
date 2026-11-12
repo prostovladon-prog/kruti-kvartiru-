@@ -1985,6 +1985,7 @@ async function onUpdate(env,upd){
   const text=String(m.text||""),[cmd,arg]=text.split(/\s+/),name=String(m.from.first_name||"воин").slice(0,32);
   const play=(t,url)=>({inline_keyboard:[[{text:t,web_app:{url:url||PAGE}}],[{text:"📣 Канал игры",url:"https://t.me/"+CHANNEL.slice(1)}]]});
   if(cmd==="/start"&&arg&&/^(r_\d+|s_[A-Za-z0-9_-]{1,32})$/.test(arg)){await createUser(env,{id:m.from.id,name,start:arg});await trackSrc(env,{id:m.from.id,start:arg})}
+  else if(cmd==="/start")try{await createUser(env,{id:m.from.id,name,start:""})}catch(e){console.error("start-create",e&&e.message)}   // голый «Старт» тоже сохраняем — чтобы попал в рассылку
   if(cmd==="/start"&&arg&&/^a_[A-Za-z0-9_-]{1,32}$/.test(arg))await adStart(env,m.from.id,arg.slice(2));   // рекламная ссылка: считаем «Старт»   // приглашение по ссылке ?start=r_<id>
   if(cmd==="/stop"){try{await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(m.from.id).run()}catch(e){}
     return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"🔕 Уведомления выключены. Чтобы включить их снова, напиши /start"})}
