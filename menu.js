@@ -19,7 +19,7 @@ const MENU_GROUPS=[
   {k:"luck",ic:"🍀",n:"Оберег удачи",c:["#b8ffcf","#1e9a52"]},
   {k:"prof",ic:"👤",n:"Профиль",c:["#7cc8ff","#2a4fd0"]},
   {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]},
-  {k:"don",ic:"⭐",n:"Донат и понт",c:["#ffe9a8","#d06a00"]}]],
+  {k:"don",ic:"⭐",n:"Донат и понт",c:["#ffe9a8","#d06a00"]},{k:"sdlive",ic:"🎁",n:"Сундук в эфире",c:["#ffd23f","#c4400a"]},{k:"live",ic:"🎥",n:"Режим эфира",c:["#ff5a7a","#8a0a3a"]}]],
  ["Каждый день",[
   {k:"quest",ic:"🎯",n:"Задания",c:["#7ee89a","#1e8a4a"]},
   {k:"wheel",ic:"🎡",n:"Колесо",c:["#ffb84d","#d0302a"]},
@@ -91,6 +91,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
   if(S&&S.vts&&S.vts.length){const n=S.vts.filter(x=>!x.ch).length;h+='<button type="button" class="drw-ban vt'+(n?' pulse':'')+'" data-go="votes"><i>🗳</i><span><b>Голосование'+(n?' — голосуй!':' ✅')+'</b><small>'+(n?S.vts.filter(x=>!x.ch).map(x=>x.title).join(" · ")+' · +🎴 за голос':'Ты проголосовал везде — смотри результаты')+'</small></span><em>›</em></button>'}
   if(S&&S.ft&&!S.ft.ch)h+='<button type="button" class="drw-ban vt pulse" data-go="ftu"><i>🏆</i><span><b>Кто победит в бою '+S.ft.n+'?</b><small>'+ftuN(S.ft.a)+' vs '+ftuN(S.ft.b)+' · угадай и получи 🎴</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="admin"><i>👑</i><span><b>Админка</b><small>Онлайн, доход, новички, обучение и быстрые действия</small></span><em>›</em></button>';
+  if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="sdlive" style="background:linear-gradient(135deg,#ff9a1a,#c4100a)"><i>🎁</i><span><b>Сундук в эфире</b><small>Стрим: код на звёзды — кто первый ввёл, тот забрал</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="stars"><i>⭐</i><span><b>Звёзды игрокам</b><small>Начислить звёзды на игровой баланс и написать игроку</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
@@ -856,8 +857,8 @@ setInterval(()=>{try{const C=chData;if(!C||!C.chest||C.phase!=="on"||!S||!ONLINE
 
 /* ---------- 🎥 режим эфира: «открываю за тебя» (только админ) ---------- */
 /* «Эфир» убран из меню по просьбе админа */
-{const _mo=menuOpen;menuOpen=function(){_mo.apply(this,arguments);if(!(S&&S.admin))document.querySelectorAll('.drw-i[data-go="live"]').forEach(b=>b.remove())}}
-{const _mg=menuGo;menuGo=function(k){if(k==="live"){menuClose();return liveOpen()}return _mg.apply(this,arguments)}}
+{const _mo=menuOpen;menuOpen=function(){_mo.apply(this,arguments);if(!(S&&S.admin))document.querySelectorAll('.drw-i[data-go="live"],.drw-i[data-go="sdlive"]').forEach(b=>b.remove())}}
+{const _mg=menuGo;menuGo=function(k){if(k==="live"){menuClose();return liveOpen()}if(k==="sdlive"){menuClose();return sdOpen()}return _mg.apply(this,arguments)}}
 let LV=null;
 function liveOpen(){if(!S||!S.admin)return;let o=$("lvscr");if(!o){o=document.createElement("div");o.id="lvscr";o.className="lvscr";document.body.appendChild(o)}o.hidden=false;liveForm()}
 function liveForm(last){const o=$("lvscr");o.innerHTML=`<div class="lv-top"><button type="button" class="lv-x" id="lv-x">✕</button><b><i class="lv-rec"></i> РЕЖИМ ЭФИРА</b></div>
