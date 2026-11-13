@@ -1542,6 +1542,8 @@ async function adApi(env,me,a,p,origin){if(!isAdmin(env,me.id))fail("Нет до
     let base=adCode(p.code)||adCode(name.replace(/[а-яё]/gi,ch=>({а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"c",ч:"ch",ш:"sh",щ:"sh",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"}[ch.toLowerCase()]||"")).replace(/\s+/g,"_"))||"ad";
     let code=base;for(let i=2;await env.DB.prepare("SELECT 1 FROM ad_links WHERE code=?").bind(code).first();i++)code=(base.slice(0,28)+"_"+i);
     await env.DB.prepare("INSERT INTO ad_links(code,name,created) VALUES(?,?,?)").bind(code,name,now).run();return {code}}
+  if(a==="ad_refs"){const d0=(dayNum(Date.now()))*864e5-TZ,q=async(t)=>(await env.DB.prepare("SELECT r.ref AS uid,COALESCE(NULLIF(i.nick,''),i.name) AS name,COUNT(*) AS n,SUM(r.seen>0) AS op,SUM(COALESCE(json_extract(r.state,'$.nOp'),0)>=5) AS pl FROM users r LEFT JOIN users i ON i.id=r.ref WHERE r.ref IS NOT NULL AND r.created>=? GROUP BY r.ref ORDER BY n DESC LIMIT 15").bind(t).all()).results;
+    return {today:await q(d0),day:await q(Date.now()-864e5)}}
   if(a==="ad_hide"){await env.DB.prepare("UPDATE ad_links SET hidden=? WHERE code=?").bind(p.hidden?1:0,adCode(p.code)).run();return {}}
   const one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
   const links=(await env.DB.prepare("SELECT * FROM ad_links ORDER BY created DESC LIMIT 60").all()).results,out=[];
@@ -1565,21 +1567,25 @@ async function createUser(env,me){const st=freshState(),cash=st.cash,now=Date.no
   if(x2)st.guar=(st.guar||0)+1;
   const src=srcCode(me.start);
   const ins=await env.DB.prepare("INSERT OR IGNORE INTO users(id,name,cash,state,ver,created,updated,ref,src) VALUES(?,?,?,?,0,?,?,?,?)").bind(me.id,me.name,cash,JSON.stringify(st),now,now,inviter,src).run();
-  if(inviter&&ins.meta.changes===1){await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+? WHERE id=?").bind(x2?20:10,inviter).run();
+  /* «Старт» в боте без входа в игру — награду пригласившему отложить до первого входа (защита от накрутки) */
+  if(inviter&&ins.meta.changes===1&&me.bot){await kvSet(env,"refpend:"+me.id,{inv:inviter,x2:x2?1:0});}
+  else if(inviter&&ins.meta.changes===1)await refReward(env,inviter,x2);
+  if(ins.meta.changes===1)try{await env.DB.batch([bump(env,"new"),...(inviter?[bump(env,"new_ref")]:[])])}catch(e){}
+  return ins.meta.changes===1}
+async function refReward(env,inviter,x2){{await env.DB.prepare("UPDATE users SET refs=refs+1,gift_spins=gift_spins+? WHERE id=?").bind(x2?20:10,inviter).run();
     await promoCheck(env,inviter);
     // 15 друзей: первые трое получают по карточке «Основатель» из казны
     const iv=await env.DB.prepare("SELECT refs,founder FROM users WHERE id=?").bind(inviter).first();
     if(iv&&iv.refs>=FOUNDER_REFS&&!iv.founder){const c=await env.DB.prepare("SELECT id FROM cards WHERE owner=-1 AND f=5 ORDER BY id LIMIT 1").first();
       if(c){const t=await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=-1").bind(inviter,c.id).run();
-        if(t.meta.changes===1)await env.DB.prepare("UPDATE users SET founder=? WHERE id=? AND founder=0").bind(c.id,inviter).run()}}}
-  if(ins.meta.changes===1)try{await env.DB.batch([bump(env,"new"),...(inviter?[bump(env,"new_ref")]:[])])}catch(e){}
-  return ins.meta.changes===1}
+        if(t.meta.changes===1)await env.DB.prepare("UPDATE users SET founder=? WHERE id=? AND founder=0").bind(c.id,inviter).run()}}}}
 /* сколько карточек влезает в коллекцию игрока (база + купленное место + VIP) */
 async function capUid(env,id){const u=await env.DB.prepare("SELECT state,vip_until,vip_t FROM users WHERE id=?").bind(id).first();if(!u)return CAP;
   let st={};try{st=JSON.parse(u.state||"{}")}catch(e){}st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;return capOf(st)}
 async function loadUser(env,me){
   let u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first();
   if(!u){await createUser(env,me);u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first()}
+  else if(u.ref&&!u.seen)try{const pd=await kvGet(env,"refpend:"+me.id);if(pd&&pd.inv){await kvSet(env,"refpend:"+me.id,{done:1});await refReward(env,pd.inv,!!pd.x2)}}catch(e){console.error("refpend",e&&e.message)}
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);
   return {u,cards};
 }
@@ -3237,8 +3243,8 @@ async function onUpdate(env,upd){
   const m=upd.message;if(!m||!m.chat||m.chat.type!=="private"||!m.from)return;
   const text=String(m.text||""),[cmd,arg]=text.split(/\s+/),name=String(m.from.first_name||"воин").slice(0,32);
   const play=(t,url)=>({inline_keyboard:[[{text:t,web_app:{url:url||PAGE}}],[{text:"📣 Канал игры",url:"https://t.me/"+CHANNEL.slice(1)}]]});
-  if(cmd==="/start"&&arg&&/^(r_\d+|s_[A-Za-z0-9_-]{1,32})$/.test(arg)){await createUser(env,{id:m.from.id,name,start:arg});await trackSrc(env,{id:m.from.id,start:arg})}
-  else if(cmd==="/start")try{await createUser(env,{id:m.from.id,name,start:""})}catch(e){console.error("start-create",e&&e.message)}   // голый «Старт» тоже сохраняем — чтобы попал в рассылку
+  if(cmd==="/start"&&arg&&/^(r_\d+|s_[A-Za-z0-9_-]{1,32})$/.test(arg)){await createUser(env,{id:m.from.id,name,start:arg,bot:1});await trackSrc(env,{id:m.from.id,start:arg})}
+  else if(cmd==="/start")try{await createUser(env,{id:m.from.id,name,start:"",bot:1})}catch(e){console.error("start-create",e&&e.message)}   // голый «Старт» тоже сохраняем — чтобы попал в рассылку
   if(cmd==="/start"&&arg&&/^a_[A-Za-z0-9_-]{1,32}$/.test(arg))await adStart(env,m.from.id,arg.slice(2));   // рекламная ссылка: считаем «Старт»   // приглашение по ссылке ?start=r_<id>
   if(cmd==="/stop"){try{await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(m.from.id).run()}catch(e){}
     return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"🔕 Уведомления выключены. Чтобы включить их снова, напиши /start"})}
@@ -4083,7 +4089,7 @@ async function handle(req,env){{
         await paidUpdate(env,me.id,{currency:"XTR",total_amount:P.stars,invoice_payload:"p"+P.id,telegram_payment_charge_id:"sim"+P.id});return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)})}
       if(a==="dtop")return J({ok:true,res:await dtopGet(env,me)});
       if(a==="dg_top")return J({ok:true,res:await dgTop(env,me)});
-      if(/^ad_(list|create|hide)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
+      if(/^ad_(list|create|hide|refs)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
       if(/^dm_(list|get|send|block|report)$/.test(a))return J({ok:true,res:await dmApi(env,me,a,p)});
       if(/^dga_(info|fight)$/.test(a))return J({ok:true,res:await dgaApi(env,me,a,p),S:await stateFor(env,me)});
       if(a==="dg_looks")return J({ok:true,res:await dgLooks(env,p.uids)});

@@ -9,7 +9,7 @@ function admDraw(R){const sh=$("msheet");if(!sh)return;const U=R.U,F=R.F,n=x=>Nu
   sh.innerHTML='<div class="box nickbox admbox"><div class="ad-hd"><b>👑 Админка</b><button type="button" id="ad-rl">⟳</button></div>'+
    '<div class="ad-g">'+tile(n(U.on),"онлайн сейчас","#3ddc84","📨 в рассылке: "+n(U.pm||0)+" из "+n(U.n||0))+tile(n(U.a1),"играли сегодня","#0a84ff")+tile(n(U.t),"новых сегодня","#ffb020",(U.to_!=null?"открыли игру "+n(U.to_)+" · ":"")+"вчера "+n(U.y))+tile(n(R.S.t)+" ⭐","доход сегодня","#ffd23f",n(R.S.tu)+" покупателей · вчера "+n(R.S.y))+'</div>'+
    '<div class="ad-s"><h4>📅 Неделя</h4><div class="ad-g3">'+tile(n(U.w),"новых за 7 дней","#ffb020")+tile(n(U.a7),"активных за 7 дней","#0a84ff")+tile(n(R.S.w)+" ⭐","доход за 7 дней","#ffd23f")+'</div>'+chart+'</div>'+
-   '<div class="ad-s"><h4>🎓 Новое обучение <small>с '+new Date(F.since).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</small></h4>'+
+   '<div class="ad-s" id="ad-refs"><h4>👥 Кто больше всех пригласил <small>за сутки</small></h4><button type="button" class="mini2" id="ad-refs-go">Показать</button></div>'+'<div class="ad-s"><h4>🎓 Новое обучение <small>с '+new Date(F.since).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</small></h4>'+
     step("Пришли новые",F.n,F.n)+step("Прошли обучение и поставили ник",F.nk,F.n)+step("Сделали 15 открытий",F.o15,F.n)+step("Подписались на канал",F.sub,F.n)+step("Вернулись на следующий день",F.back,F.n)+'</div>'+
    '<div class="ad-s"><h4>⚡ Быстрые действия</h4><div class="ad-bs">'+go("stars","⭐","Звёзды игроку")+go("promo","🎟","Создать промокод")+go("ads","📈","Реклама")+go("dm","✉️","Сообщения")+go("rf","🎁","Реф-слоты")+go("vote","🗳","Голосования")+go("tut","🎓","Обучение")+go("chat","💬","Чат")+'</div><button type="button" class="tu-next ad-all" id="ad-all">📊 Вся подробная статистика</button><div>'+'</div>'+
    '<small class="ad-n">Всего игроков: <b>'+n(U.n)+'</b> · пришли по приглашениям в реф-слотах: <b>'+n(R.ref)+'</b></small></div>'+
@@ -26,3 +26,8 @@ function admClean(){["vid-go","pr-adm","ttadm","stadm"].forEach(id=>{const e=doc
 function admStats(){const b=ADMST||document.getElementById("admin-stats");if(!b)return toast("Статистика ещё грузится — попробуй через пару секунд");const m=$("modal"),sh=$("msheet");m.hidden=false;
   sh.innerHTML='<div class="box nickbox admbox adst"><div class="ad-hd"><b>📊 Вся статистика</b><button type="button" id="ad-sb">← Назад</button></div><div id="ad-st"></div></div>';
   $("ad-st").appendChild(b);b.hidden=false;$("ad-sb").onclick=admOpen;try{loadStats(true)}catch(e){}[300,1200,3000].forEach(t=>setTimeout(admClean,t))}
+
+/* топ пригласивших за сутки — видно накрутку: много «Стартов», мало открыли игру */
+document.addEventListener("click",async e=>{if(!e.target.closest("#ad-refs-go"))return;const r=await act("ad_refs",{});if(!r)return;const B=$("ad-refs");
+  const row=x=>'<div class="ad-rf"><b>'+(x.name?String(x.name).replace(/[<>&]/g,""):"id "+x.uid)+'</b><small>id '+x.uid+'</small><span>'+x.n+' пришли · открыли игру '+(x.op||0)+' · играют '+(x.pl||0)+'</span>'+(x.n>=10&&(x.op||0)<x.n/3?'<em>⚠️ похоже на накрутку</em>':'')+'</div>';
+  B.innerHTML='<h4>👥 Кто больше всех пригласил <small>за сутки</small></h4>'+((r.day||[]).map(row).join("")||'<p class="cln">Никого</p>')});
