@@ -1831,10 +1831,10 @@ const STREAK_SQL="WITH dd AS (SELECT uid,d,d-ROW_NUMBER() OVER (PARTITION BY uid
 async function adminStats(env){
   const now=Date.now(),t0=(dayNum(now))*864e5-TZ,D=864e5,one=async(q,...a)=>(await env.DB.prepare(q).bind(...a).first())||{};
   const tot=await one("SELECT COUNT(*) AS n,SUM(ref IS NOT NULL) AS r,SUM(nick IS NOT NULL) AS nk FROM users");
-  const nw=await one("SELECT SUM(created>=?) AS d0,SUM(created>=? AND created<?) AS d1,SUM(created>=?) AS w,SUM(created>=? AND ref IS NOT NULL) AS r0 FROM users WHERE created>=?",t0,t0-D,t0,t0-6*D,t0,t0-6*D);
+  const nw=await one("SELECT SUM(created>=?) AS d0,SUM(created>=? AND created<?) AS d1,SUM(created>=?) AS w,SUM(created>=? AND ref IS NOT NULL) AS r0 FROM users WHERE seen>0 AND created>=?",t0,t0-D,t0,t0-6*D,t0,t0-6*D);
   const act=await one("SELECT SUM(seen>=?) AS d0,SUM(seen>=?) AS w FROM users WHERE seen>=?",t0,t0-6*D,t0-6*D);
   // возврат на второй день: игроки, пришедшие с 8 по 1 день назад (у них второй день уже прошёл)
-  const ret=await one("SELECT COUNT(*) AS n,SUM(d1) AS d1,SUM(back) AS b FROM users WHERE created>=? AND created<?",t0-8*D,t0-D);
+  const ret=await one("SELECT COUNT(*) AS n,SUM(d1) AS d1,SUM(back) AS b FROM users WHERE seen>0 AND created>=? AND created<?",t0-8*D,t0-D);
   const days=[];for(let i=13;i>=0;i--)days.push(dayOf(now-i*D));
   const rows=(await env.DB.prepare(`SELECT day,k,n FROM stats WHERE day>=?`).bind(days[0]).all()).results;
   const by={};rows.forEach(r=>{(by[r.day]=by[r.day]||{})[r.k]=r.n});
@@ -1847,8 +1847,8 @@ async function adminStats(env){
   let streaks=[];try{streaks=(await env.DB.prepare(STREAK_SQL+" SELECT u.src AS code,COUNT(*) AS n,SUM(r.mx>=2) AS s2,SUM(r.mx>=3) AS s3,SUM(r.mx>=5) AS s5,SUM(r.mx>=7) AS s7,SUM(r.cur>=2) AS now2 FROM users u LEFT JOIN best r ON r.uid=u.id WHERE u.src IS NOT NULL GROUP BY u.src").bind(dayNum(now)).all()).results}catch(e){console.error("streaks",e)}
   let retC=[],nbF={},pathF={};try{const t14=(dayNum(Date.now())-14)*864e5-TZ;
     retC=(await env.DB.prepare("SELECT cd,COUNT(*) AS n,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=u.id AND x.d=u.cd+1)) AS d1,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=u.id AND x.d=u.cd+3)) AS d3,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=u.id AND x.d=u.cd+7)) AS d7,SUM(COALESCE(json_extract(u.state,'$.nOp'),0)>=5) AS s5 FROM (SELECT id,state,CAST((created+?)/86400000 AS INTEGER) AS cd FROM users WHERE created>=?) u GROUP BY cd ORDER BY cd DESC").bind(TZ,t14).all()).results.map(r=>({...r,day:new Date(r.cd*864e5).toISOString().slice(5,10).split("-").reverse().join(".")}));
-    for(const r of (await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nb.n'),0) AS k,COUNT(*) AS n FROM users WHERE created>=? GROUP BY k").bind(t14).all()).results)nbF[r.k]=r.n;
-    for(const r of (await env.DB.prepare("SELECT COALESCE(json_array_length(json_extract(state,'$.path.got')),0)+COALESCE(json_extract(state,'$.path.fin'),0) AS k,COUNT(*) AS n FROM users WHERE created>=? GROUP BY k").bind(t14).all()).results)pathF[r.k]=r.n}catch(e){console.error("ret",e)}
+    for(const r of (await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nb.n'),0) AS k,COUNT(*) AS n FROM users WHERE seen>0 AND created>=? GROUP BY k").bind(t14).all()).results)nbF[r.k]=r.n;
+    for(const r of (await env.DB.prepare("SELECT COALESCE(json_array_length(json_extract(state,'$.path.got')),0)+COALESCE(json_extract(state,'$.path.fin'),0) AS k,COUNT(*) AS n FROM users WHERE seen>0 AND created>=? GROUP BY k").bind(t14).all()).results)pathF[r.k]=r.n}catch(e){console.error("ret",e)}
   return {retC,nbF,pathF,x,streaks,srcs,players:tot.n||0,fromRef:tot.r||0,withNick:tot.nk||0,newToday:nw.d0||0,newYesterday:nw.d1||0,newWeek:nw.w||0,newRefToday:nw.r0||0,
     activeToday:act.d0||0,activeWeek:act.w||0,cohort:ret.n||0,d1:ret.d1||0,back:ret.b||0,
     today:{open:T.a_open||0,craft:T.a_craft||0,duel:(T.a_duel||0)+(T.a_fduel||0),boss:T.a_boss_hit||0,forge:T.a_forge||0,story:T.a_story||0,sales:sales.n||0,salesV:Math.round(sales.v||0)},
@@ -2533,12 +2533,12 @@ async function rfApi(env,me,a,p){const now=Date.now();
 /* 👑 Админка: короткая сводка + воронка нового обучения */
 const TUT_T=Date.UTC(2026,10,9,18,20);
 async function admDash(env){const PD="status IN ('paid','done') AND COALESCE(charge,'')<>'bal'",now=Date.now(),d0=(dayNum(now))*864e5-TZ,one=async(q,...a)=>(await env.DB.prepare(q).bind(...a).first())||{};
-  const U=await one("SELECT COUNT(*) AS n,SUM(pm=1) AS pm,SUM(created>=?) AS t,SUM(created>=?1 AND seen>0) AS to_,SUM(created>=? AND created<?) AS y,SUM(created>=?) AS w,SUM(updated>=?) AS on5 FROM users",d0,d0-864e5,d0,d0-6*864e5,now-5*6e4);U.a1=(await one("SELECT COUNT(*) AS n FROM user_days WHERE d=?",dayNum(now))).n||0;
+  const U=await one("SELECT SUM(seen>0) AS n,SUM(pm=1) AS pm,SUM(created>=?1 AND seen>0) AS t,SUM(created>=?1 AND seen=0) AS to_,SUM(created>=? AND created<? AND seen>0) AS y,SUM(created>=? AND seen>0) AS w,SUM(updated>=?) AS on5 FROM users",d0,d0-864e5,d0,d0-6*864e5,now-5*6e4);U.a1=(await one("SELECT COUNT(*) AS n FROM users WHERE seen>=?",d0)).n||0;U.y=(await one("SELECT COUNT(*) AS n FROM users WHERE created>=? AND created<? AND seen>0",d0-864e5,d0)).n||0;U.w=(await one("SELECT COUNT(*) AS n FROM users WHERE created>=? AND seen>0",d0-6*864e5)).n||0;
   const A7=await one("SELECT COUNT(DISTINCT uid) AS n FROM user_days WHERE d>=?",dayNum(now)-6);
   const st=async(a,b)=>(await one(`SELECT COALESCE(SUM(stars),0) AS s,COUNT(DISTINCT uid) AS u FROM payments WHERE ${PD} AND COALESCE(paid,created)>=? AND COALESCE(paid,created)<?`,a,b));
   const sT=await st(d0,now+1),sY=await st(d0-864e5,d0),sW=await st(d0-6*864e5,now+1);
   const days=[];for(let i=6;i>=0;i--){const a=d0-i*864e5;days.push({d:new Date(a+TZ).toISOString().slice(5,10),n:(await one("SELECT COUNT(*) AS n FROM users WHERE created>=? AND created<?",a,a+864e5)).n||0,a:(await one("SELECT COUNT(*) AS n FROM user_days WHERE d=?",dayNum(a))).n||0,s:(await st(a,a+864e5)).s||0})}
-  const F=await one("SELECT COUNT(*) AS n,SUM(COALESCE(nick,'')<>'') AS nk,SUM(COALESCE(json_extract(state,'$.nOp'),0)>=15) AS o15,SUM(COALESCE(json_extract(state,'$.subGot2'),0)=1) AS sub,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=users.id AND x.d>CAST((users.created+?)/86400000 AS INTEGER))) AS back FROM users WHERE created>=?",TZ,TUT_T);
+  const F=await one("SELECT COUNT(*) AS n,SUM(COALESCE(nick,'')<>'') AS nk,SUM(COALESCE(json_extract(state,'$.nOp'),0)>=15) AS o15,SUM(COALESCE(json_extract(state,'$.subGot2'),0)=1) AS sub,SUM(EXISTS(SELECT 1 FROM user_days x WHERE x.uid=users.id AND x.d>CAST((users.created+?)/86400000 AS INTEGER))) AS back FROM users WHERE seen>0 AND created>=?",TZ,TUT_T);
   const R=await one("SELECT COUNT(*) AS reg FROM users WHERE ref IS NOT NULL AND created>=?",RF.start);
   return {U:{n:U.n||0,pm:U.pm||0,t:U.t||0,to_:U.to_||0,y:U.y||0,w:U.w||0,on:U.on5||0,a1:U.a1||0,a7:A7.n||0},S:{t:sT.s||0,tu:sT.u||0,y:sY.s||0,w:sW.s||0},days,F:{since:TUT_T,n:F.n||0,nk:F.nk||0,o15:F.o15||0,sub:F.sub||0,back:F.back||0},ref:R.reg||0}}
 /* ---------- 🏆 «Турнир Эпох»: видео-турнир 10 воинов, зрители угадывают победителя каждого боя ---------- */
