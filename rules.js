@@ -822,7 +822,8 @@ const ACTIONS={
     if(st.spins<=0)fail("Прокрутки закончились");
     if(G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
     st.spins--;if(st.spins<spinCap(st)&&!st.refillAt)st.refillAt=ctx.now+REFILL_MS;if(st.dg)dgAddXp(st,ctx,DG.spinXp);
-    const epic=(st.guar||0)>0||(st.pity||0)>=PITY-1;let c=null;
+    const g8=!st.g8&&(st.nOp||0)===7;if(g8)st.g8=1;   // новичку: 8-е открытие — гарантированно эпик или выше (удержание)
+    const epic=g8||(st.guar||0)>0||(st.pity||0)>=PITY-1;let c=null;
     const rr=ctx.noRare?1:Math.random();   // noRare — только для автотестов
     if(!ctx.noRare&&Math.random()<THOR_P)try{c=rollOne(ctx,THOR)}catch(e){}   // Тор: один шанс на миллион
     if(c){}else if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч

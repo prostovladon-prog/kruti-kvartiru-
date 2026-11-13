@@ -1815,9 +1815,9 @@ const canPmAsk=()=>ONLINE&&!S.pm&&tg&&tg.requestWriteAccess&&(!tg.isVersionAtLea
 function renderPm(){const row=$("pm-row");if(row)row.hidden=!canPmAsk()}
 function enablePm(){if(!canPmAsk())return;try{tg.requestWriteAccess(ok=>{if(ok){act("pm_on").then(r=>{S.pm=1;renderAll();renderPm();if(r&&r.bonus){sfx.reveal(2);burst(3);hapN("success");toast("🔔 Напоминания включены! +"+r.bonus+" прокрутки в подарок 🎁")}else toast("🔔 Напоминания включены! Бот напишет, когда прокрутки будут готовы")})}else toast("Без разрешения бот не сможет напомнить о прокрутках")})}catch(e){}}
 $("pm-go").onclick=enablePm;
-function askPm(){return;if(!canPmAsk()||!$("modal").hidden)return;let asked=null;try{asked=localStorage.getItem("we-pm-ask")}catch(e){}if(asked)return;try{localStorage.setItem("we-pm-ask","1")}catch(e){}
+function askPm(){if(!canPmAsk()||!$("modal").hidden)return;const k="we-pm-ask-"+mskDay(NOW());let asked=null;try{asked=localStorage.getItem(k)}catch(e){}if(asked)return;try{localStorage.setItem(k,"1")}catch(e){}
   const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  sh.innerHTML='<div class="box nickbox"><h3>🔔 Напомнить о прокрутках?</h3><p>Новые '+SPINS_MAX+' прокруток будут через 4 часа. Бот напишет, когда они будут готовы, а ещё если кто-то нападёт на твоих воинов или купит твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pm-yes">Да, напоминать</button><button type="button" class="ghost" id="pm-no">Не надо</button></div>';
+  sh.innerHTML='<div class="box nickbox"><h3>🔔 Включи напоминания — +5 🎴</h3><p>Новые '+SPINS_MAX+' прокруток будут через 4 часа. Бот напишет, когда они будут готовы, а ещё если кто-то нападёт на твоих воинов или купит твою карточку. Ночью не пишет.</p><button type="button" class="craftbtn" id="pm-yes">Да, напоминать</button><button type="button" class="ghost" id="pm-no">Не надо</button></div>';
   $("pm-yes").onclick=()=>{closeModal();enablePm()};$("pm-no").onclick=closeModal}
 
 /* ---------- подсказка про закалку ---------- */
@@ -2549,3 +2549,6 @@ $("stage").addEventListener("click",()=>{$("p-lbl").textContent="Цена кар
 
 /* свернули приложение — анимации на паузе, телефон не греется */
 document.addEventListener("visibilitychange",()=>{document.body.classList.toggle("paused",document.hidden)});
+
+/* раз в день предлагаем включить сообщения от бота (+5 прокруток) — когда игрок уже освоился */
+setInterval(()=>{try{if(S&&ONLINE&&S.nick&&(S.nOp||0)>=5&&canPmAsk()&&!popShown&&$("modal").hidden&&!document.querySelector(".wsheet,.wrev,.terms,#onb,.onb-hl,.cqbt,.sdscr:not([hidden])"))askPm()}catch(e){}},7000);
