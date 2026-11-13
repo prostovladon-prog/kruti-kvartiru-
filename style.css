@@ -3353,3 +3353,4 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .sd-ctl .sd-big{flex:1;width:auto;font-size:17px;padding:10px}.sd-ctl select{border:2px solid #000;border-radius:12px;background:#fff;color:#111;font:inherit;font-weight:800;font-size:14px;padding:8px}.sd-ctl{bottom:1.2vh}
 .sd-tmr.top{margin-top:1.4vh;font-size:min(7vw,4.4vh);padding:1vh 4vw;background:rgba(0,0,0,.6);box-shadow:0 0 3vh rgba(255,210,63,.5)}.sd-tmr.top b{font-size:1.25em;font-variant-numeric:tabular-nums}
 .ad-rf{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:7px 0;border-bottom:1px solid #ffffff14}.ad-rf small{opacity:.6}.ad-rf span{width:100%;font-size:13px}.ad-rf em{font-style:normal;color:#ff5a5a;font-weight:800;font-size:13px}
+.ad-rb{display:flex;gap:6px;width:100%;margin-top:4px}.ad-rb .red{background:#ff4a4a;color:#fff}

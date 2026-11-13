@@ -1542,6 +1542,9 @@ async function adApi(env,me,a,p,origin){if(!isAdmin(env,me.id))fail("Нет до
     let base=adCode(p.code)||adCode(name.replace(/[а-яё]/gi,ch=>({а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"c",ч:"ch",ш:"sh",щ:"sh",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"}[ch.toLowerCase()]||"")).replace(/\s+/g,"_"))||"ad";
     let code=base;for(let i=2;await env.DB.prepare("SELECT 1 FROM ad_links WHERE code=?").bind(code).first();i++)code=(base.slice(0,28)+"_"+i);
     await env.DB.prepare("INSERT INTO ad_links(code,name,created) VALUES(?,?,?)").bind(code,name,now).run();return {code}}
+  if(a==="ad_wipe"){const id=+p.uid;if(!id||isAdmin(env,id))fail("Нельзя");const st=freshState();delete st.cash;st.banned=1;
+    await env.DB.batch([env.DB.prepare("DELETE FROM cards WHERE owner=?").bind(id),env.DB.prepare("UPDATE users SET cash=0,star_bal=0,gift_spins=0,refs=0,vip_until=0,vip_t=0,state=?,ver=ver+1 WHERE id=?").bind(JSON.stringify(st),id),env.DB.prepare("UPDATE users SET ref=NULL WHERE ref=? AND seen=0").bind(id)]);
+    return {ok:1}}
   if(a==="ad_refs"){const d0=(dayNum(Date.now()))*864e5-TZ,q=async(t)=>(await env.DB.prepare("SELECT r.ref AS uid,COALESCE(NULLIF(i.nick,''),i.name) AS name,COUNT(*) AS n,SUM(r.seen>0) AS op,SUM(COALESCE(json_extract(r.state,'$.nOp'),0)>=5) AS pl FROM users r LEFT JOIN users i ON i.id=r.ref WHERE r.ref IS NOT NULL AND r.created>=? GROUP BY r.ref ORDER BY n DESC LIMIT 15").bind(t).all()).results;
     return {today:await q(d0),day:await q(Date.now()-864e5)}}
   if(a==="ad_hide"){await env.DB.prepare("UPDATE ad_links SET hidden=? WHERE code=?").bind(p.hidden?1:0,adCode(p.code)).run();return {}}
@@ -4089,7 +4092,7 @@ async function handle(req,env){{
         await paidUpdate(env,me.id,{currency:"XTR",total_amount:P.stars,invoice_payload:"p"+P.id,telegram_payment_charge_id:"sim"+P.id});return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)})}
       if(a==="dtop")return J({ok:true,res:await dtopGet(env,me)});
       if(a==="dg_top")return J({ok:true,res:await dgTop(env,me)});
-      if(/^ad_(list|create|hide|refs)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
+      if(/^ad_(list|create|hide|refs|wipe)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
       if(/^dm_(list|get|send|block|report)$/.test(a))return J({ok:true,res:await dmApi(env,me,a,p)});
       if(/^dga_(info|fight)$/.test(a))return J({ok:true,res:await dgaApi(env,me,a,p),S:await stateFor(env,me)});
       if(a==="dg_looks")return J({ok:true,res:await dgLooks(env,p.uids)});

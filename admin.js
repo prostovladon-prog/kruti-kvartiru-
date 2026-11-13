@@ -29,5 +29,8 @@ function admStats(){const b=ADMST||document.getElementById("admin-stats");if(!b)
 
 /* топ пригласивших за сутки — видно накрутку: много «Стартов», мало открыли игру */
 document.addEventListener("click",async e=>{if(!e.target.closest("#ad-refs-go"))return;const r=await act("ad_refs",{});if(!r)return;const B=$("ad-refs");
-  const row=x=>'<div class="ad-rf"><b>'+(x.name?String(x.name).replace(/[<>&]/g,""):"id "+x.uid)+'</b><small>id '+x.uid+'</small><span>'+x.n+' пришли · открыли игру '+(x.op||0)+' · играют '+(x.pl||0)+'</span>'+(x.n>=10&&(x.op||0)<x.n/3?'<em>⚠️ похоже на накрутку</em>':'')+'</div>';
+  const row=x=>'<div class="ad-rf"><b>'+(x.name?String(x.name).replace(/[<>&]/g,""):"id "+x.uid)+'</b><small>id '+x.uid+'</small><span>'+x.n+' пришли · открыли игру '+(x.op||0)+' · играют '+(x.pl||0)+'</span>'+(x.n>=10&&(x.op||0)<x.n/3?'<em>⚠️ похоже на накрутку</em>':'')+'<span class="ad-rb"><button type="button" class="mini2" data-dmu="'+x.uid+'">✉️ Написать</button>'+(x.n>=10&&(x.op||0)<x.n/3?'<button type="button" class="mini2 red" data-wipe="'+x.uid+'">🧹 Обнулить аккаунт</button>':'')+'</span></div>';
   B.innerHTML='<h4>👥 Кто больше всех пригласил <small>за сутки</small></h4>'+((r.day||[]).map(row).join("")||'<p class="cln">Никого</p>')});
+document.addEventListener("click",async e=>{const d=e.target.closest("[data-dmu]");if(d){closeModal();dmThread(+d.dataset.dmu);return}
+  const w=e.target.closest("[data-wipe]");if(!w)return;if(!confirm("Обнулить аккаунт id "+w.dataset.wipe+"? Удалятся ВСЕ карточки, монеты, звёзды, прокрутки и VIP. Это нельзя отменить."))return;
+  const r=await act("ad_wipe",{uid:+w.dataset.wipe});if(r){toast("🧹 Аккаунт обнулён");w.disabled=true;w.textContent="Обнулён"}});
