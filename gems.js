@@ -121,9 +121,9 @@ function cwDraw(){const D=CWD,sh=$("msheet"),R=34,W=7*R*1.75,H=7*R*1.6;
 /* ===== Анимация открытия сундука перед показом наград ===== */
 {const _sg=showGrant;showGrant=function(R,title){const cs=(R&&R.cards)||[];if(!cs.length)return _sg(R,title);
   const best=Math.max(...cs.map(c=>Math.max(HEROES[c.h][2],c.f>=4?4:c.f>=3?3:0))),col=["#c8d0e0","#3ddc84","#2f8bff","#bf5af2","#ffd23f"][best];
-  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="chx" style="--g:'+col+'"><div class="chx-rays"></div><div class="chx-box"><div class="chx-lid"></div><div class="chx-body"></div><div class="chx-lock"></div></div><p>Нажми, чтобы открыть!</p></div>';
-  let done=false;const go=()=>{if(done)return;done=true;const x=sh.querySelector(".chx");x.classList.add("open");try{hap&&hap("heavy");sfx.coin()}catch(e){}setTimeout(()=>{try{burst(best>=3?3:1)}catch(e){}_sg(R,title)},650)};
-  sh.querySelector(".chx").onclick=go;setTimeout(go,2200)}}
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="chst" style="--g:'+col+'"><div class="chst-rays"></div><div class="chst-box"><div class="chst-lid"></div><div class="chst-body"></div><div class="chst-lock"></div></div><p>Нажми, чтобы открыть!</p></div>';
+  let done=false;const go=()=>{if(done)return;done=true;const x=sh.querySelector(".chst");x.classList.add("open");try{hap&&hap("heavy");sfx.coin()}catch(e){}setTimeout(()=>{try{burst(best>=3?3:1)}catch(e){}_sg(R,title)},650)};
+  sh.querySelector(".chst").onclick=go;setTimeout(go,2200)}}
 /* ===== Гемы в окне карточки + анимация вставки ===== */
 {const _ocv=openCardView;openCardView=function(c,o){_ocv(c,o);try{if(!o||!o.mine||!S)return;const n=gemSlots(c);if(!n)return;const sh=$("msheet"),info=sh.querySelector(".cv-info");if(!info||sh.querySelector(".gem-cv"))return;
   const g=(S.gsock||{})[c.id]||[],d=document.createElement("div");d.className="gem-cv";let h='<b>💎 Гемы</b><div class="gem-slots">';
@@ -153,3 +153,21 @@ function n2Open(){const N=S&&S.n2;if(!N)return;$("modal").hidden=false;const sh=
 {const _ra=renderAll;let n2shown=false;renderAll=function(){const r=_ra.apply(this,arguments);try{if(!n2shown&&S&&S.n2&&!S.n2.got&&$("modal").hidden&&(S.nOp||0)>=3){let k=0;try{k=localStorage.getItem("we-n2")}catch(e){}if(!k){n2shown=true;try{localStorage.setItem("we-n2","1")}catch(e){}setTimeout(()=>{if($("modal").hidden)n2Open()},1500)}}}catch(e){}return r}}
 /* ===== производительность: кнопку чата пересчитываем раз в кадр, а не после каждой перерисовки (убирает принудительную раскладку) ===== */
 {const _fu=fabUpdate;let q=0;fabUpdate=function(){if(q)return;q=requestAnimationFrame(()=>{q=0;try{_fu()}catch(e){}})}}
+/* ===== Опросы в чате ===== */
+let POLLS=[];
+function pollCard(P){const tot=P.tot||0,voted=P.my!=null||P.closed;
+  return '<div class="pl-card" data-pid="'+P.id+'"><b class="pl-q">📊 '+escH(P.q)+(P.closed?' <small>(закрыт)</small>':'')+'</b>'+P.opts.map((o,i)=>{const pc=tot?Math.round(P.n[i]/tot*100):0;
+    return '<button type="button" class="pl-o'+(P.my===i?' my':'')+(voted?' res':'')+'" data-opt="'+i+'"'+(P.closed?' disabled':'')+'>'+(voted?'<i style="width:'+pc+'%"></i>':'')+'<span>'+escH(o)+'</span>'+(voted?'<em>'+pc+'%</em>':'')+'</button>'}).join("")+
+    '<small class="pl-f">'+tot+' '+plural(tot,"голос","голоса","голосов")+(P.my!=null&&!P.closed?' · можно переголосовать':'')+'</small>'+(S.admin?'<div class="pl-adm">'+(P.closed?'':'<button type="button" class="mini2" data-pc="'+P.id+'">Закрыть</button>')+'<button type="button" class="mini2" data-pd="'+P.id+'">Удалить</button></div>':'')+'</div>'}
+async function pollLoad(){const r=await act("poll_list",{});if(r){POLLS=r.polls||[];pollDraw()}}
+function pollDraw(){const box=$("ch-poll");if(!box)return;const L=POLLS.filter(p=>!p.closed).concat(POLLS.filter(p=>p.closed).slice(0,1));
+  box.innerHTML=(S.admin?'<button type="button" class="pl-new" id="pl-new">📊 Создать опрос</button>':'')+L.map(pollCard).join("");
+  box.onclick=async e=>{const o=e.target.closest("[data-opt]");if(o&&!o.disabled){const id=+o.closest("[data-pid]").dataset.pid,r=await act("poll_vote",{id,opt:+o.dataset.opt});if(r){POLLS=POLLS.map(p=>p.id===id?r:p);if(S.poll&&S.poll.id===id)S.poll.v=1;try{hap("light")}catch(x){}pollDraw()}return}
+    const c=e.target.closest("[data-pc]");if(c){await act("poll_close",{id:+c.dataset.pc});return pollLoad()}
+    const d=e.target.closest("[data-pd]");if(d){if(!confirm("Удалить опрос?"))return;await act("poll_del",{id:+d.dataset.pd});return pollLoad()}
+    if(e.target.id==="pl-new")pollNew()}}
+function pollNew(){const box=$("ch-poll");box.innerHTML='<div class="pl-card pl-form"><b>📊 Новый опрос</b><input id="pl-q" maxlength="200" placeholder="Вопрос"><div id="pl-os">'+[1,2,3].map(i=>'<input class="pl-oi" maxlength="60" placeholder="Вариант '+i+'">').join("")+'</div><button type="button" class="mini2" id="pl-add">＋ вариант</button><div class="pl-adm"><button type="button" class="craftbtn" id="pl-go">Опубликовать</button><button type="button" class="ghost" id="pl-x">Отмена</button></div></div>';
+  $("pl-add").onclick=()=>{const n=document.querySelectorAll(".pl-oi").length;if(n>=6)return toast("Максимум 6 вариантов");$("pl-os").insertAdjacentHTML("beforeend",'<input class="pl-oi" maxlength="60" placeholder="Вариант '+(n+1)+'">')};
+  $("pl-x").onclick=pollDraw;$("pl-go").onclick=async()=>{const r=await act("poll_create",{q:$("pl-q").value,opts:[...document.querySelectorAll(".pl-oi")].map(x=>x.value)});if(r){toast("📊 Опрос опубликован — его видят все в чате");pollLoad()}}}
+{const _oc=openChat;openChat=function(){const r=_oc.apply(this,arguments);try{const L=$("ch-list");if(L&&!$("ch-poll")){const d=document.createElement("div");d.id="ch-poll";d.className="ch-poll";L.before(d);pollLoad()}}catch(e){}return r}}
+{const _mg=menuGo;menuGo=function(k){if(k==="poll"){menuClose();return openChat()}return _mg.apply(this,arguments)}}
