@@ -549,10 +549,10 @@ const DQ=[{k:"tap",n:300,ic:"🏕",t:"Натапай 300 в лагере"},{k:"t
  {k:"cas",n:5,ic:"🎰",t:"Сделай 5 игр в казино"},{k:"clan",n:1,ic:"🛡",t:"Ударь босса клана"},{k:"sell",n:5,ic:"💰",t:"Продай 5 карточек"}];
 const DSP_BUY={n:3,cash:5000000,day:1};   // 3 Особых прокрута за монеты — очень дорого, раз в день
 /* повторяемые и очень сложные: можно получать сколько угодно раз за день */
-const DQR=[{k:"tap",per:3000,ic:"🏕",t:"Каждые 3000 тапов в лагере"},{k:"open",per:50,ic:"🎴",t:"Каждые 50 открытых карточек"},{k:"win",per:15,ic:"⚔️",t:"Каждые 15 побед в боях"}];
+const DQR=[{k:"tap",per:6000,ic:"🏕",t:"Каждые 6000 тапов (нажатий) в лагере"},{k:"open",per:50,ic:"🎴",t:"Каждые 50 открытых карточек"},{k:"ws",per:30,ic:"⚔️",t:"Каждые 30 побед в боях ПОДРЯД"}];
 function dqDay(st,now){const d=today(now);if(!st.dq||st.dq.d!==d)st.dq={d,c:{},got:[]};return st.dq}
 /* прогресс задания: считаем и то, что игрок сделал сегодня ДО появления заданий (открытия, бои, дракон, колесо, кузня) */
-function dqProg(st,now,k){const Q=dqDay(st,now),d=today(now),D=day(st,now);let v=Q.c[k]||0;
+function dqProg(st,now,k){const Q=dqDay(st,now),d=today(now),D=day(st,now);let v=Q.c[k]||0;if(k==="ws")return (Q.wsd||0)*30+(Q.ws||0);
   if(k==="open")v=Math.max(v,D.opened||0);if(k==="win")v=Math.max(v,D.wins||0);
   if(k==="dg"&&st.dg&&st.dg.pl&&st.dg.pl.d===d)v=Math.max(v,st.dg.pl.n||0);
   if(k==="wheel"&&st.wheelDay===d)v=Math.max(v,1);if(k==="gem"&&st.gfd&&st.gfd.d===d)v=Math.max(v,st.gfd.n||0);
@@ -1296,7 +1296,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
     if(name==="wheel")passAdd(st,ctx,"wheel",1);if(name==="sell")passAdd(st,ctx,"sell",1);if(name==="sellmany"||name==="sellcommon")passAdd(st,ctx,"sell",res.n|0||1)}catch(e){}
   try{let sh=null;const acc=(k,n,per)=>{const A=st.gacc||(st.gacc={});A[k]=(A[k]||0)+n;const q=Math.floor(A[k]/per);A[k]-=q*per;return q};if(name==="camp_tap")sh=["e",acc("e",res.n|0,25)];else if(name==="camp_collect")sh=["e",3];else if(name==="dg_tap")sh=["a",acc("a",res.n|0,10)];else if(name==="dg_play")sh=["a",4];
     else if(name==="dg_exp_end"||name==="dg_morning")sh=["a",3];else if(name==="task"||name==="streak")sh=["w",3];else if(name==="pass_note"&&G.p.k==="clan")sh=["f",6];
-    {const Q=dqDay(st,ctx.now),inc=(k,n)=>{if(n>0)Q.c[k]=(Q.c[k]||0)+n};inc("open",Math.max(0,day(st,ctx.now).opened-o0));inc("win",Math.max(0,(st.totalWins||0)-w0));if(name==="camp_tap")inc("tap",res.n|0);if(name==="dg_play"||name==="dg_tap"&&(res.n|0)>0)inc("dg",1);if(name==="gem_roll")inc("gem",1);if(name==="wheel")inc("wheel",1);if(/^cas_(slot|hl_go|mn_go|rk_go|case)$/.test(name))inc("cas",1);if(name==="pass_note"&&G.p.k==="clan")inc("clan",1);if(name==="sell")inc("sell",1);if(name==="sellmany"||name==="sellcommon")inc("sell",res.n|0)}
+    {const Q=dqDay(st,ctx.now),inc=(k,n)=>{if(n>0)Q.c[k]=(Q.c[k]||0)+n};inc("open",Math.max(0,day(st,ctx.now).opened-o0));inc("win",Math.max(0,(st.totalWins||0)-w0));if(name==="camp_tap")inc("tap",res.n|0);if(name==="dg_play"||name==="dg_tap"&&(res.n|0)>0)inc("dg",1);if(name==="gem_roll")inc("gem",1);if((name==="duel"||name==="fduel")&&res.w!=null){if(res.w>res.l){Q.ws=(Q.ws||0)+1;if(Q.ws>=30){Q.wsd=(Q.wsd||0)+1;Q.ws=0}}else Q.ws=0}if(name==="wheel")inc("wheel",1);if(/^cas_(slot|hl_go|mn_go|rk_go|case)$/.test(name))inc("cas",1);if(name==="pass_note"&&G.p.k==="clan")inc("clan",1);if(name==="sell")inc("sell",1);if(name==="sellmany"||name==="sellcommon")inc("sell",res.n|0)}
     {const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}const due=Math.min(DSP.cap,Math.floor((D.got||[]).length/DSP.per));if(due>st.dspN){const add=due-st.dspN;st.dspN=due;st.dsp=(st.dsp||0)+add;res.dsp=add}}   // и тем, кто выполнил задания до появления прокрутов
     if(sh&&sh[1]>0){const n=gemShard(st,ctx,sh[0],sh[1]);if(n)res.gsh=[sh[0],n]}}catch(e){}
   try{const S=st.gsock;if(S){const ids=new Set(G.cards.map(c=>String(c.id)));for(const id in S)if(!ids.has(String(id))){for(const g of S[id])gemAdd(st,g);delete S[id]}}}catch(e){}
