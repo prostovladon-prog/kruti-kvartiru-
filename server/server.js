@@ -403,7 +403,7 @@ async function stateFor(env,me){
   try{const now=Date.now();if((u.created||0)>=N2.start&&now<N2.until){const got=!!(await kvGet(env,"n2:"+me.id));S.n2={need:N2.need,have:got?N2.need:await n2Count(env,me.id),end:N2.until,got:got?1:0,vipD:N2.vipD,stars:N2.stars}}}catch(e){}
   try{S.diaU=await cached("diaU",60e3,async()=>{let L=(await kvGet(env,"dia_ids"))||[];const n=(await env.DB.prepare("SELECT id FROM users WHERE nick IN ("+DIA_NICKS.map(()=>"?").join(",")+")").bind(...DIA_NICKS).all()).results.map(r=>r.id);
     if(!L.length&&n.length){L=n.slice(0,1);await kvSet(env,"dia_ids",L)}return [...new Set(L)]})}catch(e){}   // id запоминается навсегда — смена ника не отнимет алмаз
-  try{await xhLoad(env);S.xh=XH;const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
+  try{await xhLoad(env);S.xh=XH;const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h),ch:dcChance(X)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
   try{const L=await vtState(env,me);S.vts=L;S.vt=L.find(x=>!x.ch)||L[0]||null}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
   try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
@@ -450,7 +450,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
     st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;ctx.created=u.created||Date.now();
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
-    if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);if(name==="dsp_roll"){await xhLoad(env,1);const C=[];for(const X of DCS)if(dcOn(X.h)&&(await dcLeft(env,0,X.h)).spin>0)C.push(X.h);ctx.dayH=C.length?C[Math.floor(Math.random()*C.length)]:-1}
+    if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);if(name==="dsp_roll"){await xhLoad(env,1);const C=[];for(const X of DCS)if(dcOn(X.h)&&(await dcLeft(env,0,X.h)).spin>0)C.push(X);const X=C.length?C[Math.floor(Math.random()*C.length)]:null;ctx.dayH=X?X.h:-1;ctx.dayCh=X?dcChance(X):0}
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
     const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
     const delta=Math.round((st.cash-u.cash)*100)/100;delete st.cash;
@@ -1770,16 +1770,18 @@ async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
 /* ===== Карта дня: kv xh — вид слотов, kv dc — текущая {h,at,until} ===== */
 let XH={},DC=null,XHT=0;
 /* карты дня задаются здесь (вместе с Claude), по дате Минска: {"2026-11-15":{n,e,d,o}} — слоты берутся по порядку */
-const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7],sn:"999999",sn2:"888888"},from:18,to:21,stars:2000},
-  {n:"Баба Яга в ступе",e:"Сказки Руси",d:"Ступа гремит, метла заметает след. Облетает лес за одну ночь — и никто не видел, куда она свернула.",o:{p:[7,7,7,7,7],sn:"777777",sn2:"666666"},from:18,to:21,stars:2500}]};
+const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7],sn:"999999",sn2:"888888"},from:18,to:21,stars:2000,noSpin:1},
+  {n:"Баба Яга в ступе",e:"Сказки Руси",d:"Ступа гремит, метла заметает след. Облетает лес за одну ночь — и никто не видел, куда она свернула.",o:{p:[7,7,7,7,7],sn2:"777777"},from:18,to:21,stars:0,spinOnly:1}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd,P.from!=null?P.from:16,0),until=Date.UTC(y,m-1,dd,P.to!=null?P.to:20,0);
-    if(Date.now()>=at-20*36e5&&Date.now()<until+36e5)DCS.push({h,at,until,stars:P.stars||SHOP.daycard.stars})}});if(DCS.length)DC=DCS[0];else if(DC)DCS=[DC];
+    if(Date.now()>=at-20*36e5&&Date.now()<until+36e5)DCS.push({h,at,until,stars:P.stars||SHOP.daycard.stars,so:P.spinOnly?1:0,ns:P.noSpin?1:0})}});if(DCS.length)DC=DCS[0];else if(DC)DCS=[DC];
   xhApply(XH)}
 const dcOf=h=>DCS.find(x=>x.h===h)||null,dcOn=h=>{const X=h!=null?dcOf(h):DC;return !!(X&&Date.now()>=X.at&&Date.now()<X.until)};
 async function dcLeft(env,except,h){const X=h!=null?dcOf(h):DC;if(!X)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND COALESCE(json_extract(p,'$.h'),?)=? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(X.at-36e5,except||0,DCS[0]?DCS[0].h:X.h,X.h,Date.now()-PAY_HOLD).first())||{}).n||0;
-  const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;return {buy:Math.max(0,1-sold),spin:Math.max(0,1-sp)}}
+  const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;return {buy:X.so?0:Math.max(0,1-sold),spin:X.ns?0:Math.max(0,1-sp)}}
+/* шанс Особого прокрута: у карты «только из прокрута» он растёт к концу, чтобы до полуночи её точно кто-то выбил */
+function dcChance(X){if(!X.so)return DSP.ch;const now=Date.now();return now>=X.until-30*60e3?1:now>=X.until-90*60e3?.05:.01}
 async function dcApi(env,me,a,p){await xhLoad(env,1);
   if(a==="dc_state")return {dc:DC,xh:XH,on:dcOn(),left:await dcLeft(env)};
   if(!isAdmin(env,me.id))fail("Только для админа");
@@ -1795,7 +1797,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
-    let dcH=null,dcSt=0;if(I.dayc){await xhLoad(env,1);dcH=p.h!=null&&dcOf(+p.h)?+p.h:(DC?DC.h:null);const X=dcOf(dcH)||DC;if(!X||!dcOn(dcH))fail("Карта дня сейчас не продаётся — смотри время в окне «Карта дня»");dcSt=X.stars||I.stars;if((await dcLeft(env,except,dcH)).buy<=0)fail("Экземпляр за звёзды уже купили. Остался шанс в Особом прокруте!");}
+    let dcH=null,dcSt=0;if(I.dayc){await xhLoad(env,1);dcH=p.h!=null&&dcOf(+p.h)?+p.h:(DC?DC.h:null);const X=dcOf(dcH)||DC;if(!X||!dcOn(dcH))fail("Карта дня сейчас не продаётся — смотри время в окне «Карта дня»");if(X.so)fail("Эту карту нельзя купить — только выбить в Особом прокруте!");dcSt=X.stars||I.stars;if((await dcLeft(env,except,dcH)).buy<=0)fail("Экземпляр за звёзды уже купили. Остался шанс в Особом прокруте!");}
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
     if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");

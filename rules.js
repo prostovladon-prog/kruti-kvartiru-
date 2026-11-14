@@ -866,7 +866,7 @@ function gemAdd(st,g){const I=st.gems||(st.gems={});I[g]=(I[g]||0)+1}
 function gemTake(st,g){const I=st.gems||{};if(!(I[g]>0))fail("Нет такого гема");I[g]--;if(!I[g])delete I[g]}
 const ACTIONS={
   dsp_roll(G){const {st,ctx}=G;if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
-    const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.luck?.2:DSP.ch)){const c=makeCard(ctx,h,4);c.how="dspin";dcSn(ctx,c,HEROES[h][4].sn2);G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
+    const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.luck?.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=makeCard(ctx,h,4);c.how="dspin";dcSn(ctx,c,HEROES[h][4].sn2);G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
     const r=Math.random(),ks=Object.keys(GEM.el),k=ks[Math.floor(Math.random()*4)];
     if(r<.45){const n=5+Math.floor(Math.random()*8),H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[k]=(H[k]||0)+n;return {sh:[k,n]}}
     if(r<.8){const n=[20000,30000,50000,80000][Math.floor(Math.random()*4)];earn(st,n);return {cash:n}}

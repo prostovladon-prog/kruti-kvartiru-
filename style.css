@@ -3492,3 +3492,7 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .dq-r u{display:block;height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}.dq-r u em{display:block;height:100%;background:linear-gradient(90deg,#ffd23f,#ff7a1a)}.dq-r small{font-size:11px;opacity:.75;font-weight:700}
 .dq-r .mini2{flex:none}.dq-r.got{opacity:.6}.dq-r.all{border-top:1px dashed rgba(255,255,255,.2);padding-top:7px}
 .dc-card{align-items:flex-start}.dc-mc{width:150px;flex:none;filter:drop-shadow(0 0 14px rgba(255,46,99,.7))}.dc-mc .minic{display:block;width:100%}
+.dc-show{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,#1a1050,#4a1a7a);border:3px solid #ffd23f;border-radius:18px;padding:10px;margin-bottom:8px}
+.dc-big{width:150px;flex:none}.dc-big .minic{display:block;width:100%}.dc-inf{min-width:0}.dc-inf p{font-size:12px;margin:4px 0;opacity:.92}.dc-inf small{font-size:12px}
+.dc-so{background:rgba(255,46,99,.15);border:2px dashed #ff2e63;border-radius:12px;padding:9px 10px;font-size:13px;margin:6px 0 8px;line-height:1.4}
+.dc-left:has(> div:only-child){grid-template-columns:1fr}
