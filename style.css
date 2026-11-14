@@ -3355,7 +3355,7 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .ad-rf{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:7px 0;border-bottom:1px solid #ffffff14}.ad-rf small{opacity:.6}.ad-rf span{width:100%;font-size:13px}.ad-rf em{font-style:normal;color:#ff5a5a;font-weight:800;font-size:13px}
 .ad-rb{display:flex;gap:6px;width:100%;margin-top:4px}.ad-rb .red{background:#ff4a4a;color:#fff}
 
-.album .slot{content-visibility:auto;contain-intrinsic-size:auto 120px}#sec-album{padding-bottom:110px}
+#sec-album{padding-bottom:110px}
 .gemw{color:#fff}.gem-h{display:flex;justify-content:space-between;align-items:center;font-size:20px;margin-bottom:8px}
 .gem-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px}.gem-tabs button{padding:8px 2px;border-radius:10px;border:2px solid #2a3060;background:#141836;color:#fff;font-weight:800;font-size:12px}.gem-tabs .on{background:#ffd23f;color:#2a1000}
 .gem-sh{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}.gem-sh div{background:#141836;border-radius:12px;padding:6px;text-align:center}.gem-sh i{font-style:normal;font-size:22px;display:block}.gem-sh b{font-size:18px;display:block}.gem-sh small{font-size:10px;opacity:.7}
@@ -3407,8 +3407,6 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .n2-gifts{display:flex;justify-content:center;gap:12px}.n2-gifts span{background:rgba(0,0,0,.3);border-radius:14px;padding:8px 14px;font-size:28px;display:flex;flex-direction:column;align-items:center;line-height:1.1}.n2-gifts b{font-size:20px}.n2-gifts small{font-size:11px;opacity:.85}
 .n2-prog{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0}.n2-prog i{font-style:normal;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:#141836;border:3px dashed #5a6aa0}.n2-prog i.on{border:3px solid #3ddc84;background:#0e3a24}.n2-prog b{font-size:18px}
 /* производительность: карточки вне экрана не раскладываются и не рисуются, пока не подъедут (внешний вид тот же) */
-#mk-list>*{content-visibility:auto;contain-intrinsic-size:auto 120px}
-.trow{content-visibility:auto;contain-intrinsic-size:auto 86px}
 .skel{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:0 0 8px;border-radius:16px;background:rgba(255,255,255,.08);border:3px solid rgba(0,0,0,.15)}
 .skel i{display:block;border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.28),rgba(255,255,255,.12));background-size:200% 100%;animation:skel 1.2s linear infinite}
 .skel .sk-a{width:44px;height:62px;flex:none}.skel span{flex:1;display:flex;flex-direction:column;gap:8px}.skel .sk-l{height:14px;width:70%}.skel .sk-s{height:10px;width:45%}.skel .sk-b{width:60px;height:22px;flex:none}
