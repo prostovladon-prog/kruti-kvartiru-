@@ -533,7 +533,7 @@ SHOP.gbox1={n:"Сундук гемов",stars:100,gbox:1,d:["💎 гем <b>2 у
 SHOP.gbox2={n:"Большой сундук гемов",stars:250,gbox:1,d:["💎 гем <b>3 ур.</b> — точно","💎 второй гем: 60% <b>2 ур.</b> · 40% <b>3 ур.</b>","✨ <b>100</b> осколков стихии"]};
 SHOP.gbox3={n:"Королевский сундук гемов",stars:500,gbox:1,d:["💎 гем <b>4 ур.</b> — точно","💎 второй гем: 60% <b>3 ур.</b> · 40% <b>4 ур.</b>","✨ <b>150</b> осколков стихии","не больше 3 в день"]};
 function gboxLv(L){let r=Math.random();for(const [lv,p] of L){if(r<p)return lv;r-=p}return L[L.length-1][0]}
-SHOP.lott={n:"Билет лотереи",stars:25,lott:1,d:["🎟 билет беспроигрышной лотереи дня"]};
+SHOP.lott={n:"Билет лотереи",stars:29,lott:1,d:["🎟 билет беспроигрышной лотереи дня"]};
 const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale)fail("Такой карточки нет");const W=HEROES[h][4];

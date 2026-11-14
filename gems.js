@@ -324,7 +324,7 @@ function lotDraw(){const L=LOTS,sh=$("msheet");if(!L||$("modal").hidden)return;c
  h+='<div class="lot-bank"><small>БАНК ДНЯ</small><b>'+fmtN(L.bank)+' ⭐</b><span>'+L.tot+' 🎟 · '+L.players+' игр.</span></div>';
  if(L.on)h+='<div class="tk-tm">Розыгрыш через <b>'+tkT(L.end-now)+'</b></div><div class="lot-my">У тебя <b>'+L.my+'</b> из '+L.max+' 🎟'+(L.my?' · шанс <b>'+ch+'%</b>':'')+'</div>';
  else h+='<div class="tk-tm"><b>Сейчас билеты не продаются</b> — новая лотерея с 08:00</div>';
- if(L.on&&L.left>0)h+='<div class="lot-buy">'+[1,3,5,10].filter(n=>n<=L.left).map(n=>'<button type="button" data-n="'+n+'"><b>'+n+' 🎟</b><small>'+(n*L.price)+' ⭐</small></button>').join("")+'</div>';
+ if(L.on&&L.left>0)h+='<div class="lot-buy">'+[1,3,5,10,15].filter(n=>n<=L.left).map(n=>'<button type="button" data-n="'+n+'"><b>'+n+' 🎟</b><small>'+(n*L.price)+' ⭐</small></button>').join("")+'</div>';
  else if(L.on)h+='<p class="cln">Ты купил максимум на сегодня — удачи в 22:00! 🍀</p>';
  h+='<ul class="lot-how"><li>🎟 Билет — <b>'+L.price+' ⭐</b>, до <b>'+L.max+'</b> в день</li><li>💰 Все звёзды за билеты идут в банк</li><li>🏆 В 22:00 весь банк забирает <b>один случайный билет</b> — даже если он у тебя один</li><li>🎁 Не выиграл — получаешь <b>сундуки на сумму своих билетов</b>. Без проигрыша!</li></ul>';
  if(L.fin&&L.fin.uid)h+='<div class="lot-last">Прошлый розыгрыш: <b>'+escH(L.fin.name)+'</b> забрал <b>'+fmtN(L.fin.bank)+' ⭐</b> ('+L.fin.n+' из '+L.fin.tot+' 🎟)</div>';

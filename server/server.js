@@ -1605,9 +1605,9 @@ async function tkFinish(env){const now=env.TK_FIN?TK.end+1:Date.now();if(now<TK.
     try{await hypeAdd(env,x.uid,"🏆 "+(i+1)+" место в Билетной гонке · "+P.n,1)}catch(e){}}
   try{const M=["🥇","🥈","🥉"];await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"🏁 БИЛЕТНАЯ ГОНКА ЗАВЕРШЕНА!\n\nПобедители:\n"+top.map((x,i)=>M[i]+" "+(x.name||"Игрок")+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nПризы уже в игре. Спасибо всем, кто играл! Новые конкурсы — скоро 🔥\n👉 @VoinyEpohBot",reply_markup:{inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]}})}catch(e){console.error("tk chan",e)}
   for(const a of ADMINS)try{await notify(env,a,"🎟 Билетная гонка завершена!\n\n"+top.map((x,i)=>(i+1)+". "+(x.name||"Игрок")+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nПризы выданы автоматически.","⚔️ Открыть")}catch(e){}}
-/* 🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ (каждый день 08:00–22:00 по Минску): билет 25 ⭐, до 10 на игрока в день.
+/* 🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ (каждый день 08:00–22:00 по Минску): билет 29 ⭐, до 15 на игрока в день.
    Банк = все звёзды за билеты дня — целиком одному случайному билету (шанс = доля твоих билетов). Всем остальным — сундуки на сумму их билетов */
-const LOT={price:25,max:10,h0:5,h1:19,chest:[["royal",250],["general",149],["warrior",75],["small",50]],first:Date.UTC(2026,10,15,5,0)};
+const LOT={price:29,max:15,h0:5,h1:19,chest:[["royal",250],["general",149],["warrior",75],["small",50]],first:Date.UTC(2026,10,15,5,0)};
 function lotDay(t){const d=new Date(t+3*36e5),y=d.getUTCFullYear(),m=d.getUTCMonth(),dd=d.getUTCDate();return {key:y+"-"+String(m+1).padStart(2,"0")+"-"+String(dd).padStart(2,"0"),start:Date.UTC(y,m,dd,LOT.h0,0),end:Date.UTC(y,m,dd,LOT.h1,0)}}
 const lotOn=t=>{const D=lotDay(t);return t>=LOT.first&&t>=D.start&&t<D.end};
 async function lotRows(env,D){return (await env.DB.prepare("SELECT p.uid,SUM(COALESCE(json_extract(p.p,'$.n'),1)) AS n,MIN(p.paid) AS t,COALESCE(u.nick,u.name) AS name FROM payments p LEFT JOIN users u ON u.id=p.uid WHERE p.item='lott' AND p.status IN ('paid','done') AND p.created>=? AND p.created<? GROUP BY p.uid").bind(D.start-3*36e5,D.end).all()).results}
@@ -2767,8 +2767,8 @@ const BLAST_TK={id:"tk1115_ann",on:true,at:Date.UTC(2026,10,15,5,0),until:Date.U
   dm:"🎟 Воин, стартовала БИЛЕТНАЯ ГОНКА!\n\nСегодня до 22:00 за прокрутки, бои, рейтинг, войну армий и казино ты получаешь билеты. Топ-3 забирают 300/200/100 ⭐ + NFT-подарки 🏆\n\nЗаходи — гонка уже идёт!"};
 /* 🎰 анонс лотереи: 15.11 в 08:05 — пост в канал + рассылка */
 const BLAST_LOT={id:"lot1115_ann",on:true,at:Date.UTC(2026,10,15,5,5),until:Date.UTC(2026,10,15,17,0),photo:"assets/post-lot.jpg",btn:"🎰 Купить билет",link:"?lot=1",
-  chan:"🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ — КАЖДЫЙ ДЕНЬ!\n\n🎟 Билет — 25 ⭐ (до 10 билетов на игрока)\n💰 Все звёзды за билеты дня идут в БАНК\n🏆 В 22:00 весь банк забирает ОДИН случайный билет — даже если у тебя всего один!\n🎁 Остальные НЕ проигрывают: каждый получает сундуки на сумму своих билетов\n\nЧем больше билетов у тебя — тем выше шанс. Банк растёт весь день ⏳\nКаждый день 08:00–22:00\n👉 @VoinyEpohBot",
-  dm:"🎰 Новое: беспроигрышная лотерея!\n\nБилет 25 ⭐, весь банк дня в 22:00 забирает один случайный билет. Не выиграл — получаешь сундуки на сумму билетов 🎁\n\nКаждый день 08:00–22:00."};
+  chan:"🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ — КАЖДЫЙ ДЕНЬ!\n\n🎟 Билет — 29 ⭐ (до 15 билетов на игрока)\n💰 Все звёзды за билеты дня идут в БАНК\n🏆 В 22:00 весь банк забирает ОДИН случайный билет — даже если у тебя всего один!\n🎁 Остальные НЕ проигрывают: каждый получает сундуки на сумму своих билетов\n\nЧем больше билетов у тебя — тем выше шанс. Банк растёт весь день ⏳\nКаждый день 08:00–22:00\n👉 @VoinyEpohBot",
+  dm:"🎰 Новое: беспроигрышная лотерея!\n\nБилет 29 ⭐, весь банк дня в 22:00 забирает один случайный билет. Не выиграл — получаешь сундуки на сумму билетов 🎁\n\nКаждый день 08:00–22:00."};
 let blotBusy=false;async function blastLotTick(env){const now=Date.now();if(!BLAST_LOT.on||blotBusy||now<BLAST_LOT.at||now>BLAST_LOT.until)return;blotBusy=true;try{await blastRun(env,BLAST_LOT)}finally{blotBusy=false}}
 
 /* ---------- 🎬 «Звезда Эпох»: конкурс видео 08.11 22:00 – 11.11 22:00 (Минск). Победителей выбирает админ после проверки ---------- */
