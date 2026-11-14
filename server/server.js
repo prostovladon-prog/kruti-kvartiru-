@@ -1761,7 +1761,11 @@ async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
   return Math.max(0,I.month-n)}
 /* ===== Карта дня: kv xh — вид слотов, kv dc — текущая {h,at,until} ===== */
 let XH={},DC=null,XHT=0;
-async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}xhApply(XH)}
+/* карты дня задаются здесь (вместе с Claude), по дате Минска: {"2026-11-15":{n,e,d,o}} — слоты берутся по порядку */
+const DC_PLAN={};
+async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
+  Object.keys(DC_PLAN).sort().forEach((d,k)=>{const h=DAY_SLOTS[k];if(h==null)return;XH[h]={...DC_PLAN[d],on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd,16,0);if(Date.now()>=at-20*36e5&&Date.now()<at+5*36e5)DC={h,at,until:at+4*36e5}});
+  xhApply(XH)}
 const dcOn=()=>!!(DC&&Date.now()>=DC.at&&Date.now()<DC.until);
 async function dcLeft(env,except){if(!DC)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(DC.at-36e5,except||0,Date.now()-PAY_HOLD).first())||{}).n||0;
   const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(DC.h).first())||{}).n||0;return {buy:Math.max(0,1-sold),spin:Math.max(0,1-sp)}}
