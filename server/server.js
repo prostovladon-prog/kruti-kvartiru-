@@ -482,6 +482,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
 /* ---------- рынок: настоящие игроки ---------- */
 async function market(env,me){
   const rows=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? ORDER BY c.listed_at DESC LIMIT 60").bind(me.id).all()).results;
+  {const dh=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].dgc),seen=new Set(rows.map(r=>r.id));if(dh.length){const more=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h IN ("+dh.join(",")+") ORDER BY c.listed_at DESC LIMIT 40").bind(me.id).all()).results;for(const r of more)if(!seen.has(r.id))rows.push(r)}}
   return {items:rows.map(r=>({id:r.id,card:pub(rowToCard(r)),price:r.list_price,seller:r.seller_name||"Игрок"}))};
 }
 async function list(env,me,p){
@@ -2887,6 +2888,7 @@ async function handle(req,env){{
       if(a==="duel"){const stake=!!(p.mode|0);let o=null;
         if(!stake)o=await pickOpponent(env,me,p,false);
         else{const mu=await env.DB.prepare("SELECT stake FROM users WHERE id=?").bind(me.id).first();if(mu&&mu.stake)o=await pickOpponent(env,me,p,true)}
+        if(o&&o.card)try{const ou=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(o.owner).first();const g=(JSON.parse((ou&&ou.state)||"{}").gsock||{})[o.card.id];if(g&&g.length)o.card.gm=g}catch(e){}
         const r=await doAction(env,me,"duel",p,o?{oppCard:o.card,oppName:o.name,oppUid:o.owner}:null);
         if(o)await logFight(env,me,p.id,o,r.res,stake);await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
       if(a==="pm_on"){await env.DB.prepare("UPDATE users SET pm=1 WHERE id=?").bind(me.id).run();

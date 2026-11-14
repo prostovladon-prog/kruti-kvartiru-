@@ -522,6 +522,8 @@ const SK=["#f1c7a3","#e0ac83","#c98c62","#a86f4a"];
 function shade(hex,k){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const f=v=>Math.max(0,Math.min(255,Math.round(k<0?v*(1+k):v+(255-v)*k)));return "#"+[f(r),f(g),f(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
 function portrait(h,c,mini){
   const name=HEROES[h][0];
+  if(HEROES[h][4].dgc&&typeof dgParts==="function"){try{const B=DG_BREED[HEROES[h][4].b]||DG_BREED[0],g=dgParts({b:HEROES[h][4].b,lv:mini?25:45,eq:{},sock:[]},{mini:1}).replace(/^<svg viewBox="0 0 300 260"/,'<svg x="-10" y="18" width="220" height="190" viewBox="0 0 300 260"');
+    return '<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><radialGradient id="dgb'+h+'_'+(++portrait.n)+'"><stop offset="0" stop-color="'+B.c[1]+'"/><stop offset="1" stop-color="'+B.c[2]+'"/></radialGradient></defs><rect width="200" height="200" fill="url(#dgb'+h+'_'+portrait.n+')"/>'+g+'</svg>'}catch(e){}}
   if(DETAILED[name])return DETAILED[name]((c?c.id:"x")+"_"+h+(mini?"s":"")+"_"+(++portrait.n));
   const W=HEROES[h][4],u="p"+h+"_"+(c?c.id:"x")+(mini?"s":"")+"_"+(++portrait.n);
   const hue=c&&c.hue!=null?c.hue:W.hue;
@@ -1934,7 +1936,10 @@ function lotRow(c,priceHTML,btn){const H=HEROES[c.h],d=document.createElement("d
 async function loadMarket(force){if(mkLoading)return;if(!force&&mkCache&&NOW()-mkAt<15000){drawMarket();return}mkLoading=true;
   if(ONLINE&&!mkCache)$("mk-list").innerHTML='<div class="box"><p>Загружаю лоты…</p></div>';
   const r=await act("market");mkLoading=false;if(!r)return;mkCache=r;mkAt=NOW();drawMarket()}
-function drawMarket(){const box=$("mk-list"),M=mkCache||{items:[]};box.innerHTML="";
+let mkSeg="all";
+function drawMarket(){const box=$("mk-list"),M0=mkCache||{items:[]},M={...M0,items:mkSeg==="dg"?M0.items.filter(it=>HEROES[it.card.h]&&HEROES[it.card.h][4].dgc):M0.items};box.innerHTML="";
+  {const sg=$("mk-seg");if(sg&&!sg.dataset.on){sg.dataset.on=1;sg.onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;mkSeg=b.dataset.v;sg.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));drawMarket()}}}
+  if(mkSeg==="dg"&&!M.items.length){box.innerHTML='<div class="box"><p>🐉 Драконов на рынке пока нет. Драконы выпадают в прокрутах — выставь своего первым во вкладке «Продать»!</p></div>';return}
   $("mk-t").textContent=ONLINE?"Лоты настоящих игроков":"Обновится через "+Math.max(1,Math.ceil((M.next-NOW())/60000))+" мин";
   if(!M.items.length){box.innerHTML='<div class="box"><p>'+(ONLINE?"Пока никто ничего не выставил. Будь первым: выстави свою карточку во вкладке «Продать».":"Всё раскупили. Новые лоты появятся скоро.")+'</p></div>';return}
   M.items.forEach(it=>{const c=it.card,r=it.price/c.v,b=document.createElement("button");b.type="button";b.className="mini2";b.textContent="Купить";

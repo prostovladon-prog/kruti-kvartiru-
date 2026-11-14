@@ -88,3 +88,9 @@ function cwDraw(){const D=CWD,sh=$("msheet"),R=34,W=7*R*1.75,H=7*R*1.6;
   sh.querySelectorAll("[data-c]").forEach(g=>g.onclick=()=>{CWsel=+g.dataset.c;cwDraw()});
   if($("cw-hit"))$("cw-hit").onclick=async()=>{$("cw-hit").disabled=true;const r=await act("clan_cw_hit",{cell:CWsel});if(r){hap&&hap("heavy");toast((r.crit?"💥 КРИТ! ":"⚔️ ")+fmtN(r.dmg)+" урона"+(r.sh?" · +"+r.sh+" 🔥":""))}const r2=await act("clan_cw",{});if(r2)CWD=r2;cwDraw()}}
 {const _dc=drawClan;drawClan=function(){_dc.apply(this,arguments);try{const b=$("clan-body");if(!b||$("sec-clan").hidden||!clData||!clData.clan||b.querySelector(".cw-ban"))return;const d=document.createElement("button");d.type="button";d.className="cw-ban";d.innerHTML='<i>🗺</i><span><b>Война за земли</b><small>Каждый день 20:00–22:00 · захватывай клетки, получай монеты и осколки 🔥</small></span>';d.onclick=e=>{e.stopPropagation();cwOpen()};b.prepend(d)}catch(e){}}}
+/* ===== Анимация открытия сундука перед показом наград ===== */
+{const _sg=showGrant;showGrant=function(R,title){const cs=(R&&R.cards)||[];if(!cs.length)return _sg(R,title);
+  const best=Math.max(...cs.map(c=>Math.max(HEROES[c.h][2],c.f>=4?4:c.f>=3?3:0))),col=["#c8d0e0","#3ddc84","#2f8bff","#bf5af2","#ffd23f"][best];
+  const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="chx" style="--g:'+col+'"><div class="chx-rays"></div><div class="chx-box"><div class="chx-lid"></div><div class="chx-body"></div><div class="chx-lock"></div></div><p>Нажми, чтобы открыть!</p></div>';
+  let done=false;const go=()=>{if(done)return;done=true;const x=sh.querySelector(".chx");x.classList.add("open");try{hap&&hap("heavy");sfx.coin()}catch(e){}setTimeout(()=>{try{burst(best>=3?3:1)}catch(e){}_sg(R,title)},650)};
+  sh.querySelector(".chx").onclick=go;setTimeout(go,2200)}}

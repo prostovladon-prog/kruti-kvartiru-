@@ -151,6 +151,14 @@ const HEROES=[
  ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:28,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:324,p:[8,7,7,7,8]}],
  ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:29,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:336,p:[8,7,7,7,8]}],
  ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:30,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:348,p:[8,7,7,7,8]}],
+ /* 🐉 драконы-карточки: выпадают в прокрутах по редкости породы, торгуются на рынке драконов (b — порода DG_BREED) */
+ ["Огненный дракон","Драконы",0,"Дышит огнём, греется в вулкане и терпеть не может дождь.",{dgc:1,b:0,hue:20,p:[4,3,3,2,3]}],
+ ["Ледяной дракон","Драконы",0,"Спит в леднике сто лет, а проснувшись, замораживает реки.",{dgc:1,b:1,hue:200,p:[3,4,3,3,2]}],
+ ["Болотный дракон","Драконы",0,"Прячется в тине. Сначала видишь пузыри, потом — зубы.",{dgc:1,b:2,hue:110,p:[3,3,4,2,3]}],
+ ["Грозовой дракон","Драконы",1,"Летает внутри туч и ловит молнии пастью.",{dgc:1,b:3,hue:260,p:[5,4,4,5,3]}],
+ ["Теневой дракон","Драконы",2,"Его не видно ночью. Только глаза — и уже поздно.",{dgc:1,b:4,hue:280,p:[6,5,5,6,5]}],
+ ["Золотой дракон","Драконы",3,"Спит на горе золота и знает каждую монету по имени.",{dgc:1,b:5,hue:45,p:[7,7,6,6,7]}],
+ ["Звёздный дракон","Драконы",4,"Родился из упавшей звезды. Говорят, исполняет одно желание.",{dgc:1,b:6,hue:240,p:[8,8,7,7,8]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -496,7 +504,7 @@ function rollHalf(ctx,rightP){let part=Math.random()<rightP?2:1,pool=COMP;
   const h=pool[Math.floor(Math.random()*pool.length)],f=Math.random()<HALF_P.err&&!ctx.compErr(h,part)?4:0;
   return makeHalf(ctx,h,part,f)}
 /* воин нужной редкости (только обычные 32), отделка выпадает как обычно */
-function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tier).concat(extra||[]),h=pool[Math.floor(Math.random()*pool.length)];
+function rollTier(ctx,tier,extra){const pool=HEROES.map((H,i)=>i).filter(i=>(isBase(i)||HEROES[i][4].dgc)&&HEROES[i][2]===tier).concat(extra||[]),h=pool[Math.floor(Math.random()*pool.length)];
   let f=pick(FIN.map(x=>x.w));if(FIN[f].dia)f=0;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;return makeCard(ctx,h,f)}
 /* легенда 1 из 1 (Тор и др.): только «Ошибка печати», свой номер. null — если все уже у игроков */
 function rollOne(ctx,want1){const free=ONE.filter(h=>ctx.issuedOf(h,4)<1&&(h!==THOR||want1===THOR)&&(!HEROES[h][4].own||want1===h));if(!free.length)return null;const h=want1!=null?want1:free[Math.floor(Math.random()*free.length)];if(!free.includes(h))fail("Эта легенда уже у другого игрока");
@@ -621,7 +629,10 @@ function pay(st,n){if(st.cash<n)fail("Не хватает "+Math.ceil(n-st.cash)
 function earn(st,n){st.cash=Math.round((st.cash+n)*100)/100}
 function aiPick(card,ex){let best=-1,bv=-1;for(let i=0;i<5;i++){if(ex.includes(i))continue;const v=eff(card,i)*(.85+Math.random()*.3);if(v>bv){bv=v;best=i}}return best}
 function rndPick(ex){const r=[0,1,2,3,4].filter(i=>!ex.includes(i));return r[Math.floor(Math.random()*r.length)]}
-function fight3(me,opp,picks,k){const rounds=picks.map(s=>({a:Math.round(eff(me,s)*(1+(k||0))),b:eff(opp,s)}));const w=rounds.filter(r=>r.a>r.b).length,l=rounds.filter(r=>r.a<r.b).length;return {rounds,w,l}}
+const GEM_BEAT={f:"a",a:"e",e:"w",w:"f"};   // 🔥 > 🌪 > 🌍 > 💧 > 🔥
+function gemEl(c){const g=(c&&c.gm||[]).slice().sort((x,y)=>(+y[1]||0)-(+x[1]||0))[0];return g?g[0]:null}
+function gemVs(a,b){const x=gemEl(a),y=gemEl(b);return x&&y&&GEM_BEAT[x]===y?.1:0}
+function fight3(me,opp,picks,k){const ea=gemVs(me,opp),eb=gemVs(opp,me),rounds=picks.map(s=>({a:Math.round(eff(me,s)*(1+(k||0))*(1+ea)),b:Math.round(eff(opp,s)*(1+eb))}));const w=rounds.filter(r=>r.a>r.b).length,l=rounds.filter(r=>r.a<r.b).length;return {rounds,w,l}}
 const snap=c=>JSON.parse(JSON.stringify(c));
 
 /* ---------- действия ----------
@@ -1822,6 +1833,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
 /* ---------- рынок: настоящие игроки ---------- */
 async function market(env,me){
   const rows=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? ORDER BY c.listed_at DESC LIMIT 60").bind(me.id).all()).results;
+  {const dh=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].dgc),seen=new Set(rows.map(r=>r.id));if(dh.length){const more=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h IN ("+dh.join(",")+") ORDER BY c.listed_at DESC LIMIT 40").bind(me.id).all()).results;for(const r of more)if(!seen.has(r.id))rows.push(r)}}
   return {items:rows.map(r=>({id:r.id,card:pub(rowToCard(r)),price:r.list_price,seller:r.seller_name||"Игрок"}))};
 }
 async function list(env,me,p){
@@ -4227,6 +4239,7 @@ async function handle(req,env){{
       if(a==="duel"){const stake=!!(p.mode|0);let o=null;
         if(!stake)o=await pickOpponent(env,me,p,false);
         else{const mu=await env.DB.prepare("SELECT stake FROM users WHERE id=?").bind(me.id).first();if(mu&&mu.stake)o=await pickOpponent(env,me,p,true)}
+        if(o&&o.card)try{const ou=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(o.owner).first();const g=(JSON.parse((ou&&ou.state)||"{}").gsock||{})[o.card.id];if(g&&g.length)o.card.gm=g}catch(e){}
         const r=await doAction(env,me,"duel",p,o?{oppCard:o.card,oppName:o.name,oppUid:o.owner}:null);
         if(o)await logFight(env,me,p.id,o,r.res,stake);await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
       if(a==="pm_on"){await env.DB.prepare("UPDATE users SET pm=1 WHERE id=?").bind(me.id).run();
