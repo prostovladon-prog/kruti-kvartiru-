@@ -34,6 +34,7 @@ const MENU_GROUPS=[
   {k:"hof",ic:"🏛",n:"Зал славы",c:["#ffe9a8","#b07a10"]},
   {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]},
   {k:"luck",ic:"🍀",n:"Оберег удачи",c:["#b8ffcf","#1e9a52"]},
+  {k:"lott",ic:"🎰",n:"Лотерея дня",c:["#ffe066","#d0202e"]},
   {k:"prof",ic:"👤",n:"Профиль",c:["#7cc8ff","#2a4fd0"]}]],
  ["💬 Общение",[
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
@@ -1253,7 +1254,7 @@ function tkBar(){const sp=$("sec-spin");if(!sp||!TKS)return;const now=Date.now()
   const st=now<TKS.start?0:now<TKS.end?1:2;
   b.innerHTML='<i>🎟</i><span><b>'+(st===0?'Билетная гонка — старт в 08:00':st===1?'Билетная гонка идёт!':'🏆 Билетная гонка завершена')+'</b><small>'+(st===0?'через '+tkT(TKS.start-now)+' · 3 приза':st===1?'у тебя <u>'+TKS.n+'</u> 🎟'+(TKS.rank?' · место #'+TKS.rank:'')+' · до финиша '+tkT(TKS.end-now):'смотри победителей')+'</small></span><em>›</em>'}
 function tkOpen(){const m=$("modal"),sh=$("msheet"),T=TKS;if(!T)return;m.hidden=false;const now=Date.now()+T.off,st=now<T.start?0:now<T.end?1:2,medal=["🥇","🥈","🥉"];
-  const A=T.act,how=[["⏱","Просто будь в игре","1 🎟 каждую минуту, если ты что-то делаешь"],["🎴","Прокрутка карточки","+"+A.open+" 🎟 за каждую"],["⚔️","Бои, арена, покорение","+2 🎟"],["🏰","Война армий","+"+A.war_attack+" 🎟"],["🗺","Атака на карте","+"+A.map_attack+" 🎟"],["🎰","Ставка в казино","+1 🎟"],["👑","Дань Империи","+"+A.emp_trib+" 🎟"],["🍀","Оберег удачи","+"+A.luck_buy+" 🎟"]];
+  const A=T.act,how=[["🎴","Прокрутка карточки","+"+A.open+" 🎟 за каждую"],["⚔️","Бои, драконья арена, покорение","+2 🎟"],["🏆","Рейтинговый бой","+"+(A.rk||3)+" 🎟 — только доигранный"],["🏰","Война армий","+"+A.war_attack+" 🎟"],["🗺","Атака на карте","+"+A.map_attack+" 🎟"],["🎰","Ставка в казино","+1 🎟"],["👑","Дань Империи","+"+A.emp_trib+" 🎟"],["🍀","Оберег удачи","+"+A.luck_buy+" 🎟"]];
   sh.innerHTML='<div class="box nickbox tkbox" id="tkbox"><small class="tk-k">🎟 КОНКУРС ДНЯ · СЕГОДНЯ 08:00–22:00</small><h3>Билетная гонка</h3>'+
    '<div class="tk-tm">'+(st===0?'Старт через <b>'+tkT(T.start-now)+'</b>':st===1?'До финиша <b>'+tkT(T.end-now)+'</b>':'<b>Гонка завершена</b>')+'</div>'+
    '<div class="tk-me"><div><b>'+T.n+'</b><small>твоих билетов</small></div><div><b>'+(T.rank?'#'+T.rank:'—')+'</b><small>место из '+T.cnt+'</small></div></div>'+

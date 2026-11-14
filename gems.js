@@ -311,3 +311,27 @@ function pagerApply(boxId,sel,per,label){const box=$(boxId);if(!box)return;const
  mk("pg-"+boxId,false);if(boxId!=="cr-pick")mk("pgt-"+boxId,true)}
 {const W=(fn,args)=>{const f=window[fn];if(typeof f!=="function")return;window[fn]=function(){const r=f.apply(this,arguments);try{pagerApply(...args)}catch(e){}return r}};
  W("renderCol",["col",".tl2",30,"карты"]);W("renderAlbum",["album",".slot",30,"воины"]);W("renderCraft",["cr-pick",".pc",20,"карты"]);}
+
+/* ===== 🎰 Беспроигрышная лотерея ===== */
+let LOTS=null;
+async function lotLoad(){const r=await act("lot_get",{});if(r){LOTS=r;LOTS.off=r.now-Date.now()}return r}
+function lotBar(){const sp=$("sec-spin");if(!sp||!LOTS)return;let b=$("lot-bar");if(!LOTS.on&&!LOTS.fin){if(b)b.remove();return}
+ if(!b){b=document.createElement("button");b.type="button";b.id="lot-bar";b.className="lot-bar";b.onclick=()=>lotOpen();const e=$("tk-bar");if(e&&e.parentNode===sp)e.after(b);else sp.insertBefore(b,sp.firstChild)}
+ b.innerHTML='<i>🎰</i><span><b>'+(LOTS.on?'Лотерея: банк '+fmtN(LOTS.bank)+' ⭐':'Лотерея — завтра с 08:00')+'</b><small>'+(LOTS.on?'беспроигрышная · у тебя '+LOTS.my+' 🎟 · розыгрыш в 22:00':'вчера банк забрал '+(LOTS.fin&&LOTS.fin.name||"—"))+'</small></span><em>›</em>'}
+async function lotOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;if(!LOTS)sh.innerHTML='<div class="box nickbox"><p>Загружаю…</p></div>';await lotLoad();lotDraw()}
+function lotDraw(){const L=LOTS,sh=$("msheet");if(!L||$("modal").hidden)return;const now=Date.now()+L.off,ch=L.tot?Math.round(L.my/L.tot*1000)/10:0;
+ let h='<div class="box nickbox lotbox"><small class="tk-k">🎰 КАЖДЫЙ ДЕНЬ · 08:00–22:00</small><h3>Беспроигрышная лотерея</h3>';
+ h+='<div class="lot-bank"><small>БАНК ДНЯ</small><b>'+fmtN(L.bank)+' ⭐</b><span>'+L.tot+' 🎟 · '+L.players+' игр.</span></div>';
+ if(L.on)h+='<div class="tk-tm">Розыгрыш через <b>'+tkT(L.end-now)+'</b></div><div class="lot-my">У тебя <b>'+L.my+'</b> из '+L.max+' 🎟'+(L.my?' · шанс <b>'+ch+'%</b>':'')+'</div>';
+ else h+='<div class="tk-tm"><b>Сейчас билеты не продаются</b> — новая лотерея с 08:00</div>';
+ if(L.on&&L.left>0)h+='<div class="lot-buy">'+[1,3,5,10].filter(n=>n<=L.left).map(n=>'<button type="button" data-n="'+n+'"><b>'+n+' 🎟</b><small>'+(n*L.price)+' ⭐</small></button>').join("")+'</div>';
+ else if(L.on)h+='<p class="cln">Ты купил максимум на сегодня — удачи в 22:00! 🍀</p>';
+ h+='<ul class="lot-how"><li>🎟 Билет — <b>'+L.price+' ⭐</b>, до <b>'+L.max+'</b> в день</li><li>💰 Все звёзды за билеты идут в банк</li><li>🏆 В 22:00 весь банк забирает <b>один случайный билет</b> — даже если он у тебя один</li><li>🎁 Не выиграл — получаешь <b>сундуки на сумму своих билетов</b>. Без проигрыша!</li></ul>';
+ if(L.fin&&L.fin.uid)h+='<div class="lot-last">Прошлый розыгрыш: <b>'+escH(L.fin.name)+'</b> забрал <b>'+fmtN(L.fin.bank)+' ⭐</b> ('+L.fin.n+' из '+L.fin.tot+' 🎟)</div>';
+ h+='<button type="button" class="ghost" id="lot-x">Закрыть</button></div>';sh.innerHTML=h;
+ $("lot-x").onclick=closeModal;sh.querySelectorAll(".lot-buy [data-n]").forEach(b=>b.onclick=()=>{closeModal();buyItem({item:"lott",n:+b.dataset.n})})}
+{const _ps=payShow;payShow=function(r){if(r&&r.item==="lott"&&r.status!=="refund"){renderAll();try{sfx.coin();hapN("success")}catch(e){}toast("🎟 Билеты куплены! Розыгрыш в 22:00");lotOpen();return}return _ps.apply(this,arguments)}}
+{const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{lotBar()}catch(e){}return r}}
+setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();const o=document.querySelector(".lotbox");if(o)lotDraw()})},60e3);
+{const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);lotLoad().then(()=>{lotBar();if(new URLSearchParams(location.search).get("lot"))setTimeout(lotOpen,500)})},700)}
+{const _mg=menuGo;menuGo=function(k){if(k==="lott"){menuClose();return lotOpen()}return _mg.apply(this,arguments)}}
