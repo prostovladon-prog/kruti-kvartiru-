@@ -1774,7 +1774,9 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 /* «Карты»: карточки чуть-чуть живые — по каждой иногда пробегает блик (только transform, по очереди) */
 #sec-col .minic .front .in::after{content:"";position:absolute;top:0;bottom:0;left:-150%;right:-150%;pointer-events:none;z-index:6;mix-blend-mode:normal!important;
   background:linear-gradient(115deg,transparent 46%,rgba(255,255,255,.32) 50%,transparent 54%)!important;background-size:100% 100%!important;
-  animation:colSheen 6.5s ease-in-out var(--sd,0s) infinite!important;will-change:transform}
+  animation:none!important}
+/* блик только у карт на экране: без отдельного слоя на каждую из сотен карт (на iPhone из-за этого вылетало) */
+#sec-col .minic.on .front .in::after{animation:colSheen 6.5s ease-in-out var(--sd,0s) infinite!important}
 #sec-col .minic .front.shiny .in::after,#sec-col .minic .front.gold .in::after{background:linear-gradient(115deg,transparent 44%,rgba(255,255,255,.75) 50%,transparent 56%)!important}
 #sec-col .minic .front.holo .in::after{background:linear-gradient(115deg,transparent 40%,rgba(255,155,208,.55) 45%,rgba(155,231,255,.6) 50%,rgba(255,245,155,.55) 55%,transparent 60%)!important}
 @keyframes colSheen{0%{transform:translateX(-22%)}28%,100%{transform:translateX(22%)}}
@@ -3512,3 +3514,6 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .dsp-ban.hot{border-color:#ffd23f;animation:dspbp 1.4s ease-in-out infinite}@keyframes dspbp{50%{box-shadow:0 0 18px #ffd23f,0 3px 0 #0b0712}}
 .pl-mini{display:flex;flex-direction:column;align-items:flex-start;position:relative;width:100%;text-align:left;background:linear-gradient(135deg,#2a1a6a,#4a1a7a);color:#fff;border:2px solid rgba(255,210,63,.6);border-radius:14px;padding:7px 34px 7px 10px}
 .pl-mini b{font-size:13px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.pl-mini small{font-size:11px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.pl-mini i{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-style:normal;color:#ffd23f}
+
+/* память на iPhone: мини-карточки не переворачиваются — без backface-visibility каждая не становится отдельным GPU-слоем */
+.minic .face{backface-visibility:visible;-webkit-backface-visibility:visible}

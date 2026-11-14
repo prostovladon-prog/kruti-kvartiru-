@@ -270,3 +270,7 @@ setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){co
  const FREE={col:()=>{const b=$("col");if(b)b.innerHTML="";SIG.renderCol=null},album:()=>{const b=$("album");if(b)b.innerHTML="";SIG.renderAlbum=null},
   craft:()=>{["cr-pick","cr-tgt","cr-slots"].forEach(id=>{const b=$(id);if(b){b.innerHTML="";b.dataset.k="";delete b.dataset.scrolled}});const p=$("cr-prev");if(p){p.innerHTML="";p.dataset.k=""}}};
  let cur=null;const _st=setTab;setTab=function(t){const prev=cur;cur=t;if(prev&&prev!==t&&FREE[prev]&&!(prev==="craft"&&crBusy)){try{FREE[prev]()}catch(e){}}return _st.apply(this,arguments)}}
+
+/* блик в «Картах» включается только у карточек на экране */
+{const io=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(!e.target.isConnected){io.unobserve(e.target);return}e.target.classList.toggle("on",e.isIntersecting)})):null;
+ const _fm=fillMini;fillMini=function(el){const r=_fm.apply(this,arguments);try{if(io&&el.closest&&el.closest("#sec-col"))io.observe(el)}catch(e){}return r}}
