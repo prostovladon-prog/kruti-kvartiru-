@@ -633,7 +633,7 @@ async function mapClaim(){const r=await act("map_claim");if(r){sfx.coin();burst(
 function mapChance(me,op,r){const z=MAP_Z(r.id),dk=dgBonus(S,NOW())*1.5+(S.dg?.05:0),home=MAP_R[r.id][2]===ERA_OF[op.h]?MAP.home:0,fat=Math.min(MAP.fatMax,MAP.fat*(r.def_n||0)),k=(1+dk)/(1+home+.03-fat)-1;
   let w=0;for(let i=0;i<80;i++){const p2=aiPick(op,[mapStat]),p3=rndPick([mapStat,p2]),F=fight3(me,op,[mapStat,p2,p3],k);if(F.w>F.l)w++}return {p:Math.round(w/80*100),dk,home,fat}}
 function mapSheet(){if(MAP_Z(mapSel)===4)return mapAlSheet(mapSel);if(MAP_Z(mapSel)===3)return mapDgSheet(mapSel);const i=mapSel,r=(MD.regs||[]).find(x=>x.id===i)||{id:i},M=MAP_R[i],z=MAP_Z(i),I=MAP.inc[z],m=$("modal"),sh=$("msheet"),mine=r.owner===S.uid,lk=z===1&&!MD.z1||z===2&&!MD.z2;m.hidden=false;
-  const cards=(S.cards||[]).filter(c=>!away(c)&&!c.part&&c.f<5&&(z>0||HEROES[c.h][2]<=1)).sort((a,b)=>cpow(b)-cpow(a)).slice(0,12);if(!mapCard&&cards[0])mapCard=cards[0].id;const me=cards.find(c=>c.id===mapCard);
+  const cards=(S.cards||[]).filter(c=>!away(c)&&!c.part&&!FIN[c.f].excl&&(z>0||HEROES[c.h][2]<=1)).sort((a,b)=>cpow(b)-cpow(a)).slice(0,24);if(!mapCard&&cards[0])mapCard=cards[0].id;const me=cards.find(c=>c.id===mapCard);
   let body=`<div class="ms-h"><b>${M[1]} ${M[0]}</b><em style="background:${MAP.zc[z]}">${["🌱","⚔️","👑"][z]} ${MAP.zn[z]} · +${I.c} 🪙/ч</em></div>`;
   if(lk)body+=`<p class="ms-lock">🔒 ${z===1?"Земли эпох откроются после "+MAP.z1Spins+" прокруток (у тебя "+(S.nOp||0)+")":"Сердце мира откроется, когда дракон дорастёт до 3-й стадии"}</p>`;
   else if(mine)body+=`<p class="ms-sub">Это твой регион · держишь ${tleft(NOW()-r.since)}${r.shield?" · 🛡 щит ещё "+tleft(r.shield-NOW()):""} · отбито атак: ${r.def_n||0}</p><div class="ms-one" id="ms-def"></div>
