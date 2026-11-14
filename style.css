@@ -3406,3 +3406,10 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .n2-hero{background:linear-gradient(135deg,#ff7a1a,#d01a6a);border:3px solid #ffd23f;border-radius:18px;padding:12px;text-align:center}.n2-hero p{margin:8px 0 0;font-weight:800}
 .n2-gifts{display:flex;justify-content:center;gap:12px}.n2-gifts span{background:rgba(0,0,0,.3);border-radius:14px;padding:8px 14px;font-size:28px;display:flex;flex-direction:column;align-items:center;line-height:1.1}.n2-gifts b{font-size:20px}.n2-gifts small{font-size:11px;opacity:.85}
 .n2-prog{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0}.n2-prog i{font-style:normal;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:#141836;border:3px dashed #5a6aa0}.n2-prog i.on{border:3px solid #3ddc84;background:#0e3a24}.n2-prog b{font-size:18px}
+/* производительность: карточки вне экрана не раскладываются и не рисуются, пока не подъедут (внешний вид тот же) */
+#mk-list>*{content-visibility:auto;contain-intrinsic-size:auto 120px}
+.trow{content-visibility:auto;contain-intrinsic-size:auto 86px}
+.skel{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:0 0 8px;border-radius:16px;background:rgba(255,255,255,.08);border:3px solid rgba(0,0,0,.15)}
+.skel i{display:block;border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.28),rgba(255,255,255,.12));background-size:200% 100%;animation:skel 1.2s linear infinite}
+.skel .sk-a{width:44px;height:62px;flex:none}.skel span{flex:1;display:flex;flex-direction:column;gap:8px}.skel .sk-l{height:14px;width:70%}.skel .sk-s{height:10px;width:45%}.skel .sk-b{width:60px;height:22px;flex:none}
+@keyframes skel{to{background-position:-200% 0}}

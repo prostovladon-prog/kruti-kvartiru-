@@ -854,16 +854,18 @@ const MINI=new Map();let miniN=0;
 function miniSlot(c){if(MINI.size>3000)MINI.clear();const k="m"+(++miniN);MINI.set(k,c);return `<span class="minic" data-k="${k}"></span>`}
 const miniRO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(e=>{const w=e.contentRect.width;if(w)e.target.style.setProperty("--z",w/300)})):null;
 /* мини-карточки рисуются, только когда подъезжают к экрану: список из 40 карт открывается сразу, без подвисания */
-const miniIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){miniIO.unobserve(e.target);fillMini(e.target)}}),{rootMargin:"500px 0px"}):null;
+const miniIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){miniIO.unobserve(e.target);e.target._w=e.boundingClientRect.width;fillMini(e.target)}}),{rootMargin:"500px 0px"}):null;
 function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;{const w=el._w||el.clientWidth;el._w=0;if(w)el.style.setProperty("--z",w/300)}/* масштаб сразу, иначе один кадр карточка огромная */el.style.setProperty("--sd",(Math.random()*6.5).toFixed(2)+"s");const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
   if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)}
-function hydrate(root){if(!root||!root.querySelectorAll)return;const list=root.matches&&root.matches(".minic[data-k]")?[root]:root.querySelectorAll(".minic[data-k]");
-  const els=[];list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;el._mc=c;els.push(el)});
+function hydrate(root){const roots=Array.isArray(root)?root:[root],els=[];   // пачкой: все чтения размеров подряд — одна раскладка вместо десятков
+  for(const r of roots){if(!r||!r.querySelectorAll)continue;const list=r.matches&&r.matches(".minic[data-k]")?[r]:r.querySelectorAll(".minic[data-k]");
+    list.forEach(el=>{const c=MINI.get(el.dataset.k);MINI.delete(el.dataset.k);el.removeAttribute("data-k");if(!c)return;el._mc=c;els.push(el)})}
+  if(!els.length)return;
   if(!miniIO){els.forEach(fillMini);return}
   // то, что уже на экране (или рядом), рисуем сразу — без мигания; остальное по мере прокрутки
   const H=innerHeight+600,near=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return true;const r=el.getBoundingClientRect();el._w=r.width;return r.width>0&&r.bottom>-600&&r.top<H});
   els.forEach((el,i)=>{if(near[i])fillMini(el);else miniIO.observe(el)})}
-new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)hydrate(n)}).observe(document.body,{childList:true,subtree:true});
+new MutationObserver(ms=>{const L=[];for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)L.push(n);if(L.length)hydrate(L)}).observe(document.body,{childList:true,subtree:true});
 function showCard(c){fillFace(front,c);$("p-val").textContent=isCollab(c)?"БЕСЦЕННАЯ":fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
 let current=null,busy=false;
 
@@ -955,6 +957,8 @@ $("sell").onclick=async()=>{if(!current||busy)return;if(!S.cards.some(x=>x.id===
   const r=await act("sell",{id:current.id});if(!r)return;toast("Продано за "+fmt(r.got));current=null;$("sell").disabled=true;renderAll()};
 
 
+/* скелетоны: серые строки-заглушки, пока грузится список */
+function skelRows(n){return Array.from({length:n},()=>'<div class="skel"><i class="sk-a"></i><span><i class="sk-l"></i><i class="sk-s"></i></span><i class="sk-b"></i></div>').join("")}
 /* ---------- album ---------- */
 function renderAlbum(){
   const box=$("album");box.innerHTML="";let have=0;
@@ -1975,7 +1979,7 @@ function lotRow(c,priceHTML,btn){const H=HEROES[c.h],d=document.createElement("d
   if(c.stars)d.querySelector(".t b").insertAdjacentHTML("beforeend",' <span class="stg">★'+c.stars+'</span>');
   d.querySelector(".e").onclick=()=>openCardView(c,{});return d}
 async function loadMarket(force){if(mkLoading)return;if(!force&&mkCache&&NOW()-mkAt<15000){drawMarket();return}mkLoading=true;
-  if(ONLINE&&!mkCache)$("mk-list").innerHTML='<div class="box"><p>Загружаю лоты…</p></div>';
+  if(ONLINE&&!mkCache)$("mk-list").innerHTML=skelRows(5);
   const r=await act("market");mkLoading=false;if(!r)return;mkCache=r;mkAt=NOW();drawMarket()}
 let mkSeg="all";
 function drawMarket(){const box=$("mk-list"),M0=mkCache||{items:[]},M={...M0,items:mkSeg==="dg"?M0.items.filter(it=>HEROES[it.card.h]&&HEROES[it.card.h][4].dgc):M0.items};box.innerHTML="";
@@ -2193,7 +2197,7 @@ async function loadDtop(force){const box=$("dtop-body");if(!box)return;if(!ONLIN
     box.append(w)}}
 async function renderTop(force){loadDtop(force);renderAdmin();$("my-nick").textContent=S.nick||"не выбран";$("nick-go").textContent=S.nick?"Сменить":"Выбрать";document.querySelectorAll("#top-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===tpView));
   $("top-h").textContent=TP[tpView].t;
-  const box=$("top-list");if(!tpCache[tpView])box.innerHTML='<p style="margin:0;color:#5a5f80">Загружаю…</p>';
+  const box=$("top-list");if(!tpCache[tpView])box.innerHTML=skelRows(6);
   const kind=tpView,r=await loadTop(kind,force);if(!r||kind!==tpView)return;
   box.innerHTML="";r.items.forEach((it,i)=>box.appendChild(topRow(it,i,kind)));
   if(!r.items.length)box.innerHTML='<p style="margin:0;color:#5a5f80">Пока пусто. Стань первым!</p>';

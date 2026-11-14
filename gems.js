@@ -151,3 +151,5 @@ function n2Open(){const N=S&&S.n2;if(!N)return;$("modal").hidden=false;const sh=
 {const _mg=menuGo;menuGo=function(k){if(k==="n2"){menuClose();return n2Open()}return _mg.apply(this,arguments)}}
 /* показать один раз при входе новичку */
 {const _ra=renderAll;let n2shown=false;renderAll=function(){const r=_ra.apply(this,arguments);try{if(!n2shown&&S&&S.n2&&!S.n2.got&&$("modal").hidden&&(S.nOp||0)>=3){let k=0;try{k=localStorage.getItem("we-n2")}catch(e){}if(!k){n2shown=true;try{localStorage.setItem("we-n2","1")}catch(e){}setTimeout(()=>{if($("modal").hidden)n2Open()},1500)}}}catch(e){}return r}}
+/* ===== производительность: кнопку чата пересчитываем раз в кадр, а не после каждой перерисовки (убирает принудительную раскладку) ===== */
+{const _fu=fabUpdate;let q=0;fabUpdate=function(){if(q)return;q=requestAnimationFrame(()=>{q=0;try{_fu()}catch(e){}})}}
