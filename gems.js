@@ -315,9 +315,9 @@ function pagerApply(boxId,sel,per,label){const box=$(boxId);if(!box)return;const
 /* ===== 🎰 Беспроигрышная лотерея ===== */
 let LOTS=null;
 async function lotLoad(){const r=await act("lot_get",{});if(r){LOTS=r;LOTS.off=r.now-Date.now()}return r}
-function lotBar(){const sp=$("sec-spin");if(!sp||!LOTS)return;let b=$("lot-bar");if(!LOTS.on&&!LOTS.fin){if(b)b.remove();return}
+function lotBar(){const sp=$("sec-spin");if(!sp||!LOTS)return;let b=$("lot-bar");const nw=Date.now()+(LOTS.off||0),pre=!LOTS.on&&nw<LOTS.start;
  if(!b){b=document.createElement("button");b.type="button";b.id="lot-bar";b.className="lot-bar";b.onclick=()=>lotOpen();const e=$("tk-bar");if(e&&e.parentNode===sp)e.after(b);else sp.insertBefore(b,sp.firstChild)}
- b.innerHTML='<i>🎰</i><span><b>'+(LOTS.on?'Лотерея: банк '+fmtN(LOTS.bank)+' ⭐':'Лотерея — завтра с 08:00')+'</b><small>'+(LOTS.on?'беспроигрышная · у тебя '+LOTS.my+' 🎟 · розыгрыш в 22:00':'вчера банк забрал '+(LOTS.fin&&LOTS.fin.name||"—"))+'</small></span><em>›</em>'}
+ b.innerHTML='<i>🎰</i><span><b>'+(LOTS.on?'Лотерея: банк '+fmtN(LOTS.bank)+' ⭐':pre?'Беспроигрышная лотерея — старт в 08:00':'Лотерея — завтра с 08:00')+'</b><small>'+(LOTS.on?'беспроигрышная · у тебя '+LOTS.my+' 🎟 · розыгрыш в 22:00':pre?'через '+tkT(LOTS.start-nw)+' · билет '+LOTS.price+' ⭐ · банк одному':(LOTS.fin&&LOTS.fin.uid?'банк забрал '+escH(LOTS.fin.name):'новый банк каждый день'))+'</small></span><em>›</em>'}
 async function lotOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;if(!LOTS)sh.innerHTML='<div class="box nickbox"><p>Загружаю…</p></div>';await lotLoad();lotDraw()}
 function lotDraw(){const L=LOTS,sh=$("msheet");if(!L||$("modal").hidden)return;const now=Date.now()+L.off,ch=L.tot?Math.round(L.my/L.tot*1000)/10:0;
  let h='<div class="box nickbox lotbox"><small class="tk-k">🎰 КАЖДЫЙ ДЕНЬ · 08:00–22:00</small><h3>Беспроигрышная лотерея</h3>';
