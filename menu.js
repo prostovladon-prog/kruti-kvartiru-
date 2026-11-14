@@ -5,45 +5,49 @@
   Storage.prototype.getItem=function(k){const v=gi.call(this,k);if(v==null&&SYNC(k)&&typeof S!=="undefined"&&S&&(S.seen||[]).includes(k))return "1";return v};
   Storage.prototype.setItem=function(k,v){si.call(this,k,v);if(SYNC(k)&&!sent.has(k)&&typeof S!=="undefined"&&S&&ONLINE&&!(S.seen||[]).includes(k)){sent.add(k);(S.seen=S.seen||[]).push(k);try{act("seen",{k})}catch(e){}}}}
 const MENU_GROUPS=[
- ["Главное",[
-  {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
-  {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
-  {k:"tut",ic:"🎓",n:"Как играть",c:["#d0ffd8","#1a9a50"]},
-  {k:"teach",ic:"🧙",n:"Мудрец (вопросы)",c:["#c8e8ff","#3a5ab0"]},
-  {k:"enc",ic:"📚",n:"Энциклопедия карт",c:["#ffe8b0","#a0600a"]},
-  {k:"upd",ic:"🆕",n:"Обновление",c:["#ff9ad5","#c42a8a"]},
-  {k:"emp",ic:"👑",n:"Империя",c:["#ffe066","#c47a00"]},
-  {k:"war",ic:"⚔️",n:"Война армий",c:["#ff9a8a","#b0201a"]},
-  {k:"hof",ic:"🏛",n:"Зал славы",c:["#ffe9a8","#b07a10"]},
-  {k:"theme",ic:"🎨",n:"Тема",c:["#ffc8f0","#8a2ab0"]},
-  {k:"luck",ic:"🍀",n:"Оберег удачи",c:["#b8ffcf","#1e9a52"]},
-  {k:"prof",ic:"👤",n:"Профиль",c:["#7cc8ff","#2a4fd0"]},
-  {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]},
-  {k:"don",ic:"⭐",n:"Донат и понт",c:["#ffe9a8","#d06a00"]},{k:"sdlive",ic:"🎁",n:"Сундук в эфире",c:["#ffd23f","#c4400a"]},{k:"live",ic:"🎥",n:"Режим эфира",c:["#ff5a7a","#8a0a3a"]}]],
- ["Каждый день",[
+ ["🔥 Каждый день",[
   {k:"quest",ic:"🎯",n:"Задания",c:["#7ee89a","#1e8a4a"]},
-  {k:"gems",ic:"💎",n:"Кузня гемов",c:["#9ae8ff","#2a5ad0"]},
   {k:"dcard",ic:"🌙",n:"Карта дня",c:["#c8a8ff","#4a1a9a"]},
-  {k:"topup",ic:"💳",n:"Пополнить",c:["#b8ffd8","#1a8a5a"]},
   {k:"wheel",ic:"🎡",n:"Колесо",c:["#ffb84d","#d0302a"]},
   {k:"camp",ic:"🏕",n:"Лагерь",c:["#c9e86b","#4a7a1e"]},
-  {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
-  {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
   {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]},
   {k:"votes",ic:"🗳",n:"Голосование",c:["#ffd0c0","#d03a1a"]},
-  {k:"vc",ic:"🎬",n:"Конкурс на 210 $",c:["#d8c8ff","#6a2ad0"]}]],
- ["Сражения",[
+  {k:"vc",ic:"🎬",n:"Конкурс на 210 $",c:["#d8c8ff","#6a2ad0"]},
+  {k:"topup",ic:"💳",n:"Пополнить",c:["#b8ffd8","#1a8a5a"]}]],
+ ["⚔️ Сражаться",[
   {k:"conq",ic:"🗺",n:"Завоевание",c:["#ffcf5a","#8a4a10"]},
   {k:"clan",ic:"🛡",n:"Клан",c:["#b9a2ff","#4b2a9a"]},
   {k:"top",ic:"🏆",n:"Топ",c:["#fff1a8","#c08a0a"]},
   {k:"duel",ic:"⚔️",n:"Арена",c:["#ff8a8a","#9a1a1a"]}]],
- ["Коллекция",[
+ ["🗂 Коллекция",[
   {k:"album",ic:"📖",n:"Альбом",c:["#a8e0ff","#2a6ab0"]},
+  {k:"gems",ic:"💎",n:"Кузня гемов",c:["#9ae8ff","#2a5ad0"]},
   {k:"craft",ic:"⚒",n:"Крафт",c:["#d0d6e0","#5a6478"]},
   {k:"trade",ic:"🔄",n:"Обмены",c:["#9ff7d6","#1a8a7a"]},
   {k:"odds",ic:"🎲",n:"Шансы",c:["#e0c8ff","#6a3ab0"]},
+  {k:"enc",ic:"📚",n:"Энциклопедия карт",c:["#ffe8b0","#a0600a"]}]],
+ ["🏪 Магазин и статус",[
+  {k:"cas",ic:"🎰",n:"Казино",c:["#ff7ad9","#9b2cf0"]},
+  {k:"gold",ic:"🏪",n:"Сокровищница",c:["#ffe066","#ff9f0a"]},
+  {k:"don",ic:"⭐",n:"Донат и понт",c:["#ffe9a8","#d06a00"]},
+  {k:"emp",ic:"👑",n:"Империя",c:["#ffe066","#c47a00"]},
+  {k:"war",ic:"⚔️",n:"Война армий",c:["#ff9a8a","#b0201a"]},
+  {k:"hof",ic:"🏛",n:"Зал славы",c:["#ffe9a8","#b07a10"]},
+  {k:"pass",ic:"🎖",n:"Пропуск",c:["#ffd27a","#c0502a"]},
+  {k:"luck",ic:"🍀",n:"Оберег удачи",c:["#b8ffcf","#1e9a52"]},
+  {k:"prof",ic:"👤",n:"Профиль",c:["#7cc8ff","#2a4fd0"]}]],
+ ["💬 Общение",[
+  {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
+  {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]}]],
+ ["⚙️ Настройки и помощь",[
+  {k:"tut",ic:"🎓",n:"Как играть",c:["#d0ffd8","#1a9a50"]},
+  {k:"teach",ic:"🧙",n:"Мудрец (вопросы)",c:["#c8e8ff","#3a5ab0"]},
+  {k:"upd",ic:"🆕",n:"Обновление",c:["#ff9ad5","#c42a8a"]},
+  {k:"theme",ic:"🎨",n:"Тема",c:["#ffc8f0","#8a2ab0"]},
   {k:"fs",ic:"📱",n:"Полный экран",c:["#c8f0ff","#2a7ab0"]},
-  {k:"home",ic:"📲",n:"Иконка на экран",c:["#d8ffc8","#2a9a3a"]}]]];
+  {k:"home",ic:"📲",n:"Иконка на экран",c:["#d8ffc8","#2a9a3a"]},
+  {k:"sdlive",ic:"🎁",n:"Сундук в эфире",c:["#ffd23f","#c4400a"]},
+  {k:"live",ic:"🎥",n:"Режим эфира",c:["#ff5a7a","#8a0a3a"]}]]];
 function menuGo(k){menuClose();hap&&hap("light");
   if(k==="gold")return openGold();
   if(k==="don")return openGold("flex");

@@ -3422,3 +3422,29 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .pl-adm{display:flex;gap:6px;flex-wrap:wrap}.pl-new{border:2px dashed #ffd23f;background:rgba(255,210,63,.12);color:#ffd23f;border-radius:12px;padding:8px;font-weight:900}
 .pl-form input{width:100%;padding:9px;border-radius:10px;border:0;font-size:14px;margin-bottom:6px;color:#111}
 #sgv-log{max-height:42vh;overflow-y:auto;overscroll-behavior:contain;border-radius:12px}
+.colflt{margin:6px 0 8px}.colflt input{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:3px solid var(--ink);font-size:15px;font-weight:700}
+.cf-ch{display:flex;gap:6px;overflow-x:auto;padding:6px 0 2px;scrollbar-width:none}.cf-ch::-webkit-scrollbar{display:none}
+.cf-ch button{flex:none;padding:6px 10px;border-radius:999px;border:2px solid var(--ink);background:#fff;color:var(--ink);font-weight:800;font-size:12px}.cf-ch button.on{background:#ffd23f}
+#cf-n{display:block;font-size:12px;opacity:.75;color:#fff;margin-top:2px}#cf-n:empty{display:none}
+.tl2{position:relative}.nwb{position:absolute;z-index:3;top:-6px;right:-4px;background:#ff2e63;color:#fff;font-size:10px;font-weight:900;border:2px solid var(--ink);border-radius:8px;padding:1px 5px;transform:rotate(6deg);animation:nwp 1.6s ease-in-out infinite}
+@keyframes nwp{50%{transform:rotate(6deg) scale(1.12)}}
+/* выпадение редкой карты */
+.epx{position:fixed;inset:0;z-index:60;pointer-events:none;display:grid;place-items:center;animation:epxf 1.3s ease-out forwards}.epx.e4{animation-duration:2s}
+.epx-r{position:absolute;inset:-60%;background:repeating-conic-gradient(var(--ec) 0 7deg,transparent 7deg 20deg);opacity:.35;animation:epxr 2s linear}
+.epx b{position:relative;margin-top:-46vh;font-size:34px;font-weight:900;color:#fff;-webkit-text-stroke:2px #0b0712;text-shadow:0 0 18px var(--ec),0 4px 0 #0b0712;animation:epxb .6s cubic-bezier(.3,1.7,.5,1)}
+.epx.e4 b{font-size:40px}
+@keyframes epxf{0%{opacity:0}12%{opacity:1}75%{opacity:1}100%{opacity:0}}@keyframes epxr{to{transform:rotate(90deg)}}@keyframes epxb{from{transform:scale(.2)}}
+.epx-shake{animation:epxs .6s}@keyframes epxs{10%,50%,90%{transform:translate(-5px,2px)}30%,70%{transform:translate(5px,-2px)}}
+/* значки на вкладках */
+.tbn{position:absolute;top:2px;right:calc(50% - 26px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff2e63;color:#fff;font-style:normal;font-size:11px;font-weight:900;line-height:14px;border:2px solid #0b0712;text-align:center}
+nav.tabs button{position:relative}
+/* подсказка первого входа */
+.hnt{position:fixed;inset:0;z-index:70;background:rgba(5,3,12,.6);display:grid;place-items:center;padding:20px}.hnt-b{max-width:340px;background:linear-gradient(135deg,#1a1050,#4a1a7a);border:3px solid #ffd23f;border-radius:20px;padding:16px;color:#fff;animation:epxb .35s cubic-bezier(.3,1.5,.5,1)}.hnt-b b{font-size:19px}.hnt-b p{font-size:14px;line-height:1.45;margin:8px 0 12px}.hnt-b .craftbtn{width:100%}
+/* плавное появление разделов (только прозрачность и сдвиг — дёшево для телефона) */
+section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){section[id^="sec-"]:not([hidden]){animation:none}}
+.pfc{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px;position:relative;z-index:3}.pfc span{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,210,63,.6);border-radius:10px;padding:3px 8px;font-size:12px;font-weight:800;color:#fff}
+/* единый стиль окон: тёмные окна (кузня, карта дня, опросы, акции) с той же кнопкой «Закрыть» и рамкой, что и остальные */
+.gemw{border-radius:18px}.gemw .gem-h{padding-bottom:8px;margin-bottom:10px;border-bottom:2px solid rgba(255,210,63,.35)}
+.gemw .gem-h b{font-size:20px;font-weight:900;color:#ffd23f}
+.gemw .gem-h .ghost{font-size:13px;padding:8px 12px;border-radius:10px;background:var(--paper);color:var(--ink);border:2.5px solid var(--ink);font-weight:800;min-width:0;width:auto}

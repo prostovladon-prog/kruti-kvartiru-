@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="ru">
-<head><meta name="app-ver" content="ce97dce45d">
+<head><meta name="app-ver" content="4ff674cc6a">
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=d3e02eb3">
+<link rel="stylesheet" href="style.css?v=d231f00a">
 </head>
 <body>
 <div id="boot" style="position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle at 50% 35%,#3a5cff,#1d44c8 45%,#0b1a5a 100%);color:#fff;font-family:Rubik,system-ui,sans-serif;transition:opacity .45s,transform .45s">
@@ -340,6 +340,7 @@
     <div class="colseg" id="col-seg" role="tablist"><button type="button" data-v="cards" aria-pressed="true">🃏 Карточки</button><button type="button" data-v="beauty" aria-pressed="false">✨ Витрина красоты</button><button type="button" data-v="merge" aria-pressed="false">🔀 Слияние</button></div>
     <div id="colp-cards">
       <div class="colsort" id="col-sort"><button type="button" data-s="v" aria-pressed="true">💰 Цена</button><button type="button" data-s="r" aria-pressed="false">💎 Редкость</button><button type="button" data-s="f" aria-pressed="false">✨ Отделка</button><button type="button" data-s="n" aria-pressed="false">🕐 Новые</button><button type="button" data-s="p" aria-pressed="false">⚔️ Сила</button></div>
+      <div class="colflt" id="col-flt"><input type="search" id="cf-q" placeholder="🔎 Найти воина" autocomplete="off"><div class="cf-ch"><button type="button" data-cf="all" class="on">Все</button><button type="button" data-cf="new">🆕 Новые</button><button type="button" data-cf="r0">Обычн.</button><button type="button" data-cf="r1">Редкие</button><button type="button" data-cf="r2">Эпики</button><button type="button" data-cf="r3">Легенды</button><button type="button" data-cf="r4">Мифы</button><button type="button" data-cf="err">❗ Ошибки</button><button type="button" data-cf="gem">💎 С гемами</button></div><small id="cf-n"></small></div>
       <div class="colact" id="col-act"><button type="button" class="ghost" id="sellcommon">💰 Продать все обычные</button><button type="button" class="ghost" id="col-pick">☑️ Выбрать</button></div>
       <div class="list" id="col"></div>
     </div>
@@ -361,9 +362,9 @@
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
 <script src="rules.js?v=77fd7d14"></script>
-<script src="game.js?v=d8bab867"></script>
+<script src="game.js?v=9218aafb"></script>
 <script src="wow.js?v=e974dd39"></script>
-<script src="menu.js?v=a21a3254"></script>
+<script src="menu.js?v=21bcfbf4"></script>
 <script src="dragon.js?v=07720efa"></script>
 <script src="teach.js?v=a80812ab"></script>
 <script src="turnir.js?v=28704163"></script>
@@ -372,6 +373,6 @@
 <script src="ref.js?v=eb6bec8f"></script>
 <script src="tutor.js?v=3b31f4fa"></script>
 <script src="admin.js?v=036ff4ad"></script>
-<script src="gems.js?v=23ac0646"></script>
+<script src="gems.js?v=00c3331b"></script>
 </body>
 </html>

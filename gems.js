@@ -171,3 +171,26 @@ function pollNew(){const box=$("ch-poll");box.innerHTML='<div class="pl-card pl-
   $("pl-x").onclick=pollDraw;$("pl-go").onclick=async()=>{const r=await act("poll_create",{q:$("pl-q").value,opts:[...document.querySelectorAll(".pl-oi")].map(x=>x.value)});if(r){toast("📊 Опрос опубликован — его видят все в чате");pollLoad()}}}
 {const _oc=openChat;openChat=function(){const r=_oc.apply(this,arguments);try{const L=$("ch-list");if(L&&!$("ch-poll")){const d=document.createElement("div");d.id="ch-poll";d.className="ch-poll";L.before(d);pollLoad()}}catch(e){}return r}}
 {const _mg=menuGo;menuGo=function(k){if(k==="poll"){menuClose();return openChat()}return _mg.apply(this,arguments)}}
+/* ===== UI: эффект выпадения по редкости (только легенды/мифы/ошибки — обычные карты не грузим) ===== */
+function epicFx(c,L){if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;const col=revealColor(c),t=c.f===4||c.f===8?"ОШИБКА ПЕЧАТИ!":c.f===3?"ЗОЛОТАЯ!":HEROES[c.h][2]===4?"МИФИЧЕСКИЙ!":"ЛЕГЕНДАРНЫЙ!";
+  const o=document.createElement("div");o.className="epx"+(L>=4?" e4":"");o.style.setProperty("--ec",col);o.innerHTML='<div class="epx-r"></div><b>'+t+'</b>';document.body.appendChild(o);
+  if(L>=4){document.body.classList.add("epx-shake");setTimeout(()=>document.body.classList.remove("epx-shake"),650)}setTimeout(()=>o.remove(),L>=4?2000:1300)}
+/* ===== UI: значки на нижних вкладках — сколько прокруток и сколько новых карт/обменов ===== */
+function tabBadge(id,n){const b=$(id);if(!b)return;let e=b.querySelector(".tbn");if(!n){if(e)e.remove();return}if(!e){e=document.createElement("em");e.className="tbn";b.appendChild(e)}const v=n>99?"99+":String(n);if(e.textContent!==v)e.textContent=v}
+{const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{if(S&&S.cards){tabBadge("tab-spin",S.spins>0?S.spins:0);const t=Date.now()-864e5;let seen=0;try{seen=+localStorage.getItem("we-cseen")||0}catch(e){}
+  const nw=S.cards.filter(c=>(c.created||0)>Math.max(t,seen)).length;tabBadge("tab-cards",nw+(S.trIn||0))}}catch(e){}return r}}
+{const _st=setTab;setTab=function(t){const r=_st.apply(this,arguments);try{if(t==="col"||t==="album"){localStorage.setItem("we-cseen",Date.now());tabBadge("tab-cards",S.trIn||0)}}catch(e){}return r}}
+/* ===== UI: подсказка при первом входе в раздел ===== */
+const HINTS={gems:["💎 Кузня гемов","Собирай осколки: 🌍 в лагере, 🔥 в клане, 🌪 у дракона, 💧 за задания. Меняй 40 осколков и монеты на попытку выбить гем, вставляй гемы в карты — они станут сильнее."],
+ cw:["🗺 Война за земли","Каждый день 20:00–22:00 твой клан захватывает клетки карты. Первая — с края, дальше только соседние. В 22:00 клетка уходит клану с наибольшим уроном, владельцы получают монеты и осколки 🔥."],
+ dc:["🌙 Карта дня","Каждый день — новый воин всего в 2 экземплярах. Один продаётся за звёзды, второй можно выбить только в Особом прокруте. Особые прокруты дают за задания дня."],
+ map:["🗺 Карта мира","Занимай регионы своими воинами — они приносят доход каждый час. Нападай на чужие регионы: победишь — регион твой. Сильные карты лучше ставить в центр."]};
+function hintOnce(k){const H=HINTS[k];if(!H)return;let seen=0;try{seen=localStorage.getItem("we-h-"+k)}catch(e){}if(seen)return;try{localStorage.setItem("we-h-"+k,1)}catch(e){}
+  setTimeout(()=>{const d=document.createElement("div");d.className="hnt";d.innerHTML='<div class="hnt-b"><b>'+H[0]+'</b><p>'+H[1]+'</p><button type="button" class="craftbtn">Понятно</button></div>';d.onclick=e=>{if(e.target.closest("button")||e.target===d)d.remove()};document.body.appendChild(d)},350)}
+{const w=(n,k)=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{hintOnce(k)}catch(e){}return r}};w("gemOpen","gems");w("cwOpen","cw");w("dcOpen","dc");w("openMap","map")}
+/* ===== UI: профиль-визитка — ранг, альбом, победы, лучшая карта одной строкой под ником ===== */
+function profChips(root,o){try{const top=root&&root.querySelector(".top");if(!top||root.querySelector(".pfc"))return;const R=o.emp!=null?EMP.R[empRank(o.emp)]:null;
+  const ch=[R?R.ic+" "+R.n:null,o.have!=null?"📖 "+o.have+"/"+NHEROES:null,o.wins!=null?"⚔️ "+fmtN(o.wins)+" побед":null,o.best?"🏆 "+o.best:null].filter(Boolean);
+  if(!ch.length)return;const d=document.createElement("div");d.className="pfc";d.innerHTML=ch.map(x=>'<span>'+escH(x)+'</span>').join("");top.after(d)}catch(e){}}
+{const _ds=drawShelf;drawShelf=function(){_ds.apply(this,arguments);try{const b=S.cards.slice().sort((a,b)=>b.v-a.v)[0];profChips($("prof-body").querySelector(".wsh"),{emp:S.emp||0,have:new Set(S.cards.filter(c=>isBase(c.h)).map(c=>c.h)).size,wins:S.totalWins||0,best:b?HEROES[b.h][0]:null})}catch(e){}}}
+{const _os=openShowcase;openShowcase=function(F){_os.apply(this,arguments);try{profChips($("msheet").querySelector(".wsh"),{have:F.have,wins:F.wins,best:F.cards&&F.cards[0]?HEROES[F.cards[0].h][0]:null})}catch(e){}}}

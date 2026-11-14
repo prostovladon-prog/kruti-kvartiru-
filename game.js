@@ -924,6 +924,7 @@ async function open(){
     countUp([$("p-val"),$("h-val")],c.v,L>=3?1400:L>=1?700:250);
     if(L>=1)burst(L);
     if(L>=3){sfx.fanfare();hapN("success");const f=$("flash");if(f){f.style.setProperty("--fl",revealColor(c));f.classList.remove("go");void f.offsetWidth;f.classList.add("go")}}
+    if(L>=3&&typeof epicFx==="function")try{epicFx(c,L)}catch(e){}
     const p=$("price");p.classList.remove("big");void p.offsetWidth;if(L>=2)p.classList.add("big");
     if(cl&&cl.m>=8)toast("Красивый номер "+fmtSn(c.sn)+"! "+cl.k+", ×"+cl.m);
     else if(c.f===4)toast("ОШИБКА ПЕЧАТИ! Единственная в мире");
@@ -975,7 +976,9 @@ function renderAlbum(){
 }
 
 /* ---------- collection ---------- */
-let colView="cards",colSort="v";
+let colView="cards",colSort="v",colQ="",colF="all";
+document.addEventListener("click",e=>{const b=e.target.closest("[data-cf]");if(!b)return;colF=b.dataset.cf;document.querySelectorAll("[data-cf]").forEach(x=>x.classList.toggle("on",x===b));renderCol()});
+document.addEventListener("input",e=>{if(e.target.id!=="cf-q")return;clearTimeout(colQ.t);const v=e.target.value.trim();setTimeout(()=>{if($("cf-q")&&$("cf-q").value.trim()===v){colQ=v;renderCol()}},250)});
 const RK=["обычн.","редкие","эпич.","легенд.","миф."];
 /* выбор карточек для продажи */
 let colPick=false,colSel=new Set();
@@ -1008,8 +1011,12 @@ function renderCol(){
   if(!S.cards.length){box.className="list";box.innerHTML='<div class="empty-msg">Тут пока пусто. Открой первую карточку на вкладке «Крутить»</div>';return}
   const pw=c=>[0,1,2,3,4].reduce((a,i)=>a+(c.stats?eff(c,i):0),0),tier=c=>HEROES[c.h][2];
   const cmp={v:(a,b)=>b.v-a.v,r:(a,b)=>tier(b)-tier(a)||b.v-a.v,f:(a,b)=>b.f-a.f||b.v-a.v,n:(a,b)=>(b.created||0)-(a.created||0)||String(b.id).localeCompare(String(a.id)),p:(a,b)=>pw(b)-pw(a)}[colSort];
-  [...S.cards].sort(cmp).forEach(c=>{const t=tier(c),el=document.createElement("div");el.className="tl2"+(t===3?" leg":t===4?" myth":"");el.style.setProperty("--c",HT[t].c);
-    el.innerHTML=`<span class="rb">${tierOf(c.h).k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
+  const NEWT=Date.now()-864e5,isNew=c=>(c.created||0)>NEWT,fq=(colQ||"").toLowerCase(),fl=[...S.cards].filter(c=>{if(fq&&!HEROES[c.h][0].toLowerCase().includes(fq))return false;const F=colF;
+    return F==="all"||(F==="new"&&isNew(c))||(F[0]==="r"&&F.length===2&&tier(c)===+F[1])||(F==="err"&&(c.f===4||c.f===8))||(F==="gem"&&((S.gsock||{})[c.id]||[]).length)});
+  {const n=$("cf-n");if(n)n.textContent=fl.length===S.cards.length?"":"Показано "+fl.length+" из "+S.cards.length}
+  if(!fl.length){box.className="list";box.innerHTML='<div class="empty-msg">Под фильтр ничего не подошло</div>';return}
+  fl.sort((a,b)=>(isNew(b)-isNew(a))||cmp(a,b)).forEach(c=>{const t=tier(c),el=document.createElement("div");el.className="tl2"+(t===3?" leg":t===4?" myth":"")+(isNew(c)?" isnew":"");el.style.setProperty("--c",HT[t].c);
+    el.innerHTML=`${isNew(c)?'<span class="nwb">NEW</span>':""}<span class="rb">${tierOf(c.h).k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
     const cb=el.querySelector(".cbtn");cb.setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");cb.onclick=()=>openCardView(c,{mine:true});
     if(colPick){const ok=sellableUI(c);el.classList.add(ok?"pick":"nopick");if(colSel.has(c.id))el.classList.add("sel");
       el.insertAdjacentHTML("beforeend",'<span class="pk">'+(colSel.has(c.id)?"✓":"")+'</span>');
