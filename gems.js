@@ -258,3 +258,5 @@ function dspBan(){const sec=$("sec-spin");if(!sec||sec.hidden)return;let b=$("ds
   if(!b){b=document.createElement("button");b.type="button";b.id="dsp-ban";b.className="dsp-ban";b.onclick=()=>{dcOpen();setTimeout(()=>{const x=$("dspb");if(x)x.scrollIntoView({block:"start"})},250)};const ns=$("now-strip");if(ns)ns.after(b);else sec.prepend(b)}
   const t=n>0?'🎰 КРУТИТЬ ОСОБЫЙ ПРОКРУТ <em>×'+n+'</em>':'🎰 Особые прокруты: выполни задание и выбей карту дня';if(b._t!==t){b._t=t;b.innerHTML=t+'<small>Дракула · Баба Яга — шанс растёт к ночи</small>'}b.classList.toggle("hot",n>0)}
 {const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{dspBan()}catch(e){}return r}}
+/* опросы: чат открывается разными кнопками (часть из них привязана к старой функции) — поэтому блок опросов подставляем, как только появился список чата */
+setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){const d=document.createElement("div");d.id="ch-poll";d.className="ch-poll";L.before(d);pollLoad()}}catch(e){}},500);
