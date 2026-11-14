@@ -399,6 +399,8 @@ async function stateFor(env,me){
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,hype:await hypeList(env),uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
   try{S.rd=await rdState(env,me)}catch(e){}
+  try{S.diaU=await cached("diaU",60e3,async()=>{let L=(await kvGet(env,"dia_ids"))||[];const n=(await env.DB.prepare("SELECT id FROM users WHERE nick IN ("+DIA_NICKS.map(()=>"?").join(",")+")").bind(...DIA_NICKS).all()).results.map(r=>r.id);
+    if(!L.length&&n.length){L=n.slice(0,1);await kvSet(env,"dia_ids",L)}return [...new Set(L)]})}catch(e){}   // id запоминается навсегда — смена ника не отнимет алмаз
   try{await xhLoad(env);S.xh=XH;if(DC&&Date.now()<DC.until+36e5){S.dc={...DC,left:await dcLeft(env)}}}catch(e){}
   try{const L=await vtState(env,me);S.vts=L;S.vt=L.find(x=>!x.ch)||L[0]||null}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
@@ -1451,6 +1453,8 @@ async function hhPush(env,now){const e=hhNow(now);if(!e||now>e.end-10*60e3)retur
     if(await notify(env,u.id,"🍀 Счастливый час! "+T.ic+" "+T.n+": "+T.d+".\n\nДействует ещё "+left+" мин — потом обычные правила.","🍀 Успеть"))sent++}
   return sent}
 /* разовые выдачи карточек (компенсации за баги): выполняются один раз, игрок получает сообщение */
+/* 💎 алмазный профиль навсегда (обещано топ-1) */
+const DIA_NICKS=["Zz_ruslan4ik_zZ"];
 const ADM_GRANTS=[{id:"g-cat-ruslan",nick:"Zz_ruslan4ik_zZ",h:HEROES.findIndex(H=>H[0]==="Кот в сапогах"),f:4,stats:[668,652,690,660,675],v:1000000,vip:3,why:"Спасибо, что помог игре! ❤️ Твоя именная карточка готова: Кот в сапогах, «Ошибка печати» и редкость «Сказочный» — второй такой в игре нет 🐈👢\n\n💎 А ещё тебе VIP Алмаз — НАВСЕГДА."},{id:"g1-vanya",uid:1025352541,h:15,f:4,sn:"200000",stats:[213,242,184,238,222],v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN — мы её вернули 🙏"},
   {id:"g2-vanya",uid:1025352541,rare:1,f:4,sn:"200000",v:57529,why:"Карточка, которую ты выбил, пропала из-за сбоя с VPN. Того же Гоплита вернуть нельзя — «ошибка печати» у него уже есть у другого игрока, поэтому дарим тебе другую редкую «ошибку печати» такой же цены 🙏"}];   // приз за 10 друзей (№ 000010) уже выдан вручную — авто-выдачу убрали
 /* 10.11: Коту в сапогах игрока Zz_ruslan4ik_zZ — номер 000001 (разово). Если номер у карточки, ушедшей из игры, — ей даём другой; если у живого игрока — не трогаем и пишем админу */

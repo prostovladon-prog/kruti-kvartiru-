@@ -3389,3 +3389,17 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .gemsvg{display:block;overflow:visible}.gem-sh i{display:flex;justify-content:center}.gem-go{display:flex;align-items:center;gap:10px}.gem-gi{flex:none;display:flex}
 .gem-s.full{padding:0;overflow:visible;background:radial-gradient(#2a2050,#0b0d22)}.gem-row{gap:10px}
 .gem-row .craftbtn{flex:none;width:auto;padding:10px 12px;font-size:13px;white-space:nowrap}
+/* 💎 алмазный профиль */
+@keyframes diash{to{background-position:200% 0}}@keyframes diabd{to{--da:360deg}}@keyframes dspk{0%,100%{transform:scale(0) rotate(0);opacity:0}50%{transform:scale(1) rotate(90deg);opacity:1}}
+@property --da{syntax:"<angle>";inherits:false;initial-value:0deg}
+.dian{background:linear-gradient(90deg,#9ff3ff,#ffffff,#7ad8ff,#e6c8ff,#ffffff,#9ff3ff);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;animation:diash 2.4s linear infinite;filter:drop-shadow(0 0 6px rgba(140,230,255,.7))}
+.diab{display:inline-block;-webkit-text-fill-color:#062a4a;color:#062a4a;background:linear-gradient(135deg,#e8fdff,#7ad8ff 45%,#ffffff 55%,#9ab8ff);border:2px solid #0b0712;border-radius:8px;padding:0 6px;font-size:10px;font-weight:900;letter-spacing:.5px;box-shadow:0 0 10px #7ad8ff}
+.diar{position:relative;overflow:hidden;border:3px solid transparent!important;background:linear-gradient(135deg,#0e2a4a,#1a1050) padding-box,conic-gradient(from var(--da),#7ad8ff,#ffffff,#c89aff,#7ad8ff,#ffffff,#7ad8ff) border-box!important;animation:diabd 3s linear infinite;box-shadow:0 0 18px rgba(122,216,255,.55)}
+.diar .t small,.diar .sc,.diar .rk{color:#e8fbff!important}
+.diar::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);background-size:250% 100%;animation:diash 2.6s linear infinite;pointer-events:none}
+.dsp{position:absolute;left:var(--x);top:var(--y);width:14px;height:14px;pointer-events:none;animation:dspk 2.4s var(--d) infinite;z-index:3;background:radial-gradient(circle,#fff 15%,transparent 20%),conic-gradient(from 45deg,transparent 0 10%,#fff 12% 13%,transparent 15% 35%,#fff 37% 38%,transparent 40% 60%,#fff 62% 63%,transparent 65% 85%,#fff 87% 88%,transparent 90%);clip-path:polygon(50% 0,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0 50%,42% 42%);background:#fff;filter:drop-shadow(0 0 4px #9ff3ff)}
+.wsh.diap{position:relative;border:4px solid transparent;border-radius:22px;padding:10px;background:linear-gradient(160deg,#0b2240,#1a0f45 60%,#0b2240) padding-box,conic-gradient(from var(--da),#7ad8ff,#ffffff,#c89aff,#7ad8ff,#ffffff,#7ad8ff) border-box;animation:diabd 3s linear infinite;box-shadow:0 0 28px rgba(122,216,255,.6),inset 0 0 40px rgba(122,216,255,.18);overflow:hidden}
+.wsh.diap::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.18) 50%,transparent 65%);background-size:250% 100%;animation:diash 3.2s linear infinite;pointer-events:none;z-index:2}
+.wsh.diap .ava{box-shadow:0 0 0 4px #e8fdff,0 0 22px #7ad8ff;border-radius:18px}
+.dia-ban{text-align:center;font-weight:900;font-size:15px;letter-spacing:1px;margin:0 0 8px;padding:6px;border-radius:12px;color:#062a4a;background:linear-gradient(90deg,#9ff3ff,#ffffff,#7ad8ff,#e6c8ff,#ffffff,#9ff3ff);background-size:200% 100%;animation:diash 2.4s linear infinite;border:2px solid #0b0712;box-shadow:0 0 14px #7ad8ff}
+.dia-ban span{display:inline-block;animation:dspk 2s infinite}
