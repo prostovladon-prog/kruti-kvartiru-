@@ -70,7 +70,7 @@ function gemDraw(){const sh=$("msheet"),H=S.gsh||{},I=S.gems||{},d=today(Date.no
 /* ===== Карта дня (2 экземпляра) ===== */
 const dcHM=t=>{const d=new Date(t+3*36e5);return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')};
 {const _ra=renderAll;renderAll=function(){try{if(S&&S.xh)xhApply(S.xh)}catch(e){}return _ra.apply(this,arguments)}}
-{const _act=act;act=async function(n,p){const r=await _act(n,p);if(r&&r.dsp)setTimeout(()=>toast("🌙 +1 Особый прокрут! Крути в «Карте дня»"),900);return r}}
+{const _act=act;act=async function(n,p){const r=await _act(n,p);if(r&&r.dsp)setTimeout(()=>toast("🌙 +"+r.dsp+" Особый прокрут! Крути в «Карте дня»"),900);return r}}
 function dcT(ms){ms=Math.max(0,ms);const h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);return (h?h+"ч ":"")+m+"м "+(h?"":s+"с")}
 let dcTmr=null;
 function dcOpen(){if(!S)return;$("modal").hidden=false;dcDraw();clearInterval(dcTmr);dcTmr=setInterval(()=>{if($("modal").hidden||!$("dc-t")){clearInterval(dcTmr);return}dcDraw(1)},1000)}

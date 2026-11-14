@@ -1282,7 +1282,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
     if(name==="wheel")passAdd(st,ctx,"wheel",1);if(name==="sell")passAdd(st,ctx,"sell",1);if(name==="sellmany"||name==="sellcommon")passAdd(st,ctx,"sell",res.n|0||1)}catch(e){}
   try{let sh=null;const acc=(k,n,per)=>{const A=st.gacc||(st.gacc={});A[k]=(A[k]||0)+n;const q=Math.floor(A[k]/per);A[k]-=q*per;return q};if(name==="camp_tap")sh=["e",acc("e",res.n|0,25)];else if(name==="camp_collect")sh=["e",3];else if(name==="dg_tap")sh=["a",acc("a",res.n|0,10)];else if(name==="dg_play")sh=["a",4];
     else if(name==="dg_exp_end"||name==="dg_morning")sh=["a",3];else if(name==="task"||name==="streak")sh=["w",3];else if(name==="pass_note"&&G.p.k==="clan")sh=["f",6];
-    if(name==="task"){const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}if(D.got.length%DSP.per===0&&st.dspN<DSP.cap){st.dspN++;st.dsp=(st.dsp||0)+1;res.dsp=1}}
+    {const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}const due=Math.min(DSP.cap,Math.floor((D.got||[]).length/DSP.per));if(due>st.dspN){const add=due-st.dspN;st.dspN=due;st.dsp=(st.dsp||0)+add;res.dsp=add}}   // и тем, кто выполнил задания до появления прокрутов
     if(sh&&sh[1]>0){const n=gemShard(st,ctx,sh[0],sh[1]);if(n)res.gsh=[sh[0],n]}}catch(e){}
   try{const S=st.gsock;if(S){const ids=new Set(G.cards.map(c=>String(c.id)));for(const id in S)if(!ids.has(String(id))){for(const g of S[id])gemAdd(st,g);delete S[id]}}}catch(e){}
   for(const c of G.cards)delete c.gm;for(const c of cards)delete c.gm;
