@@ -280,5 +280,8 @@ setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){co
 {const LISTS="#sec-col,#sec-album,#cr-pick";
  const vio=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{const el=e.target;if(!el.isConnected){vio.unobserve(el);return}
    if(e.isIntersecting){if(el._gone&&el._card){el._gone=0;el._mc=el._card;el._w=e.boundingClientRect.width;fillMini(el)}}
-   else if(!el._gone&&el._card&&el.firstChild){el._gone=1;while(el.firstChild)el.removeChild(el.firstChild)}}),{rootMargin:"1200px 0px"}):null;
+   else if(!el._gone&&el._card&&el.firstChild){el._gone=1;while(el.firstChild)el.removeChild(el.firstChild)}}),{rootMargin:"800px 0px"}):null;
  const _fm=fillMini;fillMini=function(el){const c=el&&el._mc;const r=_fm.apply(this,arguments);try{if(c&&vio&&el.closest&&el.closest(LISTS)&&!el._card){el._card=c;vio.observe(el)}}catch(e){}return r}}
+
+/* SVG-анимации (SMIL) в маленьких копиях карт стоят на паузе — мини-карточки и так статичные, а SMIL перерисовывал их каждый кадр */
+{const _fm=fillMini;fillMini=function(el){const r=_fm.apply(this,arguments);try{el.querySelectorAll("svg").forEach(s=>{if(s.pauseAnimations&&s.querySelector("animate,animateTransform,animateMotion"))s.pauseAnimations()})}catch(e){}return r}}

@@ -3517,3 +3517,5 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 
 /* память на iPhone: мини-карточки не переворачиваются — без backface-visibility каждая не становится отдельным GPU-слоем */
 .minic .face{backface-visibility:visible;-webkit-backface-visibility:visible}
+/* память на iPhone: в маленьких копиях карт тени-фильтры (drop-shadow) не видны глазу, но каждая требует отдельный буфер в полном размере карты */
+.minic svg.pt,.minic .gc1,.minic .power{filter:none!important}
