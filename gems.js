@@ -79,6 +79,7 @@ const DCF={};function dcFace(h,i){try{if(!DCF[h]){const B=cardBody(h,4,null),sn=
 function dcDraw(tick){const sh=$("msheet"),L0=S.dcs||(S.dc?[S.dc]:[]),now=Date.now();
   if(tick){L0.forEach((D,i)=>{const e=$("dc-t"+i);if(e)e.textContent=now<D.at?"старт через "+dcT(D.at-now):now<D.until?"осталось "+dcT(D.until-now):"завершено"});if($("dc-x"))return}
   let h='<div class="gemw"><div class="gem-h"><b>🌙 Карта дня'+(L0.length>1?' · '+L0.length+' карты':'')+'</b><button type="button" class="ghost" id="dc-x">✕</button></div>';
+  h+=dspBox(L0);
   L0.forEach((D,i)=>{if(!HEROES[D.h])return;const H=HEROES[D.h],on=now>=D.at&&now<D.until,L=D.left||{buy:0,spin:0};
     h+='<div class="dc-card"><div class="dc-mc">'+dcFace(D.h,i)+'</div><div><b class="dc-n">'+escH(H[0])+'</b><small>'+escH(H[1])+' · Ошибка печати</small><p>'+escH(H[3])+'</p><span class="dc-t" id="dc-t'+i+'"></span></div></div>';
     h+='<div class="dc-left"><div class="'+(L.buy?"":"off")+'">⭐ За звёзды<b>'+(L.buy?"1 из 1":"продано")+'</b></div><div class="'+(L.spin?"":"off")+'">🎰 Из прокрута<b>'+(D.ns?"не выпадает":L.spin?"1 из 1":"выбита")+'</b></div></div>';
@@ -89,13 +90,12 @@ function dcDraw(tick){const sh=$("msheet"),L0=S.dcs||(S.dc?[S.dc]:[]),now=Date.n
   {const Q=S.dq&&S.dq.d===today(now)?S.dq:{c:{},got:[]};h+='<div class="dq"><b class="dq-h">🎯 Задания за Особые прокруты</b>'+DQ.map((T,i)=>{const v=Math.min(T.n,Q.c[T.k]||0),ok=v>=T.n,got=Q.got.includes(i);return '<div class="dq-r'+(got?' got':'')+'"><i>'+T.ic+'</i><span>'+T.t+'<u><em style="width:'+Math.round(v/T.n*100)+'%"></em></u><small>'+v+' / '+T.n+'</small></span>'+(got?'<b>✅</b>':'<button type="button" class="mini2 dq-c" data-dq="'+i+'"'+(ok?'':' disabled')+'>+1 🎰</button>')+'</div>'}).join("")+
     '<div class="dq-r all'+(Q.all?' got':'')+'"><i>🏆</i><span>Выполни все '+DQ.length+' заданий<small>'+Q.got.length+' / '+DQ.length+'</small></span>'+(Q.all?'<b>✅</b>':'<button type="button" class="mini2 dq-c" data-dq="'+DQ.length+'"'+(Q.got.length>=DQ.length?'':' disabled')+'>+1 🎰</button>')+'</div></div>'}
   {const Q=S.dq&&S.dq.d===today(now)?S.dq:{};h+='<button type="button" class="gem-go dbuy" id="dc-bsp"'+((Q.buy||0)>=DSP_BUY.day?" disabled":"")+'>💰 Купить '+DSP_BUY.n+' Особых прокрута за '+fmtN(DSP_BUY.cash)+' 🪙<small>'+((Q.buy||0)>=DSP_BUY.day?"сегодня уже куплено — завтра снова":"раз в день · у тебя "+fmtN(Math.floor(S.cash||0))+" 🪙")+'</small></button>'}
-  h+='<button type="button" class="gem-go dsp" id="dc-sp"'+((S.dsp||0)>0?"":" disabled")+'>🎰 Особый прокрут ×'+(S.dsp||0)+'<small>можно выбить: '+(L0.filter(x=>!x.ns&&x.left&&x.left.spin).map(x=>HEROES[x.h][0]+" "+(x.rp?Math.round((x.ch||0)*100):(DSP.ch*100).toFixed(1))+"%").join(", ")||"—")+' · иначе осколки, монеты, прокрутки или гем</small></button>';
   h+='<p class="gem-p">Особые прокруты: каждые '+DSP.per+' выполненных задания дня = 1 прокрут (до '+DSP.cap+' в день). Карта выпадает только '+(S.dc?dcHM(S.dc.at)+'–'+dcHM(S.dc.until):'вечером')+', пока второй экземпляр не выбит.</p>';
   sh.innerHTML=h+'</div>';dcDraw(1);$("dc-x").onclick=closeModal;
   sh.querySelectorAll(".dc-buy").forEach(b=>b.onclick=()=>buyItem({item:"daycard",h:+b.dataset.h}));
   if($("dc-bsp"))$("dc-bsp").onclick=async()=>{if(!confirm("Купить "+DSP_BUY.n+" Особых прокрута за "+DSP_BUY.cash.toLocaleString("ru")+" монет?"))return;$("dc-bsp").disabled=true;const r=await act("dsp_buy",{});if(r)toast("🎰 +"+r.dsp+" Особых прокрута!");dcDraw()};
   sh.querySelectorAll(".dq-c").forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await act("dq_claim",{i:+b.dataset.dq});if(r){try{hap("medium")}catch(e){}toast("🎰 +1 Особый прокрут!")}dcDraw()});
-  $("dc-sp").onclick=async()=>{$("dc-sp").disabled=true;const r=await act("dsp_roll",{});if(r){if(r.win)toast("🌙🔥 НЕВЕРОЯТНО! Ты выбил Карту дня!");else if(r.sh)toast("+"+r.sh[1]+" "+GEM.el[r.sh[0]].ic+" осколков");else if(r.cash)toast("+"+fmt(r.cash)+" 🪙");else if(r.sp)toast("+"+r.sp+" прокрутки");else if(r.gem)toast("💎 Гем: "+gemName(r.gem))}dcDraw()};}
+  try{dspBind()}catch(e){}}
 {const _mg=menuGo;menuGo=function(k){if(k==="dcard"){menuClose();return dcOpen()}return _mg.apply(this,arguments)}}
 /* ===== Избранное в «Ещё» и вкладка «Пополнить» ===== */
 window.FAVE=false;
@@ -207,7 +207,7 @@ function profChips(root,o){try{const top=root&&root.querySelector(".top");if(!to
 let nowSig="";
 function nowItems(){const L=[],now=Date.now();if(!S)return L;let B={};try{B=menuBadges()}catch(e){}
   for(const D of (S.dcs||(S.dc?[S.dc]:[])))if(D&&HEROES[D.h]&&now<D.until){const on=now>=D.at;L.push({k:"dc",ic:"🌙",t:HEROES[D.h][0],s:on?"⏳ "+dcT(D.until-now)+" · 2 экз.":"старт в "+dcHM(D.at),c:"#1a1050,#7a2ad0",hot:on})}
-  if((S.dsp||0)>0)L.push({k:"dc",ic:"🎰",t:"Особый прокрут ×"+S.dsp,s:"шанс на Карту дня",c:"#7a2ad0,#d02a8a"});
+
   {const h=new Date(now).getUTCHours();if(h>=17&&h<19)L.push({k:"cw",ic:"🗺",t:"Война за земли",s:"бои до 22:00",c:"#c4400a,#7a1a8a",em:"!"})}
   if(B.quest)L.push({k:"quest",ic:"🎁",t:"Забрать награды",s:"задания: "+B.quest+" готово",c:"#1e8a4a,#0a4a2a",em:B.quest});
   if(S.n2&&!S.n2.got)L.push({k:"n2",ic:"🎁",t:"VIP + 50 ⭐ новичку",s:"друзей "+Math.min(S.n2.have,S.n2.need)+"/"+S.n2.need,c:"#ff7a1a,#d01a6a"});
@@ -233,3 +233,26 @@ const LURE=["💀 Кощей — карта дня","🔥 Мифический �
   fl.classList.add("back");st.classList.add("lure");const pl=$("p-lbl");if(pl)pl.textContent="Нажми на карту — кто выпадет?";
   let i=0;const tm=setInterval(()=>{if(!st.classList.contains("lure")){clearInterval(tm);return}const w=$("lure-w");if(!w)return;i=(i+1)%LURE.length;w.classList.remove("in");void w.offsetWidth;w.textContent=LURE[i];w.classList.add("in")},1800);
   const off=()=>{st.classList.remove("lure")};st.addEventListener("click",off,{once:true});const ob=$("open");if(ob)ob.addEventListener("click",off,{once:true})}catch(e){}})();
+
+/* ===== Особый прокрут: барабан прямо в окне «Карта дня» — выпадает карта или «пусто» ===== */
+function dspCands(L0){return (L0||S.dcs||[]).filter(x=>!x.ns&&x.left&&x.left.spin&&HEROES[x.h])}
+function dspTile(x){return x==null?'<div class="rl-i rl-e"><b>💨</b><small>ПУСТО</small></div>':'<div class="rl-i"><div class="rl-p">'+portrait(x,null)+'</div><small>'+escH(HEROES[x][0])+'</small></div>'}
+function dspBox(L0){const C=dspCands(L0),n=S.dsp||0;let strip=[];for(let i=0;i<5;i++)strip.push(i%2&&C.length?C[i%C.length].h:null);
+  return '<div class="dspb" id="dspb"><div class="dspb-h"><b>🎰 ОСОБЫЙ ПРОКРУТ</b><em>у тебя: '+n+'</em></div>'+
+   '<div class="rl"><div class="rl-s" id="rl-s">'+strip.map(dspTile).join("")+'</div><i class="rl-m"></i></div>'+
+   '<button type="button" class="dspb-go" id="dsp-go"'+(n>0?'':' disabled')+'>'+(n>0?'КРУТИТЬ ×1':'Нет прокрутов — выполни задание ниже 👇')+'</button>'+
+   '<small class="dspb-f">Выпадает карта дня или «пусто». Можно выбить: '+(C.map(x=>escH(HEROES[x.h][0])+' '+(x.rp?Math.round((x.ch||0)*100):(DSP.ch*100).toFixed(1))+'%').join(" · ")||"сейчас нечего")+'</small></div>'}
+let dspBusy=false;
+function dspBind(){const b=$("dsp-go");if(!b)return;b.onclick=async()=>{if(dspBusy)return;dspBusy=true;b.disabled=true;const C=dspCands();
+  const r=await act("dsp_roll",{});if(!r){dspBusy=false;dcDraw();return}
+  const win=r.win&&r.card?r.card.h:null,seq=[];for(let i=0;i<22;i++)seq.push(i%3===1&&C.length?C[i%C.length].h:null);seq.push(win);seq.push(C.length?C[0].h:null);
+  const S2=$("rl-s");if(S2){S2.style.transition="none";S2.style.transform="translateX(0)";S2.innerHTML=seq.map(dspTile).join("");void S2.offsetWidth;const w=S2.firstChild?S2.firstChild.getBoundingClientRect().width+8:110,box=S2.parentElement.getBoundingClientRect().width;
+    S2.style.transition="transform 2.2s cubic-bezier(.12,.8,.18,1)";S2.style.transform="translateX("+(-(22*w)+box/2-w/2+4)+"px)";try{sfx.whoosh&&sfx.whoosh()}catch(e){}}
+  setTimeout(()=>{dspBusy=false;if(win!=null){try{hapN("success");burst(4);epicFx(r.card,4)}catch(e){}toast("🌙🔥 ВЫБИЛ: "+HEROES[win][0]+"! Карта уже в коллекции")}else{try{hap("light")}catch(e){}toast("💨 Пусто… Попробуй ещё!")}dcDraw()},2400)}}
+
+/* большая кнопка «Особые прокруты» над карточкой на главном экране — чтобы все видели, где крутить */
+function dspBan(){const sec=$("sec-spin");if(!sec||sec.hidden)return;let b=$("dsp-ban");const n=S&&S.dsp||0,has=(S&&S.dcs||[]).some(x=>Date.now()<x.until);
+  if(!has){if(b)b.remove();return}
+  if(!b){b=document.createElement("button");b.type="button";b.id="dsp-ban";b.className="dsp-ban";b.onclick=()=>{dcOpen();setTimeout(()=>{const x=$("dspb");if(x)x.scrollIntoView({block:"start"})},250)};const ns=$("now-strip");if(ns)ns.after(b);else sec.prepend(b)}
+  const t=n>0?'🎰 КРУТИТЬ ОСОБЫЙ ПРОКРУТ <em>×'+n+'</em>':'🎰 Особые прокруты: выполни задание и выбей карту дня';if(b._t!==t){b._t=t;b.innerHTML=t+'<small>Дракула · Баба Яга — шанс растёт к ночи</small>'}b.classList.toggle("hot",n>0)}
+{const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{dspBan()}catch(e){}return r}}

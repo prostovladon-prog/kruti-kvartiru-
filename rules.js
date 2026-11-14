@@ -870,11 +870,7 @@ function gemTake(st,g){const I=st.gems||{};if(!(I[g]>0))fail("Нет таког�
 const ACTIONS={
   dsp_roll(G){const {st,ctx}=G;if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
     const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.luck?.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=makeCard(ctx,h,4);c.how="dspin";dcSn(ctx,c,HEROES[h][4].sn2);G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
-    const r=Math.random(),ks=Object.keys(GEM.el),k=ks[Math.floor(Math.random()*4)];
-    if(r<.45){const n=5+Math.floor(Math.random()*8),H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[k]=(H[k]||0)+n;return {sh:[k,n]}}
-    if(r<.8){const n=[20000,30000,50000,80000][Math.floor(Math.random()*4)];earn(st,n);return {cash:n}}
-    if(r<.97){const n=1+Math.floor(Math.random()*3);st.spins+=n;return {sp:n}}
-    gemAdd(st,k+"1");return {gem:k+"1"}},
+    return {empty:1,h:h!=null&&h>=0?h:null}},
   dsp_buy(G){const {st,ctx}=G,Q=dqDay(st,ctx.now);if((Q.buy||0)>=DSP_BUY.day)fail("Сегодня уже куплено. Завтра снова");pay(st,DSP_BUY.cash);Q.buy=(Q.buy||0)+1;st.dsp=(st.dsp||0)+DSP_BUY.n;return {dsp:DSP_BUY.n}},
   dq_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),i=G.p.i|0;if(i===DQ.length){if(Q.got.length<DQ.length)fail("Сначала выполни все задания");if(Q.all)fail("Уже получено");Q.all=1;st.dsp=(st.dsp||0)+1;return {dsp:1}}
     const T=DQ[i];if(!T)fail("Нет такого задания");if(Q.got.includes(i))fail("Уже получено");if((Q.c[T.k]||0)<T.n)fail("Задание ещё не выполнено");Q.got.push(i);st.dsp=(st.dsp||0)+1;return {dsp:1}},
