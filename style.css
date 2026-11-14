@@ -3473,3 +3473,6 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 @keyframes lurew{from{transform:scale(.4);opacity:0}}@keyframes luret{50%{transform:translateX(-50%) translateY(-4px) scale(1.06)}}
 @keyframes lurefl{0%,100%{transform:rotateY(180deg) translateY(0)}50%{transform:rotateY(180deg) translateY(-8px)}}
 @media (prefers-reduced-motion:reduce){.lure-rays,.lure-sh,.stage.lure .flip,.stage.lure .rear .seal{animation:none}}
+/* алмазный ник: на светлых строках — тёмный читаемый градиент, на тёмных (алмазная строка, профиль) — светлый */
+.dian{background:linear-gradient(90deg,#0a4aa0,#2a8ad8,#6a2ad0,#0a6ab8,#0a4aa0);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;filter:none}
+.diar .dian,.wsh.diap .dian,.who .dian{background-image:linear-gradient(90deg,#9ff3ff,#ffffff,#7ad8ff,#e6c8ff,#ffffff,#9ff3ff);filter:drop-shadow(0 0 6px rgba(140,230,255,.7))}
