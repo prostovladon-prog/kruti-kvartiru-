@@ -3519,3 +3519,25 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .minic .face{backface-visibility:visible;-webkit-backface-visibility:visible}
 /* память на iPhone: в маленьких копиях карт тени-фильтры (drop-shadow) не видны глазу, но каждая требует отдельный буфер в полном размере карты */
 .minic svg.pt,.minic .gc1,.minic .power{filter:none!important}
+
+/* 📦 сундуки гемов */
+.gbx-el{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}
+.gbx-el button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:12px;background:rgba(255,255,255,.06);border:2px solid transparent;color:#fff}
+.gbx-el button.on{border-color:#ffd23f;background:rgba(255,210,63,.15)}.gbx-el small{font-size:11px;font-weight:800}
+.gbx{display:flex;gap:10px;align-items:center;padding:12px;border-radius:16px;margin-bottom:10px;border:2px solid #5ac8fa;background:linear-gradient(135deg,rgba(90,200,250,.18),rgba(20,20,50,.6))}
+.gbx2{border-color:#bf5af2;background:linear-gradient(135deg,rgba(191,90,242,.22),rgba(20,20,50,.6))}
+.gbx3{border-color:#ffd23f;background:linear-gradient(135deg,rgba(255,210,63,.25),rgba(60,20,10,.6));box-shadow:0 0 18px rgba(255,210,63,.35)}
+.gbx-ic{flex:none;width:86px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center}
+.gbx-b{flex:1;min-width:0}.gbx-b b{font-size:15px;color:#fff}.gbx-b ul{margin:4px 0 8px;padding-left:16px;font-size:12px;color:#d8dcf5}.gbx-b .buy{width:100%}
+.gbx-row{display:flex;justify-content:center;gap:14px;margin:10px 0}
+.gbx-gem{display:flex;flex-direction:column;align-items:center;gap:4px;animation:gbxIn .7s cubic-bezier(.3,1.5,.5,1) both}
+.gbx-gem svg{animation:gbxSpin 3s ease-in-out infinite}
+@keyframes gbxIn{from{transform:translateY(60px) scale(.2);opacity:0}to{transform:none;opacity:1}}
+@keyframes gbxSpin{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.08)}}
+.gem-tabs{display:flex!important;flex-wrap:nowrap!important;gap:4px}.gem-tabs button{flex:1 1 0;min-width:0;padding-left:2px!important;padding-right:2px!important;font-size:12px!important;white-space:nowrap}
+.gbx-b .gbx-go{display:block;width:100%;margin-top:2px;padding:10px;border-radius:12px;border:2px solid #07040f;background:linear-gradient(180deg,#fff1a8,#ffb800);color:#07040f;font-weight:900;font-size:16px;box-shadow:0 3px 0 #07040f}
+.gbx-open{text-align:center}.gbx-open .craftbtn{width:100%;margin-top:6px}.gbx-open .ghost{margin-top:6px}
+.gbx-gem b{font-size:14px}.gbx-gem small{font-size:12px;color:#3ddc84;font-weight:800}
+.gem-tabs button{white-space:normal!important;font-size:11px!important;line-height:1.15;padding-top:6px!important;padding-bottom:6px!important}
+.gbx-ad{display:flex;align-items:center;gap:10px;width:100%;margin:8px 0 12px;padding:10px 12px;border-radius:16px;border:2px solid #ffd23f;background:linear-gradient(135deg,#2a1a5a,#4a1a7a);color:#fff;text-align:left}
+.gbx-ad b{display:block;font-size:15px}.gbx-ad small{font-size:12px;color:#d8dcf5}

@@ -43,10 +43,13 @@ function gemSrc(k){return {e:"🏕 Лагерь: тренировки и ору�
 function gemOpen(c){if(!S)return;GEMV.card=c||null;GEMV.tab=c?"put":GEMV.tab;const m=$("modal");m.hidden=false;gemDraw()}
 function gemDraw(){const sh=$("msheet"),H=S.gsh||{},I=S.gems||{},d=today(Date.now()),fd=S.gfd&&S.gfd.d===d?S.gfd.n:0,gd=S.gsd&&S.gsd.d===d?S.gsd:{};
   let h='<div class="gemw"><div class="gem-h"><b>💎 Кузня гемов</b><button type="button" class="ghost" id="gm-x">✕</button></div>';
-  h+='<div class="gem-tabs">'+[["forge","🔨 Выбить"],["up","⬆️ Улучшить"],["put","🃏 Вставить"],["info","❓ Как"]].map(([k,n])=>'<button type="button" data-t="'+k+'" class="'+(GEMV.tab===k?"on":"")+'">'+n+'</button>').join("")+'</div>';
+  h+='<div class="gem-tabs">'+[["forge","🔨 Выбить"],["box","📦 Сундуки"],["up","⬆️ Улучшить"],["put","🃏 Вставить"],["info","❓"]].map(([k,n])=>'<button type="button" data-t="'+k+'" class="'+(GEMV.tab===k?"on":"")+'">'+n+'</button>').join("")+'</div>';
   h+='<div class="gem-sh">'+Object.keys(GEM.el).map(k=>'<div><i>'+gemSVG(k,1,34)+'</i><b>'+(H[k]||0)+'</b><small>сегодня '+(gd[k]||0)+'/'+GEM.cap[k]+'</small></div>').join("")+'</div>';
   if(GEMV.tab==="forge"){h+='<p class="gem-p">Попытка: <b>'+GEM.cost.sh+' осколков</b> + <b>'+fmtC(GEM.cost.cash)+'</b>. Шанс '+Math.round(GEM.cost.ch*100)+'%. При неудаче вернётся '+GEM.cost.back+' осколков. Попыток сегодня: <b>'+(GEM.cost.day-fd)+'/'+GEM.cost.day+'</b></p>';
     h+=Object.keys(GEM.el).map(k=>'<button type="button" class="gem-go" data-k="'+k+'"'+((H[k]||0)<GEM.cost.sh||fd>=GEM.cost.day?" disabled":"")+'><span class="gem-gi">'+gemSVG(k,1,48)+'</span><span>Выбить гем «'+GEM.el[k].n+'»<small>'+gemSrc(k)+'</small></span></button>').join("")}
+  if(GEMV.tab==="box"){const el=GEMV.el||(GEMV.el="f");
+    h+='<p class="gem-p">Выбери стихию — все гемы и осколки из сундука будут этой стихии. Шансы честные и написаны на сундуке.</p><div class="gbx-el">'+Object.keys(GEM.el).map(k=>'<button type="button" data-el="'+k+'" class="'+(k===el?"on":"")+'">'+gemSVG(k,2,40)+'<small>'+GEM.el[k].n+'</small></button>').join("")+'</div>';
+    h+=["gbox1","gbox2","gbox3"].map((k,i)=>{const I=SHOP[k];return '<div class="gbx gbx'+(i+1)+'"><div class="gbx-ic">'+gemSVG(el,[2,3,4][i],64)+(i?gemSVG(el,[2,3,3][i],40):"")+'</div><div class="gbx-b"><b>'+I.n+'</b><ul>'+I.d.map(x=>"<li>"+x+"</li>").join("")+'</ul><button type="button" class="buy gbx-go" data-k="'+k+'">⭐ '+I.stars+'</button></div></div>'}).join("")}
   if(GEMV.tab==="up"){const L=Object.keys(I).filter(g=>I[g]>0).sort();h+='<p class="gem-p">3 одинаковых гема → попытка получить гем уровнем выше. При неудаче сгорает 1 гем. Шансы: 50% → 30% → 15% → 5%.</p>';
     h+=L.length?L.map(g=>{const lv=+g.slice(1);return '<div class="gem-row"><span class="gem-gi">'+gemI(g,46)+'</span><span style="flex:1;min-width:0"><b>'+GEM.el[g[0]].n+' '+lv+' ур.</b> ×'+I[g]+'<small>+'+Math.round(GEM.b[lv]*100)+'% к силе</small></span>'+(lv<5?'<button type="button" class="craftbtn gem-up" data-g="'+g+'"'+(I[g]<3?" disabled":"")+'>'+Math.round(GEM.up.ch[lv]*100)+'% · '+fmtC(GEM.up.cash[lv])+'</button>':'<b>МАКС</b>')+'</div>'}).join(""):'<p class="gem-p">Гемов пока нет. Выбей первый во вкладке «Выбить».</p>'}
   if(GEMV.tab==="put"){const L=Object.keys(I).filter(g=>I[g]>0).sort((a,b)=>b.slice(1)-a.slice(1)),SK=S.gsock||{};
@@ -58,6 +61,8 @@ function gemDraw(){const sh=$("msheet"),H=S.gsh||{},I=S.gems||{},d=today(Date.no
   if(GEMV.tab==="info")h+='<div class="gem-p">1. Собирай осколки: 🌍 в лагере, 🔥 в клане, 🌪 у дракона, 💧 за задания. У каждого источника дневной лимит.<br>2. В кузне меняй '+GEM.cost.sh+' осколков + монеты на попытку выбить гем (шанс '+Math.round(GEM.cost.ch*100)+'%).<br>3. Три одинаковых гема — шанс улучшить до следующего уровня (до 5).<br>4. Вставляй гемы в карты: +3/6/10/15/22% к силе в боях, клане и Империи.</div>';
   sh.innerHTML=h+'</div>';
   $("gm-x").onclick=closeModal;sh.querySelectorAll(".gem-tabs button").forEach(b=>b.onclick=()=>{GEMV.tab=b.dataset.t;gemDraw()});
+  sh.querySelectorAll("[data-el]").forEach(b=>b.onclick=()=>{GEMV.el=b.dataset.el;gemDraw()});
+  sh.querySelectorAll(".gbx-go").forEach(b=>b.onclick=()=>{closeModal();buyItem({item:b.dataset.k,el:GEMV.el||"f"})});
   sh.querySelectorAll(".gem-go").forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await act("gem_roll",{k:b.dataset.k});if(r)toast(r.ok?"💎 ВЫБИЛ! "+gemName(r.g):"Не повезло… вернулось "+GEM.cost.back+" осколков");gemDraw()});
   sh.querySelectorAll(".gem-up").forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await act("gem_up",{g:b.dataset.g});if(r)toast(r.ok?"⬆️ Получилось: "+gemName(r.g):"Не вышло, сгорел 1 гем");gemDraw()});
   sh.querySelectorAll("select[data-put]").forEach(x=>x.onchange=async()=>{if(!x.value)return;await act("gem_put",{id:+x.dataset.put||x.dataset.put,g:x.value});gemDraw()});
@@ -285,3 +290,11 @@ setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){co
 
 /* SVG-анимации (SMIL) в маленьких копиях карт стоят на паузе — мини-карточки и так статичные, а SMIL перерисовывал их каждый кадр */
 {const _fm=fillMini;fillMini=function(el){const r=_fm.apply(this,arguments);try{el.querySelectorAll("svg").forEach(s=>{if(s.pauseAnimations&&s.querySelector("animate,animateTransform,animateMotion"))s.pauseAnimations()})}catch(e){}return r}}
+
+/* открытие сундука гемов: гемы вылетают и крутятся */
+{const _ps=payShow;payShow=function(r){const I=r&&SHOP[r.item],R=r&&r.res||{};if(!I||!I.gbox||r.status==="refund"||!R.gems)return _ps.apply(this,arguments);
+ renderAll();try{sfx.coin();hapN("success")}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
+ sh.innerHTML='<div class="box nickbox gbx-open"><h3>💎 '+I.n+'</h3><div class="gbx-row">'+R.gems.map((g,i)=>'<div class="gbx-gem" style="animation-delay:'+(i*.35)+'s">'+gemI(g,110)+'<b>'+gemName(g)+'</b><small>+'+Math.round(GEM.b[+g.slice(1)]*100)+'% к силе</small></div>').join("")+'</div>'+(R.gsh?'<p>+'+R.gsh[1]+' осколков '+GEM.el[R.gsh[0]].ic+'</p>':'')+'<button type="button" class="craftbtn" id="gbx-put">🃏 Вставить в карту</button><button type="button" class="ghost" id="gbx-x">Закрыть</button></div>';
+ $("gbx-x").onclick=closeModal;$("gbx-put").onclick=()=>{GEMV.tab="put";gemOpen()}}}
+
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#gbx-ad")){GEMV.tab="box";gemOpen()}});

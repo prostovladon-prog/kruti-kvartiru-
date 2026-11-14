@@ -529,6 +529,12 @@ SHOP.promo={n:"Сундук промокодов",stars:25,promo:1,d:["🎟 сл
 SHOP.general={n:"Сундук полководца",stars:149,sp:15,cards:4,epic:1,horn:1,d:["🃏 <b>4</b> карточки, минимум <b>1 эпическая</b>","🎴 <b>15</b> прокруток","📯 <b>+3 битвы</b> в войне армий сегодня"]};
 SHOP.empire={n:"Сундук Империи",stars:499,sp:40,cards:6,leg:1,luckH:6,d:["🃏 <b>6</b> карточек, <b>легендарная</b> гарантирована","🎴 <b>40</b> прокруток","🍀 <b>6 часов</b> удачи","💎 шанс <b>3%</b> на Алмазную серию"]};
 const PROMO_BOX=[{w:55,sp:5},{w:25,bon:100,bmin:250},{w:12,bon:300,bmin:500},{w:5,sp:20},{w:3,bon:1000,bmin:1000}];
+/* 💎 сундуки гемов: стихию игрок выбирает сам, шансы открыты; 5 уровня в сундуках нет — только кузня */
+const GBOX={gbox1:{lv:[[2,.8],[3,.2]],sh:40,day:0},gbox2:{lv:[[3,1]],lv2:[[2,.6],[3,.4]],sh:100,day:0},gbox3:{lv:[[4,1]],lv2:[[3,.6],[4,.4]],sh:150,day:3}};
+SHOP.gbox1={n:"Сундук гемов",stars:100,gbox:1,d:["💎 гем <b>2 ур.</b> (20% — сразу <b>3 ур.</b>)","✨ <b>40</b> осколков стихии"]};
+SHOP.gbox2={n:"Большой сундук гемов",stars:250,gbox:1,d:["💎 гем <b>3 ур.</b> — точно","💎 второй гем: 60% <b>2 ур.</b> · 40% <b>3 ур.</b>","✨ <b>100</b> осколков стихии"]};
+SHOP.gbox3={n:"Королевский сундук гемов",stars:500,gbox:1,d:["💎 гем <b>4 ур.</b> — точно","💎 второй гем: 60% <b>3 ур.</b> · 40% <b>4 ур.</b>","✨ <b>150</b> осколков стихии","не больше 3 в день"]};
+function gboxLv(L){let r=Math.random();for(const [lv,p] of L){if(r<p)return lv;r-=p}return L[L.length-1][0]}
 const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale)fail("Такой карточки нет");const W=HEROES[h][4];
@@ -1140,6 +1146,7 @@ const ACTIONS={
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
     if(I.kolo)add(makeCard(ctx,KOLO,4));
     if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";dcSn(ctx,c,HEROES[h][4].sn);add(c)}
+    let gems=null;if(I.gbox){const B=GBOX[p.item],el=GEM.el[p.el]?p.el:"f";gems=[el+gboxLv(B.lv)];if(B.lv2)gems.push(el+gboxLv(B.lv2));gems.forEach(g=>gemAdd(st,g));const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[el]=(H[el]||0)+B.sh}
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;
       {const dp=DIA_P[p.item];if(dp&&!ctx.noRare&&Math.random()<dp){const d=rollDia(ctx);if(d){add(d);n--}}}   // 💎 шанс на Алмазную серию
@@ -1149,7 +1156,7 @@ const ACTIONS={
       if(I.epic){add(rollCard(ctx,true));n--}
       for(;n>0;n--)add(rollCard(ctx,false))}
     st.pays.push(p.pid);if(st.pays.length>40)st.pays=st.pays.slice(-40);
-    return {item:p.item,sp:I.sp||0,guar:I.guar||0,cards:got}},
+    return {item:p.item,sp:I.sp||0,guar:I.guar||0,cards:got,gems,gsh:gems?[GEM.el[p.el]?p.el:"f",GBOX[p.item].sh]:undefined}},
 
   /* странствующий торговец: покупка (цену и карточку назначает сервер) и продажа ему нужного воина */
   trader_take(G){const T=G.ctx.trader;if(!T)fail("Неизвестное действие");const {st,ctx}=G;if(G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
@@ -3184,6 +3191,9 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
       data={h,f:f2};title=(H[0]+", "+FIN[f2].k.toLowerCase()).slice(0,32)}
     if(I.dayc){data={h:dcH};title=("Карта дня: "+HEROES[dcH][0]).slice(0,32)}
+    if(I.gbox){const el=String(p.el||"");if(!GEM.el[el])fail("Выбери стихию гема");const B=GBOX[item];
+      if(B.day){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND created>?").bind(uid,item,Date.now()-864e5).first())||{}).n||0;if(n>=B.day)fail("Королевский сундук гемов — не больше "+B.day+" в сутки. Загляни завтра")}
+      data={el};title=(I.n+" · "+GEM.el[el].n).slice(0,32)}
     return {item,stars:I.dayc?dcSt:I.stars,title,desc:(I.any?"Любая карточка в игре: "+title:I.d.map(x=>x.replace(/<[^>]+>/g,"")).join(", ")),data}}
   if(item==="num"){const sn=checkSn(p.sn),c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(Math.floor(+p.card||0),uid).first();if(!c)fail("Карточка не найдена");
     if(c.sn===sn)fail("У этой карточки уже такой номер");

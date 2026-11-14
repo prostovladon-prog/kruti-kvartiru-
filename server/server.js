@@ -1816,6 +1816,9 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
       data={h,f:f2};title=(H[0]+", "+FIN[f2].k.toLowerCase()).slice(0,32)}
     if(I.dayc){data={h:dcH};title=("Карта дня: "+HEROES[dcH][0]).slice(0,32)}
+    if(I.gbox){const el=String(p.el||"");if(!GEM.el[el])fail("Выбери стихию гема");const B=GBOX[item];
+      if(B.day){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND created>?").bind(uid,item,Date.now()-864e5).first())||{}).n||0;if(n>=B.day)fail("Королевский сундук гемов — не больше "+B.day+" в сутки. Загляни завтра")}
+      data={el};title=(I.n+" · "+GEM.el[el].n).slice(0,32)}
     return {item,stars:I.dayc?dcSt:I.stars,title,desc:(I.any?"Любая карточка в игре: "+title:I.d.map(x=>x.replace(/<[^>]+>/g,"")).join(", ")),data}}
   if(item==="num"){const sn=checkSn(p.sn),c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(Math.floor(+p.card||0),uid).first();if(!c)fail("Карточка не найдена");
     if(c.sn===sn)fail("У этой карточки уже такой номер");
