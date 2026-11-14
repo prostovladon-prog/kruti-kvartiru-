@@ -29,7 +29,8 @@ function gemDraw(){const sh=$("msheet"),H=S.gsh||{},I=S.gems||{},d=today(Date.no
 /* осколки за действие — всплывашка */
 {const _act=act;act=async function(n,p){const r=await _act(n,p);if(r&&r.gsh){const k=r.gsh[0];toast("+"+r.gsh[1]+" "+GEM.el[k].ic+" осколков «"+GEM.el[k].n+"»")}return r}}
 {const _mg=menuGo;menuGo=function(k){if(k==="gems"){menuClose();return gemOpen()}return _mg.apply(this,arguments)}}
-/* ===== Карта дня (19:00–23:00, 2 экземпляра) ===== */
+/* ===== Карта дня (2 экземпляра) ===== */
+const dcHM=t=>{const d=new Date(t+3*36e5);return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')};
 {const _ra=renderAll;renderAll=function(){try{if(S&&S.xh)xhApply(S.xh)}catch(e){}return _ra.apply(this,arguments)}}
 {const _act=act;act=async function(n,p){const r=await _act(n,p);if(r&&r.dsp)setTimeout(()=>toast("🌙 +1 Особый прокрут! Крути в «Карте дня»"),900);return r}}
 function dcT(ms){ms=Math.max(0,ms);const h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);return (h?h+"ч ":"")+m+"м "+(h?"":s+"с")}
@@ -41,10 +42,10 @@ function dcDraw(tick){const sh=$("msheet"),D=S.dc,now=Date.now();
   if(D&&HEROES[D.h]){const H=HEROES[D.h],on=now>=D.at&&now<D.until,L=D.left||{buy:0,spin:0};
     h+='<div class="dc-card"><div class="dc-pt">'+portrait(D.h,null)+'</div><div><b class="dc-n">'+escH(H[0])+'</b><small>'+escH(H[1])+' · Ошибка печати</small><p>'+escH(H[3])+'</p><span class="dc-t" id="dc-t"></span></div></div>';
     h+='<div class="dc-left"><div class="'+(L.buy?"":"off")+'">⭐ За звёзды<b>'+(L.buy?"1 из 1":"продано")+'</b></div><div class="'+(L.spin?"":"off")+'">🎰 Из прокрута<b>'+(L.spin?"1 из 1":"выбита")+'</b></div></div>';
-    h+='<button type="button" class="gem-go" id="dc-buy"'+(on&&L.buy?"":" disabled")+'>⭐ Купить за '+SHOP.daycard.stars+'<small>достанется тому, кто оплатит первым</small></button>';
+    h+='<button type="button" class="gem-go" id="dc-buy"'+(on&&L.buy?"":" disabled")+'>⭐ Купить за '+SHOP.daycard.stars+'<small>достанется тому, кто оплатит первым · с '+dcHM(D.at)+' до '+dcHM(D.until)+'</small></button>';
     h+='<button type="button" class="gem-go dsp" id="dc-sp"'+((S.dsp||0)>0?"":" disabled")+'>🎰 Особый прокрут ×'+(S.dsp||0)+'<small>шанс выбить карту '+(DSP.ch*100).toFixed(1)+'% · иначе осколки, монеты, прокрутки или гем</small></button>';
   }else h+='<p class="gem-p">Сегодня карты дня нет. Загляни в 19:00!</p><button type="button" class="gem-go dsp" id="dc-sp"'+((S.dsp||0)>0?"":" disabled")+'>🎰 Особый прокрут ×'+(S.dsp||0)+'</button>';
-  h+='<p class="gem-p">Особые прокруты: каждые '+DSP.per+' выполненных задания дня = 1 прокрут (до '+DSP.cap+' в день). Карта выпадает только с 19:00 до 23:00, пока второй экземпляр не выбит.</p>';
+  h+='<p class="gem-p">Особые прокруты: каждые '+DSP.per+' выполненных задания дня = 1 прокрут (до '+DSP.cap+' в день). Карта выпадает только '+(S.dc?dcHM(S.dc.at)+'–'+dcHM(S.dc.until):'с 19:00 до 23:00')+', пока второй экземпляр не выбит.</p>';
   sh.innerHTML=h+'</div>';dcDraw(1);$("dc-x").onclick=closeModal;
   if($("dc-buy"))$("dc-buy").onclick=()=>buyItem({item:"daycard"});
   $("dc-sp").onclick=async()=>{$("dc-sp").disabled=true;const r=await act("dsp_roll",{});if(r){if(r.win)toast("🌙🔥 НЕВЕРОЯТНО! Ты выбил Карту дня!");else if(r.sh)toast("+"+r.sh[1]+" "+GEM.el[r.sh[0]].ic+" осколков");else if(r.cash)toast("+"+fmt(r.cash)+" 🪙");else if(r.sp)toast("+"+r.sp+" прокрутки");else if(r.gem)toast("💎 Гем: "+gemName(r.gem))}dcDraw()};}
@@ -85,3 +86,11 @@ function cwDraw(){const D=CWD,sh=$("msheet"),R=34,W=7*R*1.75,H=7*R*1.6;
   const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="chx" style="--g:'+col+'"><div class="chx-rays"></div><div class="chx-box"><div class="chx-lid"></div><div class="chx-body"></div><div class="chx-lock"></div></div><p>Нажми, чтобы открыть!</p></div>';
   let done=false;const go=()=>{if(done)return;done=true;const x=sh.querySelector(".chx");x.classList.add("open");try{hap&&hap("heavy");sfx.coin()}catch(e){}setTimeout(()=>{try{burst(best>=3?3:1)}catch(e){}_sg(R,title)},650)};
   sh.querySelector(".chx").onclick=go;setTimeout(go,2200)}}
+/* ===== Гемы в окне карточки + анимация вставки ===== */
+{const _ocv=openCardView;openCardView=function(c,o){_ocv(c,o);try{if(!o||!o.mine||!S)return;const n=gemSlots(c);if(!n)return;const sh=$("msheet"),info=sh.querySelector(".cv-info");if(!info||sh.querySelector(".gem-cv"))return;
+  const g=(S.gsock||{})[c.id]||[],d=document.createElement("div");d.className="gem-cv";let h='<b>💎 Гемы</b><div class="gem-slots">';
+  for(let i=0;i<n;i++)h+=g[i]?'<span class="gem-s full el-'+g[i][0]+'">'+GEM.el[g[i][0]].ic+'<small>'+g[i].slice(1)+'</small></span>':'<span class="gem-s">＋</span>';
+  h+='</div><small>'+(g.length?'Сила +'+Math.round((gemMul({gm:g})-1)*100)+'%':'Пустые слоты: вставь гем, чтобы усилить карту')+'</small><button type="button" class="mini2" id="gem-cv-go">'+(g.length<n?'Вставить гем':'Управлять')+'</button>';
+  d.innerHTML=h;info.after(d);$("gem-cv-go").onclick=()=>gemOpen(S.cards.find(x=>x.id===c.id)||c)}catch(e){console.error(e)}}}
+function gemFly(id){const el=document.querySelector('[data-pull="'+id+'"]')||document.querySelector('.gem-card');if(!el)return;const r=el.getBoundingClientRect(),f=document.createElement("div");f.className="gem-fly";f.style.left=r.left+r.width/2+"px";f.style.top=r.top+r.height/2+"px";f.textContent="💎";document.body.appendChild(f);setTimeout(()=>f.remove(),1100)}
+{const _gd=gemDraw;gemDraw=function(){_gd.apply(this,arguments);document.querySelectorAll("select[data-put]").forEach(x=>x.onchange=async()=>{if(!x.value)return;const id=+x.dataset.put||x.dataset.put,r=await act("gem_put",{id,g:x.value});if(r){try{hap&&hap("heavy");sfx.coin()}catch(e){}toast("💎 Гем вставлен! Карта стала сильнее")}gemDraw();if(r)setTimeout(()=>{const b=document.querySelectorAll('[data-pull="'+id+'"]');const e=b[b.length-1];if(e){e.classList.add("gem-in");gemFly(id)}},30)})}}

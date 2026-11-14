@@ -3382,3 +3382,7 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .chx-lock{position:absolute;left:50%;top:38px;width:26px;height:30px;margin-left:-13px;background:var(--g);border:4px solid #0b0712;border-radius:6px;z-index:3}
 .chx.open .chx-box{animation:none;transform:scale(1.15);transition:transform .3s}.chx.open .chx-lid{transform:rotate(-70deg) translateY(-30px)}.chx.open .chx-rays{opacity:.5}
 @keyframes chxs{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg) scale(1.04)}}@keyframes chxr{to{transform:rotate(360deg)}}@keyframes chxp{to{opacity:.5}}
+.gem-cv{margin:8px 0;background:#141836;color:#fff;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}.gem-cv small{font-size:12px;opacity:.85}
+.gem-s.el-f{background:radial-gradient(#ff7a3a,#5a1a0a)}.gem-s.el-w{background:radial-gradient(#4ab8ff,#0a2a5a)}.gem-s.el-e{background:radial-gradient(#9ad04a,#2a3a0a)}.gem-s.el-a{background:radial-gradient(#d0f0ff,#3a5a7a)}
+.gem-in{animation:gemin .9s cubic-bezier(.3,1.6,.5,1)}@keyframes gemin{0%{transform:scale(2.2) rotate(-40deg);filter:brightness(3)}60%{transform:scale(.9)}100%{transform:none;filter:none}}
+.gem-fly{position:fixed;z-index:99;font-size:30px;transform:translate(-50%,-50%);pointer-events:none;animation:gemfly 1.1s ease-out forwards}@keyframes gemfly{0%{opacity:1;transform:translate(-50%,-50%) scale(.5)}40%{transform:translate(-50%,-90%) scale(2)}100%{opacity:0;transform:translate(-50%,-160%) scale(3)}}

@@ -132,6 +132,32 @@ const DETAILED={
  ${[0,1,2,3,4,5,6].map(i=>`<path d="M${26+i*25} ${24+(i%3)*24} l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3z" fill="#fff6c8"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="${i*.21}s" repeatCount="indefinite"/></path>`).join("")}
 </svg>`},
  /* 🧙‍♀️ Баба Яга — анимированная: ступа парит, из неё выглядывает голова */
+ "Кощей":u=>{const R='dur="4s" repeatCount="indefinite"';return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+  <linearGradient id="ksk${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#140a2a"/><stop offset=".7" stop-color="#3a1a4a"/><stop offset="1" stop-color="#1a3a2a"/></linearGradient>
+  <radialGradient id="kgl${u}"><stop offset="0" stop-color="#9affc8"/><stop offset="1" stop-color="#9affc8" stop-opacity="0"/></radialGradient>
+  <linearGradient id="kar${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a6a7a"/><stop offset="1" stop-color="#1a222c"/></linearGradient></defs>
+  <rect width="200" height="200" fill="url(#ksk${u})"/><circle cx="40" cy="36" r="16" fill="#d8ffe8" opacity=".85"/>
+  <g fill="#0a0614"><path d="M120 200 V96 h10 v-14 h8 v14 h12 v-24 l10 -16 l10 16 v24 h10 V200Z"/><path d="M0 200 V150 Q30 140 60 152 V200Z"/></g>
+  <g fill="#7affb0"><rect x="153" y="88" width="5" height="8"><animate attributeName="opacity" values="1;.3;1" dur="1.7s" repeatCount="indefinite"/></rect><rect x="134" y="112" width="5" height="8" opacity=".7"/></g>
+  <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" ${R}/>
+   <path d="M58 200 Q60 150 100 140 Q140 150 142 200Z" fill="#2a0a3a" stroke="#0b0712" stroke-width="4"/><path d="M80 200 L100 146 L120 200" fill="url(#kar${u})" stroke="#0b0712" stroke-width="3"/>
+   <path d="M86 158 h28 M84 170 h32 M83 182 h34" stroke="#9aa6b8" stroke-width="3"/>
+   <path d="M68 172 Q54 140 62 120" stroke="#0b0712" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M68 172 Q54 140 62 120" stroke="#2a0a3a" stroke-width="7" fill="none" stroke-linecap="round"/>
+   <g><animateTransform attributeName="transform" type="rotate" values="0 132 150;-28 132 150;0 132 150;0 132 150" keyTimes="0;.12;.25;1" ${R}/>
+    <path d="M132 150 Q150 130 148 112" stroke="#0b0712" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M132 150 Q150 130 148 112" stroke="#2a0a3a" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M144 112 l4 -6 l4 6 M148 106 v-6" stroke="#d8d0c0" stroke-width="3" fill="none" stroke-linecap="round"/></g>
+   <path d="M86 110 Q84 80 100 76 Q116 80 114 110 Q112 130 100 134 Q88 130 86 110Z" fill="#d8d6c4" stroke="#0b0712" stroke-width="4"/>
+   <path d="M90 104 q5 -5 10 0 M100 104 q5 -5 10 0" stroke="#0b0712" stroke-width="3" fill="none"/>
+   <circle cx="94" cy="106" r="3.6" fill="#7affb0"><animate attributeName="opacity" values="1;.4;1" dur="1.3s" repeatCount="indefinite"/></circle><circle cx="106" cy="106" r="3.6" fill="#7affb0"><animate attributeName="opacity" values="1;.4;1" dur="1.3s" repeatCount="indefinite"/></circle>
+   <path d="M92 122 h16 M95 119 v6 M100 119 v6 M105 119 v6" stroke="#0b0712" stroke-width="2.5"/>
+   <path d="M98 128 q2 18 -4 30 M102 128 q-1 16 6 28" stroke="#e8e8e8" stroke-width="3" fill="none" stroke-linecap="round" opacity=".9"/>
+   <path d="M84 82 L82 58 L92 70 L100 52 L108 70 L118 58 L116 82Z" fill="#ffd23f" stroke="#0b0712" stroke-width="3.5" stroke-linejoin="round"/><circle cx="100" cy="72" r="4" fill="#7affb0" stroke="#0b0712" stroke-width="2"/></g>
+  <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -78;0 0;0 0" keyTimes="0;.32;.62;1" calcMode="spline" keySplines=".2 .8 .4 1;.6 0 .8 .2;0 0 1 1" ${R}/>
+   <circle cx="148" cy="96" r="16" fill="url(#kgl${u})"><animate attributeName="r" values="12;20;12" dur="1s" repeatCount="indefinite"/></circle>
+   <g><animateTransform attributeName="transform" type="rotate" values="0 148 96;720 148 96;720 148 96" keyTimes="0;.62;1" ${R}/>
+    <path d="M148 80 L150 108 L148 112 L146 108Z" fill="#e8f0f8" stroke="#0b0712" stroke-width="2"/><ellipse cx="148" cy="83" rx="1.8" ry="3" fill="#0b0712"/></g></g>
+  <g opacity="0"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.28;.32;.55;.6" ${R}/><text x="150" y="30" text-anchor="middle" font-size="13" font-weight="900" fill="#7affb0" stroke="#0b0712" stroke-width="3" paint-order="stroke">Смерть в игле!</text></g>
+</svg>`},
  "Колобок":u=>{const R='dur="5s" repeatCount="indefinite"';return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
   <radialGradient id="kb${u}" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff2a8"/><stop offset=".55" stop-color="#f7b733"/><stop offset="1" stop-color="#c06a10"/></radialGradient>
   <linearGradient id="ks${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ad0ff"/><stop offset="1" stop-color="#d8f2ff"/></linearGradient></defs>
@@ -1026,7 +1052,7 @@ function openCardView(c,o){o=o||{};const m=$("modal"),sh=$("msheet");sh.innerHTM
     const cl=classify(cur.sn);
     info.innerHTML="";const t=document.createElement("div");t.className="who";t.innerHTML="<span></span><small></small>";
     t.children[0].textContent=HEROES[cur.h][0]+((cur.stars||0)>=3?" «"+epithet(cur)+"»":"");
-    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+(isCollab(cur)?"Бесценная, 1 из 1, номер А777МР 77. Коллаборация «Воинов Эпох» и «Номерка» — такой больше нет ни у кого.":HEROES[cur.h][4].sale?"Ошибка печати одного дня · экземпляр № "+cur.no+", номер "+fmtSn(cur.sn)+". Продавался только 12.11 — больше не выпускается.":(cur.f===DIA_F&&DIA[cur.h]?"💎 Алмазная серия, «"+DIA[cur.h].n+"»":FIN[cur.f].k)+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+finRun(cur):"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.");
+    t.children[1].textContent=(o.owner?"Владелец: "+o.owner+". ":"")+(isCollab(cur)?"Бесценная, 1 из 1, номер А777МР 77. Коллаборация «Воинов Эпох» и «Номерка» — такой больше нет ни у кого.":HEROES[cur.h][4].sale?"Ошибка печати одного дня · экземпляр № "+cur.no+", номер "+fmtSn(cur.sn)+". "+(HEROES[cur.h][4].day?"Карта дня: всего 2 экземпляра, больше не выпускается.":"Продавался только 12.11 — больше не выпускается."):(cur.f===DIA_F&&DIA[cur.h]?"💎 Алмазная серия, «"+DIA[cur.h].n+"»":FIN[cur.f].k)+(FIN[cur.f].run!==Infinity?", "+cur.no+" из "+finRun(cur):"")+", № "+fmtSn(cur.sn)+(cl?" ("+cl.k.toLowerCase()+")":"")+". Таких больше нет ни у кого.");
     {const fl=document.createElement("p");fl.className="cv-flavor";fl.textContent=HEROES[cur.h][3];t.appendChild(fl);const A=abil(cur.h),ab=document.createElement("p");if(isCollab(cur))ab.hidden=true;ab.className="cv-abil";ab.textContent="⚡ Способность в рейтинговом бою: "+A[0]+" "+A[1]+" — "+A[2]+" · "+WC_IC[wclass(cur.h)]+" "+WCLASS[wclass(cur.h)];t.appendChild(ab)}
     info.appendChild(t);
     if(FIN[cur.f].collab){fb.hidden=false;fb.innerHTML='<h3>💎 Бесценная</h3><p>Главный приз розыгрыша — подарок лично от «Номерка». У неё нет оценки: продать её можно только на рынке, и цену назначает сам владелец. В боях не участвует, сжечь или продать системе её нельзя.</p>';return}

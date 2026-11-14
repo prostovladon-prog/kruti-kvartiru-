@@ -547,7 +547,7 @@ SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["вы�
 SHOP.daycard={n:"Карта дня",stars:2000,dayc:1,d:["🌙 <b>Карта дня</b> — воин, который есть только сегодня с 19:00 до 23:00","всего <b>2 экземпляра</b>: один за звёзды, второй — из Особого прокрута"]};
 const DAY_SLOTS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].day),DSP={ch:.003,cap:3,per:3};
 function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4].day||!x)continue;H[0]=String(x.n||"Карта дня").slice(0,40);H[1]=String(x.e||"Карта дня").slice(0,40);H[3]=String(x.d||"").slice(0,200);
-  const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
+  const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x","p"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
 SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
 SHOP.refbox={n:"Сундук друга",stars:0,noBuy:1,cards:3,epic:1,d:["🃏 <b>3</b> карточки","минимум <b>1 эпическая</b>","даётся за каждого приглашённого друга"]};
 SHOP.custom={n:"Карточка твоей мечты",stars:3500,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
@@ -3113,9 +3113,9 @@ async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
 /* ===== Карта дня: kv xh — вид слотов, kv dc — текущая {h,at,until} ===== */
 let XH={},DC=null,XHT=0;
 /* карты дня задаются здесь (вместе с Claude), по дате Минска: {"2026-11-15":{n,e,d,o}} — слоты берутся по порядку */
-const DC_PLAN={};
+const DC_PLAN={"2026-11-14":{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7]},from:18,to:21}};
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
-  Object.keys(DC_PLAN).sort().forEach((d,k)=>{const h=DAY_SLOTS[k];if(h==null)return;XH[h]={...DC_PLAN[d],on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd,16,0);if(Date.now()>=at-20*36e5&&Date.now()<at+5*36e5)DC={h,at,until:at+4*36e5}});
+  Object.keys(DC_PLAN).sort().forEach((d,k)=>{const h=DAY_SLOTS[k];if(h==null)return;XH[h]={...DC_PLAN[d],on:1};const P=DC_PLAN[d],[y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd,P.from!=null?P.from:16,0),until=Date.UTC(y,m-1,dd,P.to!=null?P.to:20,0);if(Date.now()>=at-20*36e5&&Date.now()<until+36e5)DC={h,at,until}});
   xhApply(XH)}
 const dcOn=()=>!!(DC&&Date.now()>=DC.at&&Date.now()<DC.until);
 async function dcLeft(env,except){if(!DC)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(DC.at-36e5,except||0,Date.now()-PAY_HOLD).first())||{}).n||0;
@@ -3135,7 +3135,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
-    if(I.dayc){await xhLoad(env,1);if(!dcOn())fail("Карта дня продаётся с 19:00 до 23:00");if((await dcLeft(env,except)).buy<=0)fail("Экземпляр за звёзды уже купили. Остался шанс в Особом прокруте!");}
+    if(I.dayc){await xhLoad(env,1);if(!dcOn())fail("Карта дня сейчас не продаётся — смотри время в окне «Карта дня»");if((await dcLeft(env,except)).buy<=0)fail("Экземпляр за звёзды уже купили. Остался шанс в Особом прокруте!");}
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
     if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
