@@ -140,3 +140,14 @@ function diaDeco(root){if(!root||root.classList.contains("diap"))return;root.cla
 {const _ds=drawShelf;drawShelf=function(){_ds.apply(this,arguments);try{if(isDiaU(S.uid))diaDeco($("prof-body").querySelector(".wsh"))}catch(e){}}}
 {const _os=openShowcase;openShowcase=function(F){_os.apply(this,arguments);try{if(F&&isDiaU(F.uid)){const sh=$("msheet");diaDeco(sh.querySelector(".wsh"));const w=sh.querySelector(".who span");if(w)w.classList.add("dian")}}catch(e){}}}
 {const _fx=fxName;fxName=function(el,prefix,name,uid){const r=_fx(el,prefix,name,uid);try{if(isDiaU(uid)){const sp=el.querySelector("span:not(.ttlb):not(.kingb):not(.vipb)")||el;sp.classList.add("dian");el.insertAdjacentHTML("afterbegin",'<span class="diab">💎 АЛМАЗ</span> ');const row=el.closest("button,.trow,li,.cpt");if(row&&!row.classList.contains("diar")&&!row.closest("#msheet .wsh")){row.classList.add("diar");if(!row.querySelector(".dsp"))row.insertAdjacentHTML("beforeend",DIA_SPK)}}}catch(e){}return r}}
+/* ===== Акция для новичков: позови 2 друзей → VIP 7 дней + 50 ⭐ ===== */
+function n2Open(){const N=S&&S.n2;if(!N)return;$("modal").hidden=false;const sh=$("msheet"),d=Math.max(0,Math.ceil((N.end-Date.now())/864e5));
+  sh.innerHTML='<div class="gemw n2w"><div class="gem-h"><b>🎁 Подарок новичку</b><button type="button" class="ghost" id="n2-x">✕</button></div>'+
+   '<div class="n2-hero"><div class="n2-gifts"><span>👑<b>VIP</b><small>на 7 дней</small></span><span>⭐<b>'+N.stars+'</b><small>звёзд</small></span></div><p>Позови <b>'+N.need+' друзей</b> в «Воины Эпох» — и подарок твой!</p></div>'+
+   '<div class="n2-prog">'+Array.from({length:N.need},(_,i)=>'<i class="'+(i<N.have?"on":"")+'">'+(i<N.have?"✅":"👤")+'</i>').join("")+'<b>'+Math.min(N.have,N.need)+' / '+N.need+'</b></div>'+
+   (N.got?'<p class="gem-p" style="text-align:center;color:#3ddc84;font-weight:900">🎉 Выполнено! VIP и звёзды уже у тебя</p>':'<button type="button" class="gem-go" id="n2-go">📨 Позвать друга<small>отправь ссылку в Telegram</small></button>')+
+   '<p class="gem-p">Друг засчитывается, когда откроет '+10+' карточек, подпишется на канал и придумает ник. Награда придёт сама. Только для новых игроков · осталось '+d+' дн.</p></div>';
+  $("n2-x").onclick=closeModal;if($("n2-go"))$("n2-go").onclick=()=>{try{rfInvite()}catch(e){toast("Открой Казино → Реф-кейс → «Позвать друга»")}}}
+{const _mg=menuGo;menuGo=function(k){if(k==="n2"){menuClose();return n2Open()}return _mg.apply(this,arguments)}}
+/* показать один раз при входе новичку */
+{const _ra=renderAll;let n2shown=false;renderAll=function(){const r=_ra.apply(this,arguments);try{if(!n2shown&&S&&S.n2&&!S.n2.got&&$("modal").hidden&&(S.nOp||0)>=3){let k=0;try{k=localStorage.getItem("we-n2")}catch(e){}if(!k){n2shown=true;try{localStorage.setItem("we-n2","1")}catch(e){}setTimeout(()=>{if($("modal").hidden)n2Open()},1500)}}}catch(e){}return r}}
