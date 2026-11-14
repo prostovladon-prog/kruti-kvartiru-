@@ -194,3 +194,25 @@ function profChips(root,o){try{const top=root&&root.querySelector(".top");if(!to
   if(!ch.length)return;const d=document.createElement("div");d.className="pfc";d.innerHTML=ch.map(x=>'<span>'+escH(x)+'</span>').join("");top.after(d)}catch(e){}}
 {const _ds=drawShelf;drawShelf=function(){_ds.apply(this,arguments);try{const b=S.cards.slice().sort((a,b)=>b.v-a.v)[0];profChips($("prof-body").querySelector(".wsh"),{emp:S.emp||0,have:new Set(S.cards.filter(c=>isBase(c.h)).map(c=>c.h)).size,wins:S.totalWins||0,best:b?HEROES[b.h][0]:null})}catch(e){}}}
 {const _os=openShowcase;openShowcase=function(F){_os.apply(this,arguments);try{profChips($("msheet").querySelector(".wsh"),{have:F.have,wins:F.wins,best:F.cards&&F.cards[0]?HEROES[F.cards[0].h][0]:null})}catch(e){}}}
+/* ===== «Сейчас важно»: лента плиток над карточкой во вкладке «Крутить», листается вбок. Только то, что сейчас актуально ===== */
+let nowSig="";
+function nowItems(){const L=[],now=Date.now();if(!S)return L;let B={};try{B=menuBadges()}catch(e){}
+  const D=S.dc;if(D&&HEROES[D.h]&&now<D.until){const on=now>=D.at;L.push({k:"dc",ic:"🌙",t:"Карта дня: "+HEROES[D.h][0],s:on?"⏳ "+dcT(D.until-now)+" · 2 экз.":"старт в "+dcHM(D.at),c:"#1a1050,#7a2ad0",hot:on})}
+  if((S.dsp||0)>0)L.push({k:"dc",ic:"🎰",t:"Особый прокрут ×"+S.dsp,s:"шанс на Карту дня",c:"#7a2ad0,#d02a8a"});
+  {const h=new Date(now).getUTCHours();if(h>=17&&h<19)L.push({k:"cw",ic:"🗺",t:"Война за земли",s:"бои до 22:00",c:"#c4400a,#7a1a8a",em:"!"})}
+  if(B.quest)L.push({k:"quest",ic:"🎁",t:"Забрать награды",s:"задания: "+B.quest+" готово",c:"#1e8a4a,#0a4a2a",em:B.quest});
+  if(S.n2&&!S.n2.got)L.push({k:"n2",ic:"🎁",t:"VIP + 50 ⭐ новичку",s:"друзей "+Math.min(S.n2.have,S.n2.need)+"/"+S.n2.need,c:"#ff7a1a,#d01a6a"});
+  try{const H=S.gsh||{},d=today(now),fd=S.gfd&&S.gfd.d===d?S.gfd.n:0;if(fd<GEM.cost.day&&Object.keys(GEM.el).some(k=>(H[k]||0)>=GEM.cost.sh))L.push({k:"gems",ic:"💎",t:"Кузня гемов",s:"хватает осколков на попытку",c:"#2a5ad0,#6a2ad0"})}catch(e){}
+  if(S.poll&&!S.poll.v)L.push({k:"poll",ic:"📊",t:"Опрос",s:S.poll.q.slice(0,40),c:"#2a1a6a,#4a1a7a"});
+  if(B.wheel)L.push({k:"wheel",ic:"🎡",t:"Колесо удачи",s:"бесплатный прокрут",c:"#ffb84d,#d0302a"});
+  if(B.camp)L.push({k:"camp",ic:"🏕",t:"Лагерь",s:"энергия полная",c:"#4a7a1e,#2a4a10"});
+  return L}
+function nowDraw(){const sec=$("sec-spin");if(!sec||sec.hidden)return;let box=$("now-strip");const L=nowItems(),sig=JSON.stringify(L.map(x=>[x.k,x.t,x.s,x.em]));
+  if(!L.length){if(box)box.remove();nowSig="";return}
+  if(!box){box=document.createElement("div");box.id="now-strip";box.className="nows";sec.prepend(box);
+    box.onclick=e=>{const b=e.target.closest("[data-nk]");if(!b)return;try{hap("light")}catch(x){}const k=b.dataset.nk;
+      if(k==="dc")return dcOpen();if(k==="cw")return cwOpen();if(k==="n2")return n2Open();if(k==="gems")return gemOpen();if(k==="poll")return openChat();return menuGo(k)}}
+  if(sig===nowSig)return;nowSig=sig;
+  box.innerHTML='<div class="nows-h">🔥 Сейчас важно</div><div class="nows-l">'+L.map(x=>'<button type="button" class="nows-i'+(x.hot?' hot':'')+'" data-nk="'+x.k+'" style="background:linear-gradient(135deg,'+x.c+')"><i>'+x.ic+'</i><b>'+escH(x.t)+'</b><small>'+escH(x.s)+'</small>'+(x.em?'<em>'+x.em+'</em>':'')+'</button>').join("")+'</div>'}
+{const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{nowDraw()}catch(e){}return r}}
+setInterval(()=>{try{nowDraw()}catch(e){}},30000);
