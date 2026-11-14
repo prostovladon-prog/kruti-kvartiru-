@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=67;const NEWB_MS=3*864e5;
+const SCHEMA_V=69;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -96,7 +96,7 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
     "CREATE TABLE IF NOT EXISTS ally (uid INTEGER PRIMARY KEY, mate INTEGER NOT NULL, t INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS ally_q (uid INTEGER PRIMARY KEY, t INTEGER NOT NULL, pw INTEGER NOT NULL DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS roc_round (id INTEGER PRIMARY KEY, fs INTEGER NOT NULL, cr REAL NOT NULL, ct INTEGER NOT NULL)","CREATE TABLE IF NOT EXISTS roc_bet (rid INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, b INTEGER NOT NULL, auto REAL NOT NULL DEFAULT 0, out_m REAL, win INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL, PRIMARY KEY(rid,uid))",
     "CREATE TABLE IF NOT EXISTS rs_user (uid INTEGER PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0, last TEXT, n INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS rs_code (code TEXT PRIMARY KEY, owner INTEGER NOT NULL, k TEXT NOT NULL, v INTEGER NOT NULL, t INTEGER NOT NULL, used_by INTEGER, used_t INTEGER)","CREATE INDEX IF NOT EXISTS rs_code_o ON rs_code(owner,t)",
-    "ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN d2n INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS sd_drop (code TEXT PRIMARY KEY, stars INTEGER NOT NULL, t INTEGER, by_uid INTEGER, name TEXT, got_t INTEGER)","CREATE TABLE IF NOT EXISTS rf_box (uid INTEGER NOT NULL, n INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,n))","CREATE TABLE IF NOT EXISTS rf_spin (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT, k TEXT, code TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS rf_spin_u ON rf_spin(uid)","ALTER TABLE promo ADD COLUMN st INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN gift INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN chest TEXT",
+    "ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN d2n INTEGER NOT NULL DEFAULT 0","ALTER TABLE trades ADD COLUMN cash INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cw_map (cell INTEGER PRIMARY KEY, owner INTEGER NOT NULL DEFAULT 0, since INTEGER)","CREATE TABLE IF NOT EXISTS cw_dmg (day TEXT NOT NULL, cell INTEGER NOT NULL, clan INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day,cell,clan))","CREATE TABLE IF NOT EXISTS cw_hits (day TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(day,uid))","CREATE TABLE IF NOT EXISTS sd_drop (code TEXT PRIMARY KEY, stars INTEGER NOT NULL, t INTEGER, by_uid INTEGER, name TEXT, got_t INTEGER)","CREATE TABLE IF NOT EXISTS rf_box (uid INTEGER NOT NULL, n INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,n))","CREATE TABLE IF NOT EXISTS rf_spin (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT, k TEXT, code TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS rf_spin_u ON rf_spin(uid)","ALTER TABLE promo ADD COLUMN st INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN gift INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN chest TEXT",
     "CREATE TABLE IF NOT EXISTS vc_part (uid INTEGER PRIMARY KEY, acc TEXT NOT NULL, vids TEXT, t INTEGER NOT NULL, upd INTEGER)",
     "CREATE TABLE IF NOT EXISTS ft_vote (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER NOT NULL, hit INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tid,fid,uid))","CREATE TABLE IF NOT EXISTS ft_soc (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(tid,fid,uid))",
     "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
@@ -399,6 +399,7 @@ async function stateFor(env,me){
   const S=Object.assign(JSON.parse(u.state||"{}"),{cash:u.cash,cards,prints,news,hype:await hypeList(env),uid:me.id,name:u.nick||u.name,nick:u.nick||null,test:env.TEST==="1",refs:u.refs||0,admin:isAdmin(env,me.id),stake:u.stake?1:0,champion:await cached("champ",30e3,async()=>{const c=await kvGet(env,"champion");return c&&c.until>Date.now()?c:null}),vipUntil:u.vip_until||0,pm:(u.pm||me.pm)?1:0,pioneer:u.pioneer||0,pioneerNew,founder:u.founder||0,founderNew:!!(u.founder&&!u.founder_seen),foundersLeft:await cached("founders",10e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=-1 AND f=5").first())||{}).n||0),pioneersLeft:Math.max(0,PIONEERS-await pioneersCount(env))});
   if(!S.dg)S.dgFr=await cached("dgfr:"+me.id,15e3,()=>dgFriends(env,me.id));
   try{S.rd=await rdState(env,me)}catch(e){}
+  try{await xhLoad(env);S.xh=XH;if(DC&&Date.now()<DC.until+36e5){S.dc={...DC,left:await dcLeft(env)}}}catch(e){}
   try{const L=await vtState(env,me);S.vts=L;S.vt=L.find(x=>!x.ch)||L[0]||null}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
   try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
@@ -438,14 +439,14 @@ function fixIds(o,cards,seen=new Set()){if(!o||typeof o!=="object"||seen.has(o))
   for(const k in o)fixIds(o[k],cards,seen)}
 
 /* ---------- обычное действие: правила считают, сервер записывает всё одной пачкой ---------- */
-async function doAction(env,me,name,p,extra){
+async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
   for(let attempt=0;attempt<8;attempt++){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");try{hhKingSet(await kingDec(env))}catch(e){}
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
     st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;ctx.created=u.created||Date.now();
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
-    if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);
+    if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);if(name==="dsp_roll"){await xhLoad(env,1);ctx.dayH=dcOn()&&(await dcLeft(env)).spin>0?DC.h:-1}
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
     const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
     const delta=Math.round((st.cash-u.cash)*100)/100;delete st.cash;
@@ -1757,11 +1758,28 @@ const monthOf=t=>new Date(t+TZ).toISOString().slice(0,7),PAY_HOLD=15*60e3;
 async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
   const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='mythic' AND month=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(monthOf(now),except||0,now-PAY_HOLD).first())||{}).n||0;
   return Math.max(0,I.month-n)}
+/* ===== Карта дня: kv xh — вид слотов, kv dc — текущая {h,at,until} ===== */
+let XH={},DC=null,XHT=0;
+async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}xhApply(XH)}
+const dcOn=()=>!!(DC&&Date.now()>=DC.at&&Date.now()<DC.until);
+async function dcLeft(env,except){if(!DC)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(DC.at-36e5,except||0,Date.now()-PAY_HOLD).first())||{}).n||0;
+  const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(DC.h).first())||{}).n||0;return {buy:Math.max(0,1-sold),spin:Math.max(0,1-sp)}}
+async function dcApi(env,me,a,p){await xhLoad(env,1);
+  if(a==="dc_state")return {dc:DC,xh:XH,on:dcOn(),left:await dcLeft(env)};
+  if(!isAdmin(env,me.id))fail("Только для админа");
+  if(a==="dc_set"){const used=new Set(Object.keys(XH).map(Number));let h=p.h!=null&&HEROES[p.h]&&HEROES[p.h][4].day?+p.h:DAY_SLOTS.find(i=>!used.has(i));if(h==null)fail("Слоты карты дня закончились — попроси добавить ещё");
+    const o={};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","hue","skin","female","gold","fierce"])if(p.o&&p.o[q]!=null&&p.o[q]!=="")o[q]=p.o[q];
+    XH[h]={n:String(p.n||"").slice(0,40)||"Карта дня",e:String(p.e||"").slice(0,40),d:String(p.d||"").slice(0,200),o,on:1};await kvSet(env,"xh",XH);
+    const now=Date.now(),msk=new Date(now+3*36e5);let at=Date.UTC(msk.getUTCFullYear(),msk.getUTCMonth(),msk.getUTCDate(),16,0);if(p.now)at=now;else if(now>at+4*36e5)at+=864e5;
+    DC={h,at,until:p.now?now+4*36e5:at+4*36e5};await kvSet(env,"dc",DC);await xhLoad(env,1);return {dc:DC,h}}
+  if(a==="dc_stop"){if(DC){DC.until=Date.now();await kvSet(env,"dc",DC)}return {ok:1}}
+  fail("Неизвестное действие")}
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
   if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
+    if(I.dayc){await xhLoad(env,1);if(!dcOn())fail("Карта дня продаётся с 19:00 до 23:00");if((await dcLeft(env,except)).buy<=0)fail("Экземпляр за звёзды уже купили. Остался шанс в Особом прокруте!");}
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
     if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
@@ -1769,6 +1787,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       const f2=H[4].comp?0:f,n=((await env.DB.prepare(H[4].comp?"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=0 AND no<=?":"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,H[4].comp?HALF_RUN:f2).first())||{}).n||0;
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
       data={h,f:f2};title=(H[0]+", "+FIN[f2].k.toLowerCase()).slice(0,32)}
+    if(I.dayc){data={h:DC.h};title=("Карта дня: "+HEROES[DC.h][0]).slice(0,32)}
     return {item,stars:I.stars,title,desc:(I.any?"Любая карточка в игре: "+title:I.d.map(x=>x.replace(/<[^>]+>/g,"")).join(", ")),data}}
   if(item==="num"){const sn=checkSn(p.sn),c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(Math.floor(+p.card||0),uid).first();if(!c)fail("Карточка не найдена");
     if(c.sn===sn)fail("У этой карточки уже такой номер");
@@ -2428,20 +2447,25 @@ async function tradeApi(env,me,a,p){const now=Date.now(),d0=(dayNum(now))*864e5-
     await notify(env,T.id,"🎁 "+myName+" подарил тебе карточку: "+cname(c)+"! Она уже в твоей коллекции.","🗂 Открыть",PAGE+"?cards=1");return {to:T.name}}
   if(a==="tr_offer"){const T=await trUser(env,p);if(!T)fail("Игрока с таким ником нет");if(T.id===me.id)fail("Это ты 🙂");await ageOk(me.id);await ageOk(T.id,T.name);
     if((await one("SELECT COUNT(*) AS n FROM trades WHERE a=? AND kind='swap' AND t>=?",me.id,d0)).n>=TR.offerDay)fail("Не больше "+TR.offerDay+" предложений обмена в день");
-    const mc=await card(p.my,me.id),tc=await card(p.their,T.id);if(!mc)fail("Твою карточку сейчас нельзя обменять");if(!tc)fail("Эту карточку игрока сейчас нельзя обменять");
+    const cash=Math.max(0,Math.min(1e10,Math.floor(+p.cash||0)));const mc=p.my?await card(p.my,me.id):{id:0,v:0},tc=await card(p.their,T.id);if(!mc)fail("Твою карточку сейчас нельзя обменять");if(!tc)fail("Эту карточку игрока сейчас нельзя обменять");
+    if(!mc.id&&cash<1000)fail("Предложи хотя бы 1 000 🪙");{const mu=await one("SELECT cash FROM users WHERE id=?",me.id);if((mu.cash||0)<cash)fail("Не хватает монет для такого предложения")}
     if(await one("SELECT id FROM trades WHERE status='new' AND a=? AND ac=? AND bc=?",me.id,mc.id,tc.id).id)fail("Такое предложение уже отправлено");
-    const r=await env.DB.prepare("INSERT INTO trades(kind,a,b,ac,bc,status,t) VALUES('swap',?,?,?,?,'new',?) RETURNING id").bind(me.id,T.id,mc.id,tc.id,now).first();
-    await notify(env,T.id,"🔄 "+myName+" предлагает обмен:\n\nОтдаёт: "+cname(mc)+"\nХочет: твою "+cname(tc)+"\n\nОткрой игру, чтобы принять или отказаться. Предложение действует 24 часа.","🔄 Посмотреть обмен",PAGE+"?trades=1");return {id:r.id,to:T.name}}
+    const r=await env.DB.prepare("INSERT INTO trades(kind,a,b,ac,bc,status,t,cash) VALUES('swap',?,?,?,?,'new',?,?) RETURNING id").bind(me.id,T.id,mc.id,tc.id,now,cash).first();
+    await notify(env,T.id,"🔄 "+myName+" предлагает обмен:\n\nОтдаёт: "+(mc.id?cname(mc):"")+(cash?(mc.id?" + ":"")+cash.toLocaleString("ru")+" 🪙":"")+"\nХочет: твою "+cname(tc)+"\n\nОткрой игру, чтобы принять или отказаться. Предложение действует 24 часа.","🔄 Посмотреть обмен",PAGE+"?trades=1");return {id:r.id,to:T.name}}
   if(a==="tr_list"){const rows=(await env.DB.prepare("SELECT t.*,COALESCE(ua.nick,ua.name) AS an,COALESCE(ub.nick,ub.name) AS bn FROM trades t LEFT JOIN users ua ON ua.id=t.a LEFT JOIN users ub ON ub.id=t.b WHERE t.kind='swap' AND t.status='new' AND t.t>? AND (t.a=? OR t.b=?) ORDER BY t.id DESC LIMIT 30").bind(now-TR.ttl,me.id,me.id).all()).results;
     const ids=[...new Set(rows.flatMap(r=>[r.ac,r.bc]))],cs=ids.length?(await env.DB.prepare("SELECT * FROM cards WHERE id IN ("+ids.map(()=>"?").join(",")+")").bind(...ids).all()).results:[],cm=new Map(cs.map(c=>[c.id,pub(rowToCard(c))]));
-    return {items:rows.map(r=>({id:r.id,mine:r.a===me.id?1:0,who:r.a===me.id?r.bn:r.an,give:cm.get(r.a===me.id?r.ac:r.bc)||null,get:cm.get(r.a===me.id?r.bc:r.ac)||null,t:r.t}))}}
+    return {items:rows.map(r=>({id:r.id,mine:r.a===me.id?1:0,who:r.a===me.id?r.bn:r.an,give:cm.get(r.a===me.id?r.ac:r.bc)||null,get:cm.get(r.a===me.id?r.bc:r.ac)||null,t:r.t,cash:r.cash||0}))}}
   if(a==="tr_accept"||a==="tr_decline"){const T=await env.DB.prepare("SELECT * FROM trades WHERE id=? AND kind='swap' AND status='new'").bind(p.id|0).first();if(!T)fail("Предложение уже неактуально");
     if(a==="tr_decline"){if(T.a!==me.id&&T.b!==me.id)fail("Это не твой обмен");await env.DB.prepare("UPDATE trades SET status=? WHERE id=?").bind(T.a===me.id?"cancel":"no",T.id).run();
       if(T.b===me.id)await notify(env,T.a,"🔄 "+myName+" отказался от обмена.","🗂 Карточки",PAGE+"?cards=1");return {}}
     if(T.b!==me.id)fail("Принять может только тот, кому предложили");await ageOk(T.b);await ageOk(T.a,"Отправитель");if(now-T.t>TR.ttl){await env.DB.prepare("UPDATE trades SET status='old' WHERE id=?").bind(T.id).run();fail("Предложение истекло")}
-    const r=await env.DB.prepare("UPDATE cards SET owner=CASE id WHEN ? THEN ? ELSE ? END WHERE id IN (?,?) AND (SELECT COUNT(*) FROM cards WHERE ((id=? AND owner=?) OR (id=? AND owner=?)) AND "+TR_OK+")=2").bind(T.ac,T.b,T.a,T.ac,T.bc,T.ac,T.a,T.bc,T.b).run();
-    if(r.meta.changes!==2){await env.DB.prepare("UPDATE trades SET status='gone' WHERE id=?").bind(T.id).run();fail("Одна из карточек уже недоступна (продана, на рынке или в бою). Обмен отменён")}
-    {const va=await one("SELECT v FROM cards WHERE id=?",T.ac),vb=await one("SELECT v FROM cards WHERE id=?",T.bc);await env.DB.prepare("UPDATE trades SET status='done',done=?,av=?,bv=? WHERE id=?").bind(now,va.v||0,vb.v||0,T.id).run()}
+    if(T.cash){const pd=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(T.cash,T.a,T.cash).run();if(pd.meta.changes!==1){await env.DB.prepare("UPDATE trades SET status='gone' WHERE id=?").bind(T.id).run();fail("У отправителя уже не хватает монет. Обмен отменён")}}
+    const need=T.ac?2:1,r=T.ac?await env.DB.prepare("UPDATE cards SET owner=CASE id WHEN ? THEN ? ELSE ? END WHERE id IN (?,?) AND (SELECT COUNT(*) FROM cards WHERE ((id=? AND owner=?) OR (id=? AND owner=?)) AND "+TR_OK+")=2").bind(T.ac,T.b,T.a,T.ac,T.bc,T.ac,T.a,T.bc,T.b).run()
+      :await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND "+TR_OK).bind(T.a,T.bc,T.b).run();
+    if(r.meta.changes!==need&&T.cash)await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(T.cash,T.a).run();
+    if(r.meta.changes===need&&T.cash)await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(T.cash,T.b).run();
+    if(r.meta.changes!==need){await env.DB.prepare("UPDATE trades SET status='gone' WHERE id=?").bind(T.id).run();fail("Одна из карточек уже недоступна (продана, на рынке или в бою). Обмен отменён")}
+    {const va=T.ac?await one("SELECT v FROM cards WHERE id=?",T.ac):{v:0},vb=await one("SELECT v FROM cards WHERE id=?",T.bc);await env.DB.prepare("UPDATE trades SET status='done',done=?,av=?,bv=? WHERE id=?").bind(now,va.v||0,vb.v||0,T.id).run()}
     await env.DB.prepare("UPDATE trades SET status='gone' WHERE status='new' AND id<>? AND (ac IN (?,?) OR bc IN (?,?))").bind(T.id,T.ac,T.bc,T.ac,T.bc).run();
     const c=await env.DB.prepare("SELECT * FROM cards WHERE id=?").bind(T.bc).first();await notify(env,T.a,"✅ "+myName+" принял обмен! Теперь у тебя "+(c?cname(c):"новая карточка")+".","🗂 Открыть",PAGE+"?cards=1");return {}}
   fail("Неизвестное действие")}
@@ -2461,7 +2485,7 @@ async function clanMembers(env,cid){return (await env.DB.prepare("SELECT id,COAL
 async function clanBoss(env,cid,week,n){let B=await env.DB.prepare("SELECT * FROM clan_boss WHERE clan=? AND week=?").bind(cid,week).first();
   if(!B){await env.DB.prepare("INSERT OR IGNORE INTO clan_boss(clan,week,lvl,hp) VALUES(?,?,1,?)").bind(cid,week,clanHp(n,1)).run();B=await env.DB.prepare("SELECT * FROM clan_boss WHERE clan=? AND week=?").bind(cid,week).first()}return B}
 async function clanTop(env,week){return cached("clantop"+week,10e3,async()=>(await env.DB.prepare("SELECT c.id,c.name,c.h,COALESCE(b.total,0) AS total,COALESCE(b.kills,0) AS kills,(SELECT COUNT(*) FROM users u WHERE u.clan=c.id) AS n FROM clans c LEFT JOIN clan_boss b ON b.clan=c.id AND b.week=? ORDER BY total DESC,c.id LIMIT 30").bind(week).all()).results)}
-async function clanApi(env,me,a,p){const now=Date.now(),week=mskWeek(now),day=mskDay(now);
+async function clanApi(env,me,a,p){if(a==="clan_cw"||a==="clan_cw_hit")return await cwApi(env,me,a,p);const now=Date.now(),week=mskWeek(now),day=mskDay(now);
   const u=await env.DB.prepare("SELECT clan,cash,state FROM users WHERE id=?").bind(me.id).first()||{clan:0,cash:0};
   if(a==="clan_info"){const top=await clanTop(env,week);if(!u.clan){const inv=(await env.DB.prepare("SELECT i.clan AS id,c.name,COALESCE(f.nick,f.name) AS from_name FROM clan_inv i JOIN clans c ON c.id=i.clan LEFT JOIN users f ON f.id=i.from_uid WHERE i.uid=? AND i.t>? ORDER BY i.t DESC LIMIT 5").bind(me.id,now-3*864e5).all()).results;return {clan:null,top,week,inv}}
     const C=await env.DB.prepare("SELECT * FROM clans WHERE id=?").bind(u.clan).first();if(!C){await env.DB.prepare("UPDATE users SET clan=0 WHERE id=?").bind(me.id).run();return {clan:null,top,week}}
@@ -2513,7 +2537,7 @@ async function clanApi(env,me,a,p){const now=Date.now(),week=mskWeek(now),day=ms
     await env.DB.prepare("INSERT OR IGNORE INTO clan_hits(clan,week,uid,dmg,day,n) VALUES(?,?,?,0,?,0)").bind(cid,week,me.id,day).run();
     const H=await env.DB.prepare("SELECT * FROM clan_hits WHERE clan=? AND week=? AND uid=?").bind(cid,week,me.id).first();const n=H.day===day?H.n:0;if(n>=CLAN.hits)fail("Удары на сегодня закончились. Завтра снова "+CLAN.hits);
     const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);if(!cards.length)fail("Сначала открой карточки — бьют твои воины");
-    let {dmg,crit}=clanDmg(cards),dgd=0;try{const D=JSON.parse(u.state||"{}").dg;if(D){dgd=Math.round(dgPower(D)*.4*(dgSat(D,now)<DG.hungry?.5:1));dmg+=dgd}}catch(e){}const up=await env.DB.prepare("UPDATE clan_hits SET dmg=dmg+?,day=?,n=? WHERE clan=? AND week=? AND uid=? AND (day IS NOT ? OR n=?)").bind(dmg,day,n+1,cid,week,me.id,day,n).run();
+    try{gemAnn(JSON.parse(u.state||"{}"),cards)}catch(e){}let {dmg,crit}=clanDmg(cards),dgd=0;try{const D=JSON.parse(u.state||"{}").dg;if(D){dgd=Math.round(dgPower(D)*.4*(dgSat(D,now)<DG.hungry?.5:1));dmg+=dgd}}catch(e){}const up=await env.DB.prepare("UPDATE clan_hits SET dmg=dmg+?,day=?,n=? WHERE clan=? AND week=? AND uid=? AND (day IS NOT ? OR n=?)").bind(dmg,day,n+1,cid,week,me.id,day,n).run();
     if(up.meta.changes!==1)fail("Слишком быстро, попробуй ещё раз");
     await env.DB.prepare("UPDATE clan_boss SET dmg=dmg+?,total=total+? WHERE clan=? AND week=?").bind(dmg,dmg,cid,week).run();
     let kill=null;const B2=await env.DB.prepare("SELECT * FROM clan_boss WHERE clan=? AND week=?").bind(cid,week).first();
@@ -2524,6 +2548,44 @@ async function clanApi(env,me,a,p){const now=Date.now(),week=mskWeek(now),day=ms
         kill={lvl:B2.lvl,sp:CLAN.chest.sp,cash:CLAN.chest.cash}}}
     delete topCache["clantop"+week];try{await doAction(env,me,"pass_note",{k:"clan",n:1},{grant:true})}catch(e){}return {dmg,crit,kill,left:CLAN.hits-n-1,dgd}}
   fail("Неизвестное действие")}
+
+/* ===== Война кланов за земли: гекс-карта 37 клеток, бои 20:00–22:00 МСК(Минск), итоги в 22:00 ===== */
+const CW={hits:3,from:17,to:19,def:[0,20000,45000,90000]};   // часы UTC: 20:00–22:00 Минск; защита владельца по уровню клетки
+const CW_CELLS=(()=>{const L=[];for(let q=-3;q<=3;q++)for(let r=-3;r<=3;r++){const s=-q-r;if(Math.abs(s)<=3){const d=Math.max(Math.abs(q),Math.abs(r),Math.abs(s));L.push({q,r,lv:d===0?3:d===1?2:1,edge:d===3})}}return L})();
+const cwAdj=(a,b)=>{const A=CW_CELLS[a],B=CW_CELLS[b];const dq=A.q-B.q,dr=A.r-B.r;return Math.max(Math.abs(dq),Math.abs(dr),Math.abs(dq+dr))===1};
+const cwOpen=now=>{const h=new Date(now).getUTCHours();return h>=CW.from&&h<CW.to};
+async function cwApi(env,me,a,p){const now=Date.now(),day=mskDay(now),all=async(q,...x)=>(await env.DB.prepare(q).bind(...x).all()).results;
+  const u=await env.DB.prepare("SELECT clan,state FROM users WHERE id=?").bind(me.id).first()||{};
+  const own=new Map((await all("SELECT cell,owner FROM cw_map")).map(r=>[r.cell,r.owner]));
+  if(a==="clan_cw"){const ids=[...new Set([...own.values()].filter(Boolean))],names=new Map(ids.length?(await all("SELECT id,name,h FROM clans WHERE id IN ("+ids.map(()=>"?").join(",")+")",...ids)).map(c=>[c.id,c.name]):[]);
+    const dm=await all("SELECT cell,clan,dmg FROM cw_dmg WHERE day=?",day),lead={};for(const d of dm)if(!lead[d.cell]||lead[d.cell].dmg<d.dmg)lead[d.cell]={clan:d.clan,dmg:d.dmg};
+    const lids=[...new Set(Object.values(lead).map(x=>x.clan))].filter(x=>!names.has(x));if(lids.length)for(const c of await all("SELECT id,name FROM clans WHERE id IN ("+lids.map(()=>"?").join(",")+")",...lids))names.set(c.id,c.name);
+    const my=dm.filter(d=>d.clan===u.clan),h=await env.DB.prepare("SELECT n FROM cw_hits WHERE day=? AND uid=?").bind(day,me.id).first();
+    const top=await all("SELECT owner AS id,COUNT(*) AS n FROM cw_map WHERE owner>0 GROUP BY owner ORDER BY n DESC LIMIT 10");
+    return {cells:CW_CELLS.map((c,i)=>({...c,i,o:own.get(i)||0,on:names.get(own.get(i))||null,ld:lead[i]?{c:lead[i].clan,n:names.get(lead[i].clan)||"?",d:lead[i].dmg}:null,my:(my.find(x=>x.cell===i)||{}).dmg||0,def:CW.def[c.lv]})),
+      clan:u.clan||0,left:CW.hits-((h&&h.n)||0),open:cwOpen(now),from:CW.from,to:CW.to,top:top.map(t=>({...t,name:names.get(t.id)||"?"}))}}
+  if(a==="clan_cw_hit"){if(!u.clan)fail("Сначала вступи в клан");if(!cwOpen(now))fail("Бои за земли идут с 20:00 до 22:00");const i=p.cell|0;if(!CW_CELLS[i])fail("Нет такой клетки");
+    if(own.get(i)===u.clan)fail("Это уже ваша земля");const mine=[...own.entries()].filter(([c,o])=>o===u.clan).map(([c])=>c);
+    if(mine.length?!mine.some(c=>cwAdj(c,i)):!CW_CELLS[i].edge)fail(mine.length?"Атаковать можно только соседние с вашими землями клетки":"Первую землю захватывают с края карты");
+    await env.DB.prepare("INSERT OR IGNORE INTO cw_hits(day,uid,n) VALUES(?,?,0)").bind(day,me.id).run();
+    const up=await env.DB.prepare("UPDATE cw_hits SET n=n+1 WHERE day=? AND uid=? AND n<?").bind(day,me.id,CW.hits).run();if(up.meta.changes!==1)fail("Атаки на сегодня закончились. Завтра снова "+CW.hits);
+    const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);if(!cards.length)fail("Сначала открой карточки");
+    try{gemAnn(JSON.parse(u.state||"{}"),cards)}catch(e){}const {dmg,crit}=clanDmg(cards);
+    await env.DB.prepare("INSERT INTO cw_dmg(day,cell,clan,dmg) VALUES(?,?,?,?) ON CONFLICT(day,cell,clan) DO UPDATE SET dmg=dmg+excluded.dmg").bind(day,i,u.clan,dmg).run();
+    let sh=0;try{sh=(await doAction(env,me,"gem_grant",{k:"f",n:5},{grant:true})).res.n}catch(e){}
+    return {dmg,crit,sh,left:CW.hits-((await env.DB.prepare("SELECT n FROM cw_hits WHERE day=? AND uid=?").bind(day,me.id).first()).n)}}
+  fail("Неизвестное действие")}
+/* итоги дня: клетку берёт клан с наибольшим уроном, если он больше защиты владельца; владельцы получают осколки 🔥 и монеты */
+async function cwTick(env){const now=Date.now(),hh=new Date(now).getUTCHours();if(hh<CW.to||hh>=CW.to+2)return;const day=mskDay(now);if(await kvGet(env,"cw:"+day))return;await kvSet(env,"cw:"+day,1);
+  const all=async(q,...x)=>(await env.DB.prepare(q).bind(...x).all()).results,own=new Map((await all("SELECT cell,owner FROM cw_map")).map(r=>[r.cell,r.owner]));
+  const dm=await all("SELECT cell,clan,dmg FROM cw_dmg WHERE day=? ORDER BY dmg DESC",day),done=new Set();
+  for(const d of dm){if(done.has(d.cell))continue;done.add(d.cell);const o=own.get(d.cell)||0;if(o===d.clan)continue;
+    const defd=(dm.find(x=>x.cell===d.cell&&x.clan===o)||{}).dmg||0,need=(o?CW.def[CW_CELLS[d.cell].lv]:0)+defd;
+    if(d.dmg>need){await env.DB.prepare("INSERT INTO cw_map(cell,owner,since) VALUES(?,?,?) ON CONFLICT(cell) DO UPDATE SET owner=excluded.owner,since=excluded.since").bind(d.cell,d.clan,now).run();own.set(d.cell,d.clan)}}
+  const inc={};for(const [c,o] of own)if(o)inc[o]=(inc[o]||0)+CW_CELLS[c].lv;
+  for(const cid in inc){const L=inc[cid],mem=await clanMembers(env,+cid);for(const m of mem){try{await doAction(env,{id:m.id,name:m.name},"gem_grant",{k:"f",n:Math.min(15,L*2)},{grant:true})}catch(e){}
+      await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(L*5000,m.id).run()}
+    for(const m of mem)try{await notify(env,m.id,"🗺 Итоги войны за земли: у клана "+L+" ур. территорий. Тебе +"+(L*5000).toLocaleString("ru")+" 🪙 и осколки 🔥. Завтра в 20:00 — новые бои!","🛡 Клан",PAGE+"?clan=1")}catch(e){}}}
 /* в понедельник награды топ-3 кланам прошлой недели */
 let clanWBusy=false;
 async function clanWeekTick(env){if(clanWBusy)return;const now=Date.now(),prev=mskWeek(now-7*864e5);if(now-(Date.parse(mskWeek(now)+"T00:00:00Z")-TZ)>12*3600e3)return;
@@ -2784,7 +2846,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -2854,6 +2916,7 @@ async function handle(req,env){{
         await paidUpdate(env,me.id,{currency:"XTR",total_amount:P.stars,invoice_payload:"p"+P.id,telegram_payment_charge_id:"sim"+P.id});return J({ok:true,res:await payStatus(env,me,p),S:await stateFor(env,me)})}
       if(a==="dtop")return J({ok:true,res:await dtopGet(env,me)});
       if(a==="dg_top")return J({ok:true,res:await dgTop(env,me)});
+      if(/^dc_(state|set|stop)$/.test(a))return J({ok:true,res:await dcApi(env,me,a,p)});
       if(/^ad_(list|create|hide|refs|wipe|who)$/.test(a))return J({ok:true,res:await adApi(env,me,a,p,url.origin)});
       if(/^dm_(list|get|send|block|report)$/.test(a))return J({ok:true,res:await dmApi(env,me,a,p)});
       if(/^dga_(info|fight)$/.test(a))return J({ok:true,res:await dgaApi(env,me,a,p),S:await stateFor(env,me)});

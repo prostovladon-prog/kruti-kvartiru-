@@ -22,6 +22,9 @@ const MENU_GROUPS=[
   {k:"don",ic:"⭐",n:"Донат и понт",c:["#ffe9a8","#d06a00"]},{k:"sdlive",ic:"🎁",n:"Сундук в эфире",c:["#ffd23f","#c4400a"]},{k:"live",ic:"🎥",n:"Режим эфира",c:["#ff5a7a","#8a0a3a"]}]],
  ["Каждый день",[
   {k:"quest",ic:"🎯",n:"Задания",c:["#7ee89a","#1e8a4a"]},
+  {k:"gems",ic:"💎",n:"Кузня гемов",c:["#9ae8ff","#2a5ad0"]},
+  {k:"dcard",ic:"🌙",n:"Карта дня",c:["#c8a8ff","#4a1a9a"]},
+  {k:"topup",ic:"💳",n:"Пополнить",c:["#b8ffd8","#1a8a5a"]},
   {k:"wheel",ic:"🎡",n:"Колесо",c:["#ffb84d","#d0302a"]},
   {k:"camp",ic:"🏕",n:"Лагерь",c:["#c9e86b","#4a7a1e"]},
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
@@ -90,11 +93,16 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
   if(S&&S.vts&&S.vts.length){const n=S.vts.filter(x=>!x.ch).length;h+='<button type="button" class="drw-ban vt'+(n?' pulse':'')+'" data-go="votes"><i>🗳</i><span><b>Голосование'+(n?' — голосуй!':' ✅')+'</b><small>'+(n?S.vts.filter(x=>!x.ch).map(x=>x.title).join(" · ")+' · +🎴 за голос':'Ты проголосовал везде — смотри результаты')+'</small></span><em>›</em></button>'}
   if(S&&S.ft&&!S.ft.ch)h+='<button type="button" class="drw-ban vt pulse" data-go="ftu"><i>🏆</i><span><b>Кто победит в бою '+S.ft.n+'?</b><small>'+ftuN(S.ft.a)+' vs '+ftuN(S.ft.b)+' · угадай и получи 🎴</small></span><em>›</em></button>';
+  if(S&&S.dc&&Date.now()<S.dc.until&&HEROES[S.dc.h])h+='<button type="button" class="drw-ban vt pulse" data-go="dcard" style="background:linear-gradient(135deg,#1a1050,#7a2ad0)"><i>🌙</i><span><b>Карта дня: '+escH(HEROES[S.dc.h][0])+'</b><small>'+(Date.now()<S.dc.at?'Старт в 19:00 · 2 экземпляра':'Только до 23:00 · ⭐ или Особый прокрут')+'</small></span></button>';
+  else if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="dcard"><i>🌙</i><span><b>Карта дня</b><small>Создать карту на сегодня 19:00</small></span></button>';
+  if(S)h+='<button type="button" class="drw-ban" data-go="gems" style="background:linear-gradient(135deg,#2a8aff,#6a2ad0)"><i>💎</i><span><b>Кузня гемов</b><small>Осколки из лагеря, клана и дракона → гемы стихий, +22% к силе карты</small></span></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="admin"><i>👑</i><span><b>Админка</b><small>Онлайн, доход, новички, обучение и быстрые действия</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="sdlive" style="background:linear-gradient(135deg,#ff9a1a,#c4100a)"><i>🎁</i><span><b>Сундук в эфире</b><small>Стрим: код на звёзды — кто первый ввёл, тот забрал</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="stars"><i>⭐</i><span><b>Звёзды игрокам</b><small>Начислить звёзды на игровой баланс и написать игроку</small></span><em>›</em></button>';
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
-  MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
+  {let F=[];try{F=JSON.parse(localStorage.getItem("we-fav")||"[]")}catch(e){}const all=MENU_GROUPS.flatMap(x=>x[1]),fi=F.map(k=>all.find(it=>it.k===k)).filter(Boolean);
+    h+='<div class="drw-g">⭐ Избранное <button type="button" class="drw-fe'+(window.FAVE?' on':'')+'" data-go="favedit">'+(window.FAVE?'✅ Готово':'✏️ Настроить')+'</button></div>'+(window.FAVE?'<p class="drw-fh">Нажимай на разделы ниже — они добавятся в избранное или уберутся из него</p>':'')+(fi.length?'<div class="drw-t">'+fi.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span></button>').join("")+'</div>':(window.FAVE?'':'<p class="drw-fh">Нажми «Настроить», чтобы закрепить любимые разделы сверху</p>'))}
+  MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i'+(window.FAVE&&(localStorage.getItem("we-fav")||"").includes('"'+it.k+'"')?' fav':'')+'" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
   d.querySelector(".drw-b").innerHTML=h;d.hidden=false;document.body.classList.add("drw-on");requestAnimationFrame(()=>d.classList.add("on"));$("tab-more").setAttribute("aria-expanded","true")}
 function menuClose(){const d=$("drw");if(!d||!d.classList.contains("on"))return;d.classList.remove("on");document.body.classList.remove("drw-on");$("tab-more").setAttribute("aria-expanded","false");setTimeout(()=>{if(!d.classList.contains("on"))d.hidden=true},260)}
 $("tab-more").onclick=()=>{const d=$("drw");if(d&&d.classList.contains("on"))menuClose();else menuOpen()};

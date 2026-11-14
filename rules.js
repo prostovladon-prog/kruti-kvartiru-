@@ -105,6 +105,50 @@ const HEROES=[
  ["Кот в сапогах","Сказки Европы",4,"Маркиз хитрости: ни одна дверь, ни один замок и ни один король не устоят перед его поклоном. Именная карточка Zz_ruslan4ik_zZ.",{don:1,one:1,own:1,nick:"Zz_ruslan4ik_zZ",sn:"000001",rl:"Сказочный",rc:"#ffd23f",hue:40,p:[10,10,10,10,10]}],
  /* Колобок — «Ошибка печати» одного дня (12.11): продаётся только сегодня за 1700 ⭐, у каждого покупателя свой № */
  ["Колобок","Сказки Руси",4,"Я от бабушки ушёл, я от дедушки ушёл… Из печи вылез с ошибкой — и укатился в историю.",{don:1,own:1,sale:1,hue:40,p:[8,7,6,7,7]}],
+ /* 14.11 — новые воины (в прокрутах, без крафта) */
+ ["Пращник Балеар","Древнее Средиземноморье",0,"С детства не давали хлеба, пока не собьёт его камнем с ветки.",{base:1,nc:1,weapon:"club",armor:"cloth",hue:30,skin:1,p:[3,2,4,3,2]}],
+ ["Кочевник","Великая степь",0,"Живёт в седле, спит в седле, ест в седле. Слезает только на привал.",{base:1,nc:1,helm:"mongol",weapon:"bow",armor:"pelt",hue:40,skin:1,p:[3,3,2,4,2]}],
+ ["Дружинник","Древняя Русь",0,"Служит князю за долю в добыче и место за общим столом.",{base:1,nc:1,helm:"shishak",weapon:"axe",armor:"mail",hue:10,skin:0,p:[4,3,2,2,3]}],
+ ["Янычар","Османская империя",1,"Гвардия султана. Котёл полка для него святее знамени.",{base:1,nc:1,helm:"phrygcap",weapon:"saber",armor:"cloth",hue:0,skin:1,p:[5,4,3,4,3]}],
+ ["Конкистадор","Испания, XVI век",1,"Пересёк океан ради золота и нашёл его. Вместе с проблемами.",{base:1,nc:1,helm:"kettle",weapon:"sword",armor:"plate",hue:45,skin:0,p:[5,4,4,3,3]}],
+ ["Казак","Запорожская Сечь",1,"Шашка, конь и чуб. Писал письма султану, которые до сих пор читают со смехом.",{base:1,nc:1,helm:"hun",weapon:"saber",armor:"cloth",hue:350,skin:0,p:[5,3,4,4,3]}],
+ ["Тевтонский рыцарь","Орден крестоносцев",2,"Белый плащ, чёрный крест и железная дисциплина ордена.",{base:1,nc:1,helm:"knight",weapon:"sword",shield:"kite",armor:"plate",cape:"#f2f2f2",hue:0,skin:0,p:[6,5,5,4,5]}],
+ ["Мамлюк","Египет",2,"Бывший раб, ставший элитой. Мамлюки остановили монголов.",{base:1,nc:1,helm:"mongol",weapon:"saber",armor:"scale",cape:"#c09a2a",hue:40,skin:1,p:[6,5,4,6,4]}],
+ ["Кшатрий","Древняя Индия",2,"Воин по рождению. Ещё ребёнком учит наизусть законы битвы.",{base:1,nc:1,helm:"diadem",weapon:"bow",armor:"linen",cape:"#e07a1a",hue:30,skin:2,p:[5,6,5,5,5]}],
+ ["Ганнибал","Карфаген",3,"Перевёл слонов через Альпы, и Рим полвека пугал им детей.",{base:1,nc:1,helm:"carth",weapon:"spear",armor:"scale",cape:"#6a1a8a",fierce:1,hue:270,skin:2,p:[7,6,6,6,7]}],
+ ["Жанна д’Арк","Франция",3,"Пастушка, которая повела армию и сняла осаду Орлеана.",{base:1,nc:1,female:1,hair:"short",hairc:"#6a3a1a",helm:"knight",weapon:"banner",armor:"plate",cape:"#2a4fd0",glow:"#fff6a0",hue:220,skin:0,p:[6,7,6,7,6]}],
+ ["Перун","Мифы славян",4,"Громовержец. Его молнии бьют только в того, кто их заслужил.",{base:1,nc:1,helm:"shishak",gold:1,weapon:"axe",armor:"mail",cape:"#2a4fa0",x:["aura"],glow:"#7ad0ff",fierce:1,hue:210,skin:0,p:[8,7,7,6,8]}],
+ /* слоты «Карты дня»: имя, вид и описание задаёт админ (kv xh), индексы постоянные */
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:1,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:0,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:2,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:12,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:3,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:24,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:4,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:36,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:5,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:48,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:6,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:60,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:7,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:72,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:8,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:84,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:9,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:96,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:10,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:108,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:11,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:120,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:12,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:132,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:13,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:144,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:14,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:156,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:15,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:168,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:16,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:180,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:17,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:192,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:18,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:204,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:19,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:216,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:20,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:228,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:21,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:240,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:22,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:252,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:23,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:264,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:24,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:276,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:25,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:288,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:26,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:300,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:27,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:312,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:28,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:324,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:29,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:336,p:[8,7,7,7,8]}],
+ ["Карта дня","Карта дня",4,"Скоро здесь появится новый воин.",{day:30,don:1,own:1,sale:1,hid:1,helm:"knight",weapon:"sword",armor:"plate",hue:348,p:[8,7,7,7,8]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -171,7 +215,7 @@ const rint=(a,b)=>Math.round(a+Math.random()*(b-a));
 /* ---------- уровни ---------- */
 function lvl(c){return Math.min(LMAX,1+Math.floor(Math.sqrt((c.xp||0)/25)))}
 function lvlNext(c){const l=lvl(c);return l>=LMAX?null:25*l*l}
-function eff(c,i){return Math.round((c.stats||[])[i]*(1+.04*(lvl(c)-1))*(1+.1*(c.stars||0)))}
+function eff(c,i){return Math.round((c.stats||[])[i]*(1+.04*(lvl(c)-1))*(1+.1*(c.stars||0))*gemMul(c))}
 /* ---------- закалка: звёзды ★1–★5. Карточка становится сильнее, дороже и меняется внешне ---------- */
 const STAR_MAX=5, STAR_LVL=[2,4,6,8,10], STAR_V=1.3;
 const forgeCost=c=>Math.round(40*Math.pow(2.2,c.stars||0)+c.v*.3);
@@ -190,7 +234,7 @@ const CRAFT_TIER_MAX=[PMAX,PMAX,.5,.05,.01], CRAFT_TIER_K=[1,1,1,3,10];
 const CRAFT_MAX=(f,h)=>{const T=h==null?0:HEROES[h][2];let m=Math.min(f>=3?.15:PMAX,CRAFT_TIER_MAX[T]);if(f>=3&&T>=3)m*=.5;return m}, craftable=f=>f<4;
 /* амулет удачи: +20% от потолка, но не больше +10% — чтобы не пробивал потолок редких */
 const amuBonus=(f,h)=>Math.min(.1,CRAFT_MAX(f,h)*.2);
-const craftOk=h=>isBase(h)&&!isComp(h)&&!HEROES[h][4].one&&!HEROES[h][4].duo&&!HEROES[h][4].don&&!HEROES[h][4].collab;
+const craftOk=h=>isBase(h)&&!HEROES[h][4].nc&&!isComp(h)&&!HEROES[h][4].one&&!HEROES[h][4].duo&&!HEROES[h][4].don&&!HEROES[h][4].collab;
 const craftPrice=(h,f)=>Math.round(targetPrice(h,f)*CRAFT_TIER_K[HEROES[h][2]]*100)/100;
 const amuCost=(h,f)=>Math.max(20,Math.round(craftPrice(h,f)*.15));
 const trainCost=c=>Math.round(40*Math.pow(lvl(c),1.6));
@@ -490,6 +534,10 @@ function rollDia(ctx){const L=Object.keys(DIA).map(Number).filter(h=>HEROES[h]&&
   const w=L.map(h=>DIA[h].run-ctx.issuedOf(h,DIA_F));try{return makeDia(ctx,L[pick(w)])}catch(e){return null}}   // чем больше осталось в тираже, тем чаще
 function makeDia(ctx,h){const D=DIA[h];if(!D||!HEROES[h])fail("Такой карточки нет в Алмазной серии");if(ctx.issuedOf(h,DIA_F)>=D.run)fail("Тираж «"+HEROES[h][0]+"» в Алмазной серии закончился");return makeCard(ctx,h,DIA_F)}
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
+SHOP.daycard={n:"Карта дня",stars:2000,dayc:1,d:["🌙 <b>Карта дня</b> — воин, который есть только сегодня с 19:00 до 23:00","всего <b>2 экземпляра</b>: один за звёзды, второй — из Особого прокрута"]};
+const DAY_SLOTS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].day),DSP={ch:.003,cap:3,per:3};
+function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4].day||!x)continue;H[0]=String(x.n||"Карта дня").slice(0,40);H[1]=String(x.e||"Карта дня").slice(0,40);H[3]=String(x.d||"").slice(0,200);
+  const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
 SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
 SHOP.refbox={n:"Сундук друга",stars:0,noBuy:1,cards:3,epic:1,d:["🃏 <b>3</b> карточки","минимум <b>1 эпическая</b>","даётся за каждого приглашённого друга"]};
 SHOP.custom={n:"Карточка твоей мечты",stars:3500,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
@@ -512,7 +560,7 @@ const EMP={rar:[10,25,60,150,400],fin:[1,1.6,3,6,12,15,15,8,14],coll:500,dg:60,
   R:[{n:"Племя",ic:"⛺",p:0},{n:"Деревня",ic:"🛖",p:600},{n:"Город",ic:"🏘",p:2500},{n:"Крепость",ic:"🏰",p:7000},{n:"Королевство",ic:"👑",p:18000},{n:"Империя",ic:"🏛",p:45000},{n:"Легенда эпох",ic:"🌟",p:120000}],
   trib:[150,400,1000,2500,6000,15000,40000],tribSp:[0,0,1,1,2,3,5],inc:.05,
   reg:[2,2,3,3,4,4,5],hof:[0,0,0,1,1,2,2],att:[0,0,0,0,1,1,2]};
-function cardPow(c){const H=HEROES[c.h];if(!H)return 0;const F=EMP.fin[c.f]||1;return Math.round(EMP.rar[H[2]||0]*F*(1+.06*(lvl(c)-1))*(1+.12*(c.stars||0))*(c.part?.5:1))}
+function cardPow(c){const H=HEROES[c.h];if(!H)return 0;const F=EMP.fin[c.f]||1;return Math.round(EMP.rar[H[2]||0]*F*(1+.06*(lvl(c)-1))*(1+.12*(c.stars||0))*(c.part?.5:1)*gemMul(c))}
 function empPower(st,cards){let p=0;for(const c of cards||[])p+=cardPow(c);p+=hofColl(cards||[])*EMP.coll;if(st&&st.dg)p+=(st.dg.lv||0)*EMP.dg;return p}
 /* 🎨 темы оформления и 🖼 аватар (герой из своей коллекции) */
 const THEMES=[{k:"stars",n:"✨ Звёздная ночь",c:["#6a4aff","#05031a"],prem:1},{k:"goldp",n:"✨ Чистое золото",c:["#d4a017","#3a2600"],prem:1},{k:"neon",n:"✨ Неон",c:["#ff2ad0","#12002a"],prem:1},{k:"",n:"Классика",c:["#2f63ff","#1d44c8"]},{k:"night",n:"Ночь",c:["#3a2a8a","#140d3a"]},{k:"royal",n:"Королевская",c:["#8a6410","#2a1a05"]},{k:"forest",n:"Лес",c:["#1f8a55","#0b3a24"]},
@@ -787,7 +835,38 @@ let HH_KING=null;function hhKingSet(x){HH_KING=x&&x.k&&HH_T[x.k]?x:null}   // �
 function hhNow(now){if(HH_KING&&now>=HH_KING.at&&now<HH_KING.end)return HH_KING;const d=new Date(now+3*3600e3).toISOString().slice(0,10);return hhDay(d).find(e=>now>=e.at&&now<e.end)||null}
 const hhIs=(now,k)=>{const e=hhNow(now);return !!(e&&e.k===k)};
 function hofClaim(G){const {st,ctx}=G;const t=Math.min(HOF.cap,Math.max(0,ctx.now-(st.hofAt||ctx.now))),g=Math.floor(hofRate(st,G.cards)*t/36e5);st.hofAt=ctx.now;if(g>0)earn(st,g);return g}
+
+/* ===== ГЕМЫ СТИХИЙ для карт: осколки из лагеря, кланов, дракона и заданий → кузня ===== */
+const GEM={el:{f:{n:"Огонь",ic:"🔥",src:"кланы"},w:{n:"Вода",ic:"💧",src:"задания"},e:{n:"Земля",ic:"🌍",src:"лагерь"},a:{n:"Воздух",ic:"🌪",src:"дракон"}},
+  b:[0,.03,.06,.10,.15,.22],cost:{sh:40,cash:100000,back:10,ch:.07,day:10},
+  up:{ch:[0,.5,.3,.15,.05],cash:[0,200000,500000,1500000,4000000]},pull:{cash:50000,brk:.2},
+  cap:{e:30,f:30,a:30,w:20}};   // сколько осколков в день можно получить из источника
+function gemSlots(c){const H=HEROES[c.h];if(!H||c.part)return 0;return (H[2]>=4||c.f===4||c.f===8)?2:(H[2]>=2||c.f>=2)?1:0}
+function gemMul(c){let m=1;for(const g of c.gm||[]){const L=+String(g).slice(1)||0;m+=GEM.b[L]||0}return m}
+function gemAnn(st,cards){const S=st.gsock||{};for(const c of cards||[]){const g=S[c.id];if(g&&g.length)c.gm=g;else delete c.gm}}
+function gemShard(st,ctx,k,n){if(!(n>0))return 0;const d=today(ctx.now);if(!st.gsd||st.gsd.d!==d)st.gsd={d};const left=GEM.cap[k]-(st.gsd[k]||0);n=Math.max(0,Math.min(n,left));if(!n)return 0;
+  st.gsd[k]=(st.gsd[k]||0)+n;const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[k]=(H[k]||0)+n;return n}
+function gemAdd(st,g){const I=st.gems||(st.gems={});I[g]=(I[g]||0)+1}
+function gemTake(st,g){const I=st.gems||{};if(!(I[g]>0))fail("Нет такого гема");I[g]--;if(!I[g])delete I[g]}
 const ACTIONS={
+  dsp_roll(G){const {st,ctx}=G;if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
+    const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.luck?.2:DSP.ch)){const c=makeCard(ctx,h,4);c.how="dspin";G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
+    const r=Math.random(),ks=Object.keys(GEM.el),k=ks[Math.floor(Math.random()*4)];
+    if(r<.45){const n=5+Math.floor(Math.random()*8),H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[k]=(H[k]||0)+n;return {sh:[k,n]}}
+    if(r<.8){const n=[20000,30000,50000,80000][Math.floor(Math.random()*4)];earn(st,n);return {cash:n}}
+    if(r<.97){const n=1+Math.floor(Math.random()*3);st.spins+=n;return {sp:n}}
+    gemAdd(st,k+"1");return {gem:k+"1"}},
+  gem_roll(G){const {st,ctx}=G,k=String(G.p.k||"");if(!GEM.el[k])fail("Нет такой стихии");const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0}),d=today(ctx.now);
+    if(!st.gfd||st.gfd.d!==d)st.gfd={d,n:0};if(st.gfd.n>=GEM.cost.day)fail("Кузня остыла: "+GEM.cost.day+" попыток в день. Приходи завтра");
+    if((H[k]||0)<GEM.cost.sh)fail("Нужно "+GEM.cost.sh+" осколков "+GEM.el[k].ic+", у тебя "+(H[k]||0));pay(st,GEM.cost.cash);H[k]-=GEM.cost.sh;st.gfd.n++;
+    const ok=Math.random()<(ctx.luck?.5:GEM.cost.ch);if(ok){gemAdd(st,k+"1");st.gemN=(st.gemN||0)+1}else H[k]+=GEM.cost.back;return {ok,g:ok?k+"1":null,left:GEM.cost.day-st.gfd.n}},
+  gem_up(G){const {st}=G,g=String(G.p.g||""),m=/^([fwea])([1-4])$/.exec(g);if(!m)fail("Этот гем нельзя улучшить");const L=+m[2];if(((st.gems||{})[g]||0)<3)fail("Нужно 3 одинаковых гема");
+    pay(st,GEM.up.cash[L]);const ok=Math.random()<GEM.up.ch[L];if(ok){gemTake(st,g);gemTake(st,g);gemTake(st,g);gemAdd(st,m[1]+(L+1))}else gemTake(st,g);return {ok,g:ok?m[1]+(L+1):null}},
+  gem_put(G){const {st}=G,c=own(G,G.p.id),g=String(G.p.g||"");if(!/^[fwea][1-5]$/.test(g))fail("Нет такого гема");const n=gemSlots(c);if(!n)fail("В этой карте нет слотов: гемы вставляются в эпик и выше");
+    const S=st.gsock||(st.gsock={}),L=S[c.id]||[];if(L.length>=n)fail("Все слоты заняты");gemTake(st,g);L.push(g);S[c.id]=L;return {n:L.length}},
+  gem_pull(G){const {st}=G,c=own(G,G.p.id),i=G.p.i|0,S=st.gsock||{},L=S[c.id]||[];if(!L[i])fail("Слот пуст");pay(st,GEM.pull.cash);const g=L.splice(i,1)[0];if(L.length)S[c.id]=L;else delete S[c.id];
+    const brk=Math.random()<GEM.pull.brk;if(!brk)gemAdd(st,g);return {brk,g}},
+  gem_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const k=String(G.p.k||"");if(!GEM.el[k])fail("Нет такой стихии");return {n:gemShard(G.st,G.ctx,k,G.p.n|0)}},
   sync(){return {}},
 
   /* мультиоткрытие: до 10 карточек разом (сколько хватит прокруток и места) */
@@ -1031,6 +1110,7 @@ const ACTIONS={
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
     if(I.kolo)add(makeCard(ctx,KOLO,4));
+    if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";add(c)}
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;
       {const dp=DIA_P[p.item];if(dp&&!ctx.noRare&&Math.random()<dp){const d=rollDia(ctx);if(d){add(d);n--}}}   // 💎 шанс на Алмазную серию
@@ -1182,11 +1262,17 @@ ACTIONS.dg_wish=function(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала 
 /* прогресс желаний — от обычных действий */
 {const H={dg_tap:(r,p)=>["tap",r&&r.n||0],dg_feed:()=>["feed",1],dga_apply:()=>["fight",1],open:()=>["spin",1],open_multi:r=>["spin",r&&r.cards?r.cards.length:0],dg_exp:()=>["exp",1],dg_play:()=>["play",1]};
   for(const k in H){const f=ACTIONS[k];if(!f)continue;ACTIONS[k]=function(G){const r=f.apply(this,arguments);try{const [w,n]=H[k](r,G.p);dgWishAdd(G.st,G.ctx.now,w,n)}catch(e){}return r}}}
-function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};
+function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);
   const D0=day(st,ctx.now),o0=D0.opened,w0=st.totalWins||0,c0=st.crafted||0;const res=A(G)||{};
   try{const D=day(st,ctx.now);passAdd(st,ctx,"open",Math.max(0,D.opened-o0));passAdd(st,ctx,"win",Math.max(0,(st.totalWins||0)-w0));
     if(name==="camp_tap")passAdd(st,ctx,"tap",res.n|0);if(name==="train"||name==="forge")passAdd(st,ctx,"up",1);if(name==="craft"||name==="merge")passAdd(st,ctx,"craft",1);
     if(name==="wheel")passAdd(st,ctx,"wheel",1);if(name==="sell")passAdd(st,ctx,"sell",1);if(name==="sellmany"||name==="sellcommon")passAdd(st,ctx,"sell",res.n|0||1)}catch(e){}
+  try{let sh=null;const acc=(k,n,per)=>{const A=st.gacc||(st.gacc={});A[k]=(A[k]||0)+n;const q=Math.floor(A[k]/per);A[k]-=q*per;return q};if(name==="camp_tap")sh=["e",acc("e",res.n|0,25)];else if(name==="camp_collect")sh=["e",3];else if(name==="dg_tap")sh=["a",acc("a",res.n|0,10)];else if(name==="dg_play")sh=["a",4];
+    else if(name==="dg_exp_end"||name==="dg_morning")sh=["a",3];else if(name==="task"||name==="streak")sh=["w",3];else if(name==="pass_note"&&G.p.k==="clan")sh=["f",6];
+    if(name==="task"){const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}if(D.got.length%DSP.per===0&&st.dspN<DSP.cap){st.dspN++;st.dsp=(st.dsp||0)+1;res.dsp=1}}
+    if(sh&&sh[1]>0){const n=gemShard(st,ctx,sh[0],sh[1]);if(n)res.gsh=[sh[0],n]}}catch(e){}
+  try{const S=st.gsock;if(S){const ids=new Set(G.cards.map(c=>String(c.id)));for(const id in S)if(!ids.has(String(id))){for(const g of S[id])gemAdd(st,g);delete S[id]}}}catch(e){}
+  for(const c of G.cards)delete c.gm;for(const c of cards)delete c.gm;
   return {res,cards:G.cards}}
 
 /* титулы за деньги игры: покупаются один раз навсегда, деньги сгорают. Виден рядом с ником в топах, чате и рейтинге */

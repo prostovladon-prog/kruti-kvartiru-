@@ -1000,6 +1000,10 @@ $("col-sort").onclick=e=>{const b=e.target.closest("[data-s]");if(!b)return;colS
 $("sellcommon").onclick=async()=>{const r=await act("sellcommon");if(!r)return;renderAll();toast("Продано "+r.n+" шт. за "+fmt(r.got))};
 
 /* подтверждение продажи системе: чтобы не продать дорогую карточку случайным нажатием */
+function confirmBuy(it){return new Promise(res=>{const c=it.card,m=$("modal"),sh=$("msheet"),r=it.price/Math.max(1,c.v),big=r>2&&!isCollab(c);m.hidden=false;
+  sh.innerHTML='<div class="box nickbox"><h3>Купить карточку?</h3><div class="sellprev"></div><p></p>'+(big?'<p style="color:#ff3a5a;font-weight:900">⚠️ Цена в '+r.toFixed(1)+' раза выше оценки ('+fmt(c.v)+')!</p>':'')+'<button type="button" class="craftbtn" id="cb-yes"></button><button type="button" class="ghost" id="cb-no">Отмена</button></div>';
+  sh.querySelector(".sellprev").innerHTML=miniSlot(c);sh.querySelector("p").textContent=HEROES[c.h][0]+", "+FIN[c.f].k.toLowerCase()+", № "+fmtSn(c.sn)+" · продавец "+it.seller;
+  $("cb-yes").innerHTML="Купить за "+fmtC(it.price);const done=v=>{closeModal();res(v)};$("cb-yes").onclick=()=>done(true);$("cb-no").onclick=()=>done(false)})}
 function confirmSell(c){return new Promise(res=>{const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   sh.innerHTML='<div class="box nickbox"><h3>Продать карточку?</h3><div class="sellprev"></div><p></p><button type="button" class="craftbtn" id="cs-yes"></button><button type="button" class="ghost" id="cs-no">Отмена</button></div>';
   sh.querySelector(".sellprev").innerHTML=miniSlot(c);
@@ -1756,6 +1760,8 @@ function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hid
     F.cards.forEach(c=>{if(FIN[c.f]&&FIN[c.f].excl||c.part)return;const b=document.createElement("button");b.type="button";b.innerHTML=`${HEROES[c.h][0].replace(/</g,"")}<b class="num">${FIN[c.f].k}</b>`;
       b.onclick=()=>openDuel({name:F.name,card:c,stat:null,cardId:ONLINE?c.id:null,id:ONLINE?"c"+c.id:"v"+c.sn});pick.appendChild(b)});
     info.appendChild(pick);sh.appendChild(info)}
+  if(ONLINE&&F.uid&&F.uid!==S.uid&&typeof trTheirCards==="function"){const t=document.createElement("div");t.className="box";t.innerHTML='<h3>Обмен и покупка</h3><p>Предложи свою карту с доплатой или цену в монетах за любую карточку игрока. Или подари ему карточку.</p><div class="trbox"><button type="button" class="mini2" data-t="s">🔄 Обмен / 💰 цена</button><button type="button" class="mini2" data-t="g">🎁 Подарить</button></div>';
+    t.onclick=e=>{const b=e.target.closest("[data-t]");if(!b)return;const to={uid:F.uid,name:F.name};if(b.dataset.t==="s")trTheirCards(to,null);else trPickMine("gift",to)};sh.appendChild(t)}
   const fr=friendsGet();fr[F.name]={p:F.p,t:NOW()};friendsPut(fr);renderFriends()}
 function openDuel(D){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;let stat=D.stat===0?1:0,mine=null,busy2=false;
   const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
@@ -1932,7 +1938,7 @@ function drawMarket(){const box=$("mk-list"),M=mkCache||{items:[]};box.innerHTML
   $("mk-t").textContent=ONLINE?"Лоты настоящих игроков":"Обновится через "+Math.max(1,Math.ceil((M.next-NOW())/60000))+" мин";
   if(!M.items.length){box.innerHTML='<div class="box"><p>'+(ONLINE?"Пока никто ничего не выставил. Будь первым: выстави свою карточку во вкладке «Продать».":"Всё раскупили. Новые лоты появятся скоро.")+'</p></div>';return}
   M.items.forEach(it=>{const c=it.card,r=it.price/c.v,b=document.createElement("button");b.type="button";b.className="mini2";b.textContent="Купить";
-    b.onclick=async()=>{b.disabled=true;const res=await act("buy",{id:it.id,price:it.price});if(!res){b.disabled=false;loadMarket(true);return}
+    b.onclick=async()=>{if(!(await confirmBuy(it)))return;b.disabled=true;const res=await act("buy",{id:it.id,price:it.price});if(!res){b.disabled=false;loadMarket(true);return}
       sfx.coin();hapN("success");if(HEROES[c.h][2]>=3||c.f>=3)burst(3);mkCache.items=mkCache.items.filter(x=>x.id!==it.id);renderAll();toast("Куплено у "+it.seller+": "+HEROES[c.h][0])};
     box.appendChild(lotRow(c,`<b class="num">${fmtC(it.price)}</b><small class="${isCollab(c)?"dear":r<1?"cheap":r>1.2?"dear":""}">${isCollab(c)?"💎 бесценная · 1 из 1":r<1?"−"+Math.round((1-r)*100)+"% от оценки":r>1?"+"+Math.round((r-1)*100)+"% к оценке":"по оценке"}</small><small style="color:#5a5f80;font-weight:500"></small>`,b));
     box.lastChild.querySelector(".r small:last-of-type").textContent=it.seller})}
@@ -2240,7 +2246,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c));$("any-go").onclick=anyPick}}
 /* «любая карточка»: сначала воин, потом отделка */
 function anyPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  const hs=HEROES.map((H,i)=>i).filter(i=>!HEROES[i][4].collab).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
+  const hs=HEROES.map((H,i)=>i).filter(i=>!HEROES[i][4].collab&&!HEROES[i][4].hid).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
   sh.innerHTML='<div class="box nickbox"><h3>🃏 Выбери воина</h3><div class="pkg">'+hs.map(h=>'<button type="button" class="pki" data-h="'+h+'">'+miniSlot(demoOne(h,HEROES[h][4].one?4:0))+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
   $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-h]");if(!b)return;const h=+b.dataset.h,W=HEROES[h][4];
     if(W.one)return anyConfirm(h,4);if(W.comp)return anyConfirm(h,0);
