@@ -274,3 +274,11 @@ setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){co
 /* блик в «Картах» включается только у карточек на экране */
 {const io=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(!e.target.isConnected){io.unobserve(e.target);return}e.target.classList.toggle("on",e.isIntersecting)})):null;
  const _fm=fillMini;fillMini=function(el){const r=_fm.apply(this,arguments);try{if(io&&el.closest&&el.closest("#sec-col"))io.observe(el)}catch(e){}return r}}
+
+/* ⚡ большие коллекции: карточки далеко за экраном выгружаются из памяти и рисуются заново, когда к ним подлистаешь
+   (быстрая прокрутка 300+ карт на iPhone больше не копит сотни нарисованных карточек) */
+{const LISTS="#sec-col,#sec-album,#cr-pick";
+ const vio=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{const el=e.target;if(!el.isConnected){vio.unobserve(el);return}
+   if(e.isIntersecting){if(el._gone&&el._card){el._gone=0;el._mc=el._card;el._w=e.boundingClientRect.width;fillMini(el)}}
+   else if(!el._gone&&el._card&&el.firstChild){el._gone=1;while(el.firstChild)el.removeChild(el.firstChild)}}),{rootMargin:"1200px 0px"}):null;
+ const _fm=fillMini;fillMini=function(el){const c=el&&el._mc;const r=_fm.apply(this,arguments);try{if(c&&vio&&el.closest&&el.closest(LISTS)&&!el._card){el._card=c;vio.observe(el)}}catch(e){}return r}}
