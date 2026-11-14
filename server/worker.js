@@ -620,8 +620,8 @@ const hofSlots=(st,cards)=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)]+(c
 function hofColl(cards){const m={};for(const c of cards)if(c.f<=3)(m[c.h]||(m[c.h]=new Set())).add(c.f);let n=0;for(const k in m)if(m[k].size>=4)n++;return n}
 function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=c.v||0;return v*HOF.rate*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))*(1+EMP.inc*empRank(empPower(st,cards)))}
 function rollCard(ctx,epic){
-  const mt=epic===3?3:epic?2:0,pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]>=mt);
-  const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]))];
+  const mt=epic===3?3:epic?2:0,pool=HEROES.map((H,i)=>i).filter(i=>(isBase(i)||HEROES[i][4].dgc)&&HEROES[i][2]>=mt);   // драконы-карточки тоже выпадают в обычных прокрутах
+  const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]*(HEROES[i][4].dgc?.5:1)))];
   let f=pick(ctx.luck?FW_LUCK:FIN.map((x,i)=>ctx.fBoost&&(i===2||i===3)?x.w*LUCK.boost:x.w));if(FIN[f].dia)f=0;if(ctx.fForce&&f<2)f=2;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
   return makeCard(ctx,h,f);
 }
