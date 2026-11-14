@@ -2,27 +2,40 @@
 /* рисованные гемы: 🔥 рубин-пламя, 💧 сапфир, 🌍 изумруд, 🌪 небесный алмаз. Уровень = сильнее сияние и лучи */
 let gemN=0;
 const GEMC={f:["#ffd0a0","#ff4a1a","#8a0a14","#ff8a3a"],w:["#c8f0ff","#2f8bff","#0a1f6a","#6ad0ff"],e:["#d8ffb0","#2fc85a","#0a4a24","#8aff6a"],a:["#ffffff","#a8e8ff","#4a6a9a","#e0f8ff"]};
-function gemSVG(k,lv,sz){lv=Math.max(1,Math.min(5,lv|0||1));const C=GEMC[k]||GEMC.a,u="gm"+(++gemN),sz2=sz||44;
-  const shape={f:"M50 8 Q72 34 74 58 Q74 84 50 92 Q26 84 26 58 Q28 34 50 8Z",w:"M30 14 H70 L88 36 L88 64 L70 86 H30 L12 64 L12 36Z",e:"M28 10 H72 L86 24 V76 L72 90 H28 L14 76 V24Z",a:"M50 6 L84 30 L76 80 L50 94 L24 80 L16 30Z"}[k]||"";
-  const fac={f:"M50 8 L50 92 M26 58 L74 58 M50 30 L34 58 L50 80 L66 58Z",w:"M30 14 L50 36 L70 14 M12 36 H88 M50 36 L30 86 M50 36 L70 86 M12 64 H88",e:"M28 10 L36 24 H64 L72 10 M14 24 H86 M36 24 V76 M64 24 V76 M14 76 H86 M36 76 L28 90 M64 76 L72 90",a:"M50 6 L50 94 M16 30 L84 30 M16 30 L50 54 L84 30 M24 80 L50 54 L76 80"}[k]||"";
-  let rays="";if(lv>=3)for(let i=0;i<(lv-1)*2;i++){const a=i/((lv-1)*2)*Math.PI*2;rays+=`<path d="M50 50 L${(50+Math.cos(a-.08)*70).toFixed(1)} ${(50+Math.sin(a-.08)*70).toFixed(1)} L${(50+Math.cos(a+.08)*70).toFixed(1)} ${(50+Math.sin(a+.08)*70).toFixed(1)}Z" fill="${C[3]}" opacity=".35"/>`}
-  return `<svg class="gemsvg" viewBox="-10 -10 120 120" width="${sz2}" height="${sz2}" aria-hidden="true"><defs>
-   <radialGradient id="${u}g" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="${C[0]}"/><stop offset=".45" stop-color="${C[1]}"/><stop offset="1" stop-color="${C[2]}"/></radialGradient>
-   <radialGradient id="${u}h"><stop offset="0" stop-color="${C[3]}" stop-opacity="${.25+lv*.12}"/><stop offset="1" stop-color="${C[3]}" stop-opacity="0"/></radialGradient>
-   <linearGradient id="${u}s" x1="0" y1="0" x2="1" y2="1"><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset=".65" stop-color="#fff" stop-opacity="0"/>
-    <animate attributeName="x1" values="-1.2;1.2" dur="${(3.2-lv*.3).toFixed(1)}s" repeatCount="indefinite"/><animate attributeName="x2" values="-.2;2.2" dur="${(3.2-lv*.3).toFixed(1)}s" repeatCount="indefinite"/></linearGradient>
-   <clipPath id="${u}c"><path d="${shape}"/></clipPath></defs>
-   <g>${rays?`<g>${rays}<animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="12s" repeatCount="indefinite"/></g>`:""}</g>
-   <circle cx="50" cy="50" r="${44+lv*3}" fill="url(#${u}h)"><animate attributeName="r" values="${44+lv*3};${50+lv*4};${44+lv*3}" dur="2s" repeatCount="indefinite"/></circle>
-   <path d="${shape}" fill="url(#${u}g)" stroke="#0b0712" stroke-width="5" stroke-linejoin="round"/>
-   <g clip-path="url(#${u}c)"><path d="${fac}" stroke="${C[0]}" stroke-opacity=".55" stroke-width="2.2" fill="none"/>
-    ${k==="f"?`<path d="M50 84 Q36 70 44 54 Q46 64 52 62 Q48 46 58 36 Q58 52 64 58 Q68 74 50 84Z" fill="#ffd23f" opacity=".75"><animateTransform attributeName="transform" type="scale" values="1 1;1 1.08;1 .96;1 1" dur=".9s" additive="sum" repeatCount="indefinite"/></path>`:""}
-    ${k==="w"?`<path d="M12 62 Q30 54 50 62 T88 62 V90 H12Z" fill="#fff" opacity=".22"><animateTransform attributeName="transform" type="translate" values="-10 0;10 0;-10 0" dur="2.6s" repeatCount="indefinite"/></path>`:""}
-    ${k==="e"?`<path d="M30 40 L44 30 L40 46Z M58 58 L70 52 L66 66Z" fill="#fff" opacity=".35"/>`:""}
-    ${k==="a"?`<path d="M30 50 Q50 34 70 50 Q50 40 38 54 Q52 48 60 58" stroke="#fff" stroke-width="3" fill="none" opacity=".7" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3s" repeatCount="indefinite"/></path>`:""}
+function gemSVG(k,lv,sz){lv=Math.max(1,Math.min(5,lv|0||1));const C=GEMC[k]||GEMC.a,u="gm"+(++gemN),S2=sz||44;
+  /* внешний контур и «площадка» (table) — грани между ними раскрашиваются по-разному, как у настоящей огранки */
+  const P={f:[[50,4],[60,16],[70,32],[76,50],[75,68],[68,82],[50,94],[32,82],[25,68],[24,50],[30,32],[40,16]],
+    w:[[50,6],[72,12],[88,28],[94,50],[88,72],[72,88],[50,94],[28,88],[12,72],[6,50],[12,28],[28,12]],
+    e:[[30,8],[70,8],[84,20],[90,36],[90,64],[84,80],[70,92],[30,92],[16,80],[10,64],[10,36],[16,20]],
+    a:[[50,4],[70,14],[86,30],[88,52],[78,74],[62,90],[50,96],[38,90],[22,74],[12,52],[14,30],[30,14]]}[k]||[];
+  const cx=50,cy=k==="f"?58:50,tk={f:.42,w:.5,e:.56,a:.42}[k],T=P.map(([x,y])=>[cx+(x-cx)*tk,cy+(y-cy)*tk]),pt=a=>a.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
+  const lit=[1,.82,.62,.45,.32,.25,.38,.55,.7,.88,1,1.08];   // свет падает слева сверху
+  let fac="";for(let i=0;i<P.length;i++){const n=(i+1)%P.length,L=lit[i%12],a=P[i],b=P[n],c=T[n],d=T[i],m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    fac+=`<polygon points="${pt([a,m,d])}" fill="${L>.8?C[0]:L>.5?C[3]:C[1]}" opacity="${(.35+L*.5).toFixed(2)}"/><polygon points="${pt([m,b,c,d])}" fill="${L>.9?C[0]:L>.55?C[1]:C[2]}" opacity="${(.45+L*.45).toFixed(2)}"/>`}
+  let star="";[[30,24,1.1],[70,70,.8],[62,22,.7]].slice(0,1+Math.ceil(lv/2)).forEach(([x,y,s2],i)=>{star+=`<g transform="translate(${x} ${y}) scale(${s2})"><path d="M0 -9 L2 -2 L9 0 L2 2 L0 9 L-2 2 L-9 0 L-2 -2Z" fill="#fff"><animate attributeName="opacity" values="0;1;0" dur="${1.6+i*.7}s" begin="${i*.5}s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" values=".3;1.2;.3" dur="${1.6+i*.7}s" begin="${i*.5}s" repeatCount="indefinite"/></path></g>`});
+  let rays="";if(lv>=3)for(let i=0;i<(lv-1)*2;i++){const a=i/((lv-1)*2)*Math.PI*2;rays+=`<path d="M50 50 L${(50+Math.cos(a-.07)*72).toFixed(1)} ${(50+Math.sin(a-.07)*72).toFixed(1)} L${(50+Math.cos(a+.07)*72).toFixed(1)} ${(50+Math.sin(a+.07)*72).toFixed(1)}Z" fill="${C[3]}" opacity=".3"/>`}
+  const core={f:`<path d="M50 84 Q36 72 42 58 Q45 66 50 64 Q46 50 56 40 Q56 54 62 60 Q66 74 50 84Z" fill="#ffe27a" opacity=".85"><animateTransform attributeName="transform" type="scale" values="1 1;1.04 1.1;.98 .95;1 1" dur=".8s" repeatCount="indefinite" additive="sum"/></path><path d="M50 82 Q44 74 48 66 Q52 72 54 70 Q58 78 50 82Z" fill="#fff" opacity=".8"/>`,
+    w:`<path d="M10 60 Q28 52 50 60 T90 60 V96 H10Z" fill="#fff" opacity=".18"><animateTransform attributeName="transform" type="translate" values="-12 0;12 0;-12 0" dur="2.6s" repeatCount="indefinite"/></path><circle cx="40" cy="70" r="2.5" fill="#fff" opacity=".7"><animate attributeName="cy" values="78;34" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="2.2s" repeatCount="indefinite"/></circle><circle cx="60" cy="70" r="1.8" fill="#fff"><animate attributeName="cy" values="80;30" dur="2.8s" begin=".8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="2.8s" begin=".8s" repeatCount="indefinite"/></circle>`,
+    e:`<path d="M34 64 L42 52 L48 62 L56 46 L66 64Z" fill="#0a3a1a" opacity=".35"/><path d="M42 52 L48 62 L56 46" stroke="#d8ffb0" stroke-width="1.5" fill="none" opacity=".7"/>`,
+    a:`<g opacity=".8"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3.2s" repeatCount="indefinite"/><path d="M26 50 Q50 28 74 50" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M34 58 Q50 44 66 58" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".7"/><path d="M42 64 Q50 58 58 64" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".6"/></g>`}[k]||"";
+  return `<svg class="gemsvg" viewBox="-12 -12 124 124" width="${S2}" height="${S2}" aria-hidden="true"><defs>
+   <radialGradient id="${u}g" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="${C[0]}"/><stop offset=".4" stop-color="${C[1]}"/><stop offset="1" stop-color="${C[2]}"/></radialGradient>
+   <radialGradient id="${u}t" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".35" stop-color="${C[3]}" stop-opacity=".7"/><stop offset="1" stop-color="${C[1]}" stop-opacity=".3"/></radialGradient>
+   <radialGradient id="${u}h"><stop offset="0" stop-color="${C[3]}" stop-opacity="${(.2+lv*.12).toFixed(2)}"/><stop offset="1" stop-color="${C[3]}" stop-opacity="0"/></radialGradient>
+   <linearGradient id="${u}s" x1="0" y1="0" x2="1" y2="1"><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".6"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/>
+    <animate attributeName="x1" values="-1.4;1.4" dur="${(3.4-lv*.3).toFixed(1)}s" repeatCount="indefinite"/><animate attributeName="x2" values="-.4;2.4" dur="${(3.4-lv*.3).toFixed(1)}s" repeatCount="indefinite"/></linearGradient>
+   <clipPath id="${u}c"><polygon points="${pt(P)}"/></clipPath></defs>
+   ${rays?`<g>${rays}<animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="14s" repeatCount="indefinite"/></g>`:""}
+   <circle cx="50" cy="52" r="${42+lv*3}" fill="url(#${u}h)"><animate attributeName="r" values="${42+lv*3};${48+lv*4};${42+lv*3}" dur="2.2s" repeatCount="indefinite"/></circle>
+   <ellipse cx="50" cy="100" rx="30" ry="5" fill="#000" opacity=".35"/>
+   <polygon points="${pt(P)}" fill="url(#${u}g)"/>
+   <g clip-path="url(#${u}c)">${fac}<polygon points="${pt(T)}" fill="url(#${u}t)"/>${core}
+    <g stroke="${C[0]}" stroke-opacity=".55" stroke-width="1" fill="none">${P.map((a,i)=>`<path d="M${a[0]} ${a[1]} L${T[i][0].toFixed(1)} ${T[i][1].toFixed(1)}"/>`).join("")}<polygon points="${pt(T)}"/></g>
     <rect x="-20" y="-20" width="140" height="140" fill="url(#${u}s)"/></g>
-   <path d="M32 26 Q40 18 50 18" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".8"/>
-   <g fill="#ffd23f" stroke="#0b0712" stroke-width="2">${Array.from({length:lv},(_,i)=>`<circle cx="${50+(i-(lv-1)/2)*13}" cy="104" r="5"/>`).join("")}</g></svg>`}
+   <polygon points="${pt(P)}" fill="none" stroke="#0b0712" stroke-width="4.5" stroke-linejoin="round"/>
+   <polyline points="${pt(P.slice(9).concat(P.slice(0,2)))}" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" stroke-linejoin="round" transform="translate(${cx} ${cy}) scale(.9) translate(${-cx} ${-cy})"/>
+   ${star}
+   <g fill="#ffd23f" stroke="#0b0712" stroke-width="2">${Array.from({length:lv},(_,i)=>`<path transform="translate(${(50+(i-(lv-1)/2)*14).toFixed(1)} 106)" d="M0 -6 L1.8 -1.8 L6 -1.5 L2.8 1.2 L3.7 5.5 L0 3.2 L-3.7 5.5 L-2.8 1.2 L-6 -1.5 L-1.8 -1.8Z"/>`).join("")}</g></svg>`}
 const gemI=(g,sz)=>gemSVG(g[0],+g.slice(1)||1,sz);
 const GEMV={tab:"forge",card:null};
 function gemName(g){const E=GEM.el[g[0]];return E?E.ic+" "+E.n+" "+g.slice(1)+" ур.":g}
