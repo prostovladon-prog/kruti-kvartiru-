@@ -1188,25 +1188,27 @@ function arcPath(p){if(p<=0)return "";if(p>=.9999)return "M100 8 A92 92 0 1 1 99
 function renderCraft(){
   // inputs
   for(const id of [...crSel])if(!S.cards.some(c=>c.id===id))crSel.delete(id);
-  const pk=$("cr-pick");pk.innerHTML="";
+  const pk=$("cr-pick"),pkL=[...S.cards].filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>b.v-a.v),pkK=S.cards.length+"|"+pkL.map(c=>c.id+":"+c.v+":"+c.f).join(",");
+  if(pk.dataset.k===pkK)pk.querySelectorAll("button.pc").forEach(b=>b.setAttribute("aria-pressed",crSel.has(b.dataset.id)));else{pk.dataset.k=pkK;pk.innerHTML="";
   if(!S.cards.length){pk.innerHTML='<p style="margin:0;color:#5a5f80">В коллекции пусто. Открой несколько карточек на вкладке «Крутить».</p>'}
-  [...S.cards].filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>b.v-a.v).forEach(c=>{
-    const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);
+  pkL.forEach(c=>{
+    const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.dataset.id=c.id;b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",crSel.has(c.id));
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${FIN[c.f].k}</span><b class="num">${fmt(c.v)}</b>`;
     b.children[1].textContent=H[0];
     b.onclick=()=>{if(crBusy)return;crLast=null;if(crSel.has(c.id))crSel.delete(c.id);else{if(crSel.size>=5){toast("Можно отдать максимум 5 карточек");return}crSel.add(c.id)}renderCraft()};
-    pk.appendChild(b)});
+    pk.appendChild(b)})}
   $("cr-sum").textContent=fmt(crSum());
   $("cr-hint").textContent=crSel.size?"в горне "+crSel.size+" из 5":"от 1 до 5 карточек";
   // target finishes
   const fb=$("cr-fins");fb.innerHTML="";
   if(!craftable(crF))crF=1;FIN.forEach((F,i)=>{if(F.excl||F.dia||!craftable(i))return;const b=document.createElement("button");b.type="button";b.textContent=F.k;b.setAttribute("aria-pressed",i===crF);
     b.onclick=()=>{if(crBusy)return;crF=i;renderCraft()};fb.appendChild(b)});
-  const tg=$("cr-tgt");tg.innerHTML="";
-  HEROES.forEach((H,i)=>{if(!craftOk(i))return;const b=document.createElement("button");b.type="button";b.className="tg2";b.style.setProperty("--hc",HT[H[2]].c);
+  const tg=$("cr-tgt"),tgK=HEROES.map((H,i)=>craftOk(i)?1:0).join("");
+  if(tg.dataset.k===tgK)tg.querySelectorAll("button.tg2").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.h===crH));else{tg.dataset.k=tgK;tg.innerHTML="";
+  HEROES.forEach((H,i)=>{if(!craftOk(i))return;const b=document.createElement("button");b.type="button";b.className="tg2";b.dataset.h=i;b.style.setProperty("--hc",HT[H[2]].c);
     b.setAttribute("aria-pressed",i===crH);b.setAttribute("aria-label",H[0]);b.title=H[0];b.innerHTML=portrait(i,null,1);
-    b.onclick=()=>{if(crBusy)return;crH=i;renderCraft()};tg.appendChild(b)});
+    b.onclick=()=>{if(crBusy)return;crH=i;renderCraft()};tg.appendChild(b)})}
   const sel=tg.querySelector('[aria-pressed="true"]');if(sel&&!tg.dataset.scrolled){tg.dataset.scrolled="1";requestAnimationFrame(()=>{tg.scrollLeft=sel.offsetLeft-tg.clientWidth/2+sel.clientWidth/2})}
   const F=FIN[crF],left=F.run===Infinity?Infinity:F.run-issuedOfUI(crH,crF);
   $("cr-tname").textContent=HEROES[crH][0];
@@ -1214,10 +1216,10 @@ function renderCraft(){
   // большая карточка-цель в новом дизайне (одна и та же, пока не сменишь цель)
   const pk2=crH+"-"+crF;if($("cr-prev").dataset.k!==pk2){$("cr-prev").dataset.k=pk2;let c;try{c=makeCard({issuedOf:()=>0,nextNo:()=>Math.max(1,(F.run===Infinity?1:F.run-left+1)),snFree:()=>true,takeSn:()=>{},newId:()=>"prev",now:NOW(),events:[]},crH,crF)}catch(e){c={h:crH,f:crF,no:1,sn:"482913",hue:0,v:0,stats:[300,300,300,300,300],xp:0,wins:0,stars:0}}c.v=targetPrice(crH,crF);$("cr-prev").innerHTML=miniSlot(c)}
   // слоты горна
-  const sl=$("cr-slots"),selC=[...crSel].map(id=>S.cards.find(c=>c.id===id)).filter(Boolean);sl.innerHTML="";
+  const sl=$("cr-slots"),selC=[...crSel].map(id=>S.cards.find(c=>c.id===id)).filter(Boolean),slK=selC.map(c=>c.id).join(",");if(sl.dataset.k!==slK){sl.dataset.k=slK;sl.innerHTML="";
   for(let i=0;i<5;i++){const c=selC[i],d=document.createElement("button");d.type="button";d.className="fslot"+(c?" f":"");
     if(c){d.innerHTML=miniSlot(c);d.setAttribute("aria-label","Убрать "+HEROES[c.h][0]+" из горна");d.onclick=()=>{if(crBusy)return;crSel.delete(c.id);crLast=null;renderCraft()}}else{d.textContent="+";d.disabled=true}
-    sl.appendChild(d)}
+    sl.appendChild(d)}}
   const mineT=S.cards.some(c=>c.h===crH&&c.f===crF);
   $("cr-trun").textContent=left===Infinity?HT[HEROES[crH][2]].k:(left>0?"осталось "+left+" из "+F.run:mineT?"единственная уже у тебя":"все "+F.run+" уже у игроков");
   const tv=targetPrice(crH,crF);$("cr-tv").textContent=fmt(tv);{const T=HEROES[crH][2];const mx=CRAFT_MAX(crF,crH)*100;if(T>=2||crF>=3)$("cr-trun").textContent+=" · "+(CRAFT_TIER_K[T]>1?"крафт ×"+CRAFT_TIER_K[T]+", ":"")+"шанс до "+(mx<1?mx.toFixed(1).replace(".",","):Math.round(mx))+"%"}

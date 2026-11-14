@@ -262,3 +262,11 @@ function dspBan(){const sec=$("sec-spin");if(!sec||sec.hidden)return;let b=$("ds
 {const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{dspBan()}catch(e){}return r}}
 /* опросы: чат открывается разными кнопками (часть из них привязана к старой функции) — поэтому блок опросов подставляем, как только появился список чата */
 setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){const d=document.createElement("div");d.id="ch-poll";d.className="ch-poll";L.before(d);pollLoad()}}catch(e){}},500);
+
+/* ⚡ оптимизация памяти: списки не перерисовываются, если ничего не поменялось; при уходе с вкладки тяжёлые списки очищаются (на слабых телефонах из-за них вылетало) */
+{const SIG={};const sigCol=()=>JSON.stringify([colView,colSort,colF,colQ,colPick,[...colSel],S.cards,S.gsock||0,S.fav||0,S.favs||0,Math.floor(Date.now()/36e5)]),sigAlb=()=>JSON.stringify([S.cards.map(c=>c.h+"."+c.f),S.eras||0,S.ach||0]);
+ const memo=(n,box,sig)=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){try{const b=$(box),k=sig();if(b&&b.childElementCount&&SIG[n]===k)return;const r=f.apply(this,arguments);SIG[n]=k;return r}catch(e){SIG[n]=null;return f.apply(this,arguments)}}};
+ memo("renderCol","col",sigCol);memo("renderAlbum","album",sigAlb);
+ const FREE={col:()=>{const b=$("col");if(b)b.innerHTML="";SIG.renderCol=null},album:()=>{const b=$("album");if(b)b.innerHTML="";SIG.renderAlbum=null},
+  craft:()=>{["cr-pick","cr-tgt","cr-slots"].forEach(id=>{const b=$(id);if(b){b.innerHTML="";b.dataset.k="";delete b.dataset.scrolled}});const p=$("cr-prev");if(p){p.innerHTML="";p.dataset.k=""}}};
+ let cur=null;const _st=setTab;setTab=function(t){const prev=cur;cur=t;if(prev&&prev!==t&&FREE[prev]&&!(prev==="craft"&&crBusy)){try{FREE[prev]()}catch(e){}}return _st.apply(this,arguments)}}
