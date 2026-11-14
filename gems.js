@@ -342,3 +342,14 @@ setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();con
    const n=box.children.length,f=box.firstElementChild;if(box._pgN===n&&box._pgF===f)return;box._pgN=n;box._pgF=f;
    if(n<=per&&!$("pg-"+box.id))return;try{pagerApply(box.id,"*",per,"карты")}catch(e){}})};
  new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
+
+/* 🎠 шторка на «Крутить»: Билетная гонка + Лотерея в одной карусели — листается свайпом, сама переключается, по нажатию открывается выбранное */
+function evCar(){const sp=$("sec-spin");if(!sp)return;const bars=["tk-bar","lot-bar"].map(id=>$(id)).filter(Boolean);let C=$("ev-car");
+ if(!bars.length){if(C)C.remove();return}
+ if(!C){C=document.createElement("div");C.id="ev-car";C.className="ev-car";C.innerHTML='<div class="ev-tr"></div><div class="ev-dots"></div>';bars[0].before(C);
+  const tr=C.firstChild;tr.addEventListener("scroll",()=>{const i=Math.round(tr.scrollLeft/Math.max(1,tr.clientWidth));C.querySelectorAll(".ev-dots i").forEach((d,j)=>d.classList.toggle("on",j===i))},{passive:true});
+  ["pointerdown","touchstart"].forEach(ev=>tr.addEventListener(ev,()=>{C._hold=Date.now()},{passive:true}));
+  setInterval(()=>{if(document.hidden||$("sec-spin").hidden||Date.now()-(C._hold||0)<8000)return;const n=tr.children.length;if(n<2)return;const i=Math.round(tr.scrollLeft/tr.clientWidth);tr.scrollTo({left:((i+1)%n)*tr.clientWidth,behavior:"smooth"})},4500)}
+ const tr=C.firstChild;bars.forEach(b=>{if(b.parentNode!==tr)tr.appendChild(b)});
+ const n=tr.children.length,D=C.lastChild;if(D.children.length!==n)D.innerHTML=n>1?[...Array(n)].map((_,i)=>'<i class="'+(i?"":"on")+'"></i>').join(""):""}
+{const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("tkBar");w("lotBar")}

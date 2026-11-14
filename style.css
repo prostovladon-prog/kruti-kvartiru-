@@ -3558,3 +3558,12 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .lot-my{margin:6px 0 10px;font-weight:800}.lot-buy{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0}
 .lot-buy button{padding:10px 6px;border-radius:14px;border:2px solid #07040f;background:linear-gradient(180deg,#fff1a8,#ffb800);color:#07040f;box-shadow:0 3px 0 #07040f}.lot-buy b{display:block;font-size:18px}.lot-buy small{font-weight:800}
 .lot-how{text-align:left;margin:10px 0;padding-left:18px;font-size:13px;line-height:1.4}.lot-last{font-size:12.5px;margin:6px 0;padding:8px;border-radius:12px;background:rgba(0,0,0,.06)}
+
+/* 🎠 шторка событий */
+.ev-car{margin:0 0 10px;position:relative}
+.ev-tr{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.ev-tr::-webkit-scrollbar{display:none}
+.ev-tr>*{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always}
+.ev-tr>.tk-bar{width:calc(100% - 24px)!important;flex-basis:calc(100% - 24px);margin:0 12px!important;box-sizing:border-box}
+.ev-tr>.lot-bar{flex-basis:calc(100% - 24px);margin:0 12px!important;width:auto;box-sizing:border-box;min-height:100%}
+.ev-dots{display:flex;justify-content:center;gap:6px;margin-top:6px}.ev-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);transition:all .2s}.ev-dots i.on{width:18px;border-radius:4px;background:#ffd23f}
