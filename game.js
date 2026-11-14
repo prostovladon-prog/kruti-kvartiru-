@@ -132,6 +132,35 @@ const DETAILED={
  ${[0,1,2,3,4,5,6].map(i=>`<path d="M${26+i*25} ${24+(i%3)*24} l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3z" fill="#fff6c8"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="${i*.21}s" repeatCount="indefinite"/></path>`).join("")}
 </svg>`},
  /* 🧙‍♀️ Баба Яга — анимированная: ступа парит, из неё выглядывает голова */
+ "Соловей-Разбойник":u=>{const R='dur="2.4s" repeatCount="indefinite"';let lv="";for(let i=0;i<9;i++){const y=30+i*17,d=(i*.13).toFixed(2);lv+=`<path d="M0 0 q6 -6 12 0 q-6 6 -12 0z" fill="${i%2?"#6ac04a":"#c8a02a"}" stroke="#0b0712" stroke-width="1.2"><animateMotion path="M130 ${y} Q170 ${y-20} 230 ${y+10}" dur="1.2s" begin="${d}s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="rotate" from="0" to="540" dur="1.2s" begin="${d}s" repeatCount="indefinite" additive="sum"/></path>`}
+  let wv="";for(let i=0;i<4;i++)wv+=`<path d="M128 ${92+i*0} q12 ${-10-i*6} 24 0 q12 ${10+i*6} 24 0" fill="none" stroke="#fff" stroke-width="${4-i*.6}" stroke-linecap="round" opacity="0"><animate attributeName="opacity" values="0;.95;0" dur="1.2s" begin="${(i*.25).toFixed(2)}s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="translate" values="0 0;${30+i*8} 0" dur="1.2s" begin="${(i*.25).toFixed(2)}s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="scale" values="1;1.6" dur="1.2s" begin="${(i*.25).toFixed(2)}s" repeatCount="indefinite" additive="sum"/></path>`;
+  return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+  <linearGradient id="ssk${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a7ad0"/><stop offset=".7" stop-color="#8ac8f0"/><stop offset="1" stop-color="#d8f0c8"/></linearGradient>
+  <linearGradient id="sbark${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a2410"/><stop offset=".5" stop-color="#6a4420"/><stop offset="1" stop-color="#3a2410"/></linearGradient>
+  <radialGradient id="sfeat${u}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#ffb84a"/><stop offset=".6" stop-color="#c8501a"/><stop offset="1" stop-color="#6a1a0a"/></radialGradient></defs>
+  <rect width="200" height="200" fill="url(#ssk${u})"/>
+  <g><animateTransform attributeName="transform" type="rotate" values="0 100 200;-2 100 200;1 100 200;0 100 200" ${R}/>
+   <path d="M30 200 Q40 120 34 70 L52 70 Q58 120 66 200Z" fill="url(#sbark${u})" stroke="#0b0712" stroke-width="3"/>
+   <path d="M150 200 Q156 140 160 100 L176 100 Q172 150 182 200Z" fill="url(#sbark${u})" stroke="#0b0712" stroke-width="3"/>
+   <g fill="#2f7a2a" stroke="#0b0712" stroke-width="3"><circle cx="40" cy="58" r="34"/><circle cx="168" cy="86" r="30"/><circle cx="100" cy="40" r="44"/><circle cx="70" cy="30" r="26"/><circle cx="140" cy="34" r="28"/></g>
+   <g fill="#4aa83a"><circle cx="30" cy="48" r="12"/><circle cx="92" cy="26" r="16"/><circle cx="160" cy="76" r="10"/></g>
+   <path d="M20 128 Q100 116 186 132" stroke="#4a2c12" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M20 128 Q100 116 186 132" stroke="#0b0712" stroke-width="3" fill="none" opacity=".4"/></g>
+  <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -3;0 0" dur="1.2s" repeatCount="indefinite"/>
+   <path d="M60 128 Q58 96 80 88 L112 88 Q132 98 128 128Z" fill="#7a1a1a" stroke="#0b0712" stroke-width="3.5"/>
+   <path d="M66 126 L58 140 M76 128 L72 142 M110 128 L114 142 M120 126 L128 138" stroke="#0b0712" stroke-width="4" stroke-linecap="round"/>
+   <path d="M60 112 Q34 100 28 78 Q46 94 62 98Z" fill="url(#sfeat${u})" stroke="#0b0712" stroke-width="3"><animateTransform attributeName="transform" type="rotate" values="0 60 104;-14 60 104;0 60 104" dur=".6s" repeatCount="indefinite"/></path>
+   <path d="M126 110 Q150 104 158 84 Q142 96 124 100Z" fill="url(#sfeat${u})" stroke="#0b0712" stroke-width="3"><animateTransform attributeName="transform" type="rotate" values="0 126 104;14 126 104;0 126 104" dur=".6s" repeatCount="indefinite"/></path>
+   <path d="M76 90 Q72 60 96 54 Q120 58 118 88Z" fill="#e8b88a" stroke="#0b0712" stroke-width="3.5"/>
+   <path d="M72 70 Q94 42 122 66 Q118 50 98 44 Q76 46 72 70Z" fill="url(#sfeat${u})" stroke="#0b0712" stroke-width="3"/>
+   <path d="M90 40 Q86 22 94 14 M100 40 Q102 20 112 12 M110 44 Q118 28 128 26" stroke="#c8501a" stroke-width="4" fill="none" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 100 44;6 100 44;-4 100 44;0 100 44" dur=".8s" repeatCount="indefinite"/></path>
+   <circle cx="88" cy="72" r="3.5" fill="#0b0712"/><path d="M104 70 l8 -2" stroke="#0b0712" stroke-width="3" stroke-linecap="round"/>
+   <path d="M82 66 l10 -3 M102 64 l10 1" stroke="#0b0712" stroke-width="2.5" stroke-linecap="round"/>
+   <path d="M76 84 Q96 104 116 84 Q108 96 96 96 Q84 96 76 84Z" fill="#6a3a1a" stroke="#0b0712" stroke-width="2"/>
+   <g><circle cx="118" cy="82" r="6" fill="#e8b88a" stroke="#0b0712" stroke-width="2.5"><animate attributeName="r" values="5;7;5" dur=".4s" repeatCount="indefinite"/></circle><path d="M112 76 L124 80 L114 86Z" fill="#e8b88a" stroke="#0b0712" stroke-width="2"/></g>
+   <path d="M126 98 q-6 -12 2 -18" stroke="#e8b88a" stroke-width="7" stroke-linecap="round" fill="none"/></g>
+  ${wv}${lv}
+  <g opacity="0"><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.7;1" dur="2.4s" repeatCount="indefinite"/><text x="100" y="182" text-anchor="middle" font-size="20" font-weight="900" fill="#fff" stroke="#0b0712" stroke-width="4" paint-order="stroke">💨 ФЬЮИИИТЬ!</text></g>
+</svg>`},
  "Кощей":u=>{const R='dur="3.6s" repeatCount="indefinite"';let st="";for(let i=0;i<14;i++){const x=(i*37+11)%200,y=(i*53+7)%110,d=(1.2+i%5*.4).toFixed(1);st+=`<circle cx="${x}" cy="${y}" r="${i%3?.8:1.4}" fill="#e8fff4"><animate attributeName="opacity" values=".1;1;.1" dur="${d}s" repeatCount="indefinite"/></circle>`}
   let sp="";for(let i=0;i<6;i++)sp+=`<circle r="${1.6-i*.2}" fill="#b8ffd8" opacity="${1-i*.15}"><animateMotion path="M156 132 Q160 80 156 46 Q152 80 156 132" keyTimes="0;1" ${R} begin="${(-i*.06).toFixed(2)}s"/></circle>`;
   return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
