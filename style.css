@@ -3476,3 +3476,16 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 /* алмазный ник: на светлых строках — тёмный читаемый градиент, на тёмных (алмазная строка, профиль) — светлый */
 .dian{background:linear-gradient(90deg,#0a4aa0,#2a8ad8,#6a2ad0,#0a6ab8,#0a4aa0);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;filter:none}
 .diar .dian,.wsh.diap .dian,.who .dian{background-image:linear-gradient(90deg,#9ff3ff,#ffffff,#7ad8ff,#e6c8ff,#ffffff,#9ff3ff);filter:drop-shadow(0 0 6px rgba(140,230,255,.7))}
+/* ⚡ алмаз без лагов: никакой перерисовки каждый кадр — рамка статичная, блик едет через transform (видеокарта), текст без анимации и тяжёлых фильтров */
+.diar,.wsh.diap{animation:none!important}
+.diar{background:linear-gradient(135deg,#0e2a4a,#1a1050) padding-box,linear-gradient(135deg,#7ad8ff,#ffffff,#c89aff,#7ad8ff) border-box!important;box-shadow:0 0 10px rgba(122,216,255,.45)!important}
+.wsh.diap{background:linear-gradient(160deg,#0b2240,#1a0f45 60%,#0b2240) padding-box,linear-gradient(135deg,#7ad8ff,#ffffff,#c89aff,#7ad8ff) border-box!important;box-shadow:0 0 16px rgba(122,216,255,.45)!important}
+.diar::after,.wsh.diap::before{background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.3) 50%,transparent 60%)!important;background-size:100% 100%!important;width:60%;inset:0 auto 0 0!important;animation:diamv 3.2s ease-in-out infinite!important;will-change:transform}
+@keyframes diamv{0%{transform:translateX(-120%)}60%,100%{transform:translateX(260%)}}
+.dian,.diar .dian,.wsh.diap .dian,.who .dian{animation:none!important;filter:none!important;background-size:100% 100%!important}
+.diar .dsp:nth-of-type(n+3),.wsh.diap .dsp:nth-of-type(n+4){display:none}
+.dsp{will-change:transform,opacity}
+@media (prefers-reduced-motion:reduce){.diar::after,.wsh.diap::before,.dsp{animation:none!important;display:none}}
+/* ⚡ в списках алмаз статичный: блик пробегает один раз при появлении строки, искры не крутятся — ноль постоянной нагрузки */
+.diar::after{animation:diamv 1.6s ease-out 1 both!important}
+.diar .dsp{display:none!important}
