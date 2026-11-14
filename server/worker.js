@@ -545,6 +545,9 @@ function rollDia(ctx){const L=Object.keys(DIA).map(Number).filter(h=>HEROES[h]&&
 function makeDia(ctx,h){const D=DIA[h];if(!D||!HEROES[h])fail("Такой карточки нет в Алмазной серии");if(ctx.issuedOf(h,DIA_F)>=D.run)fail("Тираж «"+HEROES[h][0]+"» в Алмазной серии закончился");return makeCard(ctx,h,DIA_F)}
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
 SHOP.daycard={n:"Карта дня",stars:2000,dayc:1,d:["🌙 <b>Карта дня</b> — воин, который есть только сегодня с 19:00 до 23:00","всего <b>2 экземпляра</b>: один за звёзды, второй — из Особого прокрута"]};
+/* задания за Особые прокруты (в окне «Карта дня»): каждое — +1 прокрут, все пять — ещё +1 */
+const DQ=[{k:"tap",n:300,ic:"🏕",t:"Натапай 300 в лагере"},{k:"open",n:10,ic:"🎴",t:"Открой 10 карточек"},{k:"win",n:3,ic:"⚔️",t:"Выиграй 3 боя"},{k:"dg",n:3,ic:"🐉",t:"Поиграй с драконом 3 раза"},{k:"gem",n:1,ic:"💎",t:"Попробуй выбить гем в кузне"}];
+function dqDay(st,now){const d=today(now);if(!st.dq||st.dq.d!==d)st.dq={d,c:{},got:[]};return st.dq}
 const DAY_SLOTS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].day),DSP={ch:.003,cap:3,per:3};
 /* красивый номер для карты дня (если свободен) — цена карточки растёт по правилам красивых номеров */
 function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(c.h,c.f,c.no,c.sn,0)||1;c.sn=sn;if(ctx.takeSn)ctx.takeSn(sn);c.v=Math.round(c.v*(priceOf(c.h,c.f,c.no,sn,0)/v0)*100)/100}}catch(e){}}
@@ -871,6 +874,8 @@ const ACTIONS={
     if(r<.8){const n=[20000,30000,50000,80000][Math.floor(Math.random()*4)];earn(st,n);return {cash:n}}
     if(r<.97){const n=1+Math.floor(Math.random()*3);st.spins+=n;return {sp:n}}
     gemAdd(st,k+"1");return {gem:k+"1"}},
+  dq_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),i=G.p.i|0;if(i===DQ.length){if(Q.got.length<DQ.length)fail("Сначала выполни все задания");if(Q.all)fail("Уже получено");Q.all=1;st.dsp=(st.dsp||0)+1;return {dsp:1}}
+    const T=DQ[i];if(!T)fail("Нет такого задания");if(Q.got.includes(i))fail("Уже получено");if((Q.c[T.k]||0)<T.n)fail("Задание ещё не выполнено");Q.got.push(i);st.dsp=(st.dsp||0)+1;return {dsp:1}},
   gem_roll(G){const {st,ctx}=G,k=String(G.p.k||"");if(!GEM.el[k])fail("Нет такой стихии");const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0}),d=today(ctx.now);
     if(!st.gfd||st.gfd.d!==d)st.gfd={d,n:0};if(st.gfd.n>=GEM.cost.day)fail("Кузня остыла: "+GEM.cost.day+" попыток в день. Приходи завтра");
     if((H[k]||0)<GEM.cost.sh)fail("Нужно "+GEM.cost.sh+" осколков "+GEM.el[k].ic+", у тебя "+(H[k]||0));pay(st,GEM.cost.cash);H[k]-=GEM.cost.sh;st.gfd.n++;
@@ -1284,6 +1289,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
     if(name==="wheel")passAdd(st,ctx,"wheel",1);if(name==="sell")passAdd(st,ctx,"sell",1);if(name==="sellmany"||name==="sellcommon")passAdd(st,ctx,"sell",res.n|0||1)}catch(e){}
   try{let sh=null;const acc=(k,n,per)=>{const A=st.gacc||(st.gacc={});A[k]=(A[k]||0)+n;const q=Math.floor(A[k]/per);A[k]-=q*per;return q};if(name==="camp_tap")sh=["e",acc("e",res.n|0,25)];else if(name==="camp_collect")sh=["e",3];else if(name==="dg_tap")sh=["a",acc("a",res.n|0,10)];else if(name==="dg_play")sh=["a",4];
     else if(name==="dg_exp_end"||name==="dg_morning")sh=["a",3];else if(name==="task"||name==="streak")sh=["w",3];else if(name==="pass_note"&&G.p.k==="clan")sh=["f",6];
+    {const Q=dqDay(st,ctx.now),inc=(k,n)=>{if(n>0)Q.c[k]=(Q.c[k]||0)+n};inc("open",Math.max(0,day(st,ctx.now).opened-o0));inc("win",Math.max(0,(st.totalWins||0)-w0));if(name==="camp_tap")inc("tap",res.n|0);if(name==="dg_play"||name==="dg_tap"&&(res.n|0)>0)inc("dg",1);if(name==="gem_roll")inc("gem",1)}
     {const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}const due=Math.min(DSP.cap,Math.floor((D.got||[]).length/DSP.per));if(due>st.dspN){const add=due-st.dspN;st.dspN=due;st.dsp=(st.dsp||0)+add;res.dsp=add}}   // и тем, кто выполнил задания до появления прокрутов
     if(sh&&sh[1]>0){const n=gemShard(st,ctx,sh[0],sh[1]);if(n)res.gsh=[sh[0],n]}}catch(e){}
   try{const S=st.gsock;if(S){const ids=new Set(G.cards.map(c=>String(c.id)));for(const id in S)if(!ids.has(String(id))){for(const g of S[id])gemAdd(st,g);delete S[id]}}}catch(e){}
