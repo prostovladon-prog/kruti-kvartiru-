@@ -210,9 +210,17 @@ function nowItems(){const L=[],now=Date.now();if(!S)return L;let B={};try{B=menu
 function nowDraw(){const sec=$("sec-spin");if(!sec||sec.hidden)return;let box=$("now-strip");const L=nowItems(),sig=JSON.stringify(L.map(x=>[x.k,x.t,x.s,x.em]));
   if(!L.length){if(box)box.remove();nowSig="";return}
   if(!box){box=document.createElement("div");box.id="now-strip";box.className="nows";sec.prepend(box);
-    box.onclick=e=>{const b=e.target.closest("[data-nk]");if(!b)return;try{hap("light")}catch(x){}const k=b.dataset.nk;
+    box.onclick=e=>{if(e.target.closest("[data-nt]")){window.NOWO=!window.NOWO;nowSig="";try{hap("light")}catch(x){}return nowDraw()}const b=e.target.closest("[data-nk]");if(!b)return;try{hap("light")}catch(x){}const k=b.dataset.nk;
       if(k==="dc")return dcOpen();if(k==="cw")return cwOpen();if(k==="n2")return n2Open();if(k==="gems")return gemOpen();if(k==="poll")return openChat();return menuGo(k)}}
   if(sig===nowSig)return;nowSig=sig;
-  box.innerHTML='<div class="nows-h">🔥 Сейчас важно</div><div class="nows-l">'+L.map(x=>'<button type="button" class="nows-i'+(x.hot?' hot':'')+'" data-nk="'+x.k+'" style="background:linear-gradient(135deg,'+x.c+')"><i>'+x.ic+'</i><b>'+escH(x.t)+'</b><small>'+escH(x.s)+'</small>'+(x.em?'<em>'+x.em+'</em>':'')+'</button>').join("")+'</div>'}
+  box.classList.toggle("nopen",!!window.NOWO);box.innerHTML='<button type="button" class="nows-h" data-nt="1"><span>🔥 Сейчас важно</span><em>'+L.length+'</em><i>'+L.slice(0,5).map(x=>x.ic).join("")+'</i><u>'+(window.NOWO?"▴":"▾")+'</u></button><div class="nows-l">'+L.map(x=>'<button type="button" class="nows-i'+(x.hot?' hot':'')+'" data-nk="'+x.k+'" style="background:linear-gradient(135deg,'+x.c+')"><i>'+x.ic+'</i><b>'+escH(x.t)+'</b><small>'+escH(x.s)+'</small>'+(x.em?'<em>'+x.em+'</em>':'')+'</button>').join("")+'</div>'}
 {const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{nowDraw()}catch(e){}return r}}
 setInterval(()=>{try{nowDraw()}catch(e){}},30000);
+
+/* ===== Закрытая карта на старте: манит открыть ===== */
+const LURE=["💀 Кощей — карта дня","🔥 Мифический воин","❗ Ошибка печати 1 из 1","🐉 Звёздный дракон","👑 Легенда эпох","💎 Алмазная ошибка"];
+(function lureInit(){try{const fl=$("flip"),st=$("stage");if(!fl||!st)return;const rear=fl.querySelector(".face.rear");if(!rear||rear.querySelector(".lure-t"))return;
+  rear.insertAdjacentHTML("beforeend",'<div class="lure-rays"></div><div class="lure-sh"></div><div class="lure-t"><small>Может выпасть</small><b id="lure-w">'+LURE[0]+'</b></div><div class="lure-tap">👆 НАЖМИ!</div>'+Array.from({length:7},(_,i)=>'<i class="lure-sp" style="--x:'+(10+i*13)%90+'%;--y:'+(15+i*29)%85+'%;--d:'+(i*.45).toFixed(2)+'s"></i>').join(""));
+  fl.classList.add("back");st.classList.add("lure");const pl=$("p-lbl");if(pl)pl.textContent="Нажми на карту — кто выпадет?";
+  let i=0;const tm=setInterval(()=>{if(!st.classList.contains("lure")){clearInterval(tm);return}const w=$("lure-w");if(!w)return;i=(i+1)%LURE.length;w.classList.remove("in");void w.offsetWidth;w.textContent=LURE[i];w.classList.add("in")},1800);
+  const off=()=>{st.classList.remove("lure")};st.addEventListener("click",off,{once:true});const ob=$("open");if(ob)ob.addEventListener("click",off,{once:true})}catch(e){}})();
