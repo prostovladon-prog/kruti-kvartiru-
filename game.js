@@ -922,6 +922,8 @@ function renderAlbum(){
     if(got){const best=[...mine].sort((a,b)=>b.v-a.v)[0];d.innerHTML=miniSlot(best)+(mine.length>1?`<span class="cnt">×${mine.length}</span>`:"");d.onclick=()=>openCardView(best,{mine:true});box.appendChild(d);return}
     d.innerHTML=`<span class="n">${String(i+1).padStart(2,"0")}</span><span class="e">${portrait(i,null,1)}</span><small></small>`;
     d.querySelector("small").textContent="???";box.appendChild(d)});
+  const b=$("al-dup");if(b)b.onclick=()=>{const by={};S.cards.forEach(c=>{if(sellableUI(c)&&c.f===0&&HEROES[c.h][2]<=1)(by[c.h]=by[c.h]||[]).push(c)});
+    setTab("col");colPick=true;colSel.clear();Object.values(by).forEach(a=>a.sort((x,y)=>y.v-x.v).slice(1).forEach(c=>colSel.add(c.id)));renderCol();if(!colSel.size&&typeof toast=="function")toast("Лишних обычных и редких дублей нет")};
   $("al-n").textContent=have+" из "+NHEROES;$("al-bar").style.width=have/NHEROES*100+"%";
 }
 

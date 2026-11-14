@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="ru">
-<head><meta name="app-ver" content="f37950a657">
+<head><meta name="app-ver" content="4a2eb48fd2">
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=ee985092">
+<link rel="stylesheet" href="style.css?v=b8a23988">
 </head>
 <body>
 <div id="boot" style="position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle at 50% 35%,#3a5cff,#1d44c8 45%,#0b1a5a 100%);color:#fff;font-family:Rubik,system-ui,sans-serif;transition:opacity .45s,transform .45s">
@@ -116,6 +116,7 @@
       <div class="prog"><h3>Альбом серии 1</h3><b class="num" id="al-n"></b></div>
       <div class="bar"><i id="al-bar"></i></div>
       <p>Собери всех 32 воинов, и достижение «Коллекционер» даст 10 прокруток. В альбоме видна твоя лучшая карточка каждого воина, нажми, чтобы рассмотреть.</p>
+      <button type="button" class="craftbtn" id="al-dup" style="width:100%;margin-top:8px">🧹 Продать лишние дубли</button>
     </div>
     <div class="album" id="album"></div>
     <div class="box"><div class="rowb"><h3>Моя витрина</h3><span id="pf-t" style="font-size:12px;color:#5a5f80"></span></div><p>Три самые дорогие карточки. Отправь ссылку другу, и он увидит твою витрину.</p><div class="show3" id="show3"></div><button type="button" class="linkbtn" id="sh-show">Показать витрину другу</button></div>
@@ -359,7 +360,7 @@
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
 <script src="rules.js?v=c249f105"></script>
-<script src="game.js?v=300ac9e6"></script>
+<script src="game.js?v=b2bce07c"></script>
 <script src="wow.js?v=76a10623"></script>
 <script src="menu.js?v=c6d19444"></script>
 <script src="dragon.js?v=07720efa"></script>

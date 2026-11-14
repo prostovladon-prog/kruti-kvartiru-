@@ -425,7 +425,7 @@ async function stateFor(env,me){
     const q=[env.DB.prepare("UPDATE users SET seen=?,back=MAX(back,?),d1=MAX(d1,?),wb=0 WHERE id=?").bind(now,td>cd?1:0,td===cd+1?1:0,me.id)];
     if(nd)q.push(bump(env,"dau"),env.DB.prepare("INSERT OR IGNORE INTO user_days(uid,d) VALUES(?,?)").bind(me.id,td));try{await env.DB.batch(q)}catch(e){}}
   // числа для мирового топа: обновляем, только если изменились
-  const worth=Math.round(cards.reduce((a,c)=>a+c.v,0)*100)/100,album=new Set(cards.filter(c=>c.h<NBASE).map(c=>c.h)).size,wins=S.totalWins||0;
+  const worth=Math.round(cards.reduce((a,c)=>a+c.v,0)*100)/100,album=new Set(cards.filter(c=>isBase(c.h)).map(c=>c.h)).size,wins=S.totalWins||0;
   const emp=empPower(S,cards);S.emp=emp;
   if(Math.abs((u.worth||0)-worth)>.004||(u.album||0)!==album||(u.wins||0)!==wins||(u.emp||0)!==emp){
     await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=?,emp=? WHERE id=?").bind(worth,album,wins,emp,me.id).run();
