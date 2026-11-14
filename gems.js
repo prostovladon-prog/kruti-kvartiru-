@@ -298,3 +298,16 @@ setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){co
  $("gbx-x").onclick=closeModal;$("gbx-put").onclick=()=>{GEMV.tab="put";gemOpen()}}}
 
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#gbx-ad")){GEMV.tab="box";gemOpen()}});
+
+/* 📄 карточки страницами: в памяти телефона одновременно не больше одной страницы (вылеты при быстрой прокрутке больших коллекций) */
+const PGV={};
+function pagerApply(boxId,sel,per,label){const box=$(boxId);if(!box)return;const it=[...box.children].filter(e=>e.matches(sel));let bar=$("pg-"+boxId);
+ const n=Math.ceil(it.length/per);if(n<=1){it.forEach(e=>e.classList.remove("pg-hide"));if(bar)bar.remove();const b2=$("pgt-"+boxId);if(b2)b2.remove();return}
+ let p=Math.min(PGV[boxId]||0,n-1);PGV[boxId]=p;it.forEach((e,i)=>e.classList.toggle("pg-hide",i<p*per||i>=(p+1)*per));
+ const html='<button type="button" data-pg="-1"'+(p?"":" disabled")+'>◀</button><span><b>'+(p+1)+'</b> / '+n+'<small>'+label+' '+(p*per+1)+'–'+Math.min(it.length,(p+1)*per)+' из '+it.length+'</small></span><button type="button" data-pg="1"'+(p<n-1?"":" disabled")+'>▶</button>';
+ const mk=(id,before)=>{let b=$(id);if(!b){b=document.createElement("div");b.id=id;b.className="pgbar";if(before)box.before(b);else box.after(b)}b.innerHTML=html;
+  b.onclick=e=>{const x=e.target.closest("[data-pg]");if(!x||x.disabled)return;PGV[boxId]=Math.max(0,Math.min(n-1,(PGV[boxId]||0)+(+x.dataset.pg)));try{hap("light")}catch(_){}pagerApply(boxId,sel,per,label);
+   if(boxId==="cr-pick")box.scrollLeft=0;else{const top=box.getBoundingClientRect().top+scrollY-120;scrollTo({top:Math.max(0,top)})}}};
+ mk("pg-"+boxId,false);if(boxId!=="cr-pick")mk("pgt-"+boxId,true)}
+{const W=(fn,args)=>{const f=window[fn];if(typeof f!=="function")return;window[fn]=function(){const r=f.apply(this,arguments);try{pagerApply(...args)}catch(e){}return r}};
+ W("renderCol",["col",".tl2",30,"карты"]);W("renderAlbum",["album",".slot",30,"воины"]);W("renderCraft",["cr-pick",".pc",20,"карты"]);}

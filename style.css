@@ -3541,3 +3541,11 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .gem-tabs button{white-space:normal!important;font-size:11px!important;line-height:1.15;padding-top:6px!important;padding-bottom:6px!important}
 .gbx-ad{display:flex;align-items:center;gap:10px;width:100%;margin:8px 0 12px;padding:10px 12px;border-radius:16px;border:2px solid #ffd23f;background:linear-gradient(135deg,#2a1a5a,#4a1a7a);color:#fff;text-align:left}
 .gbx-ad b{display:block;font-size:15px}.gbx-ad small{font-size:12px;color:#d8dcf5}
+
+/* 📄 страницы карточек */
+.pg-hide{display:none!important}
+.pgbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;padding:8px;border-radius:16px;background:rgba(13,16,48,.55);border:2px solid rgba(255,210,63,.45)}
+.pgbar button{flex:none;width:64px;height:48px;border-radius:12px;border:2px solid #07040f;background:linear-gradient(180deg,#fff1a8,#ffb800);color:#07040f;font-size:22px;font-weight:900;box-shadow:0 3px 0 #07040f}
+.pgbar button:disabled{opacity:.35;box-shadow:none}
+.pgbar span{flex:1;text-align:center;color:#fff;font-weight:900;font-size:18px;line-height:1.1}.pgbar span small{display:block;font-size:11px;font-weight:700;color:#cfd3f5;margin-top:2px}
+#sec-craft .pgbar{margin:8px 0 0}
