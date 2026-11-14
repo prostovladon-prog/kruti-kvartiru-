@@ -3496,3 +3496,4 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .dc-big{width:150px;flex:none}.dc-big .minic{display:block;width:100%}.dc-inf{min-width:0}.dc-inf p{font-size:12px;margin:4px 0;opacity:.92}.dc-inf small{font-size:12px}
 .dc-so{background:rgba(255,46,99,.15);border:2px dashed #ff2e63;border-radius:12px;padding:9px 10px;font-size:13px;margin:6px 0 8px;line-height:1.4}
 .dc-left:has(> div:only-child){grid-template-columns:1fr}
+.gem-go.dbuy{background:linear-gradient(135deg,#c88a10,#7a4a08)}

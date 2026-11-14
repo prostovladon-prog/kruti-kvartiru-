@@ -546,7 +546,10 @@ function makeDia(ctx,h){const D=DIA[h];if(!D||!HEROES[h])fail("Такой кар
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
 SHOP.daycard={n:"Карта дня",stars:2000,dayc:1,d:["🌙 <b>Карта дня</b> — воин, который есть только сегодня с 19:00 до 23:00","всего <b>2 экземпляра</b>: один за звёзды, второй — из Особого прокрута"]};
 /* задания за Особые прокруты (в окне «Карта дня»): каждое — +1 прокрут, все пять — ещё +1 */
-const DQ=[{k:"tap",n:300,ic:"🏕",t:"Натапай 300 в лагере"},{k:"open",n:10,ic:"🎴",t:"Открой 10 карточек"},{k:"win",n:3,ic:"⚔️",t:"Выиграй 3 боя"},{k:"dg",n:3,ic:"🐉",t:"Поиграй с драконом 3 раза"},{k:"gem",n:1,ic:"💎",t:"Попробуй выбить гем в кузне"}];
+const DQ=[{k:"tap",n:300,ic:"🏕",t:"Натапай 300 в лагере"},{k:"tap",n:1000,ic:"🏕",t:"Натапай 1000 в лагере"},{k:"open",n:10,ic:"🎴",t:"Открой 10 карточек"},{k:"open",n:30,ic:"🎴",t:"Открой 30 карточек"},
+ {k:"win",n:3,ic:"⚔️",t:"Выиграй 3 боя"},{k:"dg",n:3,ic:"🐉",t:"Поиграй с драконом 3 раза"},{k:"gem",n:1,ic:"💎",t:"Попробуй выбить гем в кузне"},{k:"wheel",n:1,ic:"🎡",t:"Крутни колесо удачи"},
+ {k:"cas",n:5,ic:"🎰",t:"Сделай 5 игр в казино"},{k:"clan",n:1,ic:"🛡",t:"Ударь босса клана"},{k:"sell",n:5,ic:"💰",t:"Продай 5 карточек"}];
+const DSP_BUY={n:3,cash:5000000,day:1};   // 3 Особых прокрута за монеты — очень дорого, раз в день
 function dqDay(st,now){const d=today(now);if(!st.dq||st.dq.d!==d)st.dq={d,c:{},got:[]};return st.dq}
 const DAY_SLOTS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].day),DSP={ch:.003,cap:3,per:3};
 /* красивый номер для карты дня (если свободен) — цена карточки растёт по правилам красивых номеров */
@@ -874,6 +877,7 @@ const ACTIONS={
     if(r<.8){const n=[20000,30000,50000,80000][Math.floor(Math.random()*4)];earn(st,n);return {cash:n}}
     if(r<.97){const n=1+Math.floor(Math.random()*3);st.spins+=n;return {sp:n}}
     gemAdd(st,k+"1");return {gem:k+"1"}},
+  dsp_buy(G){const {st,ctx}=G,Q=dqDay(st,ctx.now);if((Q.buy||0)>=DSP_BUY.day)fail("Сегодня уже куплено. Завтра снова");pay(st,DSP_BUY.cash);Q.buy=(Q.buy||0)+1;st.dsp=(st.dsp||0)+DSP_BUY.n;return {dsp:DSP_BUY.n}},
   dq_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),i=G.p.i|0;if(i===DQ.length){if(Q.got.length<DQ.length)fail("Сначала выполни все задания");if(Q.all)fail("Уже получено");Q.all=1;st.dsp=(st.dsp||0)+1;return {dsp:1}}
     const T=DQ[i];if(!T)fail("Нет такого задания");if(Q.got.includes(i))fail("Уже получено");if((Q.c[T.k]||0)<T.n)fail("Задание ещё не выполнено");Q.got.push(i);st.dsp=(st.dsp||0)+1;return {dsp:1}},
   gem_roll(G){const {st,ctx}=G,k=String(G.p.k||"");if(!GEM.el[k])fail("Нет такой стихии");const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0}),d=today(ctx.now);
@@ -1289,7 +1293,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
     if(name==="wheel")passAdd(st,ctx,"wheel",1);if(name==="sell")passAdd(st,ctx,"sell",1);if(name==="sellmany"||name==="sellcommon")passAdd(st,ctx,"sell",res.n|0||1)}catch(e){}
   try{let sh=null;const acc=(k,n,per)=>{const A=st.gacc||(st.gacc={});A[k]=(A[k]||0)+n;const q=Math.floor(A[k]/per);A[k]-=q*per;return q};if(name==="camp_tap")sh=["e",acc("e",res.n|0,25)];else if(name==="camp_collect")sh=["e",3];else if(name==="dg_tap")sh=["a",acc("a",res.n|0,10)];else if(name==="dg_play")sh=["a",4];
     else if(name==="dg_exp_end"||name==="dg_morning")sh=["a",3];else if(name==="task"||name==="streak")sh=["w",3];else if(name==="pass_note"&&G.p.k==="clan")sh=["f",6];
-    {const Q=dqDay(st,ctx.now),inc=(k,n)=>{if(n>0)Q.c[k]=(Q.c[k]||0)+n};inc("open",Math.max(0,day(st,ctx.now).opened-o0));inc("win",Math.max(0,(st.totalWins||0)-w0));if(name==="camp_tap")inc("tap",res.n|0);if(name==="dg_play"||name==="dg_tap"&&(res.n|0)>0)inc("dg",1);if(name==="gem_roll")inc("gem",1)}
+    {const Q=dqDay(st,ctx.now),inc=(k,n)=>{if(n>0)Q.c[k]=(Q.c[k]||0)+n};inc("open",Math.max(0,day(st,ctx.now).opened-o0));inc("win",Math.max(0,(st.totalWins||0)-w0));if(name==="camp_tap")inc("tap",res.n|0);if(name==="dg_play"||name==="dg_tap"&&(res.n|0)>0)inc("dg",1);if(name==="gem_roll")inc("gem",1);if(name==="wheel")inc("wheel",1);if(/^cas_(slot|hl_go|mn_go|rk_go|case)$/.test(name))inc("cas",1);if(name==="pass_note"&&G.p.k==="clan")inc("clan",1);if(name==="sell")inc("sell",1);if(name==="sellmany"||name==="sellcommon")inc("sell",res.n|0)}
     {const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}const due=Math.min(DSP.cap,Math.floor((D.got||[]).length/DSP.per));if(due>st.dspN){const add=due-st.dspN;st.dspN=due;st.dsp=(st.dsp||0)+add;res.dsp=add}}   // и тем, кто выполнил задания до появления прокрутов
     if(sh&&sh[1]>0){const n=gemShard(st,ctx,sh[0],sh[1]);if(n)res.gsh=[sh[0],n]}}catch(e){}
   try{const S=st.gsock;if(S){const ids=new Set(G.cards.map(c=>String(c.id)));for(const id in S)if(!ids.has(String(id))){for(const g of S[id])gemAdd(st,g);delete S[id]}}}catch(e){}
@@ -3129,8 +3133,9 @@ async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
 /* ===== Карта дня: kv xh — вид слотов, kv dc — текущая {h,at,until} ===== */
 let XH={},DC=null,XHT=0;
 /* карты дня задаются здесь (вместе с Claude), по дате Минска: {"2026-11-15":{n,e,d,o}} — слоты берутся по порядку */
-const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7],sn:"999999",sn2:"888888"},from:18,to:21,stars:2000,noSpin:1},
-  {n:"Баба Яга в ступе",e:"Сказки Руси",d:"Ступа гремит, метла заметает след. Облетает лес за одну ночь — и никто не видел, куда она свернула.",o:{p:[7,7,7,7,7],sn2:"777777"},from:18,to:21,stars:0,spinOnly:1}]};
+const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7],sn:"999999",sn2:"888888"},from:18,to:23,stars:2000,noSpin:1},
+  {n:"Баба Яга в ступе",e:"Сказки Руси",d:"Ступа гремит, метла заметает след. Облетает лес за одну ночь — и никто не видел, куда она свернула.",o:{p:[7,7,7,7,7],sn2:"777777"},from:18,to:23,stars:0,spinOnly:1},
+  {n:"Дракула",e:"Трансильвания",d:"Князь ночи. Днём спит в гробу, ночью выходит на охоту — и после его улыбки на карточке остаются капли крови.",o:{p:[7,7,7,7,7],sn:"666666",sn2:"131313"},from:18,to:23,stars:2500}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd,P.from!=null?P.from:16,0),until=Date.UTC(y,m-1,dd,P.to!=null?P.to:20,0);

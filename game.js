@@ -156,6 +156,34 @@ const DETAILED={
    <path d="M114 96 Q132 92 138 100" stroke="#c8d0a0" stroke-width="7" stroke-linecap="round" fill="none"/></g>
   <g opacity="0"><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.15;.6;.75" ${R}/><text x="100" y="186" text-anchor="middle" font-size="17" font-weight="900" fill="#ffd23f" stroke="#0b0712" stroke-width="4" paint-order="stroke">🧹 Кхе-кхе, догоню!</text></g>
 </svg>`},
+ "Дракула":u=>{const R='dur="3s" repeatCount="indefinite"';let bt="";for(let i=0;i<4;i++){const y=30+i*16,d=(i*.5).toFixed(1);bt+=`<g><animateMotion path="M-20 ${y} Q100 ${y-30} 220 ${y+10}" dur="${3+i*.6}s" begin="${d}s" repeatCount="indefinite"/><path d="M-9 0 Q-5 -6 0 -2 Q5 -6 9 0 Q5 -2 0 3 Q-5 -2 -9 0Z" fill="#0b0712"><animateTransform attributeName="transform" type="scale" values="1 1;1 .4;1 1" dur=".3s" repeatCount="indefinite"/></path></g>`}
+  let dr="";[[86,124,0],[112,124,.9],[94,130,1.7]].forEach(([x,y,b])=>{dr+=`<path d="M${x} ${y} q-2.2 5 0 7 q2.2 -2 0 -7z" fill="#d0101e" stroke="#5a0008" stroke-width=".8"><animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 52" keyTimes="0;.5;1" dur="2.6s" begin="${b}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.15;.85;1" dur="2.6s" begin="${b}s" repeatCount="indefinite"/></path>`});
+  return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+  <radialGradient id="dbg${u}" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="#7a0a1a"/><stop offset=".55" stop-color="#2a0410"/><stop offset="1" stop-color="#05020a"/></radialGradient>
+  <linearGradient id="dcp${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a0a14"/><stop offset="1" stop-color="#05020a"/></linearGradient>
+  <linearGradient id="dcl${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0102a"/><stop offset="1" stop-color="#7a0010"/></linearGradient>
+  <radialGradient id="dmn${u}"><stop offset="0" stop-color="#ffe0e0"/><stop offset="1" stop-color="#ff6a6a"/></radialGradient></defs>
+  <rect width="200" height="200" fill="url(#dbg${u})"/><circle cx="100" cy="64" r="44" fill="url(#dmn${u})" opacity=".55"><animate attributeName="opacity" values=".45;.65;.45" dur="3s" repeatCount="indefinite"/></circle>
+  <g fill="#05020a"><path d="M0 200 V150 L14 150 L14 120 L22 108 L30 120 L30 150 L44 150 L44 130 L52 120 L60 130 L60 200Z"/><path d="M140 200 V140 L150 140 L150 110 L160 96 L170 110 L170 140 L182 140 L182 124 L190 114 L200 124 V200Z"/></g>
+  ${bt}
+  <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" ${R}/>
+   <path d="M20 200 Q24 140 60 120 L100 132 L140 120 Q176 140 180 200Z" fill="url(#dcp${u})" stroke="#0b0712" stroke-width="3"/>
+   <path d="M60 120 Q36 96 40 70 Q58 96 76 112Z M140 120 Q164 96 160 70 Q142 96 124 112Z" fill="url(#dcl${u})" stroke="#0b0712" stroke-width="3"/>
+   <path d="M84 132 L100 170 L116 132Z" fill="#f2f2f2" stroke="#0b0712" stroke-width="2.5"/><path d="M96 140 L100 150 L104 140Z" fill="#c0102a"/>
+   <path d="M76 82 Q74 48 100 44 Q126 48 124 82 Q122 112 100 124 Q78 112 76 82Z" fill="#e8e0ea" stroke="#0b0712" stroke-width="3.5"/>
+   <path d="M76 70 Q80 36 100 34 Q120 36 124 70 Q116 52 100 60 Q84 52 76 70Z" fill="#14060e" stroke="#0b0712" stroke-width="3"/><path d="M100 60 L96 48 L100 40 L104 48Z" fill="#14060e"/>
+   <path d="M76 74 L68 62 L78 68Z M124 74 L132 62 L122 68Z" fill="#e8e0ea" stroke="#0b0712" stroke-width="2"/>
+   <path d="M84 80 l10 3 M116 80 l-10 3" stroke="#0b0712" stroke-width="3" stroke-linecap="round"/>
+   <circle cx="90" cy="88" r="4" fill="#ff1a2e"><animate attributeName="r" values="4;5.2;4" dur="1.4s" repeatCount="indefinite"/></circle><circle cx="110" cy="88" r="4" fill="#ff1a2e"><animate attributeName="r" values="4;5.2;4" dur="1.4s" repeatCount="indefinite"/></circle>
+   <circle cx="90" cy="88" r="9" fill="#ff1a2e" opacity=".25"/><circle cx="110" cy="88" r="9" fill="#ff1a2e" opacity=".25"/>
+   <path d="M98 94 L100 102 L102 94" fill="none" stroke="#8a7a8a" stroke-width="1.6"/>
+   <g><animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 2;0 0" keyTimes="0;.6;.7;1" ${R}/>
+    <path d="M86 108 Q100 120 114 108 Q108 118 100 118 Q92 118 86 108Z" fill="#5a0010" stroke="#0b0712" stroke-width="2"/>
+    <path d="M90 109 L92 119 L95 110Z M110 109 L108 119 L105 110Z" fill="#ffffff" stroke="#0b0712" stroke-width="1.2"/></g>
+   <path d="M91 119 q-.6 3 0 5" stroke="#d0101e" stroke-width="2" stroke-linecap="round"/><path d="M109 119 q.6 3 0 5" stroke="#d0101e" stroke-width="2" stroke-linecap="round"/>
+  </g>${dr}
+  <g opacity="0"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.55;.62;.9;1" ${R}/><text x="100" y="188" text-anchor="middle" font-size="16" font-weight="900" fill="#ff3a4a" stroke="#0b0712" stroke-width="4" paint-order="stroke">🦇 Добро пожаловать…</text></g>
+</svg>`},
  "Кощей":u=>{const R='dur="3.6s" repeatCount="indefinite"';let st="";for(let i=0;i<14;i++){const x=(i*37+11)%200,y=(i*53+7)%110,d=(1.2+i%5*.4).toFixed(1);st+=`<circle cx="${x}" cy="${y}" r="${i%3?.8:1.4}" fill="#e8fff4"><animate attributeName="opacity" values=".1;1;.1" dur="${d}s" repeatCount="indefinite"/></circle>`}
   let sp="";for(let i=0;i<6;i++)sp+=`<circle r="${1.6-i*.2}" fill="#b8ffd8" opacity="${1-i*.15}"><animateMotion path="M156 132 Q160 80 156 46 Q152 80 156 132" keyTimes="0;1" ${R} begin="${(-i*.06).toFixed(2)}s"/></circle>`;
   return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>

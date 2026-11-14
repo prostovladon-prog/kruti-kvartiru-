@@ -1770,8 +1770,9 @@ async function mythLeft(env,except){const I=SHOP.mythic,now=Date.now();
 /* ===== Карта дня: kv xh — вид слотов, kv dc — текущая {h,at,until} ===== */
 let XH={},DC=null,XHT=0;
 /* карты дня задаются здесь (вместе с Claude), по дате Минска: {"2026-11-15":{n,e,d,o}} — слоты берутся по порядку */
-const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7],sn:"999999",sn2:"888888"},from:18,to:21,stars:2000,noSpin:1},
-  {n:"Баба Яга в ступе",e:"Сказки Руси",d:"Ступа гремит, метла заметает след. Облетает лес за одну ночь — и никто не видел, куда она свернула.",o:{p:[7,7,7,7,7],sn2:"777777"},from:18,to:21,stars:0,spinOnly:1}]};
+const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7],sn:"999999",sn2:"888888"},from:18,to:23,stars:2000,noSpin:1},
+  {n:"Баба Яга в ступе",e:"Сказки Руси",d:"Ступа гремит, метла заметает след. Облетает лес за одну ночь — и никто не видел, куда она свернула.",o:{p:[7,7,7,7,7],sn2:"777777"},from:18,to:23,stars:0,spinOnly:1},
+  {n:"Дракула",e:"Трансильвания",d:"Князь ночи. Днём спит в гробу, ночью выходит на охоту — и после его улыбки на карточке остаются капли крови.",o:{p:[7,7,7,7,7],sn:"666666",sn2:"131313"},from:18,to:23,stars:2500}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd,P.from!=null?P.from:16,0),until=Date.UTC(y,m-1,dd,P.to!=null?P.to:20,0);
