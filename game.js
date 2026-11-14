@@ -132,31 +132,46 @@ const DETAILED={
  ${[0,1,2,3,4,5,6].map(i=>`<path d="M${26+i*25} ${24+(i%3)*24} l3 7 l7 3 l-7 3 l-3 7 l-3 -7 l-7 -3 l7 -3z" fill="#fff6c8"><animate attributeName="opacity" values="0;1;0" dur="1.5s" begin="${i*.21}s" repeatCount="indefinite"/></path>`).join("")}
 </svg>`},
  /* 🧙‍♀️ Баба Яга — анимированная: ступа парит, из неё выглядывает голова */
- "Кощей":u=>{const R='dur="4s" repeatCount="indefinite"';return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
-  <linearGradient id="ksk${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#140a2a"/><stop offset=".7" stop-color="#3a1a4a"/><stop offset="1" stop-color="#1a3a2a"/></linearGradient>
-  <radialGradient id="kgl${u}"><stop offset="0" stop-color="#9affc8"/><stop offset="1" stop-color="#9affc8" stop-opacity="0"/></radialGradient>
-  <linearGradient id="kar${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a6a7a"/><stop offset="1" stop-color="#1a222c"/></linearGradient></defs>
-  <rect width="200" height="200" fill="url(#ksk${u})"/><circle cx="40" cy="36" r="16" fill="#d8ffe8" opacity=".85"/>
-  <g fill="#0a0614"><path d="M120 200 V96 h10 v-14 h8 v14 h12 v-24 l10 -16 l10 16 v24 h10 V200Z"/><path d="M0 200 V150 Q30 140 60 152 V200Z"/></g>
-  <g fill="#7affb0"><rect x="153" y="88" width="5" height="8"><animate attributeName="opacity" values="1;.3;1" dur="1.7s" repeatCount="indefinite"/></rect><rect x="134" y="112" width="5" height="8" opacity=".7"/></g>
-  <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" ${R}/>
-   <path d="M58 200 Q60 150 100 140 Q140 150 142 200Z" fill="#2a0a3a" stroke="#0b0712" stroke-width="4"/><path d="M80 200 L100 146 L120 200" fill="url(#kar${u})" stroke="#0b0712" stroke-width="3"/>
-   <path d="M86 158 h28 M84 170 h32 M83 182 h34" stroke="#9aa6b8" stroke-width="3"/>
-   <path d="M68 172 Q54 140 62 120" stroke="#0b0712" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M68 172 Q54 140 62 120" stroke="#2a0a3a" stroke-width="7" fill="none" stroke-linecap="round"/>
-   <g><animateTransform attributeName="transform" type="rotate" values="0 132 150;-28 132 150;0 132 150;0 132 150" keyTimes="0;.12;.25;1" ${R}/>
-    <path d="M132 150 Q150 130 148 112" stroke="#0b0712" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M132 150 Q150 130 148 112" stroke="#2a0a3a" stroke-width="7" fill="none" stroke-linecap="round"/>
-    <path d="M144 112 l4 -6 l4 6 M148 106 v-6" stroke="#d8d0c0" stroke-width="3" fill="none" stroke-linecap="round"/></g>
-   <path d="M86 110 Q84 80 100 76 Q116 80 114 110 Q112 130 100 134 Q88 130 86 110Z" fill="#d8d6c4" stroke="#0b0712" stroke-width="4"/>
-   <path d="M90 104 q5 -5 10 0 M100 104 q5 -5 10 0" stroke="#0b0712" stroke-width="3" fill="none"/>
-   <circle cx="94" cy="106" r="3.6" fill="#7affb0"><animate attributeName="opacity" values="1;.4;1" dur="1.3s" repeatCount="indefinite"/></circle><circle cx="106" cy="106" r="3.6" fill="#7affb0"><animate attributeName="opacity" values="1;.4;1" dur="1.3s" repeatCount="indefinite"/></circle>
-   <path d="M92 122 h16 M95 119 v6 M100 119 v6 M105 119 v6" stroke="#0b0712" stroke-width="2.5"/>
-   <path d="M98 128 q2 18 -4 30 M102 128 q-1 16 6 28" stroke="#e8e8e8" stroke-width="3" fill="none" stroke-linecap="round" opacity=".9"/>
-   <path d="M84 82 L82 58 L92 70 L100 52 L108 70 L118 58 L116 82Z" fill="#ffd23f" stroke="#0b0712" stroke-width="3.5" stroke-linejoin="round"/><circle cx="100" cy="72" r="4" fill="#7affb0" stroke="#0b0712" stroke-width="2"/></g>
-  <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -78;0 0;0 0" keyTimes="0;.32;.62;1" calcMode="spline" keySplines=".2 .8 .4 1;.6 0 .8 .2;0 0 1 1" ${R}/>
-   <circle cx="148" cy="96" r="16" fill="url(#kgl${u})"><animate attributeName="r" values="12;20;12" dur="1s" repeatCount="indefinite"/></circle>
-   <g><animateTransform attributeName="transform" type="rotate" values="0 148 96;720 148 96;720 148 96" keyTimes="0;.62;1" ${R}/>
-    <path d="M148 80 L150 108 L148 112 L146 108Z" fill="#e8f0f8" stroke="#0b0712" stroke-width="2"/><ellipse cx="148" cy="83" rx="1.8" ry="3" fill="#0b0712"/></g></g>
-  <g opacity="0"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.28;.32;.55;.6" ${R}/><text x="150" y="30" text-anchor="middle" font-size="13" font-weight="900" fill="#7affb0" stroke="#0b0712" stroke-width="3" paint-order="stroke">Смерть в игле!</text></g>
+ "Кощей":u=>{const R='dur="3.6s" repeatCount="indefinite"';let st="";for(let i=0;i<14;i++){const x=(i*37+11)%200,y=(i*53+7)%110,d=(1.2+i%5*.4).toFixed(1);st+=`<circle cx="${x}" cy="${y}" r="${i%3?.8:1.4}" fill="#e8fff4"><animate attributeName="opacity" values=".1;1;.1" dur="${d}s" repeatCount="indefinite"/></circle>`}
+  let sp="";for(let i=0;i<6;i++)sp+=`<circle r="${1.6-i*.2}" fill="#b8ffd8" opacity="${1-i*.15}"><animateMotion path="M156 132 Q160 80 156 46 Q152 80 156 132" keyTimes="0;1" ${R} begin="${(-i*.06).toFixed(2)}s"/></circle>`;
+  return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
+  <radialGradient id="kbg${u}" cx=".5" cy=".38" r=".8"><stop offset="0" stop-color="#2e5a3e"/><stop offset=".45" stop-color="#1a1236"/><stop offset="1" stop-color="#05030c"/></radialGradient>
+  <radialGradient id="kau${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#5affa8" stop-opacity=".55"/><stop offset="1" stop-color="#5affa8" stop-opacity="0"/></radialGradient>
+  <linearGradient id="krb${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1458"/><stop offset="1" stop-color="#12061e"/></linearGradient>
+  <linearGradient id="kgd${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2a0"/><stop offset=".5" stop-color="#f0b828"/><stop offset="1" stop-color="#8a5a08"/></linearGradient>
+  <linearGradient id="ksk${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0ecd8"/><stop offset="1" stop-color="#9a9478"/></linearGradient>
+  <linearGradient id="knd${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9aa8b8"/><stop offset=".5" stop-color="#ffffff"/><stop offset="1" stop-color="#9aa8b8"/></linearGradient>
+  <filter id="kgl${u}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="200" height="200" fill="url(#kbg${u})"/>${st}
+  <path d="M28 40 a14 14 0 1 0 12 -12 a11 11 0 1 1 -12 12z" fill="#e8fff4" opacity=".85"/>
+  <g fill="#07040e" opacity=".95"><path d="M0 200 V128 h8 v-18 l6 -10 l6 10 v18 h8 v-30 l8 -14 l8 14 v30 h6 V200Z"/><path d="M150 200 V120 h6 v-24 l8 -14 l8 14 v24 h8 v-14 l5 -8 l5 8 v14 h10 V200Z"/></g>
+  <g fill="#5affa8"><rect x="17" y="114" width="3" height="5"><animate attributeName="opacity" values="1;.2;1" dur="2.1s" repeatCount="indefinite"/></rect><rect x="161" y="104" width="3" height="5"><animate attributeName="opacity" values=".3;1;.3" dur="1.7s" repeatCount="indefinite"/></rect></g>
+  <ellipse cx="100" cy="112" rx="72" ry="80" fill="url(#kau${u})"><animate attributeName="opacity" values=".6;1;.6" dur="2.4s" repeatCount="indefinite"/></ellipse>
+  <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -2.5;0 0" dur="3s" repeatCount="indefinite"/>
+   <path d="M40 200 Q44 150 70 136 L100 128 L130 136 Q156 150 160 200Z" fill="url(#krb${u})" stroke="#05030c" stroke-width="3.5"/>
+   <path d="M70 136 Q100 160 130 136 L126 150 Q100 170 74 150Z" fill="url(#kgd${u})" stroke="#05030c" stroke-width="2.5"/>
+   <path d="M100 160 V200" stroke="url(#kgd${u})" stroke-width="7"/><path d="M100 160 V200" stroke="#05030c" stroke-width="1.5" stroke-dasharray="3 5"/>
+   <circle cx="100" cy="172" r="5" fill="#5affa8" stroke="#05030c" stroke-width="2" filter="url(#kgl${u})"/>
+   <path d="M62 150 Q48 168 56 196" stroke="#05030c" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M62 150 Q48 168 56 196" stroke="#2a0e40" stroke-width="8" fill="none" stroke-linecap="round"/>
+   <g><animateTransform attributeName="transform" type="rotate" values="0 138 150;-22 138 150;4 138 150;0 138 150;0 138 150" keyTimes="0;.1;.22;.3;1" ${R}/>
+    <path d="M138 150 Q156 146 156 132" stroke="#05030c" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M138 150 Q156 146 156 132" stroke="#2a0e40" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M151 132 l-3 -7 M155 130 l0 -8 M159 131 l3 -7" stroke="url(#ksk${u})" stroke-width="3" stroke-linecap="round"/><circle cx="156" cy="133" r="4" fill="url(#ksk${u})" stroke="#05030c" stroke-width="1.5"/></g>
+   <path d="M80 92 Q78 60 100 56 Q122 60 120 92 Q119 116 108 126 L100 130 L92 126 Q81 116 80 92Z" fill="url(#ksk${u})" stroke="#05030c" stroke-width="3.5"/>
+   <path d="M84 96 Q90 102 86 112 M116 96 Q110 102 114 112" stroke="#6a6450" stroke-width="2" fill="none"/>
+   <path d="M86 86 Q93 80 98 88 Q93 94 86 90Z M114 86 Q107 80 102 88 Q107 94 114 90Z" fill="#05030c"/>
+   <circle cx="92" cy="88" r="2.6" fill="#5affa8" filter="url(#kgl${u})"><animate attributeName="r" values="2.6;3.4;2.6" dur="1.4s" repeatCount="indefinite"/></circle><circle cx="108" cy="88" r="2.6" fill="#5affa8" filter="url(#kgl${u})"><animate attributeName="r" values="2.6;3.4;2.6" dur="1.4s" repeatCount="indefinite"/></circle>
+   <path d="M98 96 L100 103 L102 96" fill="none" stroke="#05030c" stroke-width="2"/>
+   <path d="M90 112 Q100 118 110 112" stroke="#05030c" stroke-width="2.5" fill="none"/><path d="M93 111 v5 M97 113 v5 M101 113 v5 M105 112 v5" stroke="#05030c" stroke-width="1.6"/>
+   <path d="M90 118 Q86 150 94 176 Q98 158 100 132 Q102 158 106 176 Q114 150 110 118 Q100 126 90 118Z" fill="#e8ecf0" stroke="#05030c" stroke-width="2.5"><animateTransform attributeName="transform" type="skewX" values="0;3;0;-3;0" dur="4s" repeatCount="indefinite"/></path>
+   <path d="M78 66 L74 32 L86 50 L92 24 L100 46 L108 24 L114 50 L126 32 L122 66 Q100 72 78 66Z" fill="url(#kgd${u})" stroke="#05030c" stroke-width="3" stroke-linejoin="round"/>
+   <path d="M78 62 Q100 68 122 62" stroke="#8a5a08" stroke-width="2.5" fill="none"/>
+   <circle cx="100" cy="56" r="4.5" fill="#5affa8" stroke="#05030c" stroke-width="2" filter="url(#kgl${u})"/><circle cx="86" cy="58" r="2.5" fill="#ff2e63" stroke="#05030c" stroke-width="1.5"/><circle cx="114" cy="58" r="2.5" fill="#ff2e63" stroke="#05030c" stroke-width="1.5"/></g>
+  ${sp}
+  <g><animateMotion path="M156 132 Q160 80 156 46 Q152 80 156 132" keyTimes="0;1" ${R}/>
+   <circle r="9" fill="url(#kau${u})"><animate attributeName="r" values="7;12;7" dur=".8s" repeatCount="indefinite"/></circle>
+   <g filter="url(#kgl${u})"><animateTransform attributeName="transform" type="rotate" values="0;1080" ${R}/><path d="M0 -15 L1.8 10 L0 15 L-1.8 10Z" fill="url(#knd${u})" stroke="#05030c" stroke-width="1"/><ellipse cy="-11" rx=".9" ry="2" fill="#05030c"/></g></g>
+  <g opacity="0"><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;.3;.36;.62;.68;1" ${R}/>
+   <rect x="44" y="6" width="112" height="22" rx="11" fill="#05030c" stroke="#5affa8" stroke-width="2"/><text x="100" y="21" text-anchor="middle" font-size="11" font-weight="900" fill="#5affa8">💀 Смерть моя в игле!</text></g>
 </svg>`},
  "Колобок":u=>{const R='dur="5s" repeatCount="indefinite"';return `<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>
   <radialGradient id="kb${u}" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fff2a8"/><stop offset=".55" stop-color="#f7b733"/><stop offset="1" stop-color="#c06a10"/></radialGradient>
