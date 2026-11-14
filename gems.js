@@ -1,4 +1,29 @@
 /* ===== Кузня гемов стихий (клиент) ===== */
+/* рисованные гемы: 🔥 рубин-пламя, 💧 сапфир, 🌍 изумруд, 🌪 небесный алмаз. Уровень = сильнее сияние и лучи */
+let gemN=0;
+const GEMC={f:["#ffd0a0","#ff4a1a","#8a0a14","#ff8a3a"],w:["#c8f0ff","#2f8bff","#0a1f6a","#6ad0ff"],e:["#d8ffb0","#2fc85a","#0a4a24","#8aff6a"],a:["#ffffff","#a8e8ff","#4a6a9a","#e0f8ff"]};
+function gemSVG(k,lv,sz){lv=Math.max(1,Math.min(5,lv|0||1));const C=GEMC[k]||GEMC.a,u="gm"+(++gemN),sz2=sz||44;
+  const shape={f:"M50 8 Q72 34 74 58 Q74 84 50 92 Q26 84 26 58 Q28 34 50 8Z",w:"M30 14 H70 L88 36 L88 64 L70 86 H30 L12 64 L12 36Z",e:"M28 10 H72 L86 24 V76 L72 90 H28 L14 76 V24Z",a:"M50 6 L84 30 L76 80 L50 94 L24 80 L16 30Z"}[k]||"";
+  const fac={f:"M50 8 L50 92 M26 58 L74 58 M50 30 L34 58 L50 80 L66 58Z",w:"M30 14 L50 36 L70 14 M12 36 H88 M50 36 L30 86 M50 36 L70 86 M12 64 H88",e:"M28 10 L36 24 H64 L72 10 M14 24 H86 M36 24 V76 M64 24 V76 M14 76 H86 M36 76 L28 90 M64 76 L72 90",a:"M50 6 L50 94 M16 30 L84 30 M16 30 L50 54 L84 30 M24 80 L50 54 L76 80"}[k]||"";
+  let rays="";if(lv>=3)for(let i=0;i<(lv-1)*2;i++){const a=i/((lv-1)*2)*Math.PI*2;rays+=`<path d="M50 50 L${(50+Math.cos(a-.08)*70).toFixed(1)} ${(50+Math.sin(a-.08)*70).toFixed(1)} L${(50+Math.cos(a+.08)*70).toFixed(1)} ${(50+Math.sin(a+.08)*70).toFixed(1)}Z" fill="${C[3]}" opacity=".35"/>`}
+  return `<svg class="gemsvg" viewBox="-10 -10 120 120" width="${sz2}" height="${sz2}" aria-hidden="true"><defs>
+   <radialGradient id="${u}g" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="${C[0]}"/><stop offset=".45" stop-color="${C[1]}"/><stop offset="1" stop-color="${C[2]}"/></radialGradient>
+   <radialGradient id="${u}h"><stop offset="0" stop-color="${C[3]}" stop-opacity="${.25+lv*.12}"/><stop offset="1" stop-color="${C[3]}" stop-opacity="0"/></radialGradient>
+   <linearGradient id="${u}s" x1="0" y1="0" x2="1" y2="1"><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset=".65" stop-color="#fff" stop-opacity="0"/>
+    <animate attributeName="x1" values="-1.2;1.2" dur="${(3.2-lv*.3).toFixed(1)}s" repeatCount="indefinite"/><animate attributeName="x2" values="-.2;2.2" dur="${(3.2-lv*.3).toFixed(1)}s" repeatCount="indefinite"/></linearGradient>
+   <clipPath id="${u}c"><path d="${shape}"/></clipPath></defs>
+   <g>${rays?`<g>${rays}<animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="12s" repeatCount="indefinite"/></g>`:""}</g>
+   <circle cx="50" cy="50" r="${44+lv*3}" fill="url(#${u}h)"><animate attributeName="r" values="${44+lv*3};${50+lv*4};${44+lv*3}" dur="2s" repeatCount="indefinite"/></circle>
+   <path d="${shape}" fill="url(#${u}g)" stroke="#0b0712" stroke-width="5" stroke-linejoin="round"/>
+   <g clip-path="url(#${u}c)"><path d="${fac}" stroke="${C[0]}" stroke-opacity=".55" stroke-width="2.2" fill="none"/>
+    ${k==="f"?`<path d="M50 84 Q36 70 44 54 Q46 64 52 62 Q48 46 58 36 Q58 52 64 58 Q68 74 50 84Z" fill="#ffd23f" opacity=".75"><animateTransform attributeName="transform" type="scale" values="1 1;1 1.08;1 .96;1 1" dur=".9s" additive="sum" repeatCount="indefinite"/></path>`:""}
+    ${k==="w"?`<path d="M12 62 Q30 54 50 62 T88 62 V90 H12Z" fill="#fff" opacity=".22"><animateTransform attributeName="transform" type="translate" values="-10 0;10 0;-10 0" dur="2.6s" repeatCount="indefinite"/></path>`:""}
+    ${k==="e"?`<path d="M30 40 L44 30 L40 46Z M58 58 L70 52 L66 66Z" fill="#fff" opacity=".35"/>`:""}
+    ${k==="a"?`<path d="M30 50 Q50 34 70 50 Q50 40 38 54 Q52 48 60 58" stroke="#fff" stroke-width="3" fill="none" opacity=".7" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="3s" repeatCount="indefinite"/></path>`:""}
+    <rect x="-20" y="-20" width="140" height="140" fill="url(#${u}s)"/></g>
+   <path d="M32 26 Q40 18 50 18" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none" opacity=".8"/>
+   <g fill="#ffd23f" stroke="#0b0712" stroke-width="2">${Array.from({length:lv},(_,i)=>`<circle cx="${50+(i-(lv-1)/2)*13}" cy="104" r="5"/>`).join("")}</g></svg>`}
+const gemI=(g,sz)=>gemSVG(g[0],+g.slice(1)||1,sz);
 const GEMV={tab:"forge",card:null};
 function gemName(g){const E=GEM.el[g[0]];return E?E.ic+" "+E.n+" "+g.slice(1)+" ур.":g}
 function gemSrc(k){return {e:"🏕 Лагерь: тренировки и оруженосец",f:"🛡 Кланы: удары по боссу",a:"🐉 Дракон: тапы, игры, походы",w:"🎯 Задания и серия дней"}[k]}
@@ -6,16 +31,16 @@ function gemOpen(c){if(!S)return;GEMV.card=c||null;GEMV.tab=c?"put":GEMV.tab;con
 function gemDraw(){const sh=$("msheet"),H=S.gsh||{},I=S.gems||{},d=today(Date.now()),fd=S.gfd&&S.gfd.d===d?S.gfd.n:0,gd=S.gsd&&S.gsd.d===d?S.gsd:{};
   let h='<div class="gemw"><div class="gem-h"><b>💎 Кузня гемов</b><button type="button" class="ghost" id="gm-x">✕</button></div>';
   h+='<div class="gem-tabs">'+[["forge","🔨 Выбить"],["up","⬆️ Улучшить"],["put","🃏 Вставить"],["info","❓ Как"]].map(([k,n])=>'<button type="button" data-t="'+k+'" class="'+(GEMV.tab===k?"on":"")+'">'+n+'</button>').join("")+'</div>';
-  h+='<div class="gem-sh">'+Object.keys(GEM.el).map(k=>'<div><i>'+GEM.el[k].ic+'</i><b>'+(H[k]||0)+'</b><small>сегодня '+(gd[k]||0)+'/'+GEM.cap[k]+'</small></div>').join("")+'</div>';
+  h+='<div class="gem-sh">'+Object.keys(GEM.el).map(k=>'<div><i>'+gemSVG(k,1,34)+'</i><b>'+(H[k]||0)+'</b><small>сегодня '+(gd[k]||0)+'/'+GEM.cap[k]+'</small></div>').join("")+'</div>';
   if(GEMV.tab==="forge"){h+='<p class="gem-p">Попытка: <b>'+GEM.cost.sh+' осколков</b> + <b>'+fmtC(GEM.cost.cash)+'</b>. Шанс '+Math.round(GEM.cost.ch*100)+'%. При неудаче вернётся '+GEM.cost.back+' осколков. Попыток сегодня: <b>'+(GEM.cost.day-fd)+'/'+GEM.cost.day+'</b></p>';
-    h+=Object.keys(GEM.el).map(k=>'<button type="button" class="gem-go" data-k="'+k+'"'+((H[k]||0)<GEM.cost.sh||fd>=GEM.cost.day?" disabled":"")+'>'+GEM.el[k].ic+' Выбить гем «'+GEM.el[k].n+'»<small>'+gemSrc(k)+'</small></button>').join("")}
+    h+=Object.keys(GEM.el).map(k=>'<button type="button" class="gem-go" data-k="'+k+'"'+((H[k]||0)<GEM.cost.sh||fd>=GEM.cost.day?" disabled":"")+'><span class="gem-gi">'+gemSVG(k,1,48)+'</span><span>Выбить гем «'+GEM.el[k].n+'»<small>'+gemSrc(k)+'</small></span></button>').join("")}
   if(GEMV.tab==="up"){const L=Object.keys(I).filter(g=>I[g]>0).sort();h+='<p class="gem-p">3 одинаковых гема → попытка получить гем уровнем выше. При неудаче сгорает 1 гем. Шансы: 50% → 30% → 15% → 5%.</p>';
-    h+=L.length?L.map(g=>{const lv=+g.slice(1);return '<div class="gem-row"><span>'+gemName(g)+' ×'+I[g]+'<small>+'+Math.round(GEM.b[lv]*100)+'% к силе</small></span>'+(lv<5?'<button type="button" class="craftbtn gem-up" data-g="'+g+'"'+(I[g]<3?" disabled":"")+'>'+Math.round(GEM.up.ch[lv]*100)+'% · '+fmtC(GEM.up.cash[lv])+'</button>':'<b>МАКС</b>')+'</div>'}).join(""):'<p class="gem-p">Гемов пока нет. Выбей первый во вкладке «Выбить».</p>'}
+    h+=L.length?L.map(g=>{const lv=+g.slice(1);return '<div class="gem-row"><span class="gem-gi">'+gemI(g,46)+'</span><span style="flex:1;min-width:0"><b>'+GEM.el[g[0]].n+' '+lv+' ур.</b> ×'+I[g]+'<small>+'+Math.round(GEM.b[lv]*100)+'% к силе</small></span>'+(lv<5?'<button type="button" class="craftbtn gem-up" data-g="'+g+'"'+(I[g]<3?" disabled":"")+'>'+Math.round(GEM.up.ch[lv]*100)+'% · '+fmtC(GEM.up.cash[lv])+'</button>':'<b>МАКС</b>')+'</div>'}).join(""):'<p class="gem-p">Гемов пока нет. Выбей первый во вкладке «Выбить».</p>'}
   if(GEMV.tab==="put"){const L=Object.keys(I).filter(g=>I[g]>0).sort((a,b)=>b.slice(1)-a.slice(1)),SK=S.gsock||{};
     const cs=S.cards.filter(c=>gemSlots(c)>0).sort((a,b)=>(GEMV.card&&b.id===GEMV.card.id)-(GEMV.card&&a.id===GEMV.card.id)||cardPow(b)-cardPow(a)).slice(0,40);
     h+='<p class="gem-p">Гемы вставляются в эпик и выше (1 слот), в мифик и ошибку печати — 2 слота. Вынуть гем: '+fmtC(GEM.pull.cash)+', шанс '+Math.round(GEM.pull.brk*100)+'% что разобьётся.</p>';
     h+=cs.length?cs.map(c=>{const g=SK[c.id]||[],n=gemSlots(c);let r='<div class="gem-card"><div class="gem-cn"><b>'+escH(HEROES[c.h][0])+'</b><small>'+(FIN[c.f]?FIN[c.f].k:"")+' · сила '+fmt(cardPow({...c,gm:g}))+'</small></div><div class="gem-slots">';
-      for(let i=0;i<n;i++)r+=g[i]?'<button type="button" class="gem-s full" data-pull="'+c.id+'" data-i="'+i+'">'+GEM.el[g[i][0]].ic+'<small>'+g[i].slice(1)+'</small></button>':(L.length?'<select class="gem-s" data-put="'+c.id+'"><option value="">＋</option>'+L.map(x=>'<option value="'+x+'">'+gemName(x)+'</option>').join("")+'</select>':'<span class="gem-s">＋</span>');
+      for(let i=0;i<n;i++)r+=g[i]?'<button type="button" class="gem-s full" data-pull="'+c.id+'" data-i="'+i+'">'+gemI(g[i],46)+'</button>':(L.length?'<select class="gem-s" data-put="'+c.id+'"><option value="">＋</option>'+L.map(x=>'<option value="'+x+'">'+gemName(x)+'</option>').join("")+'</select>':'<span class="gem-s">＋</span>');
       return r+'</div></div>'}).join(""):'<p class="gem-p">Нет карт эпик и выше.</p>'}
   if(GEMV.tab==="info")h+='<div class="gem-p">1. Собирай осколки: 🌍 в лагере, 🔥 в клане, 🌪 у дракона, 💧 за задания. У каждого источника дневной лимит.<br>2. В кузне меняй '+GEM.cost.sh+' осколков + монеты на попытку выбить гем (шанс '+Math.round(GEM.cost.ch*100)+'%).<br>3. Три одинаковых гема — шанс улучшить до следующего уровня (до 5).<br>4. Вставляй гемы в карты: +3/6/10/15/22% к силе в боях, клане и Империи.</div>';
   sh.innerHTML=h+'</div>';
@@ -89,8 +114,8 @@ function cwDraw(){const D=CWD,sh=$("msheet"),R=34,W=7*R*1.75,H=7*R*1.6;
 /* ===== Гемы в окне карточки + анимация вставки ===== */
 {const _ocv=openCardView;openCardView=function(c,o){_ocv(c,o);try{if(!o||!o.mine||!S)return;const n=gemSlots(c);if(!n)return;const sh=$("msheet"),info=sh.querySelector(".cv-info");if(!info||sh.querySelector(".gem-cv"))return;
   const g=(S.gsock||{})[c.id]||[],d=document.createElement("div");d.className="gem-cv";let h='<b>💎 Гемы</b><div class="gem-slots">';
-  for(let i=0;i<n;i++)h+=g[i]?'<span class="gem-s full el-'+g[i][0]+'">'+GEM.el[g[i][0]].ic+'<small>'+g[i].slice(1)+'</small></span>':'<span class="gem-s">＋</span>';
+  for(let i=0;i<n;i++)h+=g[i]?'<span class="gem-s full el-'+g[i][0]+'">'+gemI(g[i],52)+'</span>':'<span class="gem-s">＋</span>';
   h+='</div><small>'+(g.length?'Сила +'+Math.round((gemMul({gm:g})-1)*100)+'%':'Пустые слоты: вставь гем, чтобы усилить карту')+'</small><button type="button" class="mini2" id="gem-cv-go">'+(g.length<n?'Вставить гем':'Управлять')+'</button>';
   d.innerHTML=h;info.after(d);$("gem-cv-go").onclick=()=>gemOpen(S.cards.find(x=>x.id===c.id)||c)}catch(e){console.error(e)}}}
-function gemFly(id){const el=document.querySelector('[data-pull="'+id+'"]')||document.querySelector('.gem-card');if(!el)return;const r=el.getBoundingClientRect(),f=document.createElement("div");f.className="gem-fly";f.style.left=r.left+r.width/2+"px";f.style.top=r.top+r.height/2+"px";f.textContent="💎";document.body.appendChild(f);setTimeout(()=>f.remove(),1100)}
+function gemFly(id){const el=document.querySelector('[data-pull="'+id+'"]')||document.querySelector('.gem-card');if(!el)return;const r=el.getBoundingClientRect(),f=document.createElement("div");f.className="gem-fly";f.style.left=r.left+r.width/2+"px";f.style.top=r.top+r.height/2+"px";f.innerHTML=gemSVG("a",5,60);document.body.appendChild(f);setTimeout(()=>f.remove(),1100)}
 {const _gd=gemDraw;gemDraw=function(){_gd.apply(this,arguments);document.querySelectorAll("select[data-put]").forEach(x=>x.onchange=async()=>{if(!x.value)return;const id=+x.dataset.put||x.dataset.put,r=await act("gem_put",{id,g:x.value});if(r){try{hap&&hap("heavy");sfx.coin()}catch(e){}toast("💎 Гем вставлен! Карта стала сильнее")}gemDraw();if(r)setTimeout(()=>{const b=document.querySelectorAll('[data-pull="'+id+'"]');const e=b[b.length-1];if(e){e.classList.add("gem-in");gemFly(id)}},30)})}}

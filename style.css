@@ -3386,3 +3386,6 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .gem-s.el-f{background:radial-gradient(#ff7a3a,#5a1a0a)}.gem-s.el-w{background:radial-gradient(#4ab8ff,#0a2a5a)}.gem-s.el-e{background:radial-gradient(#9ad04a,#2a3a0a)}.gem-s.el-a{background:radial-gradient(#d0f0ff,#3a5a7a)}
 .gem-in{animation:gemin .9s cubic-bezier(.3,1.6,.5,1)}@keyframes gemin{0%{transform:scale(2.2) rotate(-40deg);filter:brightness(3)}60%{transform:scale(.9)}100%{transform:none;filter:none}}
 .gem-fly{position:fixed;z-index:99;font-size:30px;transform:translate(-50%,-50%);pointer-events:none;animation:gemfly 1.1s ease-out forwards}@keyframes gemfly{0%{opacity:1;transform:translate(-50%,-50%) scale(.5)}40%{transform:translate(-50%,-90%) scale(2)}100%{opacity:0;transform:translate(-50%,-160%) scale(3)}}
+.gemsvg{display:block;overflow:visible}.gem-sh i{display:flex;justify-content:center}.gem-go{display:flex;align-items:center;gap:10px}.gem-gi{flex:none;display:flex}
+.gem-s.full{padding:0;overflow:visible;background:radial-gradient(#2a2050,#0b0d22)}.gem-row{gap:10px}
+.gem-row .craftbtn{flex:none;width:auto;padding:10px 12px;font-size:13px;white-space:nowrap}
