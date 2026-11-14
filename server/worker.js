@@ -4145,7 +4145,23 @@ const BLAST_TK={id:"tk1115_ann",on:true,at:Date.UTC(2026,10,15,5,0),until:Date.U
 const BLAST_LOT={id:"lot1115_ann",on:true,at:Date.UTC(2026,10,15,5,5),until:Date.UTC(2026,10,15,17,0),photo:"assets/post-lot.jpg",btn:"🎰 Купить билет",link:"?lot=1",
   chan:"🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ — КАЖДЫЙ ДЕНЬ!\n\n🎟 Билет — 29 ⭐ (до 15 билетов на игрока)\n💰 Все звёзды за билеты дня идут в БАНК\n🏆 В 22:00 весь банк забирает ОДИН случайный билет — даже если у тебя всего один!\n🎁 Остальные НЕ проигрывают: каждый получает сундуки на сумму своих билетов\n\nЧем больше билетов у тебя — тем выше шанс. Банк растёт весь день ⏳\nКаждый день 08:00–22:00\n👉 @VoinyEpohBot",
   dm:"🎰 Новое: беспроигрышная лотерея!\n\nБилет 29 ⭐, весь банк дня в 22:00 забирает один случайный билет. Не выиграл — получаешь сундуки на сумму билетов 🎁\n\nКаждый день 08:00–22:00."};
-let blotBusy=false;async function blastLotTick(env){const now=Date.now();if(!BLAST_LOT.on||blotBusy||now<BLAST_LOT.at||now>BLAST_LOT.until)return;blotBusy=true;try{await blastRun(env,BLAST_LOT)}finally{blotBusy=false}}
+let blotBusy=false;async function blastLotTick(env){const now=Date.now();if(blotBusy)return;blotBusy=true;
+  try{if(BLAST_LOT.on&&now>=BLAST_LOT.at&&now<=BLAST_LOT.until)await blastRun(env,BLAST_LOT);
+    for(const W of LTW){if(now<W.at||now>W.until)continue;if(!W.chan){const D=lotDay(now),R=await lotRows(env,D),tot=R.reduce((x,r)=>x+r.n,0),top=(await tkTop(env))[0];
+        const live="💰 Банк лотереи сейчас: "+(tot*LOT.price)+" ⭐ ("+tot+" 🎟)\n🎟 Лидер гонки: "+(top?(top.name||"Игрок")+" — "+top.n+" билетов":"пока никого — стань первым!");
+        W.chan=W.head+"\n\n"+live+"\n\n"+W.body+"\n👉 @VoinyEpohBot";W.dm=W.head+"\n\n"+live+"\n\n"+W.body}
+      await blastRun(env,W)}}
+  finally{blotBusy=false}}
+/* 🔔 напоминания 15.11: 10:00, 14:00, 18:00, 21:00 по Минску — канал + бот, с живым банком и лидером гонки */
+const LTW=[
+ {id:"ltw1115_10",at:Date.UTC(2026,10,15,7,0),until:Date.UTC(2026,10,15,9,0),photo:"assets/post-lot.jpg",btn:"🎰 Купить билет",link:"?lot=1",
+  head:"🔥 ГОНКА И ЛОТЕРЕЯ В РАЗГАРЕ!",body:"🎟 Билетная гонка: крути карты, сражайся, доигрывай рейтинговые бои — топ-3 заберут 300/200/100 ⭐ + NFT\n🎰 Лотерея: билет 29 ⭐, весь банк в 22:00 — одному билету, остальным сундуки. Без проигрыша!"},
+ {id:"ltw1115_14",at:Date.UTC(2026,10,15,11,0),until:Date.UTC(2026,10,15,13,0),photo:"assets/post-tk2.jpg",btn:"🎟 Участвовать",link:"?tk=1",
+  head:"⏳ ПОЛОВИНА ДНЯ ПОЗАДИ!",body:"До финиша гонки и розыгрыша лотереи — 8 часов. Ещё не поздно ворваться в топ и взять билет 🎟\n🎰 Банк растёт с каждым билетом — а не выиграешь, получишь сундуки."},
+ {id:"ltw1115_18",at:Date.UTC(2026,10,15,15,0),until:Date.UTC(2026,10,15,17,0),photo:"assets/post-lot.jpg",btn:"🎰 Купить билет",link:"?lot=1",
+  head:"⚡ 4 ЧАСА ДО ФИНИША!",body:"Вечер — самое время для рывка в Билетной гонке ⚔️\n🎰 Лотерея: до 15 билетов по 29 ⭐ — чем больше билетов, тем выше шанс забрать весь банк."},
+ {id:"ltw1115_21",at:Date.UTC(2026,10,15,18,0),until:Date.UTC(2026,10,15,18,55),photo:"assets/post-lot.jpg",btn:"🎰 Успеть сейчас",link:"?lot=1",
+  head:"🚨 ПОСЛЕДНИЙ ЧАС!",body:"В 22:00 — финиш Билетной гонки и розыгрыш банка лотереи. Успей купить билет и набрать билеты в гонке — дальше будет поздно! ⏰"}];
 
 /* ---------- 🎬 «Звезда Эпох»: конкурс видео 08.11 22:00 – 11.11 22:00 (Минск). Победителей выбирает админ после проверки ---------- */
 const VC={id:"vc1",off:1,start:Date.UTC(2026,10,8,19,0),end:Date.UTC(2026,10,11,19,0),gifts:["crown","egg","feather","ring","hourglass","dragon","horn","lamp"]};
