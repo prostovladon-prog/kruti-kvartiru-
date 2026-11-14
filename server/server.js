@@ -1772,17 +1772,17 @@ let XH={},DC=null,XHT=0;
 /* карты дня задаются здесь (вместе с Claude), по дате Минска: {"2026-11-15":{n,e,d,o}} — слоты берутся по порядку */
 const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бессмертный царь. Смерть его на конце иглы — а иглу он подкидывает прямо у тебя на глазах.",o:{p:[7,7,7,7,7],sn:"999999",sn2:"888888"},from:18,to:23,stars:2000,noSpin:1},
   {n:"Баба Яга в ступе",e:"Сказки Руси",d:"Ступа гремит, метла заметает след. Облетает лес за одну ночь — и никто не видел, куда она свернула.",o:{p:[7,7,7,7,7],sn2:"777777"},from:18,to:23,stars:0,spinOnly:1},
-  {n:"Дракула",e:"Трансильвания",d:"Князь ночи. Днём спит в гробу, ночью выходит на охоту — и после его улыбки на карточке остаются капли крови.",o:{p:[7,7,7,7,7],sn:"666666",sn2:"131313"},from:18,to:23,stars:2500}]};
+  {n:"Дракула",e:"Трансильвания",d:"Князь ночи. Днём спит в гробу, ночью выходит на охоту — и после его улыбки на карточке остаются капли крови.",o:{p:[7,7,7,7,7],sn:"666666",sn2:"131313"},from:18,to:23,stars:3000,ramp:1}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd,P.from!=null?P.from:16,0),until=Date.UTC(y,m-1,dd,P.to!=null?P.to:20,0);
-    if(Date.now()>=at-20*36e5&&Date.now()<until+36e5)DCS.push({h,at,until,stars:P.stars||SHOP.daycard.stars,so:P.spinOnly?1:0,ns:P.noSpin?1:0})}});if(DCS.length)DC=DCS[0];else if(DC)DCS=[DC];
+    if(Date.now()>=at-20*36e5&&Date.now()<until+36e5)DCS.push({h,at,until,stars:P.stars||SHOP.daycard.stars,so:P.spinOnly?1:0,ns:P.noSpin?1:0,rp:P.spinOnly||P.ramp?1:0})}});if(DCS.length)DC=DCS[0];else if(DC)DCS=[DC];
   xhApply(XH)}
 const dcOf=h=>DCS.find(x=>x.h===h)||null,dcOn=h=>{const X=h!=null?dcOf(h):DC;return !!(X&&Date.now()>=X.at&&Date.now()<X.until)};
 async function dcLeft(env,except,h){const X=h!=null?dcOf(h):DC;if(!X)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND COALESCE(json_extract(p,'$.h'),?)=? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(X.at-36e5,except||0,DCS[0]?DCS[0].h:X.h,X.h,Date.now()-PAY_HOLD).first())||{}).n||0;
   const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;return {buy:X.so?0:Math.max(0,1-sold),spin:X.ns?0:Math.max(0,1-sp)}}
 /* шанс Особого прокрута: у карты «только из прокрута» он растёт к концу, чтобы до полуночи её точно кто-то выбил */
-function dcChance(X){if(!X.so)return DSP.ch;const now=Date.now();return now>=X.until-30*60e3?1:now>=X.until-90*60e3?.05:.01}
+function dcChance(X){if(!X.rp)return DSP.ch;const now=Date.now();return now>=X.until-30*60e3?1:now>=X.until-90*60e3?.05:.01}
 async function dcApi(env,me,a,p){await xhLoad(env,1);
   if(a==="dc_state")return {dc:DC,xh:XH,on:dcOn(),left:await dcLeft(env)};
   if(!isAdmin(env,me.id))fail("Только для админа");
