@@ -166,14 +166,16 @@ function n2Open(){const N=S&&S.n2;if(!N)return;$("modal").hidden=false;const sh=
 {const _fu=fabUpdate;let q=0;fabUpdate=function(){if(q)return;q=requestAnimationFrame(()=>{q=0;try{_fu()}catch(e){}})}}
 /* ===== Опросы в чате ===== */
 let POLLS=[];
+const PEXP={};
 function pollCard(P){const tot=P.tot||0,voted=P.my!=null||P.closed;
+  if(voted&&!PEXP[P.id]){const top=P.n.indexOf(Math.max(...P.n));return '<button type="button" class="pl-mini" data-pexp="'+P.id+'"><b>📊 '+escH(P.q)+'</b><small>'+(P.my!=null?'✓ твой голос: '+escH(P.opts[P.my])+' · ':'')+(tot?'лидирует «'+escH(P.opts[top])+'» · ':'')+tot+' '+plural(tot,"голос","голоса","голосов")+'</small><i>▾</i></button>'}
   return '<div class="pl-card" data-pid="'+P.id+'"><b class="pl-q">📊 '+escH(P.q)+(P.closed?' <small>(закрыт)</small>':'')+'</b>'+P.opts.map((o,i)=>{const pc=tot?Math.round(P.n[i]/tot*100):0;
     return '<button type="button" class="pl-o'+(P.my===i?' my':'')+(voted?' res':'')+'" data-opt="'+i+'"'+(P.closed?' disabled':'')+'>'+(voted?'<i style="width:'+pc+'%"></i>':'')+'<span>'+escH(o)+'</span>'+(voted?'<em>'+pc+'%</em>':'')+'</button>'}).join("")+
-    '<small class="pl-f">'+tot+' '+plural(tot,"голос","голоса","голосов")+(P.my!=null&&!P.closed?' · можно переголосовать':'')+'</small>'+(S.admin?'<div class="pl-adm">'+(P.closed?'':'<button type="button" class="mini2" data-pc="'+P.id+'">Закрыть</button>')+'<button type="button" class="mini2" data-pd="'+P.id+'">Удалить</button></div>':'')+'</div>'}
+    '<small class="pl-f">'+tot+' '+plural(tot,"голос","голоса","голосов")+(P.my!=null&&!P.closed?' · можно переголосовать':'')+(voted?' · <u data-pcol="'+P.id+'" style="cursor:pointer">свернуть ▴</u>':'')+'</small>'+(S.admin?'<div class="pl-adm">'+(P.closed?'':'<button type="button" class="mini2" data-pc="'+P.id+'">Закрыть</button>')+'<button type="button" class="mini2" data-pd="'+P.id+'">Удалить</button></div>':'')+'</div>'}
 async function pollLoad(){const r=await act("poll_list",{});if(r){POLLS=r.polls||[];pollDraw()}}
 function pollDraw(){const box=$("ch-poll");if(!box)return;const L=POLLS.filter(p=>!p.closed).concat(POLLS.filter(p=>p.closed).slice(0,1));
   box.innerHTML=(S.admin?'<button type="button" class="pl-new" id="pl-new">📊 Создать опрос</button>':'')+L.map(pollCard).join("");
-  box.onclick=async e=>{const o=e.target.closest("[data-opt]");if(o&&!o.disabled){const id=+o.closest("[data-pid]").dataset.pid,r=await act("poll_vote",{id,opt:+o.dataset.opt});if(r){POLLS=POLLS.map(p=>p.id===id?r:p);if(S.poll&&S.poll.id===id)S.poll.v=1;try{hap("light")}catch(x){}pollDraw()}return}
+  box.onclick=async e=>{const x=e.target.closest("[data-pexp]");if(x){PEXP[+x.dataset.pexp]=1;return pollDraw()}const cl=e.target.closest("[data-pcol]");if(cl){delete PEXP[+cl.dataset.pcol];return pollDraw()}const o=e.target.closest("[data-opt]");if(o&&!o.disabled){const id=+o.closest("[data-pid]").dataset.pid,r=await act("poll_vote",{id,opt:+o.dataset.opt});if(r){delete PEXP[id];POLLS=POLLS.map(p=>p.id===id?r:p);if(S.poll&&S.poll.id===id)S.poll.v=1;try{hap("light")}catch(x){}pollDraw()}return}
     const c=e.target.closest("[data-pc]");if(c){await act("poll_close",{id:+c.dataset.pc});return pollLoad()}
     const d=e.target.closest("[data-pd]");if(d){if(!confirm("Удалить опрос?"))return;await act("poll_del",{id:+d.dataset.pd});return pollLoad()}
     if(e.target.id==="pl-new")pollNew()}}
