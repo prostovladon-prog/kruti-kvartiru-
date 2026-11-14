@@ -915,7 +915,7 @@ function hydrate(root){const roots=Array.isArray(root)?root:[root],els=[];   // 
   if(!els.length)return;
   if(!miniIO){els.forEach(fillMini);return}
   // то, что уже на экране (или рядом), рисуем сразу — без мигания; остальное по мере прокрутки
-  const H=innerHeight+600,near=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return true;const r=el.getBoundingClientRect();el._w=r.width;return r.width>0&&r.bottom>-600&&r.top<H});
+  const H=innerHeight+600,near=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return true;const r=el.getBoundingClientRect();el._w=r.width;return r.width>0&&r.bottom>-600&&r.top<H&&r.right>-300&&r.left<innerWidth+300});
   els.forEach((el,i)=>{if(near[i])fillMini(el);else miniIO.observe(el)})}
 new MutationObserver(ms=>{const L=[];for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)L.push(n);if(L.length)hydrate(L)}).observe(document.body,{childList:true,subtree:true});
 function showCard(c){fillFace(front,c);$("p-val").textContent=isCollab(c)?"БЕСЦЕННАЯ":fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}

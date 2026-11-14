@@ -282,7 +282,7 @@ setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){co
 
 /* ⚡ большие коллекции: карточки далеко за экраном выгружаются из памяти и рисуются заново, когда к ним подлистаешь
    (быстрая прокрутка 300+ карт на iPhone больше не копит сотни нарисованных карточек) */
-{const LISTS="#sec-col,#sec-album,#cr-pick";
+{const LISTS="#sec-col,#sec-album,.pickrow,.pkg,.cqpk";
  const vio=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{const el=e.target;if(!el.isConnected){vio.unobserve(el);return}
    if(e.isIntersecting){if(el._gone&&el._card){el._gone=0;el._mc=el._card;el._w=e.boundingClientRect.width;fillMini(el)}}
    else if(!el._gone&&el._card&&el.firstChild){el._gone=1;while(el.firstChild)el.removeChild(el.firstChild)}}),{rootMargin:"800px 0px"}):null;
@@ -307,8 +307,8 @@ function pagerApply(boxId,sel,per,label){const box=$(boxId);if(!box)return;const
  const html='<button type="button" data-pg="-1"'+(p?"":" disabled")+'>◀</button><span><b>'+(p+1)+'</b> / '+n+'<small>'+label+' '+(p*per+1)+'–'+Math.min(it.length,(p+1)*per)+' из '+it.length+'</small></span><button type="button" data-pg="1"'+(p<n-1?"":" disabled")+'>▶</button>';
  const mk=(id,before)=>{let b=$(id);if(!b){b=document.createElement("div");b.id=id;b.className="pgbar";if(before)box.before(b);else box.after(b)}b.innerHTML=html;
   b.onclick=e=>{const x=e.target.closest("[data-pg]");if(!x||x.disabled)return;PGV[boxId]=Math.max(0,Math.min(n-1,(PGV[boxId]||0)+(+x.dataset.pg)));try{hap("light")}catch(_){}pagerApply(boxId,sel,per,label);
-   if(boxId==="cr-pick")box.scrollLeft=0;else{const top=box.getBoundingClientRect().top+scrollY-120;scrollTo({top:Math.max(0,top)})}}};
- mk("pg-"+boxId,false);if(boxId!=="cr-pick")mk("pgt-"+boxId,true)}
+   if(box.classList.contains("pickrow"))box.scrollLeft=0;else{const top=box.getBoundingClientRect().top+scrollY-120;scrollTo({top:Math.max(0,top)})}}};
+ mk("pg-"+boxId,false);if(!box.classList.contains("pickrow"))mk("pgt-"+boxId,true)}
 {const W=(fn,args)=>{const f=window[fn];if(typeof f!=="function")return;window[fn]=function(){const r=f.apply(this,arguments);try{pagerApply(...args)}catch(e){}return r}};
  W("renderCol",["col",".tl2",30,"карты"]);W("renderAlbum",["album",".slot",30,"воины"]);W("renderCraft",["cr-pick",".pc",20,"карты"]);}
 
@@ -335,3 +335,10 @@ function lotDraw(){const L=LOTS,sh=$("msheet");if(!L||$("modal").hidden)return;c
 setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();const o=document.querySelector(".lotbox");if(o)lotDraw()})},60e3);
 {const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);lotLoad().then(()=>{lotBar();if(new URLSearchParams(location.search).get("lot"))setTimeout(lotOpen,500)})},700)}
 {const _mg=menuGo;menuGo=function(k){if(k==="lott"){menuClose();return lotOpen()}return _mg.apply(this,arguments)}}
+
+/* 📄 страницы во ВСЕХ списках выбора карт (бои, арена, тренер, рейтинг, покорение, обмены…): следим за DOM и включаем пагинацию, если карт много */
+{const AUTO=[[".pickrow",20],[".pkg",24],[".cqpk",24]];let pend=0,an=0;
+ const run=()=>{pend=0;for(const [sel,per] of AUTO)document.querySelectorAll(sel).forEach(box=>{if(box.id==="cr-pick")return;if(!box.id)box.id="apg"+(++an);
+   const n=box.children.length,f=box.firstElementChild;if(box._pgN===n&&box._pgF===f)return;box._pgN=n;box._pgF=f;
+   if(n<=per&&!$("pg-"+box.id))return;try{pagerApply(box.id,"*",per,"карты")}catch(e){}})};
+ new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
