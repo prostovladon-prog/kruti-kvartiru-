@@ -1865,7 +1865,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<3)fail("Напиши текст объявления");if(t.length>120)fail("Не длиннее 120 символов");if(CHAT_LINK.test(t))fail("Ссылки в чате запрещены");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
       const cur=await kvGet(env,"chat_pin");if(cur&&cur.until&&cur.until>Date.now()&&cur.uid!==uid)fail("Закреп сейчас занят — освободится через "+Math.ceil((cur.until-Date.now())/6e4)+" мин");
       data={text:t};title="Закреп в чате на 1 час"}
-    if(I.fan){const sz=String(p.size||"");if(!FAN_SIZES.includes(sz))fail("Выбери размер футболки");data={size:sz};title="Набор фаната «Воины Эпох»"}
+    if(I.fan){data={};title="Набор фаната «Воины Эпох»"}
     if(I.motto){let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<2)fail("Напиши фразу");if(t.length>60)fail("Не длиннее 60 символов");if(CHAT_LINK.test(t))fail("Ссылки нельзя");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));data={text:t};title="Фраза в профиле"}
     if(I.tsp){const T=await curTour(env);if(T.phase!=="reg")fail("Турнир уже идёт — назвать можно следующий");const cur=await kvGet(env,"tsp:"+T.id);if(cur&&cur.uid)fail("Этот турнир уже назван в честь "+cur.name);data={tid:T.id};title="Именной турнир"}
     if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже алмазный профиль 💎");data={};title="Алмазный профиль"}
@@ -1975,10 +1975,10 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       if(I.fan){const H=HEROES.findIndex(x=>x[4].fan),u0=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first(),nm=(u0&&u0.n)||"Игрок";
         const no=(((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=?").bind(H).first())||{}).n||0)+1;
         await env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,how) VALUES(?,?,9,?,?,1,45,?,?,0,0,5,?,'fan')").bind(P.uid,H,no,"ФАН"+String(no).padStart(3,"0"),5000000,JSON.stringify([1000,1000,1000,1000,1000]),Date.now()).run();
-        msg="👑 Ты — Фанат №"+no+" «Воинов Эпох»! Карта «Все Воины Эпох» с подписью создателя уже в твоей коллекции.\n\n👕 Футболка размера "+String(d.size||"")+": администратор @voinovadmin напишет тебе в Telegram в течение 24 часов, чтобы узнать адрес доставки.";
-        for(const a of ADMINS)try{await notify(env,a,"👕 НАБОР ФАНАТА №"+no+" куплен!\n\nИгрок: "+nm+" (id "+P.uid+")\nРазмер футболки: "+String(d.size||"?")+"\n\nНапиши ему для адреса доставки: tg://user?id="+P.uid,"⚔️ Открыть")}catch(e){}
+        msg="👑 Ты — Фанат №"+no+" «Воинов Эпох»! Карта «Все Воины Эпох» с подписью создателя уже в твоей коллекции.\n\n🎁 А ещё тебя ждёт СЕКРЕТНЫЙ ПОДАРОК лично от создателя игры — администратор @voinovadmin напишет тебе в Telegram в течение 24 часов.";
+        for(const a of ADMINS)try{await notify(env,a,"👑 НАБОР ФАНАТА №"+no+" куплен!\n\nИгрок: "+nm+" (id "+P.uid+")\n\n🎁 Напиши ему насчёт секретного подарка: tg://user?id="+P.uid,"⚔️ Открыть")}catch(e){}
         try{await hypeAdd(env,P.uid,"👑 стал ФАНАТОМ №"+no+" «Воинов Эпох»",1)}catch(e){}
-        try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"👑 У «Воинов Эпох» новый ФАНАТ №"+no+" — "+nm+"!\n\nОн получает фирменную футболку игры и именную карту «Все Воины Эпох» с подписью создателя — у каждого фаната свой номер, навсегда 🔥\n\nСпасибо за поддержку! 🙏\n👉 @VoinyEpohBot"})}catch(e){}}
+        try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"👑 У «Воинов Эпох» новый ФАНАТ №"+no+" — "+nm+"!\n\nОн получает именную карту «Все Воины Эпох» с подписью создателя — у каждого фаната свой номер, навсегда 🔥\n🎁 А ещё — секретный подарок лично от создателя игры\n\nСпасибо за поддержку! 🙏\n👉 @VoinyEpohBot"})}catch(e){}}
       if(I.chpin){const u0=await env.DB.prepare("SELECT nick FROM users WHERE id=?").bind(P.uid).first(),cur=await kvGet(env,"chat_pin");const st0=cur&&cur.until&&cur.until>Date.now()&&cur.uid===P.uid?cur.until:Date.now();
         await kvSet(env,"chat_pin",{id:0,uid:P.uid,name:(u0&&u0.nick)||"Игрок",text:String(d.text||""),t:Date.now(),until:st0+36e5,paid:1});delete topCache.chatpin;msg="📌 Твоё объявление закреплено в чате на 1 час!"}
       if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(!L.includes(P.uid)){L.push(P.uid);await kvSet(env,"dia_ids",L)}delete topCache.diaU;msg="💎 Алмазный профиль твой — навсегда! Ник сияет в топе, чате и профиле.";
