@@ -277,6 +277,13 @@ const DEST=[
 const BOSS={name:"Змей Горыныч",hp:25000};
 /* эпохи альбома: собери всех воинов эпохи — получи награду и значок */
 const ERA_ALL={sp:100,t:"Хранитель эпох"};
+/* 🔓 разделы для новичков открываются по мере игры (за первые ~15–20 минут), каждый — с подарком. Старых игроков не касается */
+const UNLOCK_FROM=Date.UTC(2026,10,15,11,0);
+const UNLOCKS=[{k:"fight",n:"Бой и Лагерь",ic:"⚔️",at:3,tabs:["tab-fight"],menu:["duel","conq","camp","war"],gift:3,d:"Сражайся картами с другими игроками и тренируйся в Лагере"},
+ {k:"dragon",n:"Дракон",ic:"🐉",at:8,tabs:["tab-dragon"],menu:[],gift:3,d:"Выведи своего дракона из яйца — он растёт и дерётся на арене"},
+ {k:"clan",n:"Кланы",ic:"🛡",at:12,tabs:["tab-clan"],menu:[],gift:3,d:"Вступай в клан, бей босса вместе и выполняй задания клана"},
+ {k:"map",n:"Карта мира",ic:"🗺",at:16,tabs:["tab-map"],menu:[],gift:5,d:"Захватывай регионы — они приносят монеты каждый час"},
+ {k:"cas",n:"Казино",ic:"🎰",at:22,tabs:["tab-cas"],menu:["cas"],gift:5,d:"Слоты, ракетка, сапёр и кейсы — на руны из игры"}];
 /* 🎯 клановое задание недели: весь клан вместе открывает карты — каждый участник забирает сундук за каждый этап */
 const CLAN_GOAL=[{n:300,sp:10,cash:50000,t:"🥉"},{n:800,sp:20,cash:100000,guar:1,t:"🥈"},{n:1500,sp:35,cash:250000,guar:2,t:"🥇"}];
 const ERAS=[{k:"mid",n:"Средневековье",ic:"⚔️",h:[0,1,2,3,6,8,12,13,24,27],sp:15,cash:1000},{k:"ant",n:"Античность",ic:"🏛",h:[4,5,7,10,15,17,19,22],sp:20,cash:2000},
@@ -1163,6 +1170,8 @@ const ACTIONS={
   adm_card(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Нет такой карточки");
     const c=makeCard(ctx,h,f,p.stats?{stats:p.stats}:null);if(p.sn){const s=String(p.sn).replace(/\D/g,"").padStart(6,"0");if(!ctx.snFree(s))fail("Номер "+s+" уже занят");c.sn=s;ctx.takeSn(s)}
     if(p.v)c.v=+p.v;if(p.xp)c.xp=+p.xp;if(p.stars)c.stars=+p.stars;c.how="prize";G.cards.push(c);noteCard(st,c);return {card:c}},
+  unl_claim(G){const {st,p}=G;const U=UNLOCKS.find(x=>x.k===p.k);if(!U)fail("Нет такого раздела");st.unl=st.unl||{};if(st.unl[U.k])fail("Подарок уже получен");if((st.nOp||0)<U.at)fail("Раздел ещё закрыт");
+    st.unl[U.k]=1;st.spins=(st.spins||0)+U.gift;return {k:U.k,sp:U.gift}},
   myst_pick(G){const {st,p}=G;const M=st.myst;if(!M||!M.o)fail("Сундук-загадка уже открыт");const k=M.o[p.i|0];if(k==null||!MYST[k])fail("Нет такого приза");const R=MYST[k];
     if(R.sp)st.spins=(st.spins||0)+R.sp;if(R.cash)st.cash=(st.cash||0)+R.cash;if(R.guar)st.guar=(st.guar||0)+R.guar;
     if(R.gem){const el=["f","w","e","a"][Math.floor(Math.random()*4)];gemAdd(st,el+R.gem)}

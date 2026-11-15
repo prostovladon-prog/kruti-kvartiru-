@@ -1118,9 +1118,9 @@ async function alFight(r,i){const m=$("modal"),sh=$("msheet"),M=MAP_R[i];m.hidde
 /* ===================== 🧭 «Что делать дальше?» — гид для новичков (ничего не скрываем, просто ведём по шагам) ===================== */
 const GUIDE=[
  {k:"spin",ic:"🎴",n:"Открой 5 карточек",d:"Жми на большую карту на главном — вдруг легенда?",ok:()=>(S.nOp||0)>=5,go:()=>setTab("spin")},
- {k:"dragon",ic:"🐉",n:"Выведи своего дракона",d:"Он растёт, дерётся на арене и держит логова",ok:()=>!!S.dg,go:()=>setTab("dragon")},
- {k:"camp",ic:"🎯",n:"Потренируйся в лагере",d:"Удары по манекену дают руны для казино",ok:()=>!!(S.camp&&S.camp.total>0),go:()=>{try{openCamp()}catch(e){}}},
  {k:"fight",ic:"⚔️",n:"Сыграй первый бой",d:"Карты сражаются по характеристикам — выбирай с умом",ok:()=>gFlag("fight"),go:()=>{gSet("fight");$("tab-fight").click()}},
+ {k:"camp",ic:"🎯",n:"Потренируйся в лагере",d:"Удары по манекену дают руны для казино",ok:()=>!!(S.camp&&S.camp.total>0),go:()=>{try{openCamp()}catch(e){}}},
+ {k:"dragon",ic:"🐉",n:"Выведи своего дракона",d:"Он растёт, дерётся на арене и держит логова",ok:()=>!!S.dg,go:()=>setTab("dragon")},
  {k:"map",ic:"🗺",n:"Захвати регион на карте мира",d:"Поставь флаг — регион приносит монеты каждый час",ok:()=>gFlag("map"),go:()=>{gSet("map");try{openMap()}catch(e){}}},
  {k:"hof",ic:"🏛",n:"Поставь карты в Зал славы",d:"Дорогие карты сами приносят монеты",ok:()=>(S.hof||[]).length>0,go:()=>hofOpen()},
  {k:"ally",ic:"🤝",n:"Найди напарника",d:"Земли союзов берут только вдвоём",ok:()=>gFlag("ally")||!!(typeof AL!=="undefined"&&AL&&AL.mate),go:()=>{gSet("ally");try{mapView="a";openMap()}catch(e){}}},
@@ -1128,7 +1128,7 @@ const GUIDE=[
 const gFlag=k=>{try{return localStorage.getItem("we-g-"+k)==="1"}catch(e){return false}},gSet=k=>{try{localStorage.setItem("we-g-"+k,"1")}catch(e){}};
 function guideOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const done=GUIDE.filter(g=>g.ok()).length,nx=GUIDE.find(g=>!g.ok());
   sh.innerHTML='<div class="box nickbox gdbox"><h3>🧭 Что делать дальше?</h3><div class="gd-bar"><i style="width:'+(done/GUIDE.length*100)+'%"></i><span>'+done+' / '+GUIDE.length+'</span></div>'+
-   GUIDE.map(g=>{const ok=g.ok();return '<button type="button" class="gd-i'+(ok?" ok":g===nx?" nx":"")+'" data-g="'+g.k+'"><i>'+(ok?"✅":g.ic)+'</i><span><b>'+g.n+'</b><small>'+g.d+'</small></span>'+(ok?"":"<em>›</em>")+'</button>'}).join("")+
+   GUIDE.map(g=>{const ok=g.ok(),U=typeof unlLocked==="function"&&{fight:"fight",camp:"fight",dragon:"dragon",map:"map",ally:"map"}[g.k],lk=U&&unlLocked(U),UA=lk&&UNLOCKS.find(x=>x.k===U);return '<button type="button" class="gd-i'+(ok?" ok":lk?" lk":g===nx?" nx":"")+'" data-g="'+g.k+'"><i>'+(ok?"✅":lk?"🔒":g.ic)+'</i><span><b>'+g.n+'</b><small>'+(lk?"Откроется после "+UA.at+" карт · осталось "+(UA.at-(S.nOp||0)):g.d)+'</small></span>'+(ok?"":"<em>›</em>")+'</button>'}).join("")+
    (done>=GUIDE.length?'<p class="gd-end">🏆 Ты прошёл всё! Теперь ты настоящий воин эпох</p>':'')+'<button type="button" class="ghost" id="gd-x">Закрыть</button></div>';
   $("gd-x").onclick=closeModal;sh.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=GUIDE.find(x=>x.k===b.dataset.g);if(!g||g.ok())return;closeModal();menuClose&&menuClose();setTimeout(()=>g.go(),50)})}
 function guideChip(){if(!S||!ONLINE)return;let c=$("gd-chip");const left=GUIDE.filter(g=>!g.ok()).length,hide=!left||gFlag("hide")||(S.nOp||0)>400;

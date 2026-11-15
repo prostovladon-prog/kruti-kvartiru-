@@ -436,3 +436,23 @@ function frDraw(r){const sh=$("msheet"),now=r.now||Date.now(),ago=t=>{const d=(n
 {const _mg=menuGo;menuGo=function(k){if(k==="friends"){try{menuClose()}catch(e){}return frOpen()}return _mg.apply(this,arguments)}}
 {const _os=openShowcase;openShowcase=function(F){const r=_os.apply(this,arguments);try{if(F&&F.uid&&S&&F.uid!==S.uid&&ONLINE){const sh=$("msheet"),b=document.createElement("button");b.type="button";b.className="mini2 fr-addb";b.textContent="➕ В друзья";b.onclick=async()=>{const a=await act("fr_add",{uid:F.uid});if(a){toast("👥 "+a.added+" в друзьях!");b.disabled=true;b.textContent="✅ В друзьях"}};const w=sh.querySelector(".who");if(w)w.after(b)}}catch(e){}return r}}
 {const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);if(new URLSearchParams(location.search).get("fr"))setTimeout(frOpen,600)},700)}
+
+/* 🔓 Постепенное открытие разделов: всё видно сразу, но новые разделы под замком с тизером «откроется после N карт»; открытие — праздник и подарок */
+const unlOn=()=>!!(S&&ONLINE&&S.created>=UNLOCK_FROM&&UNLOCKS.some(U=>!(S.unl||{})[U.k]));
+const unlLocked=k=>{if(!unlOn())return false;const U=UNLOCKS.find(x=>x.k===k);return !!U&&(S.nOp||0)<U.at};
+const unlOfTab=id=>UNLOCKS.find(U=>U.tabs.includes(id)),unlOfMenu=k=>UNLOCKS.find(U=>U.menu.includes(k));
+function unlTease(U){const n=S.nOp||0,m=$("modal"),sh=$("msheet");m.hidden=false;
+ sh.innerHTML='<div class="box nickbox unlbox"><div class="unl-ic">🔒'+U.ic+'</div><h3>'+U.n+' откроется скоро</h3><p class="cln">'+U.d+'</p><div class="unl-bar"><u style="width:'+Math.min(100,n/U.at*100)+'%"></u><span>'+n+' / '+U.at+' карт</span></div><p class="cln">Открой ещё <b>'+Math.max(0,U.at-n)+'</b> '+plural(Math.max(0,U.at-n),"карточку","карточки","карточек")+' — и раздел откроется с подарком 🎁 +'+U.gift+' прокрутки</p><button type="button" class="craftbtn" id="unl-go">🎴 Крутить</button></div>';
+ $("unl-go").onclick=()=>{closeModal();setTab("spin")}}
+function unlApply(){if(!S)return;const on=unlOn();UNLOCKS.forEach(U=>U.tabs.forEach(id=>{const b=$(id);if(!b)return;const lk=on&&(S.nOp||0)<U.at;b.classList.toggle("lk",lk);
+  const nw=on&&!lk&&!(S.unl||{})[U.k];b.classList.toggle("unl-new",nw)}));
+ if(!on)return;const R=UNLOCKS.find(U=>(S.nOp||0)>=U.at&&!(S.unl||{})[U.k]);if(R&&$("modal").hidden&&!unlApply.shown&&!$("tut")&&!$("nks")&&!$("sbg")){unlApply.shown=R.k;unlParty(R)}}
+function unlParty(U){const m=$("modal"),sh=$("msheet");if(!m.hidden){unlApply.shown=0;return}m.hidden=false;try{sfx.fanfare();burst(4);hapN("success")}catch(e){}
+ sh.innerHTML='<div class="box nickbox unlbox party"><div class="unl-ic">🎉'+U.ic+'</div><h3>Открыт новый раздел: '+U.n+'!</h3><p class="cln">'+U.d+'</p><button type="button" class="craftbtn" id="unl-take">🎁 Забрать +'+U.gift+' прокрутки и открыть</button></div>';
+ $("unl-take").onclick=async()=>{const r=await act("unl_claim",{k:U.k});unlApply.shown=0;closeModal();if(r){toast("🎁 +"+r.sp+" прокруток!");renderAll()}const t=$(U.tabs[0]);if(t)setTimeout(()=>t.click(),150)}}
+window.addEventListener("click",e=>{if(!S||!unlOn())return;const t=e.target.closest&&e.target.closest("nav.tabs button");if(t){const U=unlOfTab(t.id);if(U&&unlLocked(U.k)){e.preventDefault();e.stopImmediatePropagation();hap("light");unlTease(U)}}},true);
+{const _mg=menuGo;menuGo=function(k){const U=unlOfMenu(k);if(U&&unlLocked(U.k)){try{menuClose()}catch(e){}return unlTease(U)}return _mg.apply(this,arguments)}}
+{const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{unlApply()}catch(e){}return r}}
+{const SEC={duel:"fight",camp:"fight",conq:"fight",clan:"clan",dragon:"dragon",cas:"cas"};const blk=k=>{if(k&&unlLocked(k)){unlTease(UNLOCKS.find(x=>x.k===k));return true}return false};
+ const _st=setTab;setTab=function(t){if(blk(SEC[t]))return;return _st.apply(this,arguments)};
+ [["openMap","map"],["openCas","cas"],["openCamp","fight"]].forEach(([f,k])=>{const o=window[f];if(typeof o!=="function")return;window[f]=function(){if(blk(k))return;return o.apply(this,arguments)}})}

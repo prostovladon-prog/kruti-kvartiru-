@@ -3228,6 +3228,7 @@ async function handle(req,env){{
       if(a==="stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await adminStats(env),S:await stateFor(env,me)})}
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
       if(!ACTIONS[a])fail("Неизвестное действие");
+      if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
       const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);
       if(a==="open_multi"&&r.res&&r.res.cards&&r.res.cards.some(c=>c.h===THOR))r.res.card=r.res.cards.find(c=>c.h===THOR);
