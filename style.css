@@ -3573,3 +3573,5 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .ev-tr>.vhstrip{flex:0 0 calc(100% - 24px)!important;width:calc(100% - 24px)!important;margin:0 12px!important;padding:10px 14px!important;border-radius:18px!important;box-sizing:border-box}
 .ev-tr>.vhstrip i{font-size:30px!important}.ev-tr>.vhstrip b{font-size:16px!important}
 .ev-tr>.vhstrip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ev-tr>.vhstrip b{white-space:nowrap}
+
+.tk-caps>div{display:flex;justify-content:space-between;align-items:center}.tk-caps>div.full small{color:#ff5a3a;font-weight:900}

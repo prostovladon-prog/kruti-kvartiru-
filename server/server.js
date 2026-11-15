@@ -763,7 +763,8 @@ async function roomFinish(env,r){
   if(r.mode&&w!==l){const win=w>l?r.host:r.guest,lose=w>l?r.guest:r.host,card=w>l?gc.id:hc.id;
     await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL").bind(win,card,lose).run()}
   for(const [uid,id,res] of [[r.host,hc.id,hres],[r.guest,gc.id,gres]])
-    try{await doAction(env,{id:uid,name:await nameOf(env,uid)},"pvp_result",{id,res},{pvp:true});dtopLast.delete(uid);await dtopAdd(env,"fight",uid,1)}catch(e){console.error("pvp_result",e)}
+    {try{await doAction(env,{id:uid,name:await nameOf(env,uid)},"pvp_result",{id,res},{pvp:true});dtopLast.delete(uid);await dtopAdd(env,"fight",uid,1)}catch(e){console.error("pvp_result",e)}
+     try{await tkAct(env,uid,"duel",r.mode?3:2)}catch(e){}}
   topCache={};
 }
 function roomView(r,uid){
@@ -1579,7 +1580,7 @@ const uidOf=x=>{const n=Math.floor(Number(x));return Number.isSafeInteger(n)&&n>
 const TK={id:"tk1115",start:Date.UTC(2026,10,15,5,0),end:Date.UTC(2026,10,15,19,0),min:0,
   act:{open:1,open_multi:"n",duel:2,fduel:2,conq_fight:2,dga_fight:2,war_attack:3,map_attack:2,roc_bet:1,cas_slot:1,cas_mn_go:1,cas_hl_go:1,cas_case:1,emp_trib:5,hof_claim:2,luck_buy:3,rk:3},
   grp:{duel:"fight",fduel:"fight",conq_fight:"fight",dga_fight:"fight",roc_bet:"cas",cas_slot:"cas",cas_mn_go:"cas",cas_hl_go:"cas",cas_case:"cas",war_attack:"war",map_attack:"map",hof_claim:"hof",rk:"rk"},
-  cap:{fight:80,cas:40,war:30,map:30,hof:6,rk:60},
+  cap:{fight:200,cas:120,war:60,map:60,hof:6,rk:120},capN:{fight:"⚔️ Бои и арена",cas:"🎰 Казино",war:"🏰 Война армий",map:"🗺 Атаки на карте",hof:"🏛 Зал славы",rk:"🏆 Рейтинг"},
   prizes:[{stars:300,gift:["crown","egg","feather"],n:"300 ⭐ + 👑 Корона Эпох"},{stars:200,gift:["feather","ring","hourglass"],n:"200 ⭐ + 🪶 Перо феникса"},{stars:100,gift:["dragon","horn","lamp"],n:"100 ⭐ + 🐉 Дракончик"}]};
 const TKREQ=new WeakMap(),tkLive=t=>!!TK.force||t>=TK.start&&t<TK.end;
 async function tkAdd(env,uid,n,ping){const now=Date.now();if(!tkLive(now)||!(n>0))return;
@@ -1594,7 +1595,8 @@ async function tkTop(env){const now=Date.now();if(TKC.v&&now-TKC.t<5e3)return TK
 async function tkPing(env,me,p){const now=Date.now();let my=await env.DB.prepare("SELECT n,lp FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first();let got=0;
   if(p.act&&tkLive(now)&&(!my||now-(my.lp||0)>=55e3)){await tkAdd(env,me.id,TK.min,1);got=TK.min;my=await env.DB.prepare("SELECT n,lp FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first()}
   const n=my?my.n:0,rank=n?((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk WHERE cid=? AND n>?").bind(TK.id,n).first()).c+1):0,cnt=((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk WHERE cid=?").bind(TK.id).first())||{}).c||0;
-  const fin=await kvGet(env,"tkfin:"+TK.id);return {id:TK.id,start:TK.start,end:TK.end,now,n,rank,cnt,got,top:(await tkTop(env)).map(x=>({uid:x.uid,n:x.n,name:x.name||"Игрок",ava:x.ava==null?null:+x.ava,me:x.uid===me.id?1:0})),prizes:TK.prizes.map(x=>x.n),act:TK.act,fin:fin||null}}
+  const fin=await kvGet(env,"tkfin:"+TK.id);return {id:TK.id,start:TK.start,end:TK.end,now,n,rank,cnt,got,top:(await tkTop(env)).map(x=>({uid:x.uid,n:x.n,name:x.name||"Игрок",ava:x.ava==null?null:+x.ava,me:x.uid===me.id?1:0})),prizes:TK.prizes.map(x=>x.n),act:TK.act,fin:fin||null,
+    caps:await (async()=>{const R=(await env.DB.prepare("SELECT k,n FROM tk_k WHERE cid=? AND uid=?").bind(TK.id,me.id).all()).results,M={};R.forEach(r=>M[r.k]=r.n);return Object.keys(TK.cap).map(k=>({k,n:TK.capN[k],have:M[k]||0,cap:TK.cap[k]}))})()}}
 async function tkFinish(env){const now=env.TK_FIN?TK.end+1:Date.now();if(now<TK.end||now>TK.end+3*864e5)return;const k="tkfin:"+TK.id;if(await kvGet(env,k))return;
   const top=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name) AS name FROM tk t LEFT JOIN users u ON u.id=t.uid WHERE t.cid=? ORDER BY t.n DESC,t.t ASC LIMIT 3").bind(TK.id).all()).results;
   await kvSet(env,k,{w:top.map((x,i)=>({name:x.name||"Игрок",n:x.n,prize:TK.prizes[i].n})),t:now});
