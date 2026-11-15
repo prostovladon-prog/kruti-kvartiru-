@@ -4425,7 +4425,11 @@ async function eveBonus(env,me){const u=await env.DB.prepare("SELECT created,ref
 const CDV={id:"cdv_1511",at:Date.UTC(2026,10,15,17,55),until:Date.UTC(2026,10,15,21,0),photo:"assets/post-cardday.jpg",btn:"⚔️ Голосовать в игре",link:"",
  chan:"🃏 ДЕЛАЕМ «КАРТУ ДНЯ»?\n\nРешаете вы! Голосуйте в опросе ниже 👇\nили пишите «да» / «нет» в чате игры 💬\n\n👉 @VoinyEpohBot",
  dm:"🃏 Делаем в игре «Карту дня»?\n\nРешаете вы! Напиши «да» или «нет» в чате игры 💬 (Ещё → Чат)\nили проголосуй в опросе в нашем канале @voinyepoh"};
-async function cdvTick(env){const now=Date.now();if(now<CDV.at||now>CDV.until)return;
+/* 15.11 карты дня Наполеон + Банда: пост с фото в канал + рассылка в бота */
+const DCB={id:"dcb_1511",at:Date.UTC(2026,10,15,18,25),until:Date.UTC(2026,10,15,21,30),photo:"assets/post-dc1511.jpg",btn:"🎰 Забрать карту дня",link:"",
+ chan:"❗ КАРТЫ ДНЯ — ОШИБКА ПЕЧАТИ!\n\n🎩 НАПОЛЕОН — пушка стреляет, ядро летит прямо по карточке\n⭐ 2500 или выбей в Особом прокруте\n\n💀 БАНДА — Баба Яга, Кощей и Дракула вместе (Дракула кусается!)\n⭐ 3500 · самая редкая, шанс 0,1%\n\nВсего по 2 штуки каждой: одну покупает самый быстрый, вторую выбивают.\n⏰ Только сегодня до 01:00 · шанс постоянный весь вечер — ждать конца бесполезно!\n\n👉 @VoinyEpohBot",
+ dm:"❗ Карты дня — Ошибка печати, только до 01:00!\n\n🎩 Наполеон — ⭐ 2500 или выбей в Особом прокруте\n💀 Банда (Баба Яга + Кощей + Дракула) — ⭐ 3500, шанс 0,1%\n\nВсего по 2 штуки. Шанс одинаковый весь вечер — не жди, крути сейчас!"};
+async function cdvTick(env){{const n=Date.now();if(n>=DCB.at&&n<DCB.until)await blastRun(env,DCB)}const now=Date.now();if(now<CDV.at||now>CDV.until)return;
   const f=(await kvGet(env,"cdv_1511"))||{};
   if(!f.pin){await kvSet(env,"chat_pin",{id:0,name:"Администрация",text:"🃏 Делаем «Карту дня»? Пишите в чат «да» или «нет» — решаете вы!",t:now,until:CDV.until});delete topCache.chatpin;f.pin=1;await kvSet(env,"cdv_1511",f)}
   await blastRun(env,CDV);
