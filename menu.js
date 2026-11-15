@@ -1057,8 +1057,8 @@ setInterval(()=>{try{luckBadge();const t=$("lk-t");if(t&&S)t.textContent=tleft(S
 function hofOpen(pick){const m=$("modal"),sh=$("msheet");m.hidden=false;const C=S.cards||[],ids=S.hof||[],slots=hofSlots(S,S.cards),L=S.hofL||0,rate=hofRate(S,C),coll=hofColl(C),
     acc=Math.floor(rate*Math.min(HOF.cap,Math.max(0,NOW()-(S.hofAt||NOW())))/36e5),byId={};C.forEach(c=>byId[c.id]=c);
   if(pick){const sel=new Set(ids.filter(i=>byId[i])),top=C.slice().sort((a,b)=>(b.v||0)-(a.v||0)).slice(0,60);
-    sh.innerHTML='<div class="box nickbox hofbox"><h3>🏛 Выбери карты для зала</h3><p class="cln">Мест: '+slots+'. Каждая карта приносит 0,5% своей цены в час (до 12 ч). Ставь самые дорогие!</p><div class="hof-pick" id="hof-pk">'+
-      top.map(c=>'<button type="button" data-id="'+c.id+'" class="'+(sel.has(c.id)?"on":"")+'">'+miniSlot(c)+'<small>+'+fmtN(Math.round((c.v||0)*HOF.rate*10)/10)+'/ч</small></button>').join("")+'</div>'+
+    sh.innerHTML='<div class="box nickbox hofbox"><h3>🏛 Выбери карты для зала</h3><p class="cln">Мест: '+slots+'. Карта приносит до 0,5% цены в час (до 12 ч): с дорогих карт процент меньше — 0,25% / 0,1% / 0,05%.</p><div class="hof-pick" id="hof-pk">'+
+      top.map(c=>'<button type="button" data-id="'+c.id+'" class="'+(sel.has(c.id)?"on":"")+'">'+miniSlot(c)+'<small>+'+fmtN(Math.round(hofCard(c.v)*10)/10)+'/ч</small></button>').join("")+'</div>'+
       '<button type="button" class="craftbtn" id="hof-ok">Сохранить</button><button type="button" class="ghost" id="hof-back">Назад</button></div>';
     try{hydrate(sh)}catch(e){}
     $("hof-pk").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;const id=+b.dataset.id;if(sel.has(id)){sel.delete(id);b.classList.remove("on")}else{if(sel.size>=slots){toast("Все "+slots+" места заняты — убери карту или купи место");return}sel.add(id);b.classList.add("on")}hap("light")};
