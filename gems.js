@@ -457,25 +457,59 @@ window.addEventListener("click",e=>{if(!S||!unlOn())return;const t=e.target.clos
  const _st=setTab;setTab=function(t){if(blk(SEC[t]))return;return _st.apply(this,arguments)};
  [["openMap","map"],["openCas","cas"],["openCamp","fight"]].forEach(([f,k])=>{const o=window[f];if(typeof o!=="function")return;window[f]=function(){if(blk(k))return;return o.apply(this,arguments)}})}
 
-/* 🐸 Карта дня 15.11: «Царевна-Лягушка» — прыгает по кувшинке, корона крутится; стрела царевича в кувшинке */
-DETAILED["Царевна-Лягушка"]=id=>{const u="frg"+String(id).replace(/[^a-z0-9_]/gi,""),R='dur="1.6s" repeatCount="indefinite"';let st="";for(let i=0;i<12;i++){const x=(i*41+9)%200,y=(i*29+5)%90;st+='<circle cx="'+x+'" cy="'+y+'" r="'+(i%3?.8:1.3)+'" fill="#fffbe0"><animate attributeName="opacity" values=".15;1;.15" dur="'+(1.4+i%4*.5)+'s" repeatCount="indefinite"/></circle>'}
- return '<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><radialGradient id="'+u+'b" cx=".5" cy=".3"><stop offset="0" stop-color="#2f6b5a"/><stop offset="1" stop-color="#0b1f24"/></radialGradient><linearGradient id="'+u+'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#c47a12"/></linearGradient><radialGradient id="'+u+'f" cx=".4" cy=".35"><stop offset="0" stop-color="#9be15d"/><stop offset="1" stop-color="#2f8f3a"/></radialGradient></defs>'+
- '<rect width="200" height="200" fill="url(#'+u+'b)"/>'+st+'<circle cx="160" cy="34" r="16" fill="#fff2b0" opacity=".9"/>'+
- '<path d="M0 150 Q50 136 100 146 T200 142 V200 H0Z" fill="#0f3a3a"/><path d="M0 162 Q60 152 120 160 T200 158" stroke="#5fd4c4" stroke-width="1.5" fill="none" opacity=".5"><animate attributeName="d" values="M0 162 Q60 152 120 160 T200 158;M0 160 Q60 166 120 156 T200 162;M0 162 Q60 152 120 160 T200 158" dur="3s" repeatCount="indefinite"/></path>'+
- '<g transform="translate(150 152)"><ellipse rx="34" ry="9" fill="#3fa34d" stroke="#14301a" stroke-width="2.5"/><path d="M0 0 L30 -6" stroke="#14301a" stroke-width="2"/><circle cx="-14" cy="-6" r="4" fill="#ff8fb1"/></g>'+
- '<g transform="translate(150 146) rotate(-30)"><rect x="-2" y="-46" width="4" height="46" fill="#8a5a2b" stroke="#2a1400" stroke-width="1.5"/><path d="M-6 -46 L0 -58 L6 -46Z" fill="url(#'+u+'g)" stroke="#2a1400" stroke-width="1.5"/><path d="M-6 -4 L-2 -12 M6 -4 L2 -12" stroke="#d94a4a" stroke-width="3"/></g>'+
- '<ellipse cx="80" cy="164" rx="48" ry="12" fill="#3fa34d" stroke="#14301a" stroke-width="3"/><ellipse cx="80" cy="166" rx="30" ry="5" fill="#000" opacity=".25"><animate attributeName="rx" values="30;18;30" '+R+'/></ellipse>'+
- '<g><animateTransform attributeName="transform" type="translate" values="0 0;0 -38;0 0;0 0" keyTimes="0;.4;.75;1" '+R+'/>'+
-  '<g transform="translate(80 140)"><animateTransform attributeName="transform" type="scale" additive="sum" values="1.08 .9;.94 1.08;1.08 .9;1.08 .9" keyTimes="0;.4;.75;1" '+R+'/>'+
-  '<path d="M-36 12 Q-44 -2 -30 -6 L-20 4Z M36 12 Q44 -2 30 -6 L20 4Z" fill="#2f8f3a" stroke="#14301a" stroke-width="3" stroke-linejoin="round"/>'+
-  '<ellipse cx="0" cy="0" rx="34" ry="24" fill="url(#'+u+'f)" stroke="#14301a" stroke-width="3.5"/><ellipse cx="0" cy="8" rx="20" ry="12" fill="#e9f7b0" stroke="#14301a" stroke-width="2"/>'+
-  '<circle cx="-15" cy="-20" r="11" fill="url(#'+u+'f)" stroke="#14301a" stroke-width="3.5"/><circle cx="15" cy="-20" r="11" fill="url(#'+u+'f)" stroke="#14301a" stroke-width="3.5"/>'+
-  '<circle cx="-15" cy="-20" r="6" fill="#fff"/><circle cx="15" cy="-20" r="6" fill="#fff"/><circle cx="-14" cy="-19" r="3.4" fill="#111"/><circle cx="16" cy="-19" r="3.4" fill="#111"/>'+
-  '<path d="M-14 2 Q0 12 14 2" stroke="#14301a" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="-24" cy="-2" r="4" fill="#ff8fb1" opacity=".7"/><circle cx="24" cy="-2" r="4" fill="#ff8fb1" opacity=".7"/>'+
-  '<g transform="translate(0 -38)"><g><animateTransform attributeName="transform" type="scale" values="1 1;-1 1;1 1" dur="1.2s" repeatCount="indefinite"/>'+
-   '<path d="M-16 8 L-18 -10 L-8 -2 L0 -16 L8 -2 L18 -10 L16 8Z" fill="url(#'+u+'g)" stroke="#2a1400" stroke-width="2.5" stroke-linejoin="round"/><circle cx="0" cy="-16" r="3" fill="#ff2e63"/><circle cx="-18" cy="-10" r="2.2" fill="#3fd2ff"/><circle cx="18" cy="-10" r="2.2" fill="#3fd2ff"/><rect x="-16" y="3" width="32" height="5" rx="2" fill="#c47a12"/></g>'+
-   '<path d="M-22 -18 l3 -3 M24 -16 l3 -4 M0 -26 v-4" stroke="#fff6c8" stroke-width="2" stroke-linecap="round"><animate attributeName="opacity" values="0;1;0" dur="1.2s" repeatCount="indefinite"/></path></g>'+
- '</g></g></svg>'};
+/* 🎩 Карта дня 15.11: «Наполеон» — пушка стреляет, ядро летит через небо и взрывается; флаг развевается */
+DETAILED["Наполеон"]=id=>{const u="nap"+String(id).replace(/[^a-z0-9_]/gi,""),D='dur="2.4s" repeatCount="indefinite"',I='#1a1020';
+ return '<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><linearGradient id="'+u+'s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2a6e"/><stop offset=".45" stop-color="#d9603a"/><stop offset=".75" stop-color="#ffb35c"/><stop offset="1" stop-color="#5a2a2a"/></linearGradient>'+
+  '<linearGradient id="'+u+'b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset=".5" stop-color="#d9993a"/><stop offset="1" stop-color="#6a3c10"/></linearGradient><linearGradient id="'+u+'c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c4596"/><stop offset="1" stop-color="#121d4a"/></linearGradient>'+
+  '<radialGradient id="'+u+'x"><stop offset="0" stop-color="#fff7c0"/><stop offset=".4" stop-color="#ffb02e"/><stop offset="1" stop-color="#ff3d1e" stop-opacity="0"/></radialGradient><radialGradient id="'+u+'f" cx=".45" cy=".4"><stop offset="0" stop-color="#ffe0bf"/><stop offset="1" stop-color="#e9b58c"/></radialGradient></defs>'+
+  '<rect width="200" height="200" fill="url(#'+u+'s)"/><circle cx="40" cy="92" r="20" fill="#fff0a8" opacity=".55"/>'+
+  '<path d="M0 118 Q40 100 80 112 T160 104 T200 110 V200 H0Z" fill="#3b2240"/><path d="M0 134 Q60 120 120 130 T200 126 V200 H0Z" fill="#26142e"/>'+
+  /* флаг Франции */
+  '<g transform="translate(150 44)"><rect x="-1.5" y="0" width="3" height="80" fill="#5a3a1a" stroke="'+I+'" stroke-width="1.5"/><circle cy="-2" r="3" fill="url(#'+u+'b)"/>'+
+   '<g><path d="M1.5 2 Q12 -2 22 3 T44 3 V27 Q34 22 22 27 T1.5 26Z" fill="#fff" stroke="'+I+'" stroke-width="2"><animate attributeName="d" values="M1.5 2 Q12 -2 22 3 T44 3 V27 Q34 22 22 27 T1.5 26Z;M1.5 2 Q12 7 22 2 T44 6 V30 Q34 31 22 25 T1.5 26Z;M1.5 2 Q12 -2 22 3 T44 3 V27 Q34 22 22 27 T1.5 26Z" dur="1.8s" repeatCount="indefinite"/></path>'+
+   '<path d="M1.5 2 Q8 -.5 14.5 1 V25.5 Q8 25 1.5 26Z" fill="#2c4596"/><path d="M30 2.5 Q37 4 44 3 V27 Q37 24 30 26Z" fill="#d6283c"><animate attributeName="d" values="M30 2.5 Q37 4 44 3 V27 Q37 24 30 26Z;M30 4 Q37 6 44 6 V30 Q37 30 30 27Z;M30 2.5 Q37 4 44 3 V27 Q37 24 30 26Z" dur="1.8s" repeatCount="indefinite"/></path></g></g>'+
+  /* дым боя */
+  '<g opacity=".28" fill="#f0e2da"><g><animateTransform attributeName="transform" type="translate" values="-8 0;10 -2;-8 0" dur="9s" repeatCount="indefinite"/><circle cx="14" cy="110" r="8"/><circle cx="24" cy="106" r="10"/><circle cx="34" cy="111" r="7"/></g><g><animateTransform attributeName="transform" type="translate" values="6 0;-10 -2;6 0" dur="11s" repeatCount="indefinite"/><circle cx="172" cy="116" r="8"/><circle cx="182" cy="111" r="10"/><circle cx="192" cy="117" r="7"/></g></g>'+
+  /* Наполеон */
+  '<g transform="translate(96 0)">'+
+   '<path d="M-44 150 Q-42 116 -14 108 L14 108 Q42 116 44 150Z" fill="url(#'+u+'c)" stroke="'+I+'" stroke-width="3" stroke-linejoin="round"/>'+
+   '<path d="M-12 108 L0 140 L12 108Z" fill="#f4f1ea" stroke="'+I+'" stroke-width="2.5" stroke-linejoin="round"/><path d="M-6 122 h12 M-4 130 h8" stroke="#c9c2b4" stroke-width="1.5"/>'+
+   '<circle cx="-8" cy="126" r="1.8" fill="url(#'+u+'b)"/><circle cx="-8" cy="134" r="1.8" fill="url(#'+u+'b)"/>'+
+   '<path d="M-38 116 Q-30 108 -20 112 L-22 120 Q-32 118 -38 124Z M38 116 Q30 108 20 112 L22 120 Q32 118 38 124Z" fill="url(#'+u+'b)" stroke="'+I+'" stroke-width="2.5" stroke-linejoin="round"/>'+
+   '<path d="M-37 124 v7 M-33 121 v8 M-29 120 v8 M37 124 v7 M33 121 v8 M29 120 v8" stroke="#ffd25a" stroke-width="2" stroke-linecap="round"/>'+
+   '<path d="M-16 100 Q0 112 16 100 L17 110 Q0 118 -17 110Z" fill="#b3122e" stroke="'+I+'" stroke-width="2.5" stroke-linejoin="round"/><path d="M-15 104 Q0 113 15 104" stroke="#ffd25a" stroke-width="1.6" fill="none"/>'+
+   '<path d="M-8 92 h16 v12 h-16Z" fill="url(#'+u+'f)" stroke="'+I+'" stroke-width="2.5"/>'+
+   '<ellipse cx="-17" cy="78" rx="4" ry="6" fill="url(#'+u+'f)" stroke="'+I+'" stroke-width="2.5"/><ellipse cx="17" cy="78" rx="4" ry="6" fill="url(#'+u+'f)" stroke="'+I+'" stroke-width="2.5"/>'+
+   '<ellipse cx="0" cy="77" rx="17" ry="20" fill="url(#'+u+'f)" stroke="'+I+'" stroke-width="3"/>'+
+   '<path d="M-14 62 Q-6 58 2 64 Q-4 66 -2 72 Q-8 66 -14 70Z" fill="#3a2414" stroke="'+I+'" stroke-width="2" stroke-linejoin="round"/>'+
+   '<path d="M-11 72 l7 2 M11 72 l-7 2" stroke="'+I+'" stroke-width="3" stroke-linecap="round"/>'+
+   '<ellipse cx="-7" cy="78" rx="2.3" ry="2.6" fill="'+I+'"/><ellipse cx="7" cy="78" rx="2.3" ry="2.6" fill="'+I+'"/><circle cx="-6.2" cy="77" r=".8" fill="#fff"/><circle cx="7.8" cy="77" r=".8" fill="#fff"/>'+
+   '<path d="M0 79 Q-3 85 1 87" stroke="#b07a55" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M-6 91 Q0 89 6 91" stroke="'+I+'" stroke-width="2.6" fill="none" stroke-linecap="round"/>'+
+   '<path d="M-14 84 Q-12 92 -6 95" stroke="#d99a72" stroke-width="2" fill="none" opacity=".7"/>'+
+   /* двууголка */
+   '<path d="M-46 66 Q-30 34 0 32 Q30 34 46 66 Q24 56 0 58 Q-24 56 -46 66Z" fill="#141018" stroke="'+I+'" stroke-width="3" stroke-linejoin="round"/>'+
+   '<path d="M-44 64 Q-24 54 0 56 Q24 54 44 64" stroke="url(#'+u+'b)" stroke-width="2.5" fill="none"/>'+
+   '<path d="M-30 46 Q-14 38 -4 40" stroke="#fff" stroke-width="2" fill="none" opacity=".35" stroke-linecap="round"/>'+
+   '<g transform="translate(16 48)"><circle r="7.5" fill="#2c4596" stroke="'+I+'" stroke-width="2"/><circle r="5" fill="#fff"/><circle r="2.6" fill="#d6283c"/></g>'+
+  '</g>'+
+  /* пушка: отдача при выстреле */
+  '<g><animateTransform attributeName="transform" type="translate" values="0 0;-5 2;0 0;0 0" keyTimes="0;.05;.22;1" '+D+'/>'+
+   '<g transform="translate(46 116) rotate(-28)"><path d="M-22 -9 L26 -6 L26 6 L-22 9 Q-30 0 -22 -9Z" fill="url(#'+u+'b)" stroke="'+I+'" stroke-width="3" stroke-linejoin="round"/>'+
+    '<rect x="22" y="-8" width="6" height="16" rx="2" fill="url(#'+u+'b)" stroke="'+I+'" stroke-width="2.5"/><path d="M-6 -8 v16 M8 -7 v14" stroke="#6a3c10" stroke-width="2"/><circle cx="-28" cy="0" r="4" fill="url(#'+u+'b)" stroke="'+I+'" stroke-width="2"/></g>'+
+   '<path d="M20 140 L40 120 L60 132 L52 142Z" fill="#5a3a1a" stroke="'+I+'" stroke-width="2.5" stroke-linejoin="round"/>'+
+   '<g transform="translate(40 136)"><circle r="12" fill="none" stroke="#5a3a1a" stroke-width="4"/><circle r="12" fill="none" stroke="'+I+'" stroke-width="1.5"/><path d="M-11 0 H11 M0 -11 V11 M-8 -8 L8 8 M-8 8 L8 -8" stroke="#5a3a1a" stroke-width="2.4"/><circle r="3" fill="url(#'+u+'b)" stroke="'+I+'" stroke-width="1.5"/></g></g>'+
+  /* вспышка и дым у дула */
+  '<g transform="translate(73 100)"><circle r="0" fill="url(#'+u+'x)"><animate attributeName="r" values="0;16;6;0;0" keyTimes="0;.04;.12;.18;1" '+D+'/></circle>'+
+   '<path d="M0 -12 L3 -3 L13 -5 L5 2 L10 11 L0 5 L-6 12 L-4 2 L-12 -2 L-3 -4Z" fill="#fff4a0" opacity="0"><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;.03;.12;1" '+D+'/></path>'+
+   '<circle r="4" fill="#d8ccc4" opacity="0"><animate attributeName="r" values="4;4;16;22" keyTimes="0;.06;.5;1" '+D+'/><animate attributeName="opacity" values="0;.8;.35;0" keyTimes="0;.06;.5;1" '+D+'/><animate attributeName="cy" values="0;0;-10;-16" keyTimes="0;.06;.5;1" '+D+'/></circle></g>'+
+  /* ядро летит по дуге */
+  '<g opacity="0"><animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;.04;.56;.6;1" '+D+'/>'+
+   '<animateMotion path="M74 98 Q120 4 182 52" keyPoints="0;0;1;1" keyTimes="0;.04;.6;1" calcMode="linear" '+D+'/>'+
+   '<circle r="5.5" fill="#2a2430" stroke="'+I+'" stroke-width="1.5"/><circle cx="-1.8" cy="-1.8" r="1.6" fill="#8a8494"/><path d="M-6 3 Q-14 8 -22 9" stroke="#ffb02e" stroke-width="2.5" fill="none" opacity=".75" stroke-linecap="round"/></g>'+
+  /* взрыв */
+  '<g transform="translate(182 52)"><circle r="0" fill="url(#'+u+'x)"><animate attributeName="r" values="0;0;20;26;0" keyTimes="0;.58;.66;.8;.82" '+D+'/></circle>'+
+   '<path d="M0 -16 L4 -5 L16 -8 L7 2 L13 14 L0 7 L-9 15 L-6 3 L-16 -2 L-4 -5Z" fill="#fff4a0" opacity="0"><animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;.58;.63;.75;1" '+D+'/><animateTransform attributeName="transform" type="scale" values="0;0;1.2;1.5;0" keyTimes="0;.58;.66;.78;.8" '+D+'/></path></g>'+
+ '</svg>'};
 /* 💀 Карта дня 15.11: «Банда» — Баба Яга, Кощей и Дракула вместе. Дракула кусается, Кощей крутит иглу */
 DETAILED["Банда"]=id=>{const u="bnd"+String(id).replace(/[^a-z0-9_]/gi,""),hx=n=>{for(let i=HEROES.length-1;i>=0;i--)if(HEROES[i][0]===n)return i;return -1},
  P=(n,x,y,s)=>{const h=hx(n);if(h<0||!DETAILED[n])return "";const k=u+"c"+x;return '<clipPath id="'+k+'"><rect x="'+x+'" y="'+y+'" width="'+s+'" height="'+s+'" rx="'+(s/7)+'"/></clipPath><g clip-path="url(#'+k+')"><g transform="translate('+x+' '+y+') scale('+(s/200)+')">'+DETAILED[n](u+"_"+x).trim().replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"")+'</g></g><rect x="'+x+'" y="'+y+'" width="'+s+'" height="'+s+'" rx="'+(s/7)+'" fill="none" stroke="url(#'+u+'g)" stroke-width="3"/>'};
