@@ -1409,6 +1409,7 @@ async function promoApi(env,me,a,p){const now=Date.now();
     if(/^РЕФ/.test(code)){const w=await env.DB.prepare("SELECT uid FROM rf_spin WHERE code=?").bind(code).first();if(!w||w.uid!==me.id)fail("Это личный промокод из реф-слота — активировать его может только тот, кто выиграл")}if(P.until&&now>P.until)fail("Срок промокода закончился");
     if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
     if(code===SUN.code){const uu=await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nOp'),0) AS n FROM users WHERE id=?").bind(me.id).first();if(!uu||uu.n<10)fail("Промокод ВОСКРЕСЕНЬЕ сработает, когда откроешь 10 карточек — у тебя "+((uu&&uu.n)||0))}
+    if(code===EVE.code){const uu=await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nOp'),0) AS n FROM users WHERE id=?").bind(me.id).first();if(!uu||uu.n<10)fail("Промокод ВЕЧЕРНИЙ сработает, когда откроешь 10 карточек — у тебя "+((uu&&uu.n)||0))}
     if(code===UPV.code){const uu=await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nOp'),0) AS n FROM users WHERE id=?").bind(me.id).first();if(!uu||uu.n<10)fail("Промокод ОБНОВА сработает, когда откроешь 10 карточек — у тебя "+((uu&&uu.n)||0))}
     const r=await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t) VALUES(?,?,?)").bind(code,me.id,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже активировал этот промокод");
     /* одновременная активация одного кода двумя людьми: кто не влез в лимит — откатываем */
@@ -1419,6 +1420,7 @@ async function promoApi(env,me,a,p){const now=Date.now();
     let st=0,gift=null,chest=null;if(P.st){st=P.st;await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(st,me.id).run()}
     if(P.gift){for(const k of RF.gifts){try{const g=await giftMint(env,me.id,k,"prize");if(g){gift=GIFTS[k].n;break}}catch(e){}}if(!gift){st+=50;await env.DB.prepare("UPDATE users SET star_bal=star_bal+50 WHERE id=?").bind(me.id).run()}}
     if(P.chest){try{await doAction(env,me,"grant",{item:P.chest,pid:"pc:"+code},{grant:true});chest=SHOP[P.chest].n}catch(e){}}
+    if(code===EVE.code)try{st+=await eveBonus(env,me)}catch(e){console.error("eve",e&&e.message)}
     return {code,sp:P.sp,cash:P.cash,x2:P.x2||0,bon:P.bon||0,bmin:P.bmin||0,until:P.until||0,st,gift,chest}}
   if(a==="promo_x2"){const L=await bonList(env,me.id);return {x2:await x2Left(env,me.id),bon:L.length?L[0].bon:0,bons:L}}
   if(!isAdmin(env,me.id))fail("Нет доступа");
@@ -2985,10 +2987,22 @@ let pl250Ok=0;async function pl250Tick(env){const now=Date.now();if(now<PL250.at
 const SUN={id:"sun_1511",at:Date.UTC(2026,10,15,9,55),until:Date.UTC(2026,10,15,13,0),code:"ВОСКРЕСЕНЬЕ",codeUntil:Date.UTC(2026,10,15,20,59),photo:"assets/post-sun.jpg",btn:"🎁 Забрать промокод",link:"",
  chan:"☀️ ВОСКРЕСНЫЙ ПРОМОКОД!\n\n🎟 ВОСКРЕСЕНЬЕ\n🎴 20 прокруток + 🪙 5 000 монет\n⚡ Только ПЕРВЫЕ 30 — кто быстрее!\n\n@VoinyEpohBot → Ещё → Промокод → ВОСКРЕСЕНЬЕ\n(нужно открыть хотя бы 10 карточек)\n\n🎰 И не забудь: в игре идёт беспроигрышная ЛОТЕРЕЯ на звёзды — весь банк в 22:00 забирает один билет, остальным сундуки!\n👉 @VoinyEpohBot",
  dm:"☀️ Воскресный промокод: ВОСКРЕСЕНЬЕ\n🎴 20 прокруток + 🪙 5 000 монет — только первым 30!\n\nЕщё → Промокод → ВОСКРЕСЕНЬЕ\n\n🎰 А ещё сегодня беспроигрышная лотерея на звёзды: банк в 22:00 забирает один билет, остальным — сундуки."};
+/* 15.11 вечер: промокод ВЕЧЕРНИЙ — 30 прокруток всем; новичкам (зарег. с 17:00 Минск) ещё +35 ⭐; пригласившему такого новичка +20 ⭐ (до 10 друзей). Нужно 10+ открытых карт */
+const EVE={id:"eve_1511",at:Date.UTC(2026,10,15,14,55),until:Date.UTC(2026,10,15,18,0),code:"ВЕЧЕРНИЙ",codeUntil:Date.UTC(2026,10,16,20,59),newFrom:Date.UTC(2026,10,15,14,0),newSt:35,refSt:20,refMax:10,photo:"assets/post-eve.jpg",btn:"🎁 Забрать промокод",link:"",
+ chan:"🌙 ВЕЧЕРНИЙ ПРОМОКОД!\n\n🎟 ВЕЧЕРНИЙ\n🎴 30 прокруток — каждому, кто введёт!\n🆕 Новичкам: 30 прокруток + 35 ⭐\n👥 Позови друга — когда он введёт ВЕЧЕРНИЙ, тебе +20 ⭐ в подарок!\n\n@VoinyEpohBot → Ещё → Промокод → ВЕЧЕРНИЙ\n(нужно открыть хотя бы 10 карточек · действует до 23:59 завтра)\n👉 @VoinyEpohBot",
+ dm:"🌙 Вечерний промокод: ВЕЧЕРНИЙ\n🎴 30 прокруток — каждому!\n🆕 Новичкам ещё +35 ⭐\n👥 Позови друга по своей ссылке — когда он введёт ВЕЧЕРНИЙ, тебе +20 ⭐\n\nЕщё → Промокод → ВЕЧЕРНИЙ"};
+async function eveBonus(env,me){const u=await env.DB.prepare("SELECT created,ref FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<EVE.newFrom)return 0;
+  await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(EVE.newSt,me.id).run();
+  if(u.ref&&u.ref!==me.id){const k="everef:"+u.ref,c=(await kvGet(env,k))||{n:0};if(c.n<EVE.refMax){c.n++;await kvSet(env,k,c);await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(EVE.refSt,u.ref).run();
+    try{await notify(env,u.ref,"🎉 Твой друг "+(await nameOf(env,me.id))+" ввёл промокод ВЕЧЕРНИЙ — тебе +"+EVE.refSt+" ⭐ в подарок! ("+c.n+"/"+EVE.refMax+")","⚔️ Играть")}catch(e){}}}
+  return EVE.newSt}
+let eveOk=0;async function eveTick(env){const now=Date.now();if(now<EVE.at||now>EVE.until)return;
+  if(!eveOk){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,30,0,0,?,?,0,0,0,0) ON CONFLICT(code) DO NOTHING").bind(EVE.code,EVE.codeUntil,now).run();eveOk=1}
+  await blastRun(env,EVE)}
 let sunOk=0;async function sunTick(env){const now=Date.now();if(now<SUN.at||now>SUN.until)return;
   if(!sunOk){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,20,5000,30,?,?,0,0,0,0) ON CONFLICT(code) DO NOTHING").bind(SUN.code,SUN.codeUntil,now).run();sunOk=1}
   await blastRun(env,SUN)}
-async function koloTick(env){const n=Date.now();try{await sunTick(env)}catch(e){console.error("sun",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
+async function koloTick(env){const n=Date.now();try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
 /* 🌙 НОЧНИК (13.11): +200 ⭐ к пополнению от 150 ⭐ — только первым 10 пополнившим (BCAP), потом промокод выключается */
 const BCAP={"НОЧНИК":10};let nochOk=0;async function nochSeed(env){if(nochOk)return;nochOk=1;await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES('НОЧНИК',0,0,0,?,?,0,0,200,150)").bind(Date.UTC(2026,10,13,20,59),Date.now()).run()}
 /* 📅 удержание: через ~20–30 ч после регистрации, если игрок не вернулся, — напоминание с подарком (+5 прокруток), один раз */
