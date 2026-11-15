@@ -280,7 +280,7 @@ const ERAS=[{k:"mid",n:"Средневековье",ic:"⚔️",h:[0,1,2,3,6,8,1
  {k:"jap",n:"Япония",ic:"🏯",h:[9,18,20,21,30],sp:40,cash:10000},{k:"nor",n:"Север и Степь",ic:"🪓",h:[11,14,16,26],sp:15,cash:1500},{k:"myth",n:"Мифы и легенды",ic:"🐉",h:[23,25,28,29,31],sp:40,cash:10000},
  {k:"troy",n:"Троя и Эллада",ic:"🐴",h:[46,49,50,51,52,54,56,57,58,59],sp:40,cash:12000},{k:"emp",n:"Великие империи",ic:"👑",h:[47,48,53,55,60,61,62,63,64,65],sp:50,cash:15000}];
 /* кланы: до 10 человек, общий босс недели (3 удара в день на игрока), таблица кланов */
-const CLAN={max:12,rewardMin:10,rewardDay:100000,cost:5000,hits:3,hp:30000,grow:1.5,chest:{sp:10,cash:500},week:[20,12,6],boss:[["Змей Горыныч",32],["Кракен",34],["Цербер",35],["Левиафан",37],["Химера",36]]};
+const CLAN={max:30,rewardMin:10,rewardDay:100000,cost:5000,hits:3,hp:30000,grow:1.5,chest:{sp:10,cash:500},week:[20,12,6],boss:[["Змей Горыныч",32],["Кракен",34],["Цербер",35],["Левиафан",37],["Химера",36]]};
 const clanHp=(n,lvl)=>Math.round(CLAN.hp*Math.max(2,n)*Math.pow(CLAN.grow,lvl-1));
 function clanDmg(cards){const top=(cards||[]).filter(c=>!away(c)&&!c.part&&!FIN[c.f].excl).map(c=>eff(c,0)).sort((a,b)=>b-a).slice(0,3);
   let d=top.reduce((a,v)=>a+v*(1.6+Math.random()*.8),0);const crit=Math.random()<.18;if(crit)d*=2.5;return {dmg:Math.max(10,Math.round(d)),crit}}
@@ -541,6 +541,13 @@ SHOP.chpin={n:"Закреп в чате на 1 час",stars:50,chpin:1,d:["📌
 SHOP.motto={n:"Фраза в профиле",stars:150,motto:1,d:["💬 твоя фраза в витрине — её видят все, кто открыл твой профиль"]};
 SHOP.tsp={n:"Именной турнир",stars:1000,tsp:1,d:["🏆 субботний турнир пройдёт в твою честь","⭐ игра добавляет к призам 300 / 150 / 50 ⭐","📣 пост в канале и всем участникам"]};
 SHOP.fan={n:"Набор фаната",stars:20000,fan:1,d:["🎁 секретный подарок лично от создателя игры — админ напишет тебе","👑 карта «Все Воины Эпох» с подписью создателя — свой номер, навсегда","📣 пост о тебе в канале и сияющая строка в ленте LIVE"]};
+SHOP.dia30={n:"Алмазный профиль · 30 дней",stars:499,dia30:1,d:["💎 сияющий алмазный ник и рамка — 30 дней","продлевается: каждая покупка +30 дней"]};
+SHOP.shelfx={n:"Расширенная витрина",stars:399,shelfx:1,d:["🏛 15 мест на витрине вместо 9 — навсегда"]};
+SHOP.clad={n:"Реклама клана в LIVE",stars:99,clad:1,d:["📣 твой клан закреплён в ленте LIVE у всех на 1 час"]};
+SHOP.myst={n:"Сундук-загадка дня",stars:199,myst:1,d:["🎁 внутри 3 приза — выбираешь один","1 сундук в день"]};
+/* сундук-загадка: 3 случайных приза из пула, игрок забирает один */
+const MYST=[{k:"sp",n:"30 прокруток",ic:"🎴",sp:30},{k:"cash",n:"500 000 монет + 5 прокруток",ic:"🪙",cash:500000,sp:5},{k:"guar",n:"2 гарантированных эпика",ic:"💎",guar:2},
+ {k:"gem",n:"Гем 3 ур. (стихия случайная)",ic:"🔮",gem:3},{k:"gsh",n:"150 осколков всех стихий",ic:"✨",gsh:150},{k:"mix",n:"12 прокруток + 200 000 монет + 50 осколков",ic:"🎁",sp:12,cash:200000,gsh:50}];
 SHOP.lott={n:"Билет лотереи",stars:29,lott:1,d:["🎟 билет беспроигрышной лотереи дня"]};
 const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
@@ -1145,6 +1152,11 @@ const ACTIONS={
   adm_card(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Нет такой карточки");
     const c=makeCard(ctx,h,f,p.stats?{stats:p.stats}:null);if(p.sn){const s=String(p.sn).replace(/\D/g,"").padStart(6,"0");if(!ctx.snFree(s))fail("Номер "+s+" уже занят");c.sn=s;ctx.takeSn(s)}
     if(p.v)c.v=+p.v;if(p.xp)c.xp=+p.xp;if(p.stars)c.stars=+p.stars;c.how="prize";G.cards.push(c);noteCard(st,c);return {card:c}},
+  myst_pick(G){const {st,p}=G;const M=st.myst;if(!M||!M.o)fail("Сундук-загадка уже открыт");const k=M.o[p.i|0];if(k==null||!MYST[k])fail("Нет такого приза");const R=MYST[k];
+    if(R.sp)st.spins=(st.spins||0)+R.sp;if(R.cash)st.cash=(st.cash||0)+R.cash;if(R.guar)st.guar=(st.guar||0)+R.guar;
+    if(R.gem){const el=["f","w","e","a"][Math.floor(Math.random()*4)];gemAdd(st,el+R.gem)}
+    if(R.gsh){const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});["f","w","e","a"].forEach(e=>H[e]=(H[e]||0)+R.gsh)}
+    delete st.myst;return {got:R.n,ic:R.ic}},
   grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,I=SHOP[p.item];if(!I)fail("Нет такого товара");
     st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     const got=[],add=c=>{c.how="chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
@@ -1154,6 +1166,8 @@ const ACTIONS={
     if(I.kolo)add(makeCard(ctx,KOLO,4));
     if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";dcSn(ctx,c,HEROES[h][4].sn);add(c)}
     if(I.motto)st.motto=String(p.text||"").slice(0,60);
+    if(I.shelfx)st.shelfX=1;
+    if(I.myst){const pool=MYST.map((x,i)=>i).sort(()=>Math.random()-.5).slice(0,3);st.myst={o:pool,t:Date.now()}}
     let gems=null;if(I.gbox){const B=GBOX[p.item],el=GEM.el[p.el]?p.el:"f";gems=[el+gboxLv(B.lv)];if(B.lv2)gems.push(el+gboxLv(B.lv2));gems.forEach(g=>gemAdd(st,g));const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[el]=(H[el]||0)+B.sh}
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;

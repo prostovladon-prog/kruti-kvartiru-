@@ -402,7 +402,9 @@ async function stateFor(env,me){
   try{const P=await cached("poll",15e3,async()=>await env.DB.prepare("SELECT id,q FROM polls WHERE closed=0 ORDER BY id DESC LIMIT 1").first());if(P){const v=await env.DB.prepare("SELECT 1 FROM poll_votes WHERE poll=? AND uid=?").bind(P.id,me.id).first();S.poll={id:P.id,q:P.q,v:v?1:0}}}catch(e){}
   try{const now=Date.now();if((u.created||0)>=N2.start&&now<N2.until){const got=!!(await kvGet(env,"n2:"+me.id));S.n2={need:N2.need,have:got?N2.need:await n2Count(env,me.id),end:N2.until,got:got?1:0,vipD:N2.vipD,stars:N2.stars}}}catch(e){}
   try{S.diaU=await cached("diaU",60e3,async()=>{let L=(await kvGet(env,"dia_ids"))||[];const n=(await env.DB.prepare("SELECT id FROM users WHERE nick IN ("+DIA_NICKS.map(()=>"?").join(",")+")").bind(...DIA_NICKS).all()).results.map(r=>r.id);
-    if(!L.length&&n.length){L=n.slice(0,1);await kvSet(env,"dia_ids",L)}return [...new Set(L)]})}catch(e){}   // id запоминается навсегда — смена ника не отнимет алмаз
+    if(!L.length&&n.length){L=n.slice(0,1);await kvSet(env,"dia_ids",L)}const T=(await kvGet(env,"dia_tmp"))||{},nw=Date.now();for(const k in T)if(T[k]>nw)L.push(+k);return [...new Set(L)]})}catch(e){}
+  try{const T=(await kvGet(env,"dia_tmp"))||{};if(T[me.id]>Date.now())S.diaT=T[me.id]}catch(e){}
+  S.shN=S.shelfX?15:SHELF_N;   // id запоминается навсегда — смена ника не отнимет алмаз
   try{await xhLoad(env);S.xh=XH;const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h),ch:dcChance(X)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
   try{const L=await vtState(env,me);S.vts=L;S.vt=L.find(x=>!x.ch)||L[0]||null}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
@@ -528,7 +530,7 @@ async function profile(env,p,me){
   if(me&&me.id!==u.id)await env.DB.prepare("UPDATE users SET gv=gv+1 WHERE id=?").bind(u.id).run();
   const gv=((await env.DB.prepare("SELECT gv FROM users WHERE id=?").bind(u.id).first())||{}).gv||0;
   const _st=JSON.parse(u.state||"{}");
-  return {motto:_st.motto||"",pbg:_st.pbgOn||"",dfx:_st.dfxOn||"",name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
+  return {shN:_st.shelfX?15:SHELF_N,motto:_st.motto||"",pbg:_st.pbgOn||"",dfx:_st.dfxOn||"",name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
     shelf:gs.filter(g=>g.shelf>0),gn:gs.length,gval:gs.reduce((a,g)=>a+giftVal(g.k),0),gv,grank:await giftRank(env,u.id)};
 }
 async function cardInfo(env,p){
@@ -1805,7 +1807,7 @@ async function giftTop(env){return cached("gtop",30e3,async()=>(await env.DB.pre
 async function giftRank(env,uid){const T=await giftTop(env),i=T.findIndex(r=>r.uid===uid);return i<0?0:i+1}
 async function giftApi(env,me,a,p){
   if(a==="gift_top")return {top:await giftTop(env),left:await giftLeft(env)};
-  if(a==="gift_shelf"){const id=Math.floor(+p.id||0),slot=Math.max(0,Math.min(SHELF_N,p.slot|0));
+  if(a==="gift_shelf"){const _x=await env.DB.prepare("SELECT json_extract(state,'$.shelfX') AS x FROM users WHERE id=?").bind(me.id).first(),id=Math.floor(+p.id||0),slot=Math.max(0,Math.min(_x&&_x.x?15:SHELF_N,p.slot|0));
     const g=await env.DB.prepare("SELECT id FROM gifts WHERE id=? AND owner=?").bind(id,me.id).first();if(!g)fail("Этого подарка у тебя нет");
     const q=[];if(slot)q.push(env.DB.prepare("UPDATE gifts SET shelf=0 WHERE owner=? AND shelf=?").bind(me.id,slot));q.push(env.DB.prepare("UPDATE gifts SET shelf=? WHERE id=? AND owner=?").bind(slot,id,me.id));
     await env.DB.batch(q);return {id,slot}}
@@ -1866,6 +1868,11 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       const cur=await kvGet(env,"chat_pin");if(cur&&cur.until&&cur.until>Date.now()&&cur.uid!==uid)fail("Закреп сейчас занят — освободится через "+Math.ceil((cur.until-Date.now())/6e4)+" мин");
       data={text:t};title="Закреп в чате на 1 час"}
     if(I.fan){data={};title="Набор фаната «Воины Эпох»"}
+    if(I.dia30){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже вечный алмазный профиль 💎");data={};title="Алмазный профиль · 30 дней"}
+    if(I.shelfx){const u0=await env.DB.prepare("SELECT json_extract(state,'$.shelfX') AS x FROM users WHERE id=?").bind(uid).first();if(u0&&u0.x)fail("Витрина уже расширена");data={};title="Расширенная витрина"}
+    if(I.clad){const u0=await env.DB.prepare("SELECT clan FROM users WHERE id=?").bind(uid).first();if(!u0||!u0.clan)fail("Сначала вступи в клан или создай свой");const cur=await kvGet(env,"hype_ad");if(cur&&cur.until>Date.now()&&cur.clan!==u0.clan)fail("Реклама сейчас занята — освободится через "+Math.ceil((cur.until-Date.now())/6e4)+" мин");data={clan:u0.clan};title="Реклама клана в LIVE"}
+    if(I.myst){const D=lotDay(Date.now()),n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE uid=? AND item='myst' AND status IN ('paid','done') AND created>=? AND id<>?").bind(uid,D.start-8*36e5,except||0).first())||{}).n||0;if(n>=1)fail("Сундук-загадка — 1 в день. Загляни завтра 🎁");
+      const u0=await env.DB.prepare("SELECT json_extract(state,'$.myst') AS m FROM users WHERE id=?").bind(uid).first();if(u0&&u0.m)fail("Сначала открой прошлый сундук-загадку");data={};title="Сундук-загадка дня"}
     if(I.motto){let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<2)fail("Напиши фразу");if(t.length>60)fail("Не длиннее 60 символов");if(CHAT_LINK.test(t))fail("Ссылки нельзя");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));data={text:t};title="Фраза в профиле"}
     if(I.tsp){const T=await curTour(env);if(T.phase!=="reg")fail("Турнир уже идёт — назвать можно следующий");const cur=await kvGet(env,"tsp:"+T.id);if(cur&&cur.uid)fail("Этот турнир уже назван в честь "+cur.name);data={tid:T.id};title="Именной турнир"}
     if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже алмазный профиль 💎");data={};title="Алмазный профиль"}
@@ -1972,6 +1979,11 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         try{for(const x of (await env.DB.prepare("SELECT uid FROM tour_players WHERE tour=?").bind(T.id).all()).results)if(x.uid!==P.uid)await notify(env,x.uid,"🏆 Турнир, в котором ты участвуешь, теперь — Турнир имени "+nm+"! Игра увеличила призы: 🥇 +300 ⭐ · 🥈 +150 ⭐ · 🥉 +50 ⭐","⚔️ Открыть игру")}catch(e){}
         try{await hypeAdd(env,P.uid,"🏆 назвал субботний турнир своим именем",1)}catch(e){}}
       if(I.motto)msg="💬 Фраза в профиле обновлена!";
+      if(I.dia30){const T=(await kvGet(env,"dia_tmp"))||{},nw=Date.now();T[P.uid]=Math.max(nw,T[P.uid]||0)+30*864e5;await kvSet(env,"dia_tmp",T);delete topCache.diaU;msg="💎 Алмазный профиль включён на 30 дней!"}
+      if(I.shelfx)msg="🏛 Витрина расширена: теперь 15 мест!";
+      if(I.clad){const C=await env.DB.prepare("SELECT id,name,(SELECT COUNT(*) FROM users WHERE clan=clans.id) AS n FROM clans WHERE id=?").bind(d.clan).first();if(!C)fail("Клан не найден");
+        const cur=await kvGet(env,"hype_ad"),st0=cur&&cur.clan===C.id&&cur.until>Date.now()?cur.until:Date.now();await kvSet(env,"hype_ad",{clan:C.id,name:C.name,n:C.n,until:st0+36e5,uid:P.uid});delete CACHE_HYPE.v;msg="📣 Клан «"+C.name+"» закреплён в ленте LIVE на 1 час!"}
+      if(I.myst)msg="🎁 Сундук-загадка открыт — выбери один из трёх призов в игре!";
       if(I.fan){const H=HEROES.findIndex(x=>x[4].fan),u0=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first(),nm=(u0&&u0.n)||"Игрок";
         const no=(((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=?").bind(H).first())||{}).n||0)+1;
         await env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,how) VALUES(?,?,9,?,?,1,45,?,?,0,0,5,?,'fan')").bind(P.uid,H,no,"ФАН"+String(no).padStart(3,"0"),5000000,JSON.stringify([1000,1000,1000,1000,1000]),Date.now()).run();
@@ -2346,7 +2358,8 @@ async function chanCheck(env,C){if(!C.chan||!env.BOT_TOKEN||env.DEV==="1"&&!env.
 /* 🔥 бегущая строка: крутые выпадения всех игроков */
 async function hypeAdd(env,uid,txt,big){try{await env.DB.prepare("INSERT INTO hype(t,uid,txt,big) VALUES(?,?,?,?)").bind(Date.now(),uid,txt,big?1:0).run();delete CACHE_HYPE.v}catch(e){}}
 const CACHE_HYPE={};async function hypeList(env){const now=Date.now();if(CACHE_HYPE.v&&now-CACHE_HYPE.t<8e3)return CACHE_HYPE.v;
-  const L=(await env.DB.prepare("SELECT h.id,h.t,h.txt,h.big,COALESCE(u.nick,u.name) AS name FROM hype h LEFT JOIN users u ON u.id=h.uid WHERE h.t>? ORDER BY h.id DESC LIMIT 20").bind(now-24*36e5).all()).results;CACHE_HYPE.v=L;CACHE_HYPE.t=now;return L}
+  const L=(await env.DB.prepare("SELECT h.id,h.t,h.txt,h.big,COALESCE(u.nick,u.name) AS name FROM hype h LEFT JOIN users u ON u.id=h.uid WHERE h.t>? ORDER BY h.id DESC LIMIT 20").bind(now-24*36e5).all()).results;try{const A=await kvGet(env,"hype_ad");if(A&&A.until>now)L.unshift({id:-1,t:now,txt:"📣 набирает воинов — вступай! 👥 "+A.n+"/"+CLAN.max,big:1,name:"🛡 Клан «"+A.name+"»",ad:A.clan})}catch(e){}
+  CACHE_HYPE.v=L;CACHE_HYPE.t=now;return L}
 function hypeCards(res){const out=[],seen=new Set(),add=c=>{if(c&&typeof c==="object"&&c.h!=null&&c.f!=null&&!seen.has(c)){seen.add(c);out.push(c)}};
   if(res&&typeof res==="object")for(const k of Object.keys(res)){const v=res[k];if(Array.isArray(v))v.forEach(add);else add(v)}return out}
 async function jpGet(env){const v=await kvGet(env,"jp");return v&&v.v>0?v:{v:JP.seed,w:null}}

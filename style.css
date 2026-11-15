@@ -3594,3 +3594,7 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .face.fan{box-shadow:0 0 0 3px #ffd23f,0 0 24px rgba(255,210,63,.7)}
 .fanmk{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);padding:4px 12px;border-radius:12px;background:linear-gradient(90deg,#ffd23f,#ff9a1a);color:#2a1400;font-weight:900;font-size:15px;white-space:nowrap;box-shadow:0 2px 0 #2a1400;z-index:5}
 .fan-go{margin-top:12px}
+
+.mystbox{text-align:center}.myst-o{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.myst-o button{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;border:3px solid #c45aff;background:linear-gradient(135deg,#f6e6ff,#e2c8ff);font:inherit;text-align:left;animation:gbxIn .5s cubic-bezier(.3,1.5,.5,1) both;box-shadow:0 3px 0 #4a1a6a}
+.myst-o i{font-style:normal;font-size:34px}.myst-o b{font-size:15px;color:#2a0a40}

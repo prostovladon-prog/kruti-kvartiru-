@@ -171,8 +171,8 @@ function wReveal(g,title,sub,btns){const G=GIFTS[g.k],d=document.createElement("
   try{sfx.fanfare()}catch(e){}hapN("success");
   d.onclick=async e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.x){d.remove();return}
     if(b.dataset.put){const r=await putOnShelf(+b.dataset.put);if(r)d.remove()}};return d}
-async function putOnShelf(id){const used=new Set((S.gifts||[]).filter(g=>g.shelf>0).map(g=>g.shelf));let slot=0;for(let i=1;i<=SHELF_N;i++)if(!used.has(i)){slot=i;break}
-  if(!slot){toast("Все "+SHELF_N+" мест на витрине заняты. Убери подарок с полки в «Моей витрине»");return null}
+async function putOnShelf(id){const used=new Set((S.gifts||[]).filter(g=>g.shelf>0).map(g=>g.shelf)),NS=S.shN||SHELF_N;let slot=0;for(let i=1;i<=NS;i++)if(!used.has(i)){slot=i;break}
+  if(!slot){toast("Все "+NS+" мест на витрине заняты. Убери подарок с полки в «Моей витрине»");return null}
   const r=await act("gift_shelf",{id,slot});if(r){toast("🏛 Подарок стоит на витрине");hap("medium")}return r}
 
 /* ---------- Сокровищница: вкладка «Подарки» ---------- */
@@ -198,11 +198,11 @@ payShow=function(r){if(r&&r.status==="done"&&r.item==="gift"&&r.res&&r.res.gift&
 
 /* ---------- витрина подарков ---------- */
 function shelfHTML(o){const by={};(o.shelf||[]).forEach(g=>by[g.shelf]=g);let rows="";
-  for(let r=0;r<3;r++){rows+='<div class="shf">';for(let c=1;c<=3;c++){const i=r*3+c,g=by[i];
+  const NS=o.shN||(o.mine?S.shN:0)||SHELF_N;for(let r=0;r<Math.ceil(NS/3);r++){rows+='<div class="shf">';for(let c=1;c<=3;c++){const i=r*3+c,g=by[i];
     if(g){const G=GIFTS[g.k];rows+='<button type="button" class="xsl'+(G.r>=4?" myth":"")+'" style="--g:'+G.g+'" data-slot="'+i+'" data-gid="'+g.id+'"><div class="ray"></div><div class="halo"></div><div class="ic">'+giftSVG(g.k,72)+'</div><div class="ped"></div><span class="no">'+gNo(g)+'</span></button>'}
     else rows+=o.mine?'<button type="button" class="xsl empty" data-slot="'+i+'">＋<small>поставить</small></button>':'<div class="xsl empty ro"></div>'}rows+='</div>'}
   return '<div class="wsh"><div class="top"><div class="ava">'+portrait(o.h,o.card||null)+'</div><div><div class="nk"></div><div class="tt">'+fmtN(o.gn)+' '+plural(o.gn,"подарок","подарка","подарков")+'</div></div></div>'+
-   '<div class="stats"><div>'+(o.shelf||[]).length+' / '+SHELF_N+'<small>на витрине</small></div><div>⭐ '+fmtN(o.gval)+'<small>стоимость</small></div><div>'+(o.grank?"#"+o.grank:"—")+'<small>в топе витрин</small></div></div>'+
+   '<div class="stats"><div>'+(o.shelf||[]).length+' / '+NS+'<small>на витрине</small></div><div>⭐ '+fmtN(o.gval)+'<small>стоимость</small></div><div>'+(o.grank?"#"+o.grank:"—")+'<small>в топе витрин</small></div></div>'+
    '<h4>🏛 ВИТРИНА <span>👁 '+fmtN(o.gv||0)+'</span></h4><div class="cab"><div class="gls"></div>'+rows+'</div>'+(o.extra||"")+'</div>'}
 let shTop=null;
 async function openShelf(){if(!$("modal").hidden)closeModal();setTab("prof");const sh=$("prof-body");if(!ONLINE){sh.innerHTML='<p class="prof-off">Профиль и витрина работают в игре через бота</p>';return}
