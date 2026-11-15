@@ -3584,3 +3584,12 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .motto-buy small{opacity:.85}.motto-buy input{padding:10px;border-radius:10px;border:2px solid #e0c060;font:inherit}.motto-buy .craftbtn{margin:0}
 .tsp-on{margin:8px 0;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,#ffd23f,#ff9a1a);color:#2a1400;font-weight:900;text-align:center}.tsp-on small{display:block;font-weight:700;font-size:12px}
 .tsp-buy{display:block;width:100%;margin:8px 0;padding:10px 12px;border-radius:14px;border:2px dashed #ffd23f;background:rgba(255,210,63,.12);color:inherit;font:inherit;font-weight:900}.tsp-buy small{display:block;font-weight:700;font-size:12px;opacity:.8}
+
+/* 👑 Набор фаната */
+.fanbox{margin:12px 0;padding:14px;border-radius:20px;background:radial-gradient(circle at 30% 0,#5a2a8a,#1a0a2a 70%);border:3px solid #ffd23f;box-shadow:0 0 28px rgba(255,210,63,.45),inset 0 0 24px rgba(255,210,63,.15);color:#fff}
+.fan-hd{text-align:center;font-weight:900;letter-spacing:1px;color:#ffd23f;font-size:13px;margin-bottom:8px}
+.fan-row{display:flex;gap:12px;align-items:center}.fan-pv{flex:none;width:118px}.fan-tx{flex:1;min-width:0}.fan-tx b{font-size:19px;color:#ffd23f}.fan-tx ul{margin:6px 0 0;padding-left:16px;font-size:12.5px;line-height:1.35}
+.fan-sz{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 10px;justify-content:center}.fan-sz button{min-width:44px;padding:8px 6px;border-radius:10px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-weight:900}.fan-sz button.on{border-color:#ffd23f;background:#ffd23f;color:#2a1400}
+.fan-go{display:block;width:100%;padding:14px;border-radius:16px;border:2px solid #07040f;background:linear-gradient(180deg,#fff1a8,#ffb800);color:#2a1400;font-weight:900;font-size:17px;box-shadow:0 4px 0 #07040f}
+.face.fan{box-shadow:0 0 0 3px #ffd23f,0 0 24px rgba(255,210,63,.7)}
+.fanmk{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);padding:4px 12px;border-radius:12px;background:linear-gradient(90deg,#ffd23f,#ff9a1a);color:#2a1400;font-weight:900;font-size:15px;white-space:nowrap;box-shadow:0 2px 0 #2a1400;z-index:5}

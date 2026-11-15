@@ -663,7 +663,7 @@ async function pickOpponent(env,me,p,stake){
   let r=null;
   if(p.rematch)r=await row(SEL+" AND c.id=?",...args,p.rematch|0);
   if(!r){if(!stake&&Math.random()<.2)return null;   // иногда всё равно бот, чтобы соперники были разными
-    const t=HEROES[mine.h][2],hs=stake?HEROES.map((H,i)=>i).join(","):HEROES.map((H,i)=>Math.abs(H[2]-t)<=1?i:-1).filter(i=>i>=0).join(",");
+    const t=HEROES[mine.h][2],hs=stake?HEROES.map((H,i)=>H[4].fan?-1:i).filter(i=>i>=0).join(","):HEROES.map((H,i)=>Math.abs(H[2]-t)<=1?i:-1).filter(i=>i>=0).join(",");
     const mm=await cached("cardids",60e3,async()=>(await env.DB.prepare("SELECT MIN(id) AS a,MAX(id) AS b FROM cards").first())||{});
     const start=Math.floor((mm.a||0)+Math.random()*((mm.b||0)-(mm.a||0)+1));
     r=await row(SEL+` AND c.h IN (${hs}) AND c.id>=? ORDER BY c.id LIMIT 1`,...args,start)||await row(SEL+` AND c.h IN (${hs}) AND c.id<? ORDER BY c.id DESC LIMIT 1`,...args,start)}
@@ -1613,6 +1613,7 @@ async function tkFinish(env){const now=env.TK_FIN?TK.end+1:Date.now();if(now<TK.
   for(const a of ADMINS)try{await notify(env,a,"🎟 Билетная гонка завершена!\n\n"+top.map((x,i)=>(i+1)+". "+(x.name||"Игрок")+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nПризы выданы автоматически.","⚔️ Открыть")}catch(e){}}
 /* 🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ (каждый день 08:00–22:00 по Минску): билет 29 ⭐, до 15 на игрока в день.
    Банк = все звёзды за билеты дня — целиком одному случайному билету (шанс = доля твоих билетов). Всем остальным — сундуки на сумму их билетов */
+const FAN_SIZES=["XS","S","M","L","XL","XXL","3XL"];
 const LOT={price:29,max:15,h0:5,h1:19,chest:[["royal",250],["general",149],["warrior",75],["small",50]],first:Date.UTC(2026,10,15,5,0)};
 function lotDay(t){const d=new Date(t+3*36e5),y=d.getUTCFullYear(),m=d.getUTCMonth(),dd=d.getUTCDate();return {key:y+"-"+String(m+1).padStart(2,"0")+"-"+String(dd).padStart(2,"0"),start:Date.UTC(y,m,dd,LOT.h0,0),end:Date.UTC(y,m,dd,LOT.h1,0)}}
 const lotOn=t=>{const D=lotDay(t);return t>=LOT.first&&t>=D.start&&t<D.end};
@@ -1864,6 +1865,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<3)fail("Напиши текст объявления");if(t.length>120)fail("Не длиннее 120 символов");if(CHAT_LINK.test(t))fail("Ссылки в чате запрещены");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
       const cur=await kvGet(env,"chat_pin");if(cur&&cur.until&&cur.until>Date.now()&&cur.uid!==uid)fail("Закреп сейчас занят — освободится через "+Math.ceil((cur.until-Date.now())/6e4)+" мин");
       data={text:t};title="Закреп в чате на 1 час"}
+    if(I.fan){const sz=String(p.size||"");if(!FAN_SIZES.includes(sz))fail("Выбери размер футболки");data={size:sz};title="Набор фаната «Воины Эпох»"}
     if(I.motto){let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<2)fail("Напиши фразу");if(t.length>60)fail("Не длиннее 60 символов");if(CHAT_LINK.test(t))fail("Ссылки нельзя");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));data={text:t};title="Фраза в профиле"}
     if(I.tsp){const T=await curTour(env);if(T.phase!=="reg")fail("Турнир уже идёт — назвать можно следующий");const cur=await kvGet(env,"tsp:"+T.id);if(cur&&cur.uid)fail("Этот турнир уже назван в честь "+cur.name);data={tid:T.id};title="Именной турнир"}
     if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже алмазный профиль 💎");data={};title="Алмазный профиль"}
@@ -1970,6 +1972,13 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         try{for(const x of (await env.DB.prepare("SELECT uid FROM tour_players WHERE tour=?").bind(T.id).all()).results)if(x.uid!==P.uid)await notify(env,x.uid,"🏆 Турнир, в котором ты участвуешь, теперь — Турнир имени "+nm+"! Игра увеличила призы: 🥇 +300 ⭐ · 🥈 +150 ⭐ · 🥉 +50 ⭐","⚔️ Открыть игру")}catch(e){}
         try{await hypeAdd(env,P.uid,"🏆 назвал субботний турнир своим именем",1)}catch(e){}}
       if(I.motto)msg="💬 Фраза в профиле обновлена!";
+      if(I.fan){const H=HEROES.findIndex(x=>x[4].fan),u0=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first(),nm=(u0&&u0.n)||"Игрок";
+        const no=(((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=?").bind(H).first())||{}).n||0)+1;
+        await env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,how) VALUES(?,?,9,?,?,1,45,?,?,0,0,5,?,'fan')").bind(P.uid,H,no,"ФАН"+String(no).padStart(3,"0"),5000000,JSON.stringify([1000,1000,1000,1000,1000]),Date.now()).run();
+        msg="👑 Ты — Фанат №"+no+" «Воинов Эпох»! Карта «Все Воины Эпох» с подписью создателя уже в твоей коллекции.\n\n👕 Футболка размера "+String(d.size||"")+": администратор @voinovadmin напишет тебе в Telegram в течение 24 часов, чтобы узнать адрес доставки.";
+        for(const a of ADMINS)try{await notify(env,a,"👕 НАБОР ФАНАТА №"+no+" куплен!\n\nИгрок: "+nm+" (id "+P.uid+")\nРазмер футболки: "+String(d.size||"?")+"\n\nНапиши ему для адреса доставки: tg://user?id="+P.uid,"⚔️ Открыть")}catch(e){}
+        try{await hypeAdd(env,P.uid,"👑 стал ФАНАТОМ №"+no+" «Воинов Эпох»",1)}catch(e){}
+        try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"👑 У «Воинов Эпох» новый ФАНАТ №"+no+" — "+nm+"!\n\nОн получает фирменную футболку игры и именную карту «Все Воины Эпох» с подписью создателя — у каждого фаната свой номер, навсегда 🔥\n\nСпасибо за поддержку! 🙏\n👉 @VoinyEpohBot"})}catch(e){}}
       if(I.chpin){const u0=await env.DB.prepare("SELECT nick FROM users WHERE id=?").bind(P.uid).first(),cur=await kvGet(env,"chat_pin");const st0=cur&&cur.until&&cur.until>Date.now()&&cur.uid===P.uid?cur.until:Date.now();
         await kvSet(env,"chat_pin",{id:0,uid:P.uid,name:(u0&&u0.nick)||"Игрок",text:String(d.text||""),t:Date.now(),until:st0+36e5,paid:1});delete topCache.chatpin;msg="📌 Твоё объявление закреплено в чате на 1 час!"}
       if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(!L.includes(P.uid)){L.push(P.uid);await kvSet(env,"dia_ids",L)}delete topCache.diaU;msg="💎 Алмазный профиль твой — навсегда! Ник сияет в топе, чате и профиле.";

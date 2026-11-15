@@ -159,6 +159,8 @@ const HEROES=[
  ["Теневой дракон","Драконы",2,"Его не видно ночью. Только глаза — и уже поздно.",{dgc:1,b:4,hue:280,p:[6,5,5,6,5]}],
  ["Золотой дракон","Драконы",3,"Спит на горе золота и знает каждую монету по имени.",{dgc:1,b:5,hue:45,p:[7,7,6,6,7]}],
  ["Звёздный дракон","Драконы",4,"Родился из упавшей звезды. Говорят, исполняет одно желание.",{dgc:1,b:6,hue:240,p:[8,8,7,7,8]}],
+ /* 139: 👑 карта «Набора фаната» — все воины игры на одном холсте + подпись создателя. Не выпадает, не продаётся, не дерётся */
+ ["Все Воины Эпох","Все эпохи",4,"Все воины игры на одном холсте и подпись создателя «Воинов Эпох». Только для самых преданных фанатов — у каждого владельца свой номер, навсегда.",{fan:1,hue:45,p:[10,10,10,10,10]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -187,7 +189,8 @@ const FIN=[
  {k:"Основатель",cls:"founder",w:0,m:2000,run:1,col:"#ffd60a",excl:1},
  {k:"Бесценная",cls:"collab",w:0,m:0,run:1,col:"#00e5ff",excl:1,collab:1},
  {k:"Близнец",cls:"duo",w:0,m:250,run:2,col:"#7cf7ff",duo:1},
- {k:"Алмазная ошибка",cls:"error dia",w:0,m:600,run:30,col:"#5ad8ff",dia:1}];   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
+ {k:"Алмазная ошибка",cls:"error dia",w:0,m:600,run:30,col:"#5ad8ff",dia:1},
+ {k:"Подпись создателя",cls:"fan",w:0,m:0,run:Infinity,col:"#ffd23f",excl:1,fan:1}];   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
 /* 💎 Алмазная серия: 51 «ошибок печати». Не продаются — выпадают в прокрутке (DIA_P.spin) и в Легендарном/Мифическом сундуке, пока не кончился тираж. У каждой свой дефект печати (c — css-класс) и спрятанный бриллиант (x,y — где он на рисунке), свой тираж */
 const DIA_P={spin:.0005,legend:.02,empire:.03,mythic:.05};
 const DIA_F=8,DIA={"59": {"n": "Двойная печать", "c": "dbl", "x": 50, "y": 30, "run": 10}, "64": {"n": "Золотой залив", "c": "gold", "x": 50, "y": 22, "run": 10}, "63": {"n": "Перевёртыш", "c": "flip", "x": 30, "y": 70, "run": 10}, "65": {"n": "Алмазный брак", "c": "crys", "x": 62, "y": 38, "run": 5}, "61": {"n": "Негатив", "c": "neg", "x": 48, "y": 24, "run": 15}, "62": {"n": "Глитч", "c": "glit", "x": 70, "y": 40, "run": 15}, "60": {"n": "Ночная смена", "c": "night", "x": 52, "y": 32, "run": 15}, "29": {"n": "Тень", "c": "shadow", "x": 44, "y": 30, "run": 20}, "28": {"n": "Перегрев", "c": "burn", "x": 36, "y": 30, "run": 20}, "25": {"n": "Кровавая печать", "c": "blood", "x": 50, "y": 26, "run": 20}, "26": {"n": "Сдвиг цвета", "c": "rgb", "x": 58, "y": 46, "run": 25}, "27": {"n": "Зеркало", "c": "mirror", "x": 50, "y": 52, "run": 25}, "36": {"n": "Радужная плёнка", "c": "rain", "x": 40, "y": 44, "run": 20}, "40": {"n": "Капля чернил", "c": "ink", "x": 64, "y": 58, "run": 20}, "58": {"n": "Без краски", "c": "sketch", "x": 52, "y": 34, "run": 25}, "57": {"n": "Растр", "c": "pix", "x": 38, "y": 40, "run": 25}, "52": {"n": "Лишний слой", "c": "ghost", "x": 60, "y": 28, "run": 30}, "20": {"n": "Порез ножа", "c": "cut", "x": 45, "y": 36, "run": 30}, "18": {"n": "Водяной знак", "c": "water", "x": 55, "y": 30, "run": 30}, "19": {"n": "Съехавший слой", "c": "mosaic", "x": 50, "y": 50, "run": 30}, "30": {"n": "Неон", "c": "neon", "x": 50, "y": 28, "run": 10}, "31": {"n": "Космос", "c": "cosmos", "x": 60, "y": 22, "run": 10}, "38": {"n": "Ледяная печать", "c": "ice", "x": 46, "y": 30, "run": 10}, "39": {"n": "Огненный край", "c": "fire", "x": 55, "y": 34, "run": 10}, "56": {"n": "Засвет", "c": "flare", "x": 48, "y": 26, "run": 10}, "55": {"n": "Старая плёнка", "c": "sepia", "x": 52, "y": 24, "run": 20}, "53": {"n": "Ржавчина", "c": "rust", "x": 40, "y": 34, "run": 20}, "49": {"n": "Тепловизор", "c": "thermo", "x": 56, "y": 30, "run": 20}, "50": {"n": "Контур мелом", "c": "outline", "x": 50, "y": 40, "run": 20}, "51": {"n": "Перекос", "c": "skew", "x": 44, "y": 30, "run": 20}, "54": {"n": "Брызги краски", "c": "splash", "x": 58, "y": 28, "run": 20}, "24": {"n": "Половина без краски", "c": "half", "x": 46, "y": 26, "run": 25}, "23": {"n": "Небо вниз", "c": "bgflip", "x": 52, "y": 22, "run": 25}, "22": {"n": "Царапины", "c": "scratch", "x": 38, "y": 36, "run": 25}, "21": {"n": "Призрак", "c": "phantom", "x": 50, "y": 30, "run": 25}, "11": {"n": "Радиация", "c": "rad", "x": 54, "y": 30, "run": 30}, "12": {"n": "Растяжение", "c": "stretch", "x": 50, "y": 20, "run": 30}, "13": {"n": "Сползший герой", "c": "drop", "x": 48, "y": 62, "run": 30}, "48": {"n": "Пустой фон", "c": "nobg", "x": 50, "y": 28, "run": 30}, "17": {"n": "Мини-герой", "c": "tiny", "x": 50, "y": 50, "run": 30}, "76": {"n": "Алмазный дождь", "c": "gemrain", "x": 50, "y": 22, "run": 10}, "80": {"n": "Тиснение", "c": "emboss", "x": 48, "y": 26, "run": 10}, "81": {"n": "Затмение", "c": "eclipse", "x": 44, "y": 30, "run": 10}, "82": {"n": "Северное сияние", "c": "aurora", "x": 52, "y": 28, "run": 10}, "85": {"n": "Золотая пыль", "c": "dust", "x": 50, "y": 24, "run": 10}, "77": {"n": "Витраж", "c": "glass", "x": 50, "y": 30, "run": 20}, "79": {"n": "Кислота", "c": "acid", "x": 46, "y": 26, "run": 20}, "83": {"n": "VHS", "c": "vhs", "x": 56, "y": 22, "run": 20}, "84": {"n": "Комикс", "c": "comic", "x": 42, "y": 28, "run": 20}, "78": {"n": "Синька", "c": "blueprint", "x": 50, "y": 30, "run": 25}, "86": {"n": "Опечатка", "c": "typo", "x": 55, "y": 30, "run": 25}};
@@ -539,6 +542,7 @@ SHOP.diap={n:"Алмазный профиль",stars:1000,dia:1,d:["💎 сия�
 SHOP.chpin={n:"Закреп в чате на 1 час",stars:50,chpin:1,d:["📌 твоё сообщение наверху чата у всех — 1 час"]};
 SHOP.motto={n:"Фраза в профиле",stars:150,motto:1,d:["💬 твоя фраза в витрине — её видят все, кто открыл твой профиль"]};
 SHOP.tsp={n:"Именной турнир",stars:1000,tsp:1,d:["🏆 субботний турнир пройдёт в твою честь","⭐ игра добавляет к призам 300 / 150 / 50 ⭐","📣 пост в канале и всем участникам"]};
+SHOP.fan={n:"Набор фаната",stars:20000,fan:1,d:["👕 фирменная футболка «Воины Эпох» — отправим куда скажешь, по твоему размеру","👑 карта «Все Воины Эпох» с подписью создателя — свой номер, навсегда","📣 пост о тебе в канале и сияющая строка в ленте LIVE"]};
 SHOP.lott={n:"Билет лотереи",stars:29,lott:1,d:["🎟 билет беспроигрышной лотереи дня"]};
 const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
@@ -644,7 +648,7 @@ function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточк
 function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail(/^map:/.test(String(c.dest||""))?"Этот воин охраняет регион на карте мира":"Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 /* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
 /* подарочная карточка «Ошибка печати» № 000010 (приз за 10 друзей): не продаётся, не меняется, не сжигается, в боях «на карточку» не участвует */
-const PRIZE_SN="000010", noTrade=c=>!!c&&c.f===4&&String(c.sn)===PRIZE_SN;
+const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f===9);
 const NOTRADE_MSG="Эта карточка подарена и существует в одном экземпляре: её нельзя продать, обменять или сжечь";
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
 function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(FIN[c.f].collab?"Бесценная карточка коллекционная: в боях не участвует":TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
@@ -2044,7 +2048,7 @@ async function pickOpponent(env,me,p,stake){
   let r=null;
   if(p.rematch)r=await row(SEL+" AND c.id=?",...args,p.rematch|0);
   if(!r){if(!stake&&Math.random()<.2)return null;   // иногда всё равно бот, чтобы соперники были разными
-    const t=HEROES[mine.h][2],hs=stake?HEROES.map((H,i)=>i).join(","):HEROES.map((H,i)=>Math.abs(H[2]-t)<=1?i:-1).filter(i=>i>=0).join(",");
+    const t=HEROES[mine.h][2],hs=stake?HEROES.map((H,i)=>H[4].fan?-1:i).filter(i=>i>=0).join(","):HEROES.map((H,i)=>Math.abs(H[2]-t)<=1?i:-1).filter(i=>i>=0).join(",");
     const mm=await cached("cardids",60e3,async()=>(await env.DB.prepare("SELECT MIN(id) AS a,MAX(id) AS b FROM cards").first())||{});
     const start=Math.floor((mm.a||0)+Math.random()*((mm.b||0)-(mm.a||0)+1));
     r=await row(SEL+` AND c.h IN (${hs}) AND c.id>=? ORDER BY c.id LIMIT 1`,...args,start)||await row(SEL+` AND c.h IN (${hs}) AND c.id<? ORDER BY c.id DESC LIMIT 1`,...args,start)}
@@ -2994,6 +2998,7 @@ async function tkFinish(env){const now=env.TK_FIN?TK.end+1:Date.now();if(now<TK.
   for(const a of ADMINS)try{await notify(env,a,"🎟 Билетная гонка завершена!\n\n"+top.map((x,i)=>(i+1)+". "+(x.name||"Игрок")+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nПризы выданы автоматически.","⚔️ Открыть")}catch(e){}}
 /* 🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ (каждый день 08:00–22:00 по Минску): билет 29 ⭐, до 15 на игрока в день.
    Банк = все звёзды за билеты дня — целиком одному случайному билету (шанс = доля твоих билетов). Всем остальным — сундуки на сумму их билетов */
+const FAN_SIZES=["XS","S","M","L","XL","XXL","3XL"];
 const LOT={price:29,max:15,h0:5,h1:19,chest:[["royal",250],["general",149],["warrior",75],["small",50]],first:Date.UTC(2026,10,15,5,0)};
 function lotDay(t){const d=new Date(t+3*36e5),y=d.getUTCFullYear(),m=d.getUTCMonth(),dd=d.getUTCDate();return {key:y+"-"+String(m+1).padStart(2,"0")+"-"+String(dd).padStart(2,"0"),start:Date.UTC(y,m,dd,LOT.h0,0),end:Date.UTC(y,m,dd,LOT.h1,0)}}
 const lotOn=t=>{const D=lotDay(t);return t>=LOT.first&&t>=D.start&&t<D.end};
@@ -3245,6 +3250,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<3)fail("Напиши текст объявления");if(t.length>120)fail("Не длиннее 120 символов");if(CHAT_LINK.test(t))fail("Ссылки в чате запрещены");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
       const cur=await kvGet(env,"chat_pin");if(cur&&cur.until&&cur.until>Date.now()&&cur.uid!==uid)fail("Закреп сейчас занят — освободится через "+Math.ceil((cur.until-Date.now())/6e4)+" мин");
       data={text:t};title="Закреп в чате на 1 час"}
+    if(I.fan){const sz=String(p.size||"");if(!FAN_SIZES.includes(sz))fail("Выбери размер футболки");data={size:sz};title="Набор фаната «Воины Эпох»"}
     if(I.motto){let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<2)fail("Напиши фразу");if(t.length>60)fail("Не длиннее 60 символов");if(CHAT_LINK.test(t))fail("Ссылки нельзя");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));data={text:t};title="Фраза в профиле"}
     if(I.tsp){const T=await curTour(env);if(T.phase!=="reg")fail("Турнир уже идёт — назвать можно следующий");const cur=await kvGet(env,"tsp:"+T.id);if(cur&&cur.uid)fail("Этот турнир уже назван в честь "+cur.name);data={tid:T.id};title="Именной турнир"}
     if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже алмазный профиль 💎");data={};title="Алмазный профиль"}
@@ -3351,6 +3357,13 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         try{for(const x of (await env.DB.prepare("SELECT uid FROM tour_players WHERE tour=?").bind(T.id).all()).results)if(x.uid!==P.uid)await notify(env,x.uid,"🏆 Турнир, в котором ты участвуешь, теперь — Турнир имени "+nm+"! Игра увеличила призы: 🥇 +300 ⭐ · 🥈 +150 ⭐ · 🥉 +50 ⭐","⚔️ Открыть игру")}catch(e){}
         try{await hypeAdd(env,P.uid,"🏆 назвал субботний турнир своим именем",1)}catch(e){}}
       if(I.motto)msg="💬 Фраза в профиле обновлена!";
+      if(I.fan){const H=HEROES.findIndex(x=>x[4].fan),u0=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first(),nm=(u0&&u0.n)||"Игрок";
+        const no=(((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=?").bind(H).first())||{}).n||0)+1;
+        await env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,how) VALUES(?,?,9,?,?,1,45,?,?,0,0,5,?,'fan')").bind(P.uid,H,no,"ФАН"+String(no).padStart(3,"0"),5000000,JSON.stringify([1000,1000,1000,1000,1000]),Date.now()).run();
+        msg="👑 Ты — Фанат №"+no+" «Воинов Эпох»! Карта «Все Воины Эпох» с подписью создателя уже в твоей коллекции.\n\n👕 Футболка размера "+String(d.size||"")+": администратор @voinovadmin напишет тебе в Telegram в течение 24 часов, чтобы узнать адрес доставки.";
+        for(const a of ADMINS)try{await notify(env,a,"👕 НАБОР ФАНАТА №"+no+" куплен!\n\nИгрок: "+nm+" (id "+P.uid+")\nРазмер футболки: "+String(d.size||"?")+"\n\nНапиши ему для адреса доставки: tg://user?id="+P.uid,"⚔️ Открыть")}catch(e){}
+        try{await hypeAdd(env,P.uid,"👑 стал ФАНАТОМ №"+no+" «Воинов Эпох»",1)}catch(e){}
+        try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"👑 У «Воинов Эпох» новый ФАНАТ №"+no+" — "+nm+"!\n\nОн получает фирменную футболку игры и именную карту «Все Воины Эпох» с подписью создателя — у каждого фаната свой номер, навсегда 🔥\n\nСпасибо за поддержку! 🙏\n👉 @VoinyEpohBot"})}catch(e){}}
       if(I.chpin){const u0=await env.DB.prepare("SELECT nick FROM users WHERE id=?").bind(P.uid).first(),cur=await kvGet(env,"chat_pin");const st0=cur&&cur.until&&cur.until>Date.now()&&cur.uid===P.uid?cur.until:Date.now();
         await kvSet(env,"chat_pin",{id:0,uid:P.uid,name:(u0&&u0.nick)||"Игрок",text:String(d.text||""),t:Date.now(),until:st0+36e5,paid:1});delete topCache.chatpin;msg="📌 Твоё объявление закреплено в чате на 1 час!"}
       if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(!L.includes(P.uid)){L.push(P.uid);await kvSet(env,"dia_ids",L)}delete topCache.diaU;msg="💎 Алмазный профиль твой — навсегда! Ник сияет в топе, чате и профиле.";
