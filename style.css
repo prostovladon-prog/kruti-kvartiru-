@@ -3618,3 +3618,5 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 @keyframes unlPulse{0%,100%{transform:none}50%{transform:translateY(-3px)}}
 .unlbox{text-align:center}.unl-ic{font-size:54px;margin:4px 0}.unl-bar{position:relative;height:22px;margin:10px 0;border-radius:12px;background:rgba(0,0,0,.1);overflow:hidden}.unl-bar u{display:block;height:100%;background:linear-gradient(90deg,#3ddc84,#ffd23f)}.unl-bar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px}
 .unlbox.party{background:linear-gradient(180deg,#fff8d6,#fff)}
+
+.chfine{font-size:9px!important;line-height:1.25;opacity:.55;background:none!important;padding:0!important;margin-top:6px;text-align:center;font-weight:500}
