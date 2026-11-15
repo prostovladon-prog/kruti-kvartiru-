@@ -314,7 +314,9 @@ function pagerApply(boxId,sel,per,label){const box=$(boxId);if(!box)return;const
 
 /* ===== 🎰 Беспроигрышная лотерея ===== */
 let LOTS=null;
-async function lotLoad(){const r=await act("lot_get",{});if(r){LOTS=r;LOTS.off=r.now-Date.now()}return r}
+async function lotLoad(){let r=null;try{if(ONLINE){const x=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"lot_get",p:{}})});const j=await x.json();if(j&&j.ok)r=j.res}}catch(e){}
+ if(!r){const n=Date.now(),d=new Date(n+3*36e5),s=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),5,0);r={on:0,start:s,end:s+14*36e5,now:n,price:29,max:15,tot:0,bank:0,players:0,my:0,left:15,fin:null,soon:1}}
+ LOTS=r;LOTS.off=r.now-Date.now();return r}
 function lotBar(){const sp=$("sec-spin");if(!sp||!LOTS)return;let b=$("lot-bar");const nw=Date.now()+(LOTS.off||0),pre=!LOTS.on&&nw<LOTS.start;
  if(!b){b=document.createElement("button");b.type="button";b.id="lot-bar";b.className="lot-bar";b.onclick=()=>lotOpen();const e=$("tk-bar");if(e&&e.parentNode===sp)e.after(b);else sp.insertBefore(b,sp.firstChild)}
  b.innerHTML='<i>🎰</i><span><b>'+(LOTS.on?'Лотерея: банк '+fmtN(LOTS.bank)+' ⭐':pre?'Беспроигрышная лотерея — старт в 08:00':'Лотерея — завтра с 08:00')+'</b><small>'+(LOTS.on?'беспроигрышная · у тебя '+LOTS.my+' 🎟 · розыгрыш в 22:00':pre?'через '+tkT(LOTS.start-nw)+' · билет '+LOTS.price+' ⭐ · банк одному':(LOTS.fin&&LOTS.fin.uid?'банк забрал '+escH(LOTS.fin.name):'новый банк каждый день'))+'</small></span><em>›</em>'}
@@ -344,12 +346,16 @@ setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();con
  new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
 
 /* 🎠 шторка на «Крутить»: Билетная гонка + Лотерея в одной карусели — листается свайпом, сама переключается, по нажатию открывается выбранное */
-function evCar(){const sp=$("sec-spin");if(!sp)return;const bars=["tk-bar","lot-bar"].map(id=>$(id)).filter(Boolean);let C=$("ev-car");
+function evCar(){const sp=$("sec-spin");if(!sp)return;const bars=["tk-bar","lot-bar","vhstrip"].map(id=>$(id)).filter(Boolean);let C=$("ev-car");
  if(!bars.length){if(C)C.remove();return}
- if(!C){C=document.createElement("div");C.id="ev-car";C.className="ev-car";C.innerHTML='<div class="ev-tr"></div><div class="ev-dots"></div>';bars[0].before(C);
+ if(!C){C=document.createElement("div");C.id="ev-car";C.className="ev-car";C.innerHTML='<div class="ev-tr"></div><div class="ev-dots"></div>';const v=$("vhstrip"),hy=$("hype");if(v&&v.parentNode===sp)v.before(C);else if(hy&&hy.parentNode===sp)hy.after(C);else bars[0].before(C);
   const tr=C.firstChild;tr.addEventListener("scroll",()=>{const i=Math.round(tr.scrollLeft/Math.max(1,tr.clientWidth));C.querySelectorAll(".ev-dots i").forEach((d,j)=>d.classList.toggle("on",j===i))},{passive:true});
   ["pointerdown","touchstart"].forEach(ev=>tr.addEventListener(ev,()=>{C._hold=Date.now()},{passive:true}));
   setInterval(()=>{if(document.hidden||$("sec-spin").hidden||Date.now()-(C._hold||0)<8000)return;const n=tr.children.length;if(n<2)return;const i=Math.round(tr.scrollLeft/tr.clientWidth);tr.scrollTo({left:((i+1)%n)*tr.clientWidth,behavior:"smooth"})},4500)}
- const tr=C.firstChild;bars.forEach(b=>{if(b.parentNode!==tr)tr.appendChild(b)});
+ {const hy=$("hype");if(hy&&hy.parentNode===sp&&C.previousElementSibling!==hy)hy.after(C)}
+ const tr=C.firstChild;["tk-bar","lot-bar","vhstrip"].forEach(id=>{const b=$(id);if(b&&(b.parentNode!==tr||tr.lastElementChild!==b&&false))tr.appendChild(b)});
+ {const ord=["tk-bar","lot-bar","vhstrip"].map(id=>$(id)).filter(b=>b&&b.parentNode===tr);ord.forEach((b,i)=>{if(tr.children[i]!==b)tr.insertBefore(b,tr.children[i]||null)})}
  const n=tr.children.length,D=C.lastChild;if(D.children.length!==n)D.innerHTML=n>1?[...Array(n)].map((_,i)=>'<i class="'+(i?"":"on")+'"></i>').join(""):""}
 {const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("tkBar");w("lotBar")}
+
+{const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("vhStrip")}
