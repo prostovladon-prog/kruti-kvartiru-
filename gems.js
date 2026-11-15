@@ -362,3 +362,10 @@ function evCar(){const sp=$("sec-spin");if(!sp)return;const bars=["tk-bar","lot-
 {const _ps=payShow;payShow=function(r){if(r&&r.item==="diap"&&r.status!=="refund"){renderAll();try{sfx.coin();hapN("success")}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
  sh.innerHTML='<div class="box nickbox" style="text-align:center"><div style="font-size:64px">💎</div><h3>Алмазный профиль твой!</h3><p class="cln">Навсегда. Ник сияет в топе, в чате и в профиле — все видят, кто здесь король.</p><button type="button" class="craftbtn" id="dia-see">👀 Посмотреть профиль</button><button type="button" class="ghost" id="dia-x">Закрыть</button></div>';
  $("dia-x").onclick=closeModal;$("dia-see").onclick=()=>{closeModal();try{menuGo("prof")}catch(e){}};return}return _ps.apply(this,arguments)}}
+
+/* 📌 платный закреп в чате: 50 ⭐ на 1 час */
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("#ch-pinbuy");if(!b)return;const box=document.createElement("div");box.className="chpbuy";
+ box.innerHTML='<b>📌 Твоё сообщение наверху чата у всех — 1 час</b><textarea id="chp-t" maxlength="120" placeholder="Например: Продаю Цербера, пиши в ЛС 🔥"></textarea><small id="chp-n">0 / 120</small><div><button type="button" class="craftbtn" id="chp-go">Закрепить · 50 ⭐</button><button type="button" class="ghost" id="chp-x">Отмена</button></div>';
+ b.replaceWith(box);const ta=$("chp-t");ta.focus();ta.oninput=()=>{$("chp-n").textContent=ta.value.length+" / 120"};
+ $("chp-x").onclick=()=>box.replaceWith(b);$("chp-go").onclick=()=>{const t=ta.value.trim();if(t.length<3){toast("Напиши текст объявления");return}buyItem({item:"chpin",text:t})}});
+{const _ps=payShow;payShow=function(r){if(r&&r.item==="chpin"&&r.status!=="refund"){try{sfx.coin();hapN("success")}catch(e){}toast("📌 Закреплено на 1 час!");try{closeModal()}catch(e){}try{openChat()}catch(e){}return}return _ps.apply(this,arguments)}}

@@ -3575,3 +3575,6 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .ev-tr>.vhstrip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ev-tr>.vhstrip b{white-space:nowrap}
 
 .tk-caps>div{display:flex;justify-content:space-between;align-items:center}.tk-caps>div.full small{color:#ff5a3a;font-weight:900}
+
+.chpbuy{margin:6px 0;padding:10px;border-radius:14px;background:#fff7d6;border:2px solid #ffd23f;display:flex;flex-direction:column;gap:6px;color:#2a1a00}
+.chpbuy textarea{width:100%;box-sizing:border-box;min-height:56px;border-radius:10px;border:2px solid #e0c060;padding:8px;font:inherit;resize:none}.chpbuy small{align-self:flex-end;color:#8a7a50}.chpbuy>div{display:flex;gap:8px}.chpbuy .craftbtn{flex:1;margin:0}

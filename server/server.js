@@ -689,7 +689,7 @@ const CHAT_BAD=/(?<![а-яёa-z])(х[уy][йеёяию]\S*|п[иi]зд\S*|[её]
 const CHAT_LINK=/(https?:\/\/|www\.|t\.me\/|telegram\.(me|dog)|\.(ru|com|net|org|me|io|gg|xyz|su|by|ua|info|site|online)\b)/i;
 async function chatGet(env,p){
   const rows=(await env.DB.prepare("SELECT c.id,c.uid,c.name,c.text,c.t,COALESCE(u.pioneer,0) AS pi,CASE WHEN u.vip_until>? THEN 1 ELSE 0 END AS vip FROM chat c LEFT JOIN users u ON u.id=c.uid WHERE c.id>? ORDER BY c.id DESC LIMIT 60").bind(Date.now(),p.after|0).all()).results.reverse();
-  const K=await kingCur(env);const pin=await cached("chatpin",15e3,()=>kvGet(env,"chat_pin"));return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0,k:K&&K.uid===r.uid?1:0})),pin:pin&&pin.text?pin:null};
+  const K=await kingCur(env);let pin=await cached("chatpin",15e3,()=>kvGet(env,"chat_pin"));if(pin&&pin.until&&pin.until<Date.now())pin=null;return {items:rows.map(r=>Object.assign(r,{a:isAdmin(env,r.uid)?1:0,k:K&&K.uid===r.uid?1:0})),pin:pin&&pin.text?pin:null};
 }
 /* 💬 чат клана и 🔍 поиск игроков */
 async function socApi(env,me,a,p){const now=Date.now();
@@ -1857,6 +1857,10 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
       data={h,f:f2};title=(H[0]+", "+FIN[f2].k.toLowerCase()).slice(0,32)}
     if(I.dayc){data={h:dcH};title=("Карта дня: "+HEROES[dcH][0]).slice(0,32)}
+    if(I.chpin){const {u}=await loadUser(env,{id:uid});if(!u.nick)fail("Сначала выбери ник во вкладке «Топ»");if((u.muted||0)>Date.now())fail("У тебя мут в чате");
+      let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<3)fail("Напиши текст объявления");if(t.length>120)fail("Не длиннее 120 символов");if(CHAT_LINK.test(t))fail("Ссылки в чате запрещены");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
+      const cur=await kvGet(env,"chat_pin");if(cur&&cur.until&&cur.until>Date.now()&&cur.uid!==uid)fail("Закреп сейчас занят — освободится через "+Math.ceil((cur.until-Date.now())/6e4)+" мин");
+      data={text:t};title="Закреп в чате на 1 час"}
     if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже алмазный профиль 💎");data={};title="Алмазный профиль"}
     if(I.lott){const now=Date.now(),D=lotDay(now);if(!lotOn(now))fail("Лотерея идёт каждый день с 08:00 до 22:00");const n=Math.max(1,Math.min(LOT.max,Math.floor(+p.n||1))),have=await lotMine(env,uid,D,except);
       if(have+n>LOT.max)fail(have>=LOT.max?"Сегодня у тебя уже "+LOT.max+" билетов — это максимум":"Можно купить ещё "+(LOT.max-have)+" (максимум "+LOT.max+" в день)");
@@ -1955,6 +1959,8 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       for(const a of ADMINS)await notify(env,a,"💰 КУПИЛИ «Карточку мечты» за 5000 ⭐! Игрок "+((u&&u.n)||"?")+" (id "+P.uid+"). Ему сказано написать в @voinovadmin.","⚔️ Открыть")}
     else if(I){if(I.month){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item=? AND month=? AND status IN ('paid','done') AND id<?").bind(P.item,P.month,P.id).first())||{}).n||0;
         if(n>=I.month)fail("Мифические сундуки этого месяца раскупили на секунду раньше")}
+      if(I.chpin){const u0=await env.DB.prepare("SELECT nick FROM users WHERE id=?").bind(P.uid).first(),cur=await kvGet(env,"chat_pin");const st0=cur&&cur.until&&cur.until>Date.now()&&cur.uid===P.uid?cur.until:Date.now();
+        await kvSet(env,"chat_pin",{id:0,uid:P.uid,name:(u0&&u0.nick)||"Игрок",text:String(d.text||""),t:Date.now(),until:st0+36e5,paid:1});delete topCache.chatpin;msg="📌 Твоё объявление закреплено в чате на 1 час!"}
       if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(!L.includes(P.uid)){L.push(P.uid);await kvSet(env,"dia_ids",L)}delete topCache.diaU;msg="💎 Алмазный профиль твой — навсегда! Ник сияет в топе, чате и профиле.";
         try{const u0=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();await hypeAdd(env,P.uid,"💎 получил АЛМАЗНЫЙ профиль",1)}catch(e){}}
       if(I.lott){const D=lotDay(P.created||Date.now());if(Date.now()>D.end+2*6e4)fail("Лотерея уже разыграна");if((await lotMine(env,P.uid,D,P.id))+(d.n||1)>LOT.max)fail("Больше "+LOT.max+" билетов в день нельзя");msg="🎟 Билеты лотереи куплены: "+(d.n||1)+" шт. Розыгрыш банка сегодня в 22:00 — удачи! Если не выиграешь, получишь сундуки на сумму билетов 🎁"}
