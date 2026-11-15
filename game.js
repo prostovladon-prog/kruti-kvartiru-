@@ -1860,7 +1860,7 @@ function friendsPut(F){try{localStorage.setItem("we-friends",JSON.stringify(F))}
 function openShowcase(F){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   const x=document.createElement("button");x.type="button";x.className="x";x.textContent="Закрыть";x.onclick=closeModal;sh.appendChild(x);
   const w=document.createElement("div");w.className="who";w.innerHTML="<span></span><small></small>";w.children[0].textContent="Витрина: "+champMark(F.uid)+(F.vip?"👑 ":"")+(F.pi?"🏅 ":"")+F.name;
-  w.children[1].textContent="Собрано воинов: "+F.have+" из "+NHEROES+", побед в боях: "+F.wins;sh.appendChild(w);
+  w.children[1].textContent="Собрано воинов: "+F.have+" из "+NHEROES+", побед в боях: "+F.wins;sh.appendChild(w);if(F.motto){const mq=document.createElement("div");mq.className="motto";mq.textContent="«"+F.motto+"»";sh.appendChild(mq)}
   const g=document.createElement("div");g.className="show3";F.cards.forEach(c=>{const d=bigMc(c,0);d.querySelector(".v").innerHTML=`<small>${FIN[c.f].k}, ур. ${lvl(c)}</small><b class="num">${fmt(c.v)}</b>`;g.appendChild(d)});
   if(!F.cards.length){const e=document.createElement("div");e.className="mc empty";e.textContent="Пока нет карточек";g.appendChild(e)}sh.appendChild(g);
   if(F.cards.length){const info=document.createElement("div");info.className="box";info.innerHTML="<h3>Вызвать на бой</h3><p>Выбери карточку друга, потом своего воина и характеристику.</p>";
@@ -2289,7 +2289,7 @@ function renderAll(){if(!S)return;updCash();{const on=!ONLINE||!!S.shopOn;$("gol
 
 /* ---------- СОКРОВИЩНИЦА: сундуки, составные воины и понт за ⭐ Telegram Stars ---------- */
 let goldTab="chest",goldData=null,goldBusy=false;
-const CHEST_COL={luckbox:["#b8ffcf","#0d5c3a","#3ddc84"],promo:["#ffc8f0","#7a1a5a","#ff5ad0"],general:["#ffb38a","#6a1a0a","#ff6a3a"],empire:["#ffe9a8","#4a1a8a","#ffd23f"],newbie:["#7ee89a","#0d5c2a","#34c759"],small:["#7cc8ff","#0b3c8c","#0a84ff"],royal:["#ffd27a","#8a3a08","#ff9f0a"],warrior:["#ff8a8a","#7a0f12","#ff3b30"],legend:["#e0a8ff","#4a1478","#bf5af2"],mythic:["#fff1a8","#b8580b","#ffd60a"],twins:["#9ff7ff","#3a1a8a","#7cf7ff"]};
+const CHEST_COL={diap:["#d8f6ff","#1a3a8a","#5ad8ff"],luckbox:["#b8ffcf","#0d5c3a","#3ddc84"],promo:["#ffc8f0","#7a1a5a","#ff5ad0"],general:["#ffb38a","#6a1a0a","#ff6a3a"],empire:["#ffe9a8","#4a1a8a","#ffd23f"],newbie:["#7ee89a","#0d5c2a","#34c759"],small:["#7cc8ff","#0b3c8c","#0a84ff"],royal:["#ffd27a","#8a3a08","#ff9f0a"],warrior:["#ff8a8a","#7a0f12","#ff3b30"],legend:["#e0a8ff","#4a1478","#bf5af2"],mythic:["#fff1a8","#b8580b","#ffd60a"],twins:["#9ff7ff","#3a1a8a","#7cf7ff"]};
 let chestN=0;
 function chestSVG(k,s){const [c1,c2,gl]=CHEST_COL[k],id="ch"+(++chestN);return `<svg viewBox="0 0 120 100" class="chsvg" style="width:${s}px;height:${s*100/120}px;filter:drop-shadow(0 0 14px ${gl})" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
   <ellipse cx="60" cy="94" rx="46" ry="5" fill="#000" opacity=".4"/><path d="M14 40 Q60 0 106 40Z" fill="#fff6c8" opacity=".9" style="filter:blur(6px)"/>
@@ -2322,7 +2322,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     return `<div class="of${left===0?" sold":""}" style="--fr:linear-gradient(145deg,${c1},${gl} 30%,${c2} 60%,${c1} 85%,${c2});--gl:${gl}">${tag?'<span class="tag">'+tag+'</span>':""}<div class="in">${chestSVG(k,96)}<div><h4>${I.n}</h4><ul>${I.d.map(x=>"<li>"+x+"</li>").join("")}</ul>${left!=null?'<div class="mleft">'+(k==="twins"?'Близнецов осталось в мире: <b>'+left+' из '+DUO.length*DUO_RUN+'</b>':'осталось в этом месяце: <b>'+left+' из '+I.month+'</b>')+'</div>':""}<button type="button" class="buy" data-buy="${k}"${left===0?" disabled":""}>${left===0?"раскуплено":"⭐ "+I.stars}</button></div></div></div>`};
   if(goldTab==="chest"){
     v+='<div class="ghd">🔥 Новые сундуки</div><p class="gnote">Промокод можно забрать себе или подарить другу. Удача ускоряет Голограммы и Золото.</p>';
-    v+=offer("promo","НОВЫЙ · ДРУГУ")+offer("luckbox","НОВЫЙ");if(!isDiaU(S.uid))v+=offer("diap","💎 НОВОЕ");v+='<button type="button" class="gbx-ad" id="gbx-ad">'+(typeof gemSVG==="function"?gemSVG("f",4,52):"💎")+'<span><b>💎 Сундуки гемов — НОВОЕ</b><small>100 · 250 · 500 ⭐ · гемы до 4 ур. (+15% к силе)</small></span></button>';
+    v+=offer("promo","НОВЫЙ · ДРУГУ")+offer("luckbox","НОВЫЙ");if(!isDiaU(S.uid))v+=offer("diap","💎 НОВОЕ");v+='<div class="motto-buy"><b>💬 Фраза в профиле · 150 ⭐</b><small>Её видят все, кто открыл твою витрину</small><input type="text" id="motto-in" maxlength="60" placeholder="Например: Король эпох здесь 👑"><button type="button" class="craftbtn" id="motto-go">Купить · 150 ⭐</button></div>';v+='<button type="button" class="gbx-ad" id="gbx-ad">'+(typeof gemSVG==="function"?gemSVG("f",4,52):"💎")+'<span><b>💎 Сундуки гемов — НОВОЕ</b><small>100 · 250 · 500 ⭐ · гемы до 4 ур. (+15% к силе)</small></span></button>';
     v+='<div class="ghd">🧩 Сундуки с половинками</div>';
     if(!S.newbie)v+=offer("newbie","1 раз · −50%");
     v+=offer("small")+offer("royal","ВЫГОДНО ×2");
@@ -2578,6 +2578,9 @@ const champMark=uid=>S&&S.champion&&S.champion.uid===uid?"🏆 ":"";
 function drawTour(){const T=trData,box=$("tr-box");if(!T||!box)return;const left=Math.max(0,(T.left||0)-(NOW()-T._t));
   const d=Math.floor(left/864e5),hm=tleft(left%864e5);$("tr-cnt").textContent=T.phase==="reg"?T.count+" / "+T.max:"Раунд "+T.round;
   const when=new Date(T.start).toLocaleString("ru-RU",{weekday:"long",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Minsk"});
+  try{let sb=$("tr-sp");if(!sb){sb=document.createElement("div");sb.id="tr-sp";$("tr-t").before(sb)}
+    sb.innerHTML=T.sp?'<div class="tsp-on">🏆 Турнир имени <b>'+escH(T.sp.name)+'</b><small>игра добавляет к призам: 🥇 +300 ⭐ · 🥈 +150 ⭐ · 🥉 +50 ⭐</small></div>':(T.phase==="reg"?'<button type="button" class="tsp-buy" id="tsp-buy">👑 Назвать турнир своим именем · 1000 ⭐<small>пост в канале + игра добавит к призам 300/150/50 ⭐</small></button>':'');
+    const bb=$("tsp-buy");if(bb)bb.onclick=()=>buyItem({item:"tsp"})}catch(e){}
   $("tr-t").textContent=T.phase==="reg"?"Старт: "+when+" (через "+(d?d+" дн ":"")+hm+"). Сетка на выбывание, каждый бой — живой на арене. Приз: "+T.prize+"."+(T.last?" Чемпион прошлой недели: 🏆 "+T.last.name+".":"")
     :"Турнир идёт! Каждый матч — живой бой, смотри любой. Приз: "+T.prize+".";
   const me=$("tr-me"),bt=$("tr-btns");me.innerHTML="";bt.innerHTML="";

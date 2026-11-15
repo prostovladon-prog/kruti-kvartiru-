@@ -528,7 +528,7 @@ async function profile(env,p,me){
   if(me&&me.id!==u.id)await env.DB.prepare("UPDATE users SET gv=gv+1 WHERE id=?").bind(u.id).run();
   const gv=((await env.DB.prepare("SELECT gv FROM users WHERE id=?").bind(u.id).first())||{}).gv||0;
   const _st=JSON.parse(u.state||"{}");
-  return {pbg:_st.pbgOn||"",dfx:_st.dfxOn||"",name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
+  return {motto:_st.motto||"",pbg:_st.pbgOn||"",dfx:_st.dfxOn||"",name:u.name||"Игрок",pi:u.pioneer||0,vip:(u.vip_until||0)>Date.now()?1:0,wins:(JSON.parse(u.state||"{}").totalWins)||0,have:have.n,cards,uid:u.id,
     shelf:gs.filter(g=>g.shelf>0),gn:gs.length,gval:gs.reduce((a,g)=>a+giftVal(g.k),0),gv,grank:await giftRank(env,u.id)};
 }
 async function cardInfo(env,p){
@@ -1049,6 +1049,8 @@ async function tourTick(env){if(tourBusy)return tourBusy;tourBusy=(async()=>{con
     await env.DB.prepare("UPDATE tours SET phase='done',champion=?,champion_name=? WHERE id=?").bind(champ,cn,T.id).run();
     await kvSet(env,"champion",{uid:champ,name:cn,until:now+7*864e5});topCache={};
     await env.DB.prepare("UPDATE users SET vip_until=MAX(vip_until,?) WHERE id=?").bind(now+7*864e5,champ).run();
+    const SP=await kvGet(env,"tsp:"+T.id);if(SP&&SP.uid){const addS=async(u,n)=>{if(!u)return;await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(n,u).run();await notify(env,u,"⭐ Бонус Турнира имени "+SP.name+": +"+n+" ⭐ на баланс!","⚔️ Открыть игру")};
+      try{await addS(champ,300);if(fin)await addS(fin,150);for(const u of semis)await addS(u,50)}catch(e){console.error("tsp prize",e)}}
     await tourPrize(env,champ,TOUR_PRIZE[0],"🏆 ТЫ ЧЕМПИОН ТУРНИРА! +10 000 🪙, +10 прокруток, гарантированная эпическая карточка, VIP на 7 дней и кубок 🏆 у ника на неделю!");
     if(fin)await tourPrize(env,fin,TOUR_PRIZE[1],"🥈 Второе место в турнире! +3 000 🪙 и +5 прокруток. В следующую субботу — за кубком!");
     for(const u of semis)await tourPrize(env,u,TOUR_PRIZE[2],"🥉 Полуфинал турнира! +1 000 🪙 и +3 прокрутки");
@@ -1063,7 +1065,8 @@ async function tourApi(env,me,a,p){const now=Date.now();
     const players=(await env.DB.prepare("SELECT uid,name,card FROM tour_players WHERE tour=?").bind(T.id).all()).results,nm={};players.forEach(x=>nm[x.uid]=x.name);
     const mine=players.find(x=>x.uid===me.id);
     const mt=T.phase==="run"?(await env.DB.prepare("SELECT m.*,r.phase AS rphase,r.code AS rcode FROM tour_matches m LEFT JOIN rooms r ON r.id=m.room WHERE m.tour=? ORDER BY m.round,m.slot").bind(T.id).all()).results:[];
-    return {id:T.id,phase:T.phase,start:T.start,left:Math.max(0,T.start-now),round:T.round,count:players.length,max:TOUR_MAX,me:mine?{card:mine.card}:null,
+    const SPN=await kvGet(env,"tsp:"+T.id);
+    return {sp:SPN&&SPN.uid?{name:SPN.name,uid:SPN.uid}:null,id:T.id,phase:T.phase,start:T.start,left:Math.max(0,T.start-now),round:T.round,count:players.length,max:TOUR_MAX,me:mine?{card:mine.card}:null,
       matches:mt.map(m=>({round:m.round,a:m.a,b:m.b,an:nm[m.a]||"?",bn:m.b?nm[m.b]||"?":null,winner:m.winner,room:m.room,live:LIVE.includes(m.rphase),code:(m.a===me.id||m.b===me.id)?m.rcode:undefined})),
       last:last?{name:last.champion_name,uid:last.champion}:null,prize:"🏆 10 000 🪙 + 10 прокруток + эпик + VIP на неделю + кубок у ника"}}
   const T=await curTour(env);
@@ -1861,6 +1864,8 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<3)fail("Напиши текст объявления");if(t.length>120)fail("Не длиннее 120 символов");if(CHAT_LINK.test(t))fail("Ссылки в чате запрещены");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));
       const cur=await kvGet(env,"chat_pin");if(cur&&cur.until&&cur.until>Date.now()&&cur.uid!==uid)fail("Закреп сейчас занят — освободится через "+Math.ceil((cur.until-Date.now())/6e4)+" мин");
       data={text:t};title="Закреп в чате на 1 час"}
+    if(I.motto){let t=String(p.text||"").replace(/\s+/g," ").trim();if(t.length<2)fail("Напиши фразу");if(t.length>60)fail("Не длиннее 60 символов");if(CHAT_LINK.test(t))fail("Ссылки нельзя");t=t.replace(CHAT_BAD,m=>"*".repeat(m.length));data={text:t};title="Фраза в профиле"}
+    if(I.tsp){const T=await curTour(env);if(T.phase!=="reg")fail("Турнир уже идёт — назвать можно следующий");const cur=await kvGet(env,"tsp:"+T.id);if(cur&&cur.uid)fail("Этот турнир уже назван в честь "+cur.name);data={tid:T.id};title="Именной турнир"}
     if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже алмазный профиль 💎");data={};title="Алмазный профиль"}
     if(I.lott){const now=Date.now(),D=lotDay(now);if(!lotOn(now))fail("Лотерея идёт каждый день с 08:00 до 22:00");const n=Math.max(1,Math.min(LOT.max,Math.floor(+p.n||1))),have=await lotMine(env,uid,D,except);
       if(have+n>LOT.max)fail(have>=LOT.max?"Сегодня у тебя уже "+LOT.max+" билетов — это максимум":"Можно купить ещё "+(LOT.max-have)+" (максимум "+LOT.max+" в день)");
@@ -1959,6 +1964,12 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       for(const a of ADMINS)await notify(env,a,"💰 КУПИЛИ «Карточку мечты» за 5000 ⭐! Игрок "+((u&&u.n)||"?")+" (id "+P.uid+"). Ему сказано написать в @voinovadmin.","⚔️ Открыть")}
     else if(I){if(I.month){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item=? AND month=? AND status IN ('paid','done') AND id<?").bind(P.item,P.month,P.id).first())||{}).n||0;
         if(n>=I.month)fail("Мифические сундуки этого месяца раскупили на секунду раньше")}
+      if(I.tsp){const T=await curTour(env),cur=await kvGet(env,"tsp:"+T.id);if(T.id!==d.tid||T.phase!=="reg")fail("Турнир уже начался");if(cur&&cur.uid)fail("Турнир уже назван в честь другого игрока");
+        const u0=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first(),nm=(u0&&u0.n)||"Игрок";await kvSet(env,"tsp:"+T.id,{uid:P.uid,name:nm,t:Date.now()});msg="🏆 Субботний турнир пройдёт в твою честь! Призы увеличены за счёт игры. Удачи в сетке!";
+        try{const when=new Date(T.start).toLocaleString("ru-RU",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Minsk"});await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"🏆 ТУРНИР ИМЕНИ "+nm.toUpperCase()+"!\n\nСубботний турнир ("+when+") пройдёт в честь игрока "+nm+" 👑\nК обычным призам игра добавляет: 🥇 +300 ⭐ · 🥈 +150 ⭐ · 🥉 +50 ⭐\n\nРегистрация открыта 👉 @VoinyEpohBot",reply_markup:{inline_keyboard:[[{text:"🏆 Участвовать",url:"https://t.me/VoinyEpohBot"}]]}})}catch(e){}
+        try{for(const x of (await env.DB.prepare("SELECT uid FROM tour_players WHERE tour=?").bind(T.id).all()).results)if(x.uid!==P.uid)await notify(env,x.uid,"🏆 Турнир, в котором ты участвуешь, теперь — Турнир имени "+nm+"! Игра увеличила призы: 🥇 +300 ⭐ · 🥈 +150 ⭐ · 🥉 +50 ⭐","⚔️ Открыть игру")}catch(e){}
+        try{await hypeAdd(env,P.uid,"🏆 назвал субботний турнир своим именем",1)}catch(e){}}
+      if(I.motto)msg="💬 Фраза в профиле обновлена!";
       if(I.chpin){const u0=await env.DB.prepare("SELECT nick FROM users WHERE id=?").bind(P.uid).first(),cur=await kvGet(env,"chat_pin");const st0=cur&&cur.until&&cur.until>Date.now()&&cur.uid===P.uid?cur.until:Date.now();
         await kvSet(env,"chat_pin",{id:0,uid:P.uid,name:(u0&&u0.nick)||"Игрок",text:String(d.text||""),t:Date.now(),until:st0+36e5,paid:1});delete topCache.chatpin;msg="📌 Твоё объявление закреплено в чате на 1 час!"}
       if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(!L.includes(P.uid)){L.push(P.uid);await kvSet(env,"dia_ids",L)}delete topCache.diaU;msg="💎 Алмазный профиль твой — навсегда! Ник сияет в топе, чате и профиле.";

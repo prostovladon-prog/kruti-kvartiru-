@@ -369,3 +369,6 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
  b.replaceWith(box);const ta=$("chp-t");ta.focus();ta.oninput=()=>{$("chp-n").textContent=ta.value.length+" / 120"};
  $("chp-x").onclick=()=>box.replaceWith(b);$("chp-go").onclick=()=>{const t=ta.value.trim();if(t.length<3){toast("Напиши текст объявления");return}buyItem({item:"chpin",text:t})}});
 {const _ps=payShow;payShow=function(r){if(r&&r.item==="chpin"&&r.status!=="refund"){try{sfx.coin();hapN("success")}catch(e){}toast("📌 Закреплено на 1 час!");try{closeModal()}catch(e){}try{openChat()}catch(e){}return}return _ps.apply(this,arguments)}}
+
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#motto-go")){const t=($("motto-in").value||"").trim();if(t.length<2){toast("Напиши фразу");return}buyItem({item:"motto",text:t})}});
+{const _ps=payShow;payShow=function(r){if(r&&(r.item==="motto"||r.item==="tsp")&&r.status!=="refund"){renderAll();try{sfx.coin();hapN("success")}catch(e){}toast(r.item==="motto"?"💬 Фраза в профиле обновлена!":"🏆 Турнир назван твоим именем!");try{closeModal()}catch(e){}if(r.item==="tsp")try{loadTour(true)}catch(e){}return}return _ps.apply(this,arguments)}}

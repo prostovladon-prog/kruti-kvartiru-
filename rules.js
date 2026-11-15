@@ -535,6 +535,8 @@ SHOP.gbox3={n:"Королевский сундук гемов",stars:500,gbox:1,
 function gboxLv(L){let r=Math.random();for(const [lv,p] of L){if(r<p)return lv;r-=p}return L[L.length-1][0]}
 SHOP.diap={n:"Алмазный профиль",stars:1000,dia:1,d:["💎 сияющий алмазный ник — в топе, чате и профиле","✨ анимированная алмазная рамка профиля","👑 навсегда — один раз и на всю жизнь"]};
 SHOP.chpin={n:"Закреп в чате на 1 час",stars:50,chpin:1,d:["📌 твоё сообщение наверху чата у всех — 1 час"]};
+SHOP.motto={n:"Фраза в профиле",stars:150,motto:1,d:["💬 твоя фраза в витрине — её видят все, кто открыл твой профиль"]};
+SHOP.tsp={n:"Именной турнир",stars:1000,tsp:1,d:["🏆 субботний турнир пройдёт в твою честь","⭐ игра добавляет к призам 300 / 150 / 50 ⭐","📣 пост в канале и всем участникам"]};
 SHOP.lott={n:"Билет лотереи",stars:29,lott:1,d:["🎟 билет беспроигрышной лотереи дня"]};
 const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
@@ -1147,6 +1149,7 @@ const ACTIONS={
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
     if(I.kolo)add(makeCard(ctx,KOLO,4));
     if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";dcSn(ctx,c,HEROES[h][4].sn);add(c)}
+    if(I.motto)st.motto=String(p.text||"").slice(0,60);
     let gems=null;if(I.gbox){const B=GBOX[p.item],el=GEM.el[p.el]?p.el:"f";gems=[el+gboxLv(B.lv)];if(B.lv2)gems.push(el+gboxLv(B.lv2));gems.forEach(g=>gemAdd(st,g));const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[el]=(H[el]||0)+B.sh}
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;

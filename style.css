@@ -3578,3 +3578,9 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 
 .chpbuy{margin:6px 0;padding:10px;border-radius:14px;background:#fff7d6;border:2px solid #ffd23f;display:flex;flex-direction:column;gap:6px;color:#2a1a00}
 .chpbuy textarea{width:100%;box-sizing:border-box;min-height:56px;border-radius:10px;border:2px solid #e0c060;padding:8px;font:inherit;resize:none}.chpbuy small{align-self:flex-end;color:#8a7a50}.chpbuy>div{display:flex;gap:8px}.chpbuy .craftbtn{flex:1;margin:0}
+
+.motto{margin:6px 0 10px;padding:10px 14px;border-radius:14px;background:linear-gradient(135deg,#fff3c0,#ffe08a);color:#3a2400;font-weight:800;font-style:italic;text-align:center;border:2px solid #e8b020}
+.motto-buy{display:flex;flex-direction:column;gap:6px;margin:10px 0;padding:12px;border-radius:16px;background:rgba(255,255,255,.08);border:2px solid #ffd23f;color:#fff}
+.motto-buy small{opacity:.85}.motto-buy input{padding:10px;border-radius:10px;border:2px solid #e0c060;font:inherit}.motto-buy .craftbtn{margin:0}
+.tsp-on{margin:8px 0;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,#ffd23f,#ff9a1a);color:#2a1400;font-weight:900;text-align:center}.tsp-on small{display:block;font-weight:700;font-size:12px}
+.tsp-buy{display:block;width:100%;margin:8px 0;padding:10px 12px;border-radius:14px;border:2px dashed #ffd23f;background:rgba(255,210,63,.12);color:inherit;font:inherit;font-weight:900}.tsp-buy small{display:block;font-weight:700;font-size:12px;opacity:.8}
