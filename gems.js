@@ -395,3 +395,44 @@ function mystOpen(){const M=S&&S.myst;if(!M||!M.o)return;const m=$("modal"),sh=$
 {const _ps=payShow;payShow=function(r){if(r&&["dia30","shelfx","clad","myst"].includes(r.item)&&r.status!=="refund"){renderAll();try{sfx.coin();hapN("success")}catch(e){}
   if(r.item==="myst"){mystOpen();return}toast({dia30:"💎 Алмазный профиль включён на 30 дней!",shelfx:"🏛 Витрина расширена до 15 мест!",clad:"📣 Твой клан в ленте LIVE на 1 час!"}[r.item]);try{closeModal()}catch(e){}return}return _ps.apply(this,arguments)}}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest('[data-buy="myst"]');if(b&&S&&S.myst){e.preventDefault();e.stopPropagation();mystOpen()}},true);
+
+/* 💥 ловец вылетов: каждые 5 сек запоминаем, что происходит; если прошлый запуск оборвался без закрытия — шлём отчёт в админку */
+{const K="vcrash",now=()=>Date.now(),rd=()=>{try{return JSON.parse(localStorage.getItem(K)||"null")}catch(e){return null}},wr=o=>{try{localStorage.setItem(K,JSON.stringify(o))}catch(e){}};
+ let lastAct="",sent=0;const send=(kind,d)=>{if(sent>=5||!ONLINE)return;sent++;try{fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"crash_rep",p:{kind,d}})}).catch(()=>{})}catch(e){}};
+ const snap=()=>{const tab=(document.querySelector("section.sec:not([hidden])")||{}).id||"",mo=$("modal");let mem=0;try{mem=performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):0}catch(e){}
+   return {t:now(),tab,modal:mo&&!mo.hidden?((document.querySelector("#msheet h3")||{}).textContent||"окно").slice(0,40):"",dom:document.getElementsByTagName("*").length,cards:S&&S.cards?S.cards.length:0,mem,act:lastAct,ua:navigator.userAgent.slice(0,140),w:innerWidth,h:innerHeight,v:(document.querySelector('script[src*="game.js"]')||{}).src?.split("v=")[1]||""}};
+ const prev=rd();
+ const boot=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(boot);
+   if(prev&&!prev.clean&&now()-prev.t<15*6e4&&now()-prev.t>0)send("crash",prev);
+   wr(Object.assign(snap(),{clean:0}));setInterval(()=>{if(!document.hidden)wr(Object.assign(snap(),{clean:0}))},5000)},700);
+ const ok=()=>{const o=rd()||snap();o.clean=1;wr(o)};document.addEventListener("visibilitychange",()=>{if(document.hidden)ok();else{const o=rd();if(o){o.clean=0;o.t=now();wr(o)}}});addEventListener("pagehide",ok);
+ try{const _a=act;act=function(n){lastAct=String(n||"");return _a.apply(this,arguments)}}catch(e){}
+ addEventListener("error",e=>{try{send("js",{m:String(e.message||"").slice(0,200),f:String(e.filename||"").split("/").pop().slice(0,60),l:e.lineno,c:e.colno,tab:snap().tab,act:lastAct,ua:navigator.userAgent.slice(0,120)})}catch(_){}});
+ addEventListener("unhandledrejection",e=>{try{send("js",{m:String(e.reason&&e.reason.message||e.reason||"").slice(0,200),tab:snap().tab,act:lastAct})}catch(_){}})}
+async function crashOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox"><p>Загружаю…</p></div>';const r=await act("crash_list");if(!r)return;
+ const tag=k=>k==="crash"?"💥 вылет":"🐞 ошибка",dev=ua=>/iPhone|iPad/.test(ua||"")?"iPhone":/Android/.test(ua||"")?((ua.match(/;\s*([^;)]+)\sBuild/)||[])[1]||"Android"):"ПК",tm=t=>new Date(t).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+ const sum=(r.day||[]).map(x=>tag(x.kind)+": "+x.n+" ("+x.u+" игр.)").join(" · ")||"за сутки ничего";
+ sh.innerHTML='<div class="box nickbox crbox"><h3>💥 Вылеты и ошибки</h3><p class="cln">За 24 ч: '+sum+'</p><div class="crl">'+(r.items||[]).map(x=>{let d={};try{d=JSON.parse(x.data)}catch(e){}
+   return '<div class="cri '+x.kind+'"><b>'+tag(x.kind)+' · '+escH(x.name||String(x.uid))+'</b><small>'+tm(x.t)+' · '+dev(d.ua)+(d.cards!=null?' · карт '+d.cards:'')+(d.dom?' · DOM '+d.dom:'')+(d.mem?' · '+d.mem+' МБ':'')+'</small><span>'+escH(x.kind==="crash"?("вкладка «"+(d.tab||"?").replace("sec-","")+"»"+(d.modal?", окно «"+d.modal+"»":"")+(d.act?", последнее действие: "+d.act:"")):((d.m||"")+(d.f?" @ "+d.f+":"+d.l:"")+(d.tab?" · "+d.tab.replace("sec-",""):"")))+'</span></div>'}).join("")+'</div><button type="button" class="ghost" id="cr-x">Закрыть</button></div>';$("cr-x").onclick=closeModal}
+
+/* 🎯 задание клана на неделю */
+{const _dc=drawClan;drawClan=function(){_dc.apply(this,arguments);try{const b=$("clan-body");if(!b||!clData||!clData.clan||!clData.goal)return;const G=clData.goal,mx=CLAN_GOAL[CLAN_GOAL.length-1].n;let x=b.querySelector(".cgoal");if(!x){x=document.createElement("div");x.className="box cgoal";const ban=b.querySelector(".cw-ban");if(ban)ban.after(x);else b.prepend(x)}
+  x.innerHTML='<h3>🎯 Задание клана на неделю</h3><p class="cln">Открывайте карты всем кланом — каждый участник забирает награду за каждый этап</p><div class="cg-bar"><u style="width:'+Math.min(100,G.n/mx*100)+'%"></u>'+CLAN_GOAL.map(t=>'<i style="left:'+(t.n/mx*100)+'%">'+t.t+'</i>').join("")+'</div><div class="cg-n"><b>'+fmtN(G.n)+'</b> / '+fmtN(mx)+' карт</div>'+
+   CLAN_GOAL.map((t,i)=>{const got=G.got.includes(i),ok=G.n>=t.n;return '<div class="cg-t'+(got?" got":ok?" ready":"")+'"><span>'+t.t+' <b>'+fmtN(t.n)+' карт</b><small>🎴 '+t.sp+' · 🪙 '+fmtN(t.cash)+(t.guar?' · 💎 '+t.guar+' эпик':'')+'</small></span>'+(got?'<em>✅</em>':ok?'<button type="button" class="mini2" data-cg="'+i+'">Забрать</button>':'<em>'+Math.max(0,t.n-G.n)+' ещё</em>')+'</div>'}).join("");
+  x.querySelectorAll("[data-cg]").forEach(bt=>bt.onclick=async()=>{bt.disabled=true;const r=await act("clan_goal",{tier:+bt.dataset.cg});if(!r){bt.disabled=false;return}try{sfx.fanfare();burst(3);hapN("success")}catch(e){}toast("🎯 Награда клана: +"+r.sp+" прокруток, +"+fmtN(r.cash)+" 🪙"+(r.guar?", +"+r.guar+" гарант эпика":""));G.got.push(r.tier);drawClan()})}catch(e){console.error(e)}}}
+
+/* 👥 Друзья: список, онлайн, витрина, подарок и бой через витрину */
+async function frOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML='<div class="box nickbox"><p>Загружаю…</p></div>';const r=await act("fr_list");if(!r)return;frDraw(r)}
+function frDraw(r){const sh=$("msheet"),now=r.now||Date.now(),ago=t=>{const d=(now-t)/6e4;return !t?"давно":d<5?"🟢 в игре":d<60?Math.round(d)+" мин назад":d<1440?Math.round(d/60)+" ч назад":Math.round(d/1440)+" дн назад"};
+ sh.innerHTML='<div class="box nickbox frbox"><h3>👥 Друзья</h3><div class="fr-add"><input type="text" id="fr-nick" maxlength="20" placeholder="Ник друга"><button type="button" class="mini2" id="fr-go">➕ Добавить</button></div>'+
+  (r.inc&&r.inc.length?'<div class="fr-inc"><b>Тебя добавили:</b>'+r.inc.map(x=>'<button type="button" class="mini2" data-fa="'+x.uid+'">➕ '+escH(x.name)+'</button>').join("")+'</div>':'')+
+  (r.list.length?'<div class="fr-l">'+r.list.map(x=>'<div class="fr-r"><span><b>'+(x.vip?"👑 ":"")+escH(x.name)+(x.mut?' <i title="взаимно">🤝</i>':'')+'</b><small>'+ago(x.seen)+' · воинов '+x.have+'</small></span><button type="button" class="mini2" data-fo="'+x.uid+'">Витрина</button><button type="button" class="fr-del" data-fd="'+x.uid+'">✕</button></div>').join("")+'</div>':'<p class="cln">Пока пусто. Добавь друга по нику или открой витрину игрока и нажми «➕ В друзья». В витрине друга — подарок карты и вызов на бой.</p>')+
+  '<button type="button" class="ghost" id="fr-x">Закрыть</button></div>';
+ $("fr-x").onclick=closeModal;
+ $("fr-go").onclick=async()=>{const n=$("fr-nick").value.trim();if(!n)return;const a=await act("fr_add",{nick:n});if(a){toast("👥 "+a.added+" в друзьях!");frOpen()}};
+ sh.querySelectorAll("[data-fa]").forEach(b=>b.onclick=async()=>{const a=await act("fr_add",{uid:+b.dataset.fa});if(a){toast("🤝 Теперь вы друзья!");frOpen()}});
+ sh.querySelectorAll("[data-fd]").forEach(b=>b.onclick=async()=>{if(!confirm("Убрать из друзей?"))return;await act("fr_del",{uid:+b.dataset.fd});frOpen()});
+ sh.querySelectorAll("[data-fo]").forEach(b=>b.onclick=async()=>{const uid=+b.dataset.fo,p=await act("profile",{uid});if(p){closeModal();openShowcase(Object.assign(p,{p:"u_"+uid}))}})}
+{const _mg=menuGo;menuGo=function(k){if(k==="friends"){try{menuClose()}catch(e){}return frOpen()}return _mg.apply(this,arguments)}}
+{const _os=openShowcase;openShowcase=function(F){const r=_os.apply(this,arguments);try{if(F&&F.uid&&S&&F.uid!==S.uid&&ONLINE){const sh=$("msheet"),b=document.createElement("button");b.type="button";b.className="mini2 fr-addb";b.textContent="➕ В друзья";b.onclick=async()=>{const a=await act("fr_add",{uid:F.uid});if(a){toast("👥 "+a.added+" в друзьях!");b.disabled=true;b.textContent="✅ В друзьях"}};const w=sh.querySelector(".who");if(w)w.after(b)}}catch(e){}return r}}
+{const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);if(new URLSearchParams(location.search).get("fr"))setTimeout(frOpen,600)},700)}

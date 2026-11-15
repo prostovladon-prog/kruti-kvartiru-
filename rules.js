@@ -276,6 +276,9 @@ const DEST=[
  {k:"Поход за край карты",t:"8 часов",ms:8*3600e3,xp:360,m:[150,400],sp:2,card:.25}];
 const BOSS={name:"Змей Горыныч",hp:25000};
 /* эпохи альбома: собери всех воинов эпохи — получи награду и значок */
+const ERA_ALL={sp:100,t:"Хранитель эпох"};
+/* 🎯 клановое задание недели: весь клан вместе открывает карты — каждый участник забирает сундук за каждый этап */
+const CLAN_GOAL=[{n:300,sp:10,cash:50000,t:"🥉"},{n:800,sp:20,cash:100000,guar:1,t:"🥈"},{n:1500,sp:35,cash:250000,guar:2,t:"🥇"}];
 const ERAS=[{k:"mid",n:"Средневековье",ic:"⚔️",h:[0,1,2,3,6,8,12,13,24,27],sp:15,cash:1000},{k:"ant",n:"Античность",ic:"🏛",h:[4,5,7,10,15,17,19,22],sp:20,cash:2000},
  {k:"jap",n:"Япония",ic:"🏯",h:[9,18,20,21,30],sp:40,cash:10000},{k:"nor",n:"Север и Степь",ic:"🪓",h:[11,14,16,26],sp:15,cash:1500},{k:"myth",n:"Мифы и легенды",ic:"🐉",h:[23,25,28,29,31],sp:40,cash:10000},
  {k:"troy",n:"Троя и Эллада",ic:"🐴",h:[46,49,50,51,52,54,56,57,58,59],sp:40,cash:12000},{k:"emp",n:"Великие империи",ic:"👑",h:[47,48,53,55,60,61,62,63,64,65],sp:50,cash:15000}];
@@ -1021,8 +1024,16 @@ const ACTIONS={
     const team=(B.squad||[]).map(id=>G.cards.find(c=>c.id===id)).filter(c=>c&&!away(c));if(!team.length)fail("Поставь воинов в отряд");
     let dmg=team.reduce((a,c)=>a+eff(c,0)*(1.6+Math.random()*.8),0);const crit=Math.random()<.18;if(crit)dmg*=2.5;dmg=Math.round(dmg);
     B.hits++;B.dmg=Math.min(BOSS.hp,B.dmg+dmg);team.forEach(c=>addXp(ctx,c,20));return {dmg,crit}},
-  era_claim(G){const {st}=G;const E=ERAS.find(x=>x.k===G.p.k);if(!E)fail("Нет такой эпохи");st.eras=st.eras||{};if(st.eras[E.k])fail("Награда уже получена");
-    const have=haveSet(G.cards);if(!E.h.every(h=>have.has(h)))fail("Собери всех воинов эпохи");st.eras[E.k]=1;st.spins=(st.spins||0)+E.sp;earn(st,E.cash);return {k:E.k,sp:E.sp,cash:E.cash}},
+  /* 🗺 эпохи: прокрутки + монеты + ЛЕГЕНДАРНАЯ карта (блестящая); кто собрал раньше — добирает легендарку; все эпохи — мифическая и титул */
+  era_claim(G){const {st,ctx}=G;st.eras=st.eras||{};st.eraL=st.eraL||{};
+    if(G.p.k==="all"){if(st.eraAll)fail("Награда уже получена");if(!ERAS.every(x=>st.eras[x.k]))fail("Собери все эпохи");st.eraAll=1;st.spins=(st.spins||0)+ERA_ALL.sp;
+      const pool=HEROES.map((H,k)=>k).filter(k=>isBase(k)&&HEROES[k][2]===4&&!HEROES[k][4].nc&&!HEROES[k][4].one&&!HEROES[k][4].don&&!HEROES[k][4].collab),card=makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],1);addCard(G,card);return {k:"all",sp:ERA_ALL.sp,cash:0,card}}
+    const E=ERAS.find(x=>x.k===G.p.k);if(!E)fail("Нет такой эпохи");const have=haveSet(G.cards);
+    if(st.eras[E.k]&&st.eraL[E.k])fail("Награда уже получена");
+    if(!st.eras[E.k]&&!E.h.every(h=>have.has(h)))fail("Собери всех воинов эпохи");
+    let sp=0,cash=0;if(!st.eras[E.k]){st.eras[E.k]=1;sp=E.sp;cash=E.cash;st.spins=(st.spins||0)+sp;earn(st,cash)}
+    st.eraL[E.k]=1;const pool=HEROES.map((H,k)=>k).filter(k=>isBase(k)&&HEROES[k][2]===3&&!HEROES[k][4].nc&&!HEROES[k][4].one&&!HEROES[k][4].don&&!HEROES[k][4].collab),card=makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],1);addCard(G,card);
+    return {k:E.k,sp,cash,card}},
   boss_claim(G){const {st,ctx}=G;const B=boss(st,ctx.now),i=G.p.i|0,M=MILES[i];if(!M)fail("Нет такой награды");if(B.got.includes(i))fail("Уже получено");if(B.dmg<BOSS.hp*M.p)fail("Ещё не открыто");
     B.got.push(i);let card=null;
     if(i===0)st.spins+=3;if(i===1)st.guar=(st.guar||0)+1;if(i===2){earn(st,500);st.spins+=3}

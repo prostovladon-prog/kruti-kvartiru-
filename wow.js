@@ -520,10 +520,13 @@ let clConfirm=0;function confirmLeave(){if(NOW()-clConfirm<4000)return true;clCo
 /* ---------- эпохи в альбоме ---------- */
 function drawEras(){const sec=$("sec-album");if(!sec||sec.hidden||!S)return;let box=$("era-box");if(!box){box=document.createElement("div");box.id="era-box";box.className="box erab";const sub=sec.querySelector(".subnav");if(sub)sub.after(box);else sec.prepend(box)}
   const have=new Set((S.cards||[]).map(c=>c.h)),E=S.eras||{};
-  box.innerHTML='<h3>🗺 Эпохи</h3><p class="cln">Собери всех воинов эпохи — получи награду и значок эпохи</p>'+ERAS.map(x=>{const n=x.h.filter(h=>have.has(h)).length,done=n===x.h.length,got=E[x.k];
-    return '<div class="era'+(got?" got":done?" ready":"")+'"><i>'+x.ic+'</i><div><b>'+x.n+'</b><div class="erb"><u style="width:'+(n/x.h.length*100)+'%"></u></div><small>'+n+' из '+x.h.length+' · награда: '+x.sp+' прокруток и '+fmtN(x.cash)+' 🪙</small></div>'+
-     (got?'<em>✅</em>':done?'<button type="button" class="mini2" data-era="'+x.k+'">Забрать</button>':'')+'</div>'}).join("");
-  box.onclick=async e=>{const t=e.target.closest("[data-era]");if(!t)return;t.disabled=true;const r=await act("era_claim",{k:t.dataset.era});if(r){sfx.fanfare();burst(4);hapN("success");toast("🗺 Эпоха собрана! +"+r.sp+" прокруток и +"+fmtN(r.cash)+" монет");renderAll()}else t.disabled=false}}
+  const L=S.eraL||{},nGot=ERAS.filter(x=>E[x.k]).length;
+  box.innerHTML='<h3>🗺 Эпохи — коллекционные серии</h3><p class="cln">Собери всех воинов эпохи — получи прокрутки, монеты и <b>легендарную карту</b>. Собери все '+ERAS.length+' эпох — <b>мифическая карта</b> и титул «'+ERA_ALL.t+'» 👑</p>'+
+   '<div class="era-all'+(S.eraAll?" got":nGot===ERAS.length?" ready":"")+'"><i>👑</i><div><b>Все эпохи · '+nGot+' / '+ERAS.length+'</b><div class="erb"><u style="width:'+(nGot/ERAS.length*100)+'%"></u></div><small>награда: мифическая карта + '+ERA_ALL.sp+' прокруток + титул</small></div>'+(S.eraAll?'<em>✅</em>':nGot===ERAS.length?'<button type="button" class="mini2" data-era="all">Забрать</button>':'')+'</div>'+
+   ERAS.map(x=>{const n=x.h.filter(h=>have.has(h)).length,done=n===x.h.length,got=E[x.k],gl=L[x.k];
+    return '<div class="era'+(got&&gl?" got":done||got?" ready":"")+'"><i>'+x.ic+'</i><div><b>'+x.n+'</b><div class="erb"><u style="width:'+(n/x.h.length*100)+'%"></u></div><small>'+n+' из '+x.h.length+' · награда: '+x.sp+' прокруток, '+fmtN(x.cash)+' 🪙 и легендарка</small></div>'+
+     (got&&gl?'<em>✅</em>':got?'<button type="button" class="mini2" data-era="'+x.k+'">🎁 Легендарка</button>':done?'<button type="button" class="mini2" data-era="'+x.k+'">Забрать</button>':'')+'</div>'}).join("");
+  box.onclick=async e=>{const t=e.target.closest("[data-era]");if(!t)return;t.disabled=true;const r=await act("era_claim",{k:t.dataset.era});if(r){sfx.fanfare();burst(4);hapN("success");toast(r.k==="all"?"👑 Все эпохи собраны! Ты — "+ERA_ALL.t:"🗺 Эпоха собрана!"+(r.sp?" +"+r.sp+" прокруток и +"+fmtN(r.cash)+" монет":"")+" + легендарка!");renderAll();if(r.card)try{openCardView(r.card)}catch(e){}}else t.disabled=false}}
 const _renderAlbum=renderAlbum;renderAlbum=function(){_renderAlbum();try{drawEras()}catch(e){}};
 
 /* кейс: после прокрутки лента остаётся на выпавшем призе, а не прыгает в начало */
