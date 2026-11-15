@@ -3081,6 +3081,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
   const U=async()=>{const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();return JSON.parse((u&&u.state)||"{}")};
   if(a==="map_get"){const R=await mapRegions(env),ids=R.filter(r=>r.card).map(r=>r.card),cards={};
     for(let i=0;i<ids.length;i+=90){const part=ids.slice(i,i+90);for(const c of (await env.DB.prepare("SELECT * FROM cards WHERE id IN ("+part.map(()=>"?").join(",")+")").bind(...part).all()).results)cards[c.id]=pub(rowToCard(c))}
+    try{const OW={};R.forEach(r=>{if(r.card&&r.owner)OW[r.card]=r.owner});const own=[...new Set(Object.values(OW))];for(let i=0;i<own.length;i+=90){const part=own.slice(i,i+90);for(const u of (await env.DB.prepare("SELECT id,json_extract(state,'$.gsock') AS g FROM users WHERE id IN ("+part.map(()=>"?").join(",")+")").bind(...part).all()).results){if(!u.g)continue;const G=JSON.parse(u.g);for(const c of Object.values(cards))if(OW[c.id]===u.id&&G[c.id]&&G[c.id].length)c.gm=G[c.id]}}}catch(e){console.error("map gems",e)}
     const st=await U(),A=mapAtt(st,now),mine=R.filter(r=>r.owner===me.id);let cash=0,runes=0;
     for(const r of mine){const h=Math.min(MAP.capH,(now-(r.claim_at||r.since))/36e5),I=mapInc(r.id);cash+=Math.floor(I.c*h);runes+=Math.floor(I.r*h)}
     const ph=await env.DB.prepare("SELECT st FROM map_photo WHERE uid=?").bind(me.id).first();
@@ -3106,7 +3107,7 @@ async function mapApi(env,me,a,p){const now=Date.now();await mapSeason(env,now);
     await doAction(env,me,"map_use",{},{grant:true});
     const D=await env.DB.prepare("SELECT * FROM cards WHERE id=?").bind(R.card).first();if(!D){await env.DB.prepare("DELETE FROM map_reg WHERE id=?").bind(rid).run();fail("Защитник исчез — регион свободен, попробуй ещё раз")}
     const du=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(R.owner).first(),dst=JSON.parse((du&&du.state)||"{}");
-    const me_=rowToCard(c),op=rowToCard(D),dk=dgBonus(st,now)*1.5+(st.dg?.05:0),home=MAP_R[rid][2]===ERA_OF[op.h]?MAP.home:0,fat=Math.min(MAP.fatMax,MAP.fat*(R.def_n||0)),ddk=dgBonus(dst,now);
+    const me_=rowToCard(c),op=rowToCard(D);try{gemAnn(st,[me_]);gemAnn(dst,[op])}catch(e){}const dk=dgBonus(st,now)*1.5+(st.dg?.05:0),home=MAP_R[rid][2]===ERA_OF[op.h]?MAP.home:0,fat=Math.min(MAP.fatMax,MAP.fat*(R.def_n||0)),ddk=dgBonus(dst,now);
     const k=(1+dk)/(1+home+ddk-fat)-1,stat=Math.max(0,Math.min(4,p.stat|0)),p2=aiPick(op,[stat]),p3=rndPick([stat,p2]),F=fight3(me_,op,[stat,p2,p3],k),won=F.w>F.l;
     await env.DB.prepare("INSERT INTO map_log(rid,att,def,win,t) VALUES(?,?,?,?,?)").bind(rid,me.id,R.owner,won?1:0,now).run();
     let crown=false;
