@@ -1399,6 +1399,7 @@ async function promoApi(env,me,a,p){const now=Date.now();
     /* призы реф-слотов — личные: активировать может только тот, кто выиграл */
     if(/^РЕФ/.test(code)){const w=await env.DB.prepare("SELECT uid FROM rf_spin WHERE code=?").bind(code).first();if(!w||w.uid!==me.id)fail("Это личный промокод из реф-слота — активировать его может только тот, кто выиграл")}if(P.until&&now>P.until)fail("Срок промокода закончился");
     if(P.mx){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(code).first())||{}).n||0;if(n>=P.mx)fail("Промокод уже активировали максимальное число раз")}
+    if(code===SUN.code){const uu=await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nOp'),0) AS n FROM users WHERE id=?").bind(me.id).first();if(!uu||uu.n<10)fail("Промокод ВОСКРЕСЕНЬЕ сработает, когда откроешь 10 карточек — у тебя "+((uu&&uu.n)||0))}
     if(code===UPV.code){const uu=await env.DB.prepare("SELECT COALESCE(json_extract(state,'$.nOp'),0) AS n FROM users WHERE id=?").bind(me.id).first();if(!uu||uu.n<10)fail("Промокод ОБНОВА сработает, когда откроешь 10 карточек — у тебя "+((uu&&uu.n)||0))}
     const r=await env.DB.prepare("INSERT OR IGNORE INTO promo_uses(code,uid,t) VALUES(?,?,?)").bind(code,me.id,now).run();if(!r.meta||r.meta.changes!==1)fail("Ты уже активировал этот промокод");
     /* одновременная активация одного кода двумя людьми: кто не влез в лимит — откатываем */
@@ -2927,7 +2928,14 @@ const PL250={id:"pl250_1411",at:Date.UTC(2026,10,14,20,0),until:Date.UTC(2026,10
 let pl250Ok=0;async function pl250Tick(env){const now=Date.now();if(now<PL250.at||now>PL250.until)return;
   if(!pl250Ok){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,0,0,0,?,?,0,0,250,200) ON CONFLICT(code) DO UPDATE SET sp=0,cash=0,mx=0,until=excluded.until,off=0,x2=0,bon=250,bmin=200").bind(PL250.code,PL250.until,now).run();pl250Ok=1}
   await blastRun(env,PL250)}
-async function koloTick(env){const n=Date.now();try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
+/* 15.11: промокод ВОСКРЕСЕНЬЕ — 20 прокруток + 5000 🪙, первые 30 (только открывшим 10+ карт) + пост и рассылка с напоминанием о лотерее */
+const SUN={id:"sun_1511",at:Date.UTC(2026,10,15,9,55),until:Date.UTC(2026,10,15,13,0),code:"ВОСКРЕСЕНЬЕ",codeUntil:Date.UTC(2026,10,15,20,59),photo:"assets/post-sun.jpg",btn:"🎁 Забрать промокод",link:"",
+ chan:"☀️ ВОСКРЕСНЫЙ ПРОМОКОД!\n\n🎟 ВОСКРЕСЕНЬЕ\n🎴 20 прокруток + 🪙 5 000 монет\n⚡ Только ПЕРВЫЕ 30 — кто быстрее!\n\n@VoinyEpohBot → Ещё → Промокод → ВОСКРЕСЕНЬЕ\n(нужно открыть хотя бы 10 карточек)\n\n🎰 И не забудь: в игре идёт беспроигрышная ЛОТЕРЕЯ на звёзды — весь банк в 22:00 забирает один билет, остальным сундуки!\n👉 @VoinyEpohBot",
+ dm:"☀️ Воскресный промокод: ВОСКРЕСЕНЬЕ\n🎴 20 прокруток + 🪙 5 000 монет — только первым 30!\n\nЕщё → Промокод → ВОСКРЕСЕНЬЕ\n\n🎰 А ещё сегодня беспроигрышная лотерея на звёзды: банк в 22:00 забирает один билет, остальным — сундуки."};
+let sunOk=0;async function sunTick(env){const now=Date.now();if(now<SUN.at||now>SUN.until)return;
+  if(!sunOk){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,20,5000,30,?,?,0,0,0,0) ON CONFLICT(code) DO NOTHING").bind(SUN.code,SUN.codeUntil,now).run();sunOk=1}
+  await blastRun(env,SUN)}
+async function koloTick(env){const n=Date.now();try{await sunTick(env)}catch(e){console.error("sun",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
 /* 🌙 НОЧНИК (13.11): +200 ⭐ к пополнению от 150 ⭐ — только первым 10 пополнившим (BCAP), потом промокод выключается */
 const BCAP={"НОЧНИК":10};let nochOk=0;async function nochSeed(env){if(nochOk)return;nochOk=1;await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES('НОЧНИК',0,0,0,?,?,0,0,200,150)").bind(Date.UTC(2026,10,13,20,59),Date.now()).run()}
 /* 📅 удержание: через ~20–30 ч после регистрации, если игрок не вернулся, — напоминание с подарком (+5 прокруток), один раз */
