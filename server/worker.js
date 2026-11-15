@@ -4417,13 +4417,25 @@ async function eveBonus(env,me){const u=await env.DB.prepare("SELECT created,ref
   if(u.ref&&u.ref!==me.id){const k="everef:"+u.ref,c=(await kvGet(env,k))||{n:0};if(c.n<EVE.refMax){c.n++;await kvSet(env,k,c);await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(EVE.refSt,u.ref).run();
     try{await notify(env,u.ref,"🎉 Твой друг "+(await nameOf(env,me.id))+" ввёл промокод ВЕЧЕРНИЙ — тебе +"+EVE.refSt+" ⭐ в подарок! ("+c.n+"/"+EVE.refMax+")","⚔️ Играть")}catch(e){}}}
   return EVE.newSt}
+/* 15.11 21:00: голосование «Делаем Карту дня?» — пост с фото в канал + рассылка в бота + опрос в канале + закреп в чате игры */
+const CDV={id:"cdv_1511",at:Date.UTC(2026,10,15,17,55),until:Date.UTC(2026,10,15,21,0),photo:"assets/post-cardday.jpg",btn:"⚔️ Голосовать в игре",link:"",
+ chan:"🃏 ДЕЛАЕМ «КАРТУ ДНЯ»?\n\nРешаете вы! Голосуйте в опросе ниже 👇\nили пишите «да» / «нет» в чате игры 💬\n\n👉 @VoinyEpohBot",
+ dm:"🃏 Делаем в игре «Карту дня»?\n\nРешаете вы! Напиши «да» или «нет» в чате игры 💬 (Ещё → Чат)\nили проголосуй в опросе в нашем канале @voinyepoh"};
+async function cdvTick(env){const now=Date.now();if(now<CDV.at||now>CDV.until)return;
+  const f=(await kvGet(env,"cdv_1511"))||{};
+  if(!f.pin){await kvSet(env,"chat_pin",{id:0,name:"Администрация",text:"🃏 Делаем «Карту дня»? Пишите в чат «да» или «нет» — решаете вы!",t:now,until:CDV.until});delete topCache.chatpin;f.pin=1;await kvSet(env,"cdv_1511",f)}
+  await blastRun(env,CDV);
+  const b=(await kvGet(env,"blast:"+CDV.id))||{};
+  if(b.ch&&!f.poll&&(f.pn||0)<10&&env.BOT_TOKEN&&!(env.DEV==="1"&&!env.NOTIFY_TEST)){f.pn=(f.pn||0)+1;await kvSet(env,"cdv_1511",f);
+    const r=await tgApi(env,"sendPoll",{chat_id:CHANNEL,question:"🃏 Делаем «Карту дня» в Воинах Эпох?",options:[{text:"👍 Да, делаем!"},{text:"🔥 Да, и побыстрее!"},{text:"👎 Нет, не надо"}],is_anonymous:true});
+    if(r.ok){f.poll=1;await kvSet(env,"cdv_1511",f)}else console.error("cdv poll",r.description)}}
 let eveOk=0;async function eveTick(env){const now=Date.now();if(now<EVE.at||now>EVE.until)return;
   if(!eveOk){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,30,0,0,?,?,0,0,0,0) ON CONFLICT(code) DO NOTHING").bind(EVE.code,EVE.codeUntil,now).run();eveOk=1}
   await blastRun(env,EVE)}
 let sunOk=0;async function sunTick(env){const now=Date.now();if(now<SUN.at||now>SUN.until)return;
   if(!sunOk){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,20,5000,30,?,?,0,0,0,0) ON CONFLICT(code) DO NOTHING").bind(SUN.code,SUN.codeUntil,now).run();sunOk=1}
   await blastRun(env,SUN)}
-async function koloTick(env){const n=Date.now();try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
+async function koloTick(env){const n=Date.now();try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await cdvTick(env)}catch(e){console.error("cdv",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
 /* 🌙 НОЧНИК (13.11): +200 ⭐ к пополнению от 150 ⭐ — только первым 10 пополнившим (BCAP), потом промокод выключается */
 const BCAP={"НОЧНИК":10};let nochOk=0;async function nochSeed(env){if(nochOk)return;nochOk=1;await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES('НОЧНИК',0,0,0,?,?,0,0,200,150)").bind(Date.UTC(2026,10,13,20,59),Date.now()).run()}
 /* 📅 удержание: через ~20–30 ч после регистрации, если игрок не вернулся, — напоминание с подарком (+5 прокруток), один раз */
