@@ -359,3 +359,6 @@ function evCar(){const sp=$("sec-spin");if(!sp)return;const bars=["tk-bar","lot-
 {const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("tkBar");w("lotBar")}
 
 {const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("vhStrip")}
+{const _ps=payShow;payShow=function(r){if(r&&r.item==="diap"&&r.status!=="refund"){renderAll();try{sfx.coin();hapN("success")}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
+ sh.innerHTML='<div class="box nickbox" style="text-align:center"><div style="font-size:64px">💎</div><h3>Алмазный профиль твой!</h3><p class="cln">Навсегда. Ник сияет в топе, в чате и в профиле — все видят, кто здесь король.</p><button type="button" class="craftbtn" id="dia-see">👀 Посмотреть профиль</button><button type="button" class="ghost" id="dia-x">Закрыть</button></div>';
+ $("dia-x").onclick=closeModal;$("dia-see").onclick=()=>{closeModal();try{menuGo("prof")}catch(e){}};return}return _ps.apply(this,arguments)}}

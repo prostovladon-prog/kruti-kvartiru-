@@ -1857,6 +1857,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
       data={h,f:f2};title=(H[0]+", "+FIN[f2].k.toLowerCase()).slice(0,32)}
     if(I.dayc){data={h:dcH};title=("Карта дня: "+HEROES[dcH][0]).slice(0,32)}
+    if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(L.includes(uid))fail("У тебя уже алмазный профиль 💎");data={};title="Алмазный профиль"}
     if(I.lott){const now=Date.now(),D=lotDay(now);if(!lotOn(now))fail("Лотерея идёт каждый день с 08:00 до 22:00");const n=Math.max(1,Math.min(LOT.max,Math.floor(+p.n||1))),have=await lotMine(env,uid,D,except);
       if(have+n>LOT.max)fail(have>=LOT.max?"Сегодня у тебя уже "+LOT.max+" билетов — это максимум":"Можно купить ещё "+(LOT.max-have)+" (максимум "+LOT.max+" в день)");
       return {item,stars:LOT.price*n,title:("Лотерея: "+n+" бил.").slice(0,32),desc:"Беспроигрышная лотерея дня: "+n+" билет(ов). Банк дня — одному случайному билету, остальным — сундуки на сумму билетов",data:{n}}}
@@ -1954,6 +1955,8 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
       for(const a of ADMINS)await notify(env,a,"💰 КУПИЛИ «Карточку мечты» за 5000 ⭐! Игрок "+((u&&u.n)||"?")+" (id "+P.uid+"). Ему сказано написать в @voinovadmin.","⚔️ Открыть")}
     else if(I){if(I.month){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item=? AND month=? AND status IN ('paid','done') AND id<?").bind(P.item,P.month,P.id).first())||{}).n||0;
         if(n>=I.month)fail("Мифические сундуки этого месяца раскупили на секунду раньше")}
+      if(I.dia){const L=(await kvGet(env,"dia_ids"))||[];if(!L.includes(P.uid)){L.push(P.uid);await kvSet(env,"dia_ids",L)}delete topCache.diaU;msg="💎 Алмазный профиль твой — навсегда! Ник сияет в топе, чате и профиле.";
+        try{const u0=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();await hypeAdd(env,P.uid,"💎 получил АЛМАЗНЫЙ профиль",1)}catch(e){}}
       if(I.lott){const D=lotDay(P.created||Date.now());if(Date.now()>D.end+2*6e4)fail("Лотерея уже разыграна");if((await lotMine(env,P.uid,D,P.id))+(d.n||1)>LOT.max)fail("Больше "+LOT.max+" билетов в день нельзя");msg="🎟 Билеты лотереи куплены: "+(d.n||1)+" шт. Розыгрыш банка сегодня в 22:00 — удачи! Если не выиграешь, получишь сундуки на сумму билетов 🎁"}
       const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(P.uid).first();if(!u)fail("Игрок не найден");
       res=(await doAction(env,{id:P.uid,name:u.name||"Игрок"},"grant",Object.assign({},d,{item:P.item,pid:P.id}),{grant:true})).res;delete res.events;

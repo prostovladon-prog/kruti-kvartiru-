@@ -2322,7 +2322,7 @@ function renderGold(){const B=$("gold-body");if(!B||!S)return;document.querySele
     return `<div class="of${left===0?" sold":""}" style="--fr:linear-gradient(145deg,${c1},${gl} 30%,${c2} 60%,${c1} 85%,${c2});--gl:${gl}">${tag?'<span class="tag">'+tag+'</span>':""}<div class="in">${chestSVG(k,96)}<div><h4>${I.n}</h4><ul>${I.d.map(x=>"<li>"+x+"</li>").join("")}</ul>${left!=null?'<div class="mleft">'+(k==="twins"?'Близнецов осталось в мире: <b>'+left+' из '+DUO.length*DUO_RUN+'</b>':'осталось в этом месяце: <b>'+left+' из '+I.month+'</b>')+'</div>':""}<button type="button" class="buy" data-buy="${k}"${left===0?" disabled":""}>${left===0?"раскуплено":"⭐ "+I.stars}</button></div></div></div>`};
   if(goldTab==="chest"){
     v+='<div class="ghd">🔥 Новые сундуки</div><p class="gnote">Промокод можно забрать себе или подарить другу. Удача ускоряет Голограммы и Золото.</p>';
-    v+=offer("promo","НОВЫЙ · ДРУГУ")+offer("luckbox","НОВЫЙ");v+='<button type="button" class="gbx-ad" id="gbx-ad">'+(typeof gemSVG==="function"?gemSVG("f",4,52):"💎")+'<span><b>💎 Сундуки гемов — НОВОЕ</b><small>100 · 250 · 500 ⭐ · гемы до 4 ур. (+15% к силе)</small></span></button>';
+    v+=offer("promo","НОВЫЙ · ДРУГУ")+offer("luckbox","НОВЫЙ");if(!isDiaU(S.uid))v+=offer("diap","💎 НОВОЕ");v+='<button type="button" class="gbx-ad" id="gbx-ad">'+(typeof gemSVG==="function"?gemSVG("f",4,52):"💎")+'<span><b>💎 Сундуки гемов — НОВОЕ</b><small>100 · 250 · 500 ⭐ · гемы до 4 ур. (+15% к силе)</small></span></button>';
     v+='<div class="ghd">🧩 Сундуки с половинками</div>';
     if(!S.newbie)v+=offer("newbie","1 раз · −50%");
     v+=offer("small")+offer("royal","ВЫГОДНО ×2");
