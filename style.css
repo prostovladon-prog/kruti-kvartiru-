@@ -3650,3 +3650,4 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 /* Перевёрнутая печать: картинка вверх ногами */
 .front.upside .art{transform:rotate(180deg)}
 .front.upside .top b{color:#ff2e63}
+.updbox p{color:#fff!important;text-shadow:0 1px 3px rgba(0,0,0,.6)}

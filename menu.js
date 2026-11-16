@@ -1190,12 +1190,11 @@ setInterval(()=>{try{if(S&&document.documentElement.dataset.theme!==(S.theme||""
 {const _tr=topRow;topRow=function(it,i,kind){const d=_tr.apply(this,arguments);if(kind==="emp"){const r=empRank(it.score||0),sm=d.querySelector("small");if(sm)sm.textContent=EMP.R[r].ic+" "+EMP.R[r].n;if(it.ava!=null&&HEROES[it.ava]){const e=d.querySelector(".e");if(e)e.innerHTML=avaHTML(it.ava)}}return d}}
 /* ===================== 🆕 БОЛЬШОЕ ОБНОВЛЕНИЕ: слайды «что нового» + подарок ===================== */
 const UPD_SL=[
- {ic:"👑",c:["#ffb02e","#7a2ad6"],t:"Твоя Империя",d:"Каждая карта — воин твоей армии и даёт ⚔️ Мощь. Расти от Племени до Легенды эпох: больше земель, атак, дохода и ежедневная дань.",b:"👑 Моя Империя",go:()=>empOpen()},
- {ic:"🚀",c:["#ff4d6d","#2a1a7a"],t:"Ракетка онлайн",d:"Один полёт на всех: ставь, смотри, кто ещё в игре, и забирай до взрыва! А ещё 💣 Сапёр, общий 💎 джекпот и 💸 кешбэк каждое утро.",b:"🎰 В казино",go:()=>{closeModal();openCas("rk")}},
- {ic:"🐉",c:["#ff6a1a","#5a0d0d"],t:"Земля драконов и союзы",d:"Логова, которые держат только драконы. Крепости, которые берут только вдвоём — найди напарника! И карта мира выросла до 70 земель.",b:"🗺 На карту",go:()=>{closeModal();try{mapView="d";openMap()}catch(e){}}},
- {ic:"🏛",c:["#ffd23f","#6a4a06"],t:"Зал славы и удача",d:"Дорогие карты в Зале славы приносят монеты каждый час. 🍀 Оберег удачи повышает шанс Голограммы и Золота.",b:"🏛 Зал славы",go:()=>hofOpen()},
- {ic:"💎",c:["#5ad8ff","#1a2a7a"],t:"Алмазная серия",d:"51 алмазная ошибка печати с крошечным тиражом — выпадает в прокрутке и сундуках. Плюс 11 новых героев: Король Артур, Святогор, Робин Гуд и другие!",b:"💎 Смотреть",go:()=>{closeModal();try{openGold();setTimeout(()=>{const b=document.querySelector('[data-g="dia"]');b&&b.click()},300)}catch(e){}}},
- {ic:"🎵",c:["#3ddc84","#0d3a5a"],t:"Музыка, темы и аватар",d:"Своя музыка в каждом разделе, 8 тем оформления, аватар из твоих воинов, полный экран и бегущая строка LIVE с крутыми выпадениями.",b:"🎨 Выбрать тему",go:()=>themeOpen()}];
+ {ic:"🆕",c:["#ffb02e","#7a2ad6"],t:"16 новых воинов",d:"Варяг, Хускарл, Эль Сид, Чингисхан, Саладин, Ричард I, Александр Невский — и 4 новых мифа: Кецалькоатль, Ра, Афина и Сусаноо. Альбом теперь считает всех!",b:"🗂 В альбом",go:()=>{closeModal();setTab("col")}},
+ {ic:"🙃",c:["#ff2e63","#2a0d3a"],t:"Перевёрнутая печать",d:"Ошибка печати вверх ногами — самая редкая карточка игры. Всего 4 штуки на весь мир, выпадает в обычной прокрутке. Кто поймает первым?",b:"🎰 Крутить",go:()=>{closeModal();setTab("spin")}},
+ {ic:"🔥",c:["#ff6a1a","#5a0d0d"],t:"Огонёк",d:"Заходи каждый день подряд — огонёк растёт и даёт бонусные прокрутки. На 30-й день — огненная рамка, на 100-й — титул. Пропустил день? Огонёк можно спасти.",b:"🎰 Крутить",go:()=>{closeModal();setTab("spin")}},
+ {ic:"👥",c:["#3ddc84","#0d3a5a"],t:"Подписчики",d:"Подписывайся на сильных игроков и следи за их выпадениями. Собирай своих подписчиков — за 10, 50, 100 и 500 есть награды, а лучший за неделю получает звёзды.",b:"👍 Круто",go:()=>{updI++;updOpen()}},
+ {ic:"🛡",c:["#5ad8ff","#1a2a7a"],t:"Битва кланов",d:"Каждые выходные кланы соревнуются за сундуки. Карты драконов теперь усиливают твоего дракона, а трофеи и победы видны в витрине.",b:"🛡 Мой клан",go:()=>{closeModal();try{openClan()}catch(e){}}}];
 let updI=0;
 function updOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const got=S&&S.updG===BIGUPD.id,last=updI>=UPD_SL.length;
   const X=last?null:UPD_SL[updI];
@@ -1209,7 +1208,7 @@ function updOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;const got=S&
   const n=$("upd-next");if(n&&X)n.onclick=()=>{updI++;hap("light");updOpen()};const t=$("upd-try");if(t)t.onclick=()=>{try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}X.go()};
   const g=$("upd-gift");if(g&&!got)g.onclick=async()=>{g.disabled=true;const r=await act("upd_gift");if(r){try{localStorage.setItem("we-upd",BIGUPD.id)}catch(e){}hapN("success");try{sfx.fanfare();burst(5)}catch(e){}toast("🎁 +"+r.sp+" прокруток — удачи!");updCash&&updCash();setTimeout(()=>{closeModal();try{renderAll()}catch(e){}},900)}else g.disabled=false}}
 /* показать один раз после загрузки */
-{const t=setInterval(()=>{if(!window.CSOK||!S||!ONLINE||$("boot")||$("onb")||document.querySelector(".hhpop"))return;let seen="";try{seen=localStorage.getItem("we-upd")}catch(e){}if(seen===BIGUPD.id||S.updG===BIGUPD.id){clearInterval(t);return}if(!$("modal").hidden)return;clearInterval(t);updI=0;updOpen()},1200)}
+{const t=setInterval(()=>{if(!window.CSOK||!S||!ONLINE||$("boot")||$("onb")||document.querySelector(".hhpop"))return;let seen="";try{seen=localStorage.getItem("we-upd")}catch(e){}if(seen===BIGUPD.id||S.updG===BIGUPD.id||(S.created&&S.created>=Date.UTC(2026,10,16,2,0))){clearInterval(t);return}if(!$("modal").hidden)return;clearInterval(t);updI=0;updOpen()},1200)}
 
 if(new URLSearchParams(location.search).get("upd")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);setTimeout(()=>{updI=0;updOpen()},400)},500)}
 
