@@ -53,8 +53,8 @@ function nickScreen(){if(!S||S.nick||$("nks"))return;const o=document.createElem
  const go=async()=>{try{checkNick(i.value)}catch(e){er.textContent=e.message;return}$("nk-ok").disabled=true;const r=await act("nick",{nick:i.value});$("nk-ok").disabled=false;if(!r)return;
    o.remove();sfx.fanfare();burst(4);hapN("success");try{Object.keys(tpCache).forEach(k=>delete tpCache[k])}catch(e){}renderAll();toast("⚔️ Добро пожаловать, «"+r.nick+"»!"+(r.gift?" +"+r.gift+" 🎴":""))};
  $("nk-ok").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()}}
-/* 📢 подписка — обязательно, но не сразу: после 15 открытий; для всех игроков */
-function subGate(){if(!S||!ONLINE||S.subGot2||(S.nOp||0)<15||$("sbg")||$("tut")||$("nks"))return;const o=document.createElement("div");o.id="sbg";document.body.appendChild(o);
+/* 📢 подписка — обязательно, но не сразу: после 5 минут в игре за день; для всех игроков */
+function subGate(){let pt=0;try{pt=+localStorage.getItem("we-ptime-"+mskDay(NOW()))||0}catch(e){}if(!S||!ONLINE||S.subGot2||pt<5*60000||$("sbg")||$("tut")||$("nks"))return;const o=document.createElement("div");o.id="sbg";document.body.appendChild(o);
  o.innerHTML='<div class="nk-stage"><div class="sb-ic">📢</div></div><div class="tu-txt"><h2>Подпишись на наш канал</h2><p>Там промокоды, конкурсы со звёздами и новости обновлений. За подписку — <b>+10 🎴</b> прокруток сразу.</p>'+
   '<button type="button" class="tu-next" id="sb-go">📢 Подписаться</button><button type="button" class="tu-open" id="sb-ck">✅ Я подписался — проверить</button><small class="nkerr" id="sb-er"></small></div>';
  $("sb-go").onclick=()=>{hap("light");try{tg.openTelegramLink("https://t.me/"+String(typeof CHANNEL!=="undefined"?CHANNEL:"@voinyepoh").replace("@",""))}catch(e){open("https://t.me/voinyepoh")}};
