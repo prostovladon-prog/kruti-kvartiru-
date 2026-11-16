@@ -2,7 +2,7 @@
    Этот файл работает и в браузере (локальный режим), и на сервере (Cloudflare Worker).
    Здесь нет ничего про интерфейс: только данные игры и действия, которые меняют состояние игрока. */
 
-const DUEL_CAP=15000,CAP=40, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LPITY=90, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
+const DUEL_CAP=3000,DUEL_DAY=15000,CAP=250, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LPITY=90, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 const HT=[{k:"Обычный",c:"#8f9bb3",b:[1,3]},{k:"Редкий",c:"#34c759",b:[4,9]},{k:"Эпический",c:"#0a84ff",b:[15,30]},{k:"Легендарный",c:"#bf5af2",b:[60,120]},{k:"Мифический",c:"#ff9f0a",b:[300,500]}];
 const HEROES=[
@@ -487,8 +487,8 @@ function boss(st,now){if(!st.boss||st.boss.w!==weekKey(now))st.boss={w:weekKey(n
 /* сколько прокруток даётся раз в 4 часа: VIP получает 5 (сервер ставит st.vipUntil) */
 /* VIP-статусы за звёзды: больше прокруток каждые 4 часа и больше пакетов обмена рун. Обычный VIP из акций = Серебро */
 const VIP_T=[null,{k:"silver",n:"VIP Серебро",ic:"🥈",sp:13,ex:1,stars:99,days:7},{k:"gold",n:"VIP Золото",ic:"👑",sp:16,ex:3,stars:299,days:30},{k:"diamond",n:"VIP Алмаз",ic:"💎",sp:20,ex:6,stars:699,days:30}];
-/* ---------- место в коллекции: база 40; один раз +10 за 30% баланса монет; дальше +10 за 99 ⭐ сколько угодно; с VIP — 360 мест ---------- */
-const SLOT_STEP=10, SLOT_COIN={pct:.3,min:100}, SLOT_STAR={stars:99,n:10,max:200}, VIP_CAP=360, VIP_SLOTS=[0,VIP_CAP,VIP_CAP,VIP_CAP];
+/* ---------- место в коллекции: база 250 (VIP — 500); один раз +10 за 30% баланса монет; дальше +10 за 99 ⭐ сколько угодно; с VIP — 360 мест ---------- */
+const SLOT_STEP=10, SLOT_COIN={pct:.3,min:100}, SLOT_STAR={stars:99,n:10,max:200}, VIP_CAP=500, VIP_SLOTS=[0,VIP_CAP,VIP_CAP,VIP_CAP];
 const capCoinPrice=st=>Math.max(SLOT_COIN.min,Math.ceil((st.cash||0)*SLOT_COIN.pct));
 function capParts(st){const c=st.capC?1:0,s=Math.min(SLOT_STAR.max,st.capS||0),own=CAP+c*SLOT_STEP+s*SLOT_STAR.n,v=vipTier(st)?Math.max(0,VIP_CAP-own):0;return {base:CAP,coin:c*SLOT_STEP,c,star:s*SLOT_STAR.n,s,vip:v,own,all:own+v}}
 function capOf(st){return capParts(st).all}
@@ -938,12 +938,12 @@ function gemShard(st,ctx,k,n){if(!(n>0))return 0;const d=today(ctx.now);if(!st.g
 function gemAdd(st,g){const I=st.gems||(st.gems={});I[g]=(I[g]||0)+1}
 function gemTake(st,g){const I=st.gems||{};if(!(I[g]>0))fail("Нет такого гема");I[g]--;if(!I[g])delete I[g]}
 const ACTIONS={
-  dsp_roll(G){const {st,ctx}=G;if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
+  dsp_roll(G){const {st,ctx}=G;if(ctx.dcLive===false)fail("Особые прокруты работают только пока идёт карта дня. Накопить заранее нельзя — заходи, когда она выйдет");if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
     const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.luck?.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=makeCard(ctx,h,4);c.how="dspin";dcSn(ctx,c,HEROES[h][4].sn2);G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
     return {empty:1,h:h!=null&&h>=0?h:null}},
-  dsp_buy(G){const {st,ctx}=G,Q=dqDay(st,ctx.now);if((Q.buy||0)>=DSP_BUY.day)fail("Сегодня уже куплено. Завтра снова");pay(st,DSP_BUY.cash);Q.buy=(Q.buy||0)+1;st.dsp=(st.dsp||0)+DSP_BUY.n;return {dsp:DSP_BUY.n}},
-  dqr_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),T=DQR[G.p.i|0];if(!T)fail("Нет такого задания");Q.rg=Q.rg||{};const got=Q.rg[T.k]||0,can=Math.floor(dqProg(st,ctx.now,T.k)/T.per)-got;if(can<1)fail("Ещё не набрано");Q.rg[T.k]=got+can;st.dsp=(st.dsp||0)+can;return {dsp:can}},
-  dq_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),i=G.p.i|0;if(i===DQ.length){if(Q.got.length<DQ.length)fail("Сначала выполни все задания");if(Q.all)fail("Уже получено");Q.all=1;st.dsp=(st.dsp||0)+1;return {dsp:1}}
+  dsp_buy(G){const {st,ctx}=G,Q=dqDay(st,ctx.now);if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if((Q.buy||0)>=DSP_BUY.day)fail("Сегодня уже куплено. Завтра снова");pay(st,DSP_BUY.cash);Q.buy=(Q.buy||0)+1;st.dsp=(st.dsp||0)+DSP_BUY.n;return {dsp:DSP_BUY.n}},
+  dqr_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),T=DQR[G.p.i|0];if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if(!T)fail("Нет такого задания");Q.rg=Q.rg||{};const got=Q.rg[T.k]||0,can=Math.floor(dqProg(st,ctx.now,T.k)/T.per)-got;if(can<1)fail("Ещё не набрано");Q.rg[T.k]=got+can;st.dsp=(st.dsp||0)+can;return {dsp:can}},
+  dq_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),i=G.p.i|0;if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if(i===DQ.length){if(Q.got.length<DQ.length)fail("Сначала выполни все задания");if(Q.all)fail("Уже получено");Q.all=1;st.dsp=(st.dsp||0)+1;return {dsp:1}}
     const T=DQ[i];if(!T)fail("Нет такого задания");if(Q.got.includes(i))fail("Уже получено");if(dqProg(st,ctx.now,T.k)<T.n)fail("Задание ещё не выполнено");Q.got.push(i);st.dsp=(st.dsp||0)+1;return {dsp:1}},
   gem_roll(G){const {st,ctx}=G,k=String(G.p.k||"");if(!GEM.el[k])fail("Нет такой стихии");const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0}),d=today(ctx.now);
     if(!st.gfd||st.gfd.d!==d)st.gfd={d,n:0};if(st.gfd.n>=GEM.cost.day)fail("Кузня остыла: "+GEM.cost.day+" попыток в день. Приходи завтра");
@@ -1043,8 +1043,10 @@ const ACTIONS={
       if(p.mode&&real){ctx.takeCard=real.id;gotCard=snap(real);addCard(G,gotCard)}   // забираем карточку игрока
       else if(p.mode&&G.cards.length<capOf(st)){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
       else{   // награда без ставки: не больше DUEL_CAP, а за повторные победы над одной и той же карточкой сегодня — вдвое меньше каждый раз
-        let base=Math.min(opp.v,DUEL_CAP);if(real){const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{}};const n=st.dw.m[real.id]||0;st.dw.m[real.id]=n+1;base*=Math.pow(.5,n)}
-        reward=Math.round(base*.3+5);earn(st,reward)}}
+        /* фикс фарма: награда не больше 30% от DUEL_CAP, за повторные победы над тем же ИГРОКОМ сегодня — вдвое меньше, и не больше DUEL_DAY монет в день с боёв */
+        let base=Math.min(opp.v,DUEL_CAP);const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{},sum:0};
+        if(real){const k="u"+(ctx.oppUid||real.id),n=st.dw.m[k]||0;st.dw.m[k]=n+1;base*=Math.pow(.5,n)}
+        reward=Math.max(0,Math.min(Math.round(base*.3+5),DUEL_DAY-(st.dw.sum||0)));st.dw.sum=(st.dw.sum||0)+reward;if(reward)earn(st,reward)}}
     else{addXp(ctx,me,10);if(p.mode){if(real)ctx.giveAway=me.id;burn(G,[me.id]);lostCard=true}}   // с игроком карточка уходит к нему
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null,dk,dg}},
 
@@ -1052,7 +1054,7 @@ const ACTIONS={
     const p2=p.oppStat!=null?p.oppStat|0:aiPick(opp,[myStat]);if(p2===myStat)fail("Эту характеристику уже выбрал соперник");
     const dk=dgBonus(st,ctx.now),picks=[myStat,p2,rndPick([myStat,p2])],before=snap(me),R=fight3(me,opp,picks,dk);
     const key=String(p.key||"x")+"_"+me.h,first=!st.doneCh[key];let reward=0;
-    if(R.w>R.l&&first){reward=Math.round(opp.v*.3+5);earn(st,reward);addXp(ctx,me,30);st.totalWins=(st.totalWins||0)+1;me.wins=(me.wins||0)+1;day(st,ctx.now).wins++;st.doneCh[key]=1}
+    if(R.w>R.l&&first){const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{},sum:0};reward=Math.max(0,Math.min(Math.round(Math.min(opp.v,DUEL_CAP)*.3+5),DUEL_DAY-(st.dw.sum||0)));st.dw.sum=(st.dw.sum||0)+reward;if(reward)earn(st,reward);addXp(ctx,me,30);st.totalWins=(st.totalWins||0)+1;me.wins=(me.wins||0)+1;day(st,ctx.now).wins++;st.doneCh[key]=1}
     else if(R.w<R.l&&first){addXp(ctx,me,10);st.doneCh[key]=1}
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,first}},
 
@@ -1376,7 +1378,7 @@ ACTIONS.dg_wish=function(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала 
 /* прогресс желаний — от обычных действий */
 {const H={dg_tap:(r,p)=>["tap",r&&r.n||0],dg_feed:()=>["feed",1],dga_apply:()=>["fight",1],open:()=>["spin",1],open_multi:r=>["spin",r&&r.cards?r.cards.length:0],dg_exp:()=>["exp",1],dg_play:()=>["play",1]};
   for(const k in H){const f=ACTIONS[k];if(!f)continue;ACTIONS[k]=function(G){const r=f.apply(this,arguments);try{const [w,n]=H[k](r,G.p);dgWishAdd(G.st,G.ctx.now,w,n)}catch(e){}return r}}}
-function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);
+function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);if(ctx.dcLive===false&&st.dsp)st.dsp=0;   /* особые прокруты живут только пока идёт карта дня: копить заранее нельзя */
   const D0=day(st,ctx.now),o0=D0.opened,w0=st.totalWins||0,c0=st.crafted||0;const res=A(G)||{};
   try{if(st.dg){const s=new Set();for(const c of G.cards)if(HEROES[c.h]&&HEROES[c.h][4].dgc)s.add(c.h);st.dg.dcn=s.size}}catch(e){}
   try{const D=day(st,ctx.now);passAdd(st,ctx,"open",Math.max(0,D.opened-o0));passAdd(st,ctx,"win",Math.max(0,(st.totalWins||0)-w0));
@@ -1385,7 +1387,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
   try{let sh=null;const acc=(k,n,per)=>{const A=st.gacc||(st.gacc={});A[k]=(A[k]||0)+n;const q=Math.floor(A[k]/per);A[k]-=q*per;return q};if(name==="camp_tap")sh=["e",acc("e",res.n|0,25)];else if(name==="camp_collect")sh=["e",3];else if(name==="dg_tap")sh=["a",acc("a",res.n|0,10)];else if(name==="dg_play")sh=["a",4];
     else if(name==="dg_exp_end"||name==="dg_morning")sh=["a",3];else if(name==="task"||name==="streak")sh=["w",3];else if(name==="pass_note"&&G.p.k==="clan")sh=["f",6];
     {const Q=dqDay(st,ctx.now),inc=(k,n)=>{if(n>0)Q.c[k]=(Q.c[k]||0)+n};inc("open",Math.max(0,day(st,ctx.now).opened-o0));inc("win",Math.max(0,(st.totalWins||0)-w0));if(name==="camp_tap")inc("tap",res.n|0);if(name==="dg_play"||name==="dg_tap"&&(res.n|0)>0)inc("dg",1);if(name==="gem_roll")inc("gem",1);if((name==="duel"||name==="fduel")&&res.w!=null){if(res.w>res.l){Q.ws=(Q.ws||0)+1;if(Q.ws>=30){Q.wsd=(Q.wsd||0)+1;Q.ws=0}}else Q.ws=0}if(name==="wheel")inc("wheel",1);if(/^cas_(slot|hl_go|mn_go|rk_go|case)$/.test(name))inc("cas",1);if(name==="pass_note"&&G.p.k==="clan")inc("clan",1);if(name==="sell")inc("sell",1);if(name==="sellmany"||name==="sellcommon")inc("sell",res.n|0)}
-    {const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}const due=Math.min(DSP.cap,Math.floor((D.got||[]).length/DSP.per));if(due>st.dspN){const add=due-st.dspN;st.dspN=due;st.dsp=(st.dsp||0)+add;res.dsp=add}}   // и тем, кто выполнил задания до появления прокрутов
+    if(ctx.dcLive!==false){const D=day(st,ctx.now),d=today(ctx.now);if(st.dspD!==d){st.dspD=d;st.dspN=0}const due=Math.min(DSP.cap,Math.floor((D.got||[]).length/DSP.per));if(due>st.dspN){const add=due-st.dspN;st.dspN=due;st.dsp=(st.dsp||0)+add;res.dsp=add}}   // и тем, кто выполнил задания до появления прокрутов
     if(sh&&sh[1]>0){const n=gemShard(st,ctx,sh[0],sh[1]);if(n)res.gsh=[sh[0],n]}}catch(e){}
   try{const S=st.gsock;if(S){const ids=new Set(G.cards.map(c=>String(c.id)));for(const id in S)if(!ids.has(String(id))){for(const g of S[id])gemAdd(st,g);delete S[id]}}}catch(e){}
   for(const c of G.cards)delete c.gm;for(const c of cards)delete c.gm;

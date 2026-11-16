@@ -464,7 +464,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
   for(let attempt=0;attempt<8;attempt++){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");try{hhKingSet(await kingDec(env))}catch(e){}
-    const st=JSON.parse(u.state||"{}");st.cash=u.cash;if(extra)Object.assign(ctx,extra);
+    const st=JSON.parse(u.state||"{}");st.cash=u.cash;try{ctx.dcLive=DCS.some(X=>dcOn(X.h))}catch(e){}if(extra)Object.assign(ctx,extra);
     st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;ctx.created=u.created||Date.now();
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);if(name==="dsp_roll"){await xhLoad(env,1);const C=[];for(const X of DCS)if(dcOn(X.h)&&(await dcLeft(env,0,X.h)).spin>0)C.push(X);const X=C.length?C[Math.floor(Math.random()*C.length)]:null;ctx.dayH=X?X.h:-1;ctx.dayCh=X?dcChance(X):0}
@@ -2805,6 +2805,7 @@ async function clanApi(env,me,a,p){if(a==="clan_cw"||a==="clan_cw_hit")return aw
   if(a==="clan_hit"){if(!u.clan)fail("Сначала вступи в клан");const cid=u.clan,mem=await clanMembers(env,cid),B=await clanBoss(env,cid,week,mem.length);
     await env.DB.prepare("INSERT OR IGNORE INTO clan_hits(clan,week,uid,dmg,day,n) VALUES(?,?,?,0,?,0)").bind(cid,week,me.id,day).run();
     const H=await env.DB.prepare("SELECT * FROM clan_hits WHERE clan=? AND week=? AND uid=?").bind(cid,week,me.id).first();const n=H.day===day?H.n:0;if(n>=CLAN.hits)fail("Удары на сегодня закончились. Завтра снова "+CLAN.hits);
+    {const all=await env.DB.prepare("SELECT COALESCE(SUM(n),0) AS t FROM clan_hits WHERE uid=? AND week=? AND day=?").bind(me.id,week,day).first();if((all&&all.t||0)>=CLAN.hits)fail("Удары на сегодня закончились (даже если сменить клан). Завтра снова "+CLAN.hits)}   // фикс: бегать по кланам и бить боссов
     const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);if(!cards.length)fail("Сначала открой карточки — бьют твои воины");
     try{gemAnn(JSON.parse(u.state||"{}"),cards)}catch(e){}let {dmg,crit}=clanDmg(cards),dgd=0;try{const D=JSON.parse(u.state||"{}").dg;if(D){dgd=Math.round(dgPower(D)*.4*(dgSat(D,now)<DG.hungry?.5:1));dmg+=dgd}}catch(e){}const up=await env.DB.prepare("UPDATE clan_hits SET dmg=dmg+?,day=?,n=? WHERE clan=? AND week=? AND uid=? AND (day IS NOT ? OR n=?)").bind(dmg,day,n+1,cid,week,me.id,day,n).run();
     if(up.meta.changes!==1)fail("Слишком быстро, попробуй ещё раз");
@@ -3316,6 +3317,7 @@ async function handle(req,env){{
       if(a==="profile")return J({ok:true,res:await profile(env,p,me),S:await stateFor(env,me)});
       if(a==="card")return J({ok:true,res:await cardInfo(env,p),S:await stateFor(env,me)});
       if(a==="fduel"){const o=await cardInfo(env,{id:p.oppId});if(o.owner===me.id)fail("Это твоя же карточка");
+        if(o&&o.card&&o.owner)try{const ou=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(o.owner).first();const g=(JSON.parse((ou&&ou.state)||"{}").gsock||{})[o.card.id];if(g&&g.length)o.card.gm=g}catch(e){}   // гемы защищающейся карточки тоже работают
         const r=await doAction(env,me,"fduel",{myId:p.myId,myStat:p.myStat,oppStat:p.oppStat,key:"c"+o.card.id,opp:o.card});
         await logFight(env,me,p.myId,o,r.res);if(r.res.first)await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
       if(a==="duel"){const stake=!!(p.mode|0);let o=null;

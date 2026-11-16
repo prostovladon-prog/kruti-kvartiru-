@@ -161,7 +161,8 @@ function wFx(cv){const X=cv.getContext("2d"),P=[];let run=false;const fit=()=>{c
   return {fit,burst(x,y,n,cols,sp,g,life,sz){if(reduce||P.length>140)return;n=Math.min(n,140-P.length);for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=sp*(.4+Math.random());P.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-(g>0?sp*.5:0),g:g||0,l:life*(.6+Math.random()*.6),t:0,c:cols[Math.floor(Math.random()*cols.length)],s:sz*(.6+Math.random()*.8),r:Math.random()*6})}if(!run){run=true;requestAnimationFrame(loop)}}}}
 function wSheet(html,onClick){document.querySelectorAll(".wsheet").forEach(e=>e.remove());const d=document.createElement("div");d.className="wsheet";
   d.innerHTML='<div class="wsh-in">'+html+'<button type="button" class="ghost" data-x="1">Закрыть</button></div>';document.body.append(d);
-  d.onclick=e=>{if(e.target===d||e.target.closest("[data-x]")){d.remove();return}const b=e.target.closest("button");if(b&&onClick){const r=onClick(b);if(r!==false)d.remove()}};return d}
+  d.onclick=e=>{if(e.target.closest("[data-pg],.pgbar")||!e.target.isConnected)return;   /* стрелки листания — не закрывать окно */
+  if(e.target===d||e.target.closest("[data-x]")){d.remove();return}const b=e.target.closest("button");if(b&&onClick){const r=onClick(b);if(r!==false)d.remove()}};return d}
 /* показ нового подарка: лучи, салют, номер тиража */
 function wReveal(g,title,sub,btns){const G=GIFTS[g.k],d=document.createElement("div");d.className="wrev";d.style.setProperty("--g",G.g);d.style.setProperty("--rc",GR_C[G.r]);
   d.innerHTML='<div class="rays2"></div><canvas></canvas><div class="ic">'+giftSVG(g.k,150)+'</div><h3></h3><p>'+gNo(g)+(G.luck?" · серия «Удача»":"")+'</p>'+(sub?'<p style="font-weight:700;opacity:.85"></p>':"")+'<span class="rr">'+GR[G.r].toUpperCase()+'</span><div class="bt">'+(btns||"")+'<button type="button" class="ghost" data-x="1" style="color:#fff">Отлично</button></div>';
