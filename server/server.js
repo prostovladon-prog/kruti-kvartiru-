@@ -1524,6 +1524,16 @@ async function subCheck(env,me){
   return doAction(env,me,"sub_reward",{},{subOk:true});
 }
 
+/* чат игроков: бот должен быть участником (лучше админом) группы */
+const CHAT="@voinyepohchat";
+async function chatCheck(env,me){
+  if(me.dev)return doAction(env,me,"chat_reward",{},{chatOk:true});
+  const j=await tgApi(env,"getChatMember",{chat_id:env.CHAT||CHAT,user_id:me.id}).catch(()=>({}));
+  if(!j||!j.ok){console.error("getChatMember chat",j);fail("Не получилось проверить. Попробуй через минуту")}
+  const R=j.result||{};if(!(["member","administrator","creator"].includes(R.status)||R.status==="restricted"&&R.is_member))fail("Пока не видно тебя в чате. Вступи и нажми «Проверить» ещё раз");
+  return doAction(env,me,"chat_reward",{},{chatOk:true});
+}
+
 /* ---------- напоминания от бота ----------
    Бот пишет только тем, кто разрешил (написал боту или нажал «Разрешить» в игре).
    Прокрутки: раз в 10 минут Cloudflare будит воркер (Cron Trigger), ночью с 23:00 до 9:00 по Минску не пишем. */
@@ -3302,6 +3312,7 @@ async function handle(req,env){{
       if(a==="nick"){const res=await setNick(env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
+      if(a==="chat_check"){const r=await chatCheck(env,me);return J({ok:true,...r})}
       if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize"||a==="trader_take"||a==="trader_give"||a==="auc_win"||a==="cas_comp")fail("Неизвестное действие");
       if(a==="shop")return J({ok:true,res:await shopInfo(env,me)});
       if(a==="invoice")return J({ok:true,res:await invoice(env,me,p)});

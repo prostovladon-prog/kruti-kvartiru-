@@ -1109,6 +1109,7 @@ const ACTIONS={
   path_claim(G){const st=G.st,P=st.path||(st.path={got:[]}),i=G.p.i|0;
     if(G.p.fin){if(P.fin)fail("Сундук уже открыт");if(!PATH.every((x,k)=>P.got.includes(k)))fail("Сначала пройди все шаги");P.fin=1;st.spins+=PATH_FIN.sp;st.guar=(st.guar||0)+PATH_FIN.guar;return {sp:PATH_FIN.sp,fin:1}}
     const S=PATH[i];if(!S)fail("Нет такого шага");if(P.got.includes(i))fail("Уже получено");if(!pathOk(st,G.ctx,i))fail("Шаг ещё не выполнен");P.got.push(i);st.spins+=S.sp;return {i,sp:S.sp}},
+  chat_reward(G){if(!G.ctx.chatOk)fail("Сначала вступи в чат");if(G.st.chatGot)fail("Награда за чат уже получена");G.st.chatGot=1;G.st.spins+=5;return {r:5}},
   sub_reward(G){if(!G.ctx.subOk)fail("Сначала подпишись на канал");if(G.st.subGot2)fail("Награда за подписку уже получена");G.st.subGot2=1;G.st.spins+=10;return {r:10}},
 
   /* история в Telegram: +10 прокруток раз в неделю. Telegram не даёт ботам проверить, что история опубликована,

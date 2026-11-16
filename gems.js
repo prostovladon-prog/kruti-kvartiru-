@@ -446,7 +446,7 @@ function unlTease(U){const n=S.nOp||0,m=$("modal"),sh=$("msheet");m.hidden=false
  $("unl-go").onclick=()=>{closeModal();setTab("spin")}}
 function unlApply(){if(!S)return;const on=unlOn();UNLOCKS.forEach(U=>U.tabs.forEach(id=>{const b=$(id);if(!b)return;const lk=on&&(S.nOp||0)<U.at;b.classList.toggle("lk",lk);
   const nw=on&&!lk&&!(S.unl||{})[U.k];b.classList.toggle("unl-new",nw)}));
- if(!on)return;const R=UNLOCKS.find(U=>(S.nOp||0)>=U.at&&!(S.unl||{})[U.k]);if(R&&$("modal").hidden&&!unlApply.shown&&!$("tut")&&!$("nks")&&!$("sbg")){unlApply.shown=R.k;unlParty(R)}}
+ if(!on)return;const R=UNLOCKS.find(U=>(S.nOp||0)>=U.at&&!(S.unl||{})[U.k]);if(R&&$("modal").hidden&&!unlApply.shown&&!$("tut")&&!$("nks")&&!$("sbg")&&!$("chg")){unlApply.shown=R.k;unlParty(R)}}
 function unlParty(U){const m=$("modal"),sh=$("msheet");if(!m.hidden){unlApply.shown=0;return}m.hidden=false;try{sfx.fanfare();burst(4);hapN("success")}catch(e){}
  sh.innerHTML='<div class="box nickbox unlbox party"><div class="unl-ic">🎉'+U.ic+'</div><h3>Открыт новый раздел: '+U.n+'!</h3><p class="cln">'+U.d+'</p><button type="button" class="craftbtn" id="unl-take">🎁 Забрать +'+U.gift+' прокрутки и открыть</button></div>';
  $("unl-take").onclick=async()=>{const r=await act("unl_claim",{k:U.k});unlApply.shown=0;closeModal();if(r){toast("🎁 +"+r.sp+" прокруток!");renderAll()}const t=$(U.tabs[0]);if(t)setTimeout(()=>t.click(),150)}}

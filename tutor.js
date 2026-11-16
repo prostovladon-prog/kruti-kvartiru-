@@ -64,3 +64,14 @@ setInterval(()=>{try{subGate()}catch(e){}},2500);
 /* новичок: вместо старых подсказок — обучение 2.0 */
 const _startOnb=startOnb;startOnb=function(){let d=null;try{d=localStorage.getItem("we-tut2")||localStorage.getItem("we-onb")}catch(e){}if(d||!S||S.cards.length)return false;tutOpen(false);return true};
 const _askNick=askNick;askNick=function(){if($("tut")||$("nks"))return;if(S&&!S.nick&&ONLINE&&nickReady())return nickScreen();_askNick()};
+
+/* 💬 чат игроков — обязательно после 15 минут в игре (и только после подписки на канал) */
+{let last=Date.now();setInterval(()=>{try{const now=Date.now(),d=now-last;last=now;if(document.hidden||d>10000)return;const k="we-ptime";localStorage.setItem(k,String((+localStorage.getItem(k)||0)+d))}catch(e){}},5000)}
+function chatGate(){if(!S||!ONLINE||S.chatGot||!S.subGot2||$("sbg")||$("tut")||$("nks")||$("chg"))return;let t=0;try{t=+localStorage.getItem("we-ptime")||0}catch(e){}if(t<15*60000)return;
+ const o=document.createElement("div");o.id="chg";document.body.appendChild(o);
+ o.innerHTML='<div class="nk-stage"><div class="sb-ic">💬</div></div><div class="tu-txt"><h2>Вступи в чат игроков</h2><p>Хвастайся выпадениями, ищи клан и напарников, узнавай секреты первым. За вступление — <b>+5 🎴</b> прокруток.</p>'+
+  '<button type="button" class="tu-next" id="ch-go">💬 Вступить в чат</button><button type="button" class="tu-open" id="ch-ck">✅ Я вступил — проверить</button><small class="nkerr" id="ch-er"></small></div>';
+ $("ch-go").onclick=()=>{hap("light");try{tg.openTelegramLink("https://t.me/voinyepohchat")}catch(e){open("https://t.me/voinyepohchat")}};
+ $("ch-ck").onclick=async()=>{$("ch-ck").disabled=true;const r=await act("chat_check");$("ch-ck").disabled=false;if(!r){$("ch-er").textContent="Пока не видно тебя в чате — вступи и нажми ещё раз";return}
+   o.remove();S.chatGot=1;sfx.fanfare();burst(5);hapN("success");renderAll();toast("🎉 Добро пожаловать в чат! +5 🎴 прокруток")}}
+setInterval(()=>{try{chatGate()}catch(e){}},3000);

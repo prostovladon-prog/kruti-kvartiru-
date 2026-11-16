@@ -59,9 +59,9 @@ async function act(name,p){
       let j;try{j=await r.json()}catch(e){throw new GameError(r.status===429||r.status>=500?"Сервер перегружен, попробуй через пару минут":"Нет связи с сервером. Попробуй ещё раз")}
       if(!j.ok)throw new GameError(j.err||"Ошибка сервера");if(j.S)S=j.S;out=j.res||{};
     }else{
-      if(name==="sub_check")name="sub_reward";
+      if(name==="sub_check")name="sub_reward";if(name==="chat_check")name="chat_reward";
       if(LOCAL[name])out=LOCAL[name](p||{});
-      else{const ctx=localCtx();ctx.subOk=true;const r=runAction(name,S,S.cards,ctx,p);S.cards=r.cards;out=r.res;out.events=ctx.events}
+      else{const ctx=localCtx();ctx.subOk=true;ctx.chatOk=true;const r=runAction(name,S,S.cards,ctx,p);S.cards=r.cards;out=r.res;out.events=ctx.events}
       save();
     }
     (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!"+(STAR_LVL.includes(e.lv)?" Его можно закалить ★"+(STAR_LVL.indexOf(e.lv)+1)+" во вкладке «Мои»":""))});

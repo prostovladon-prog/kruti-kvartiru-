@@ -3216,7 +3216,7 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .rf-gf{display:block;font-style:normal;font-size:11px;font-weight:900;color:#3ddc84;margin-top:2px}
 .rf-act{font-size:19px;padding:14px;animation:vhP 1.4s ease-in-out infinite}
 /* 🎓 Обучение 2.0 */
-#tut,#nks,#sbg{position:fixed;inset:0;z-index:100000;background:radial-gradient(ellipse at 50% 30%,#1c1430,#05040a 70%);color:#fff;display:flex;flex-direction:column;padding:calc(10px + var(--st,env(safe-area-inset-top,0px))) 18px calc(18px + env(safe-area-inset-bottom,0px));overflow:hidden;animation:tuIn .35s ease}
+#tut,#nks,#sbg,#chg{position:fixed;inset:0;z-index:100000;background:radial-gradient(ellipse at 50% 30%,#1c1430,#05040a 70%);color:#fff;display:flex;flex-direction:column;padding:calc(10px + var(--st,env(safe-area-inset-top,0px))) 18px calc(18px + env(safe-area-inset-bottom,0px));overflow:hidden;animation:tuIn .35s ease}
 @keyframes tuIn{from{opacity:0}}
 .tu-top{display:flex;justify-content:space-between}.tu-top button{border:0;background:none;color:rgba(255,255,255,.6);font:inherit;font-weight:800;font-size:15px;padding:8px 4px}
 .tu-stage,.nk-stage{position:relative;flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
@@ -3276,7 +3276,7 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .nk-card{width:220px;padding:18px;border-radius:26px;text-align:center;background:linear-gradient(160deg,#3a2a6a,#160c30);border:3px solid #ffd23f;box-shadow:0 0 50px rgba(255,210,63,.35);animation:tuS .5s}.nk-pt{width:130px;height:130px;margin:0 auto 10px;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#fff1cf,#e0a050 60%,#5a2a08)}.nk-pt svg{width:100%;height:100%}
 .nk-card b{display:block;font-size:22px;color:#ffd23f;word-break:break-all;min-height:28px}.nk-card small{color:rgba(255,255,255,.6)}
 .nk-row{display:flex;gap:8px;margin-bottom:4px}.nk-row input{flex:1;min-width:0;border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:16px;padding:14px;font:inherit;font-size:17px;font-weight:700}.nk-row button{width:58px;border:0;border-radius:16px;font-size:26px;background:rgba(255,255,255,.12)}
-#nks .nkerr,#sbg .nkerr{display:block;min-height:18px;color:#ff8a8a;font-size:12px;margin-bottom:8px}
+#nks .nkerr,#sbg .nkerr,#chg .nkerr{display:block;min-height:18px;color:#ff8a8a;font-size:12px;margin-bottom:8px}
 .sb-ic{font-size:120px;animation:sbP 1.6s ease-in-out infinite;filter:drop-shadow(0 0 30px #0a84ff)}@keyframes sbP{50%{transform:scale(1.08) rotate(-6deg)}}
 /* 👑 Админка */
 .modal:has(.admbox){align-items:flex-start;padding-top:calc(14px + var(--st,env(safe-area-inset-top,0px)))}
