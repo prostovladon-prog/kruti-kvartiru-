@@ -2989,6 +2989,14 @@ async function subCheck(env,me){
 /* 🎁 бонус за приход по рекламной ссылке (только новым игрокам): t.me/VoinyEpohBot?start=a_<метка> */
 const AD_BONUS={kartochki:{code:"kartochki",name:"Чат коллекционеров футбольных карточек",from:"от чата коллекционеров",sp:30}};
 async function adEnsure(env){if(adEnsure.ok)return;for(const B of Object.values(AD_BONUS))await env.DB.prepare("INSERT OR IGNORE INTO ad_links(code,name,created) VALUES(?,?,?)").bind(B.code,B.name,Date.now()).run();adEnsure.ok=1}
+/* статистика рекламы с подарком — простыми словами */
+async function adNow(env){await adEnsure(env);const out=[],d0=dayNum(Date.now())*864e5-TZ;
+  for(const B of Object.values(AD_BONUS)){const one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
+    const st=await one("SELECT COUNT(*) AS all1,SUM(a.new) AS nw,SUM(a.t>=?) AS today,SUM(a.t>=? AND a.new=1) AS nwToday FROM ad_starts a WHERE a.code=?",d0,d0,B.code);
+    const pl=await one("SELECT SUM(json_extract(u.state,'$.adb')=?) AS gift,SUM(COALESCE(json_extract(u.state,'$.nOp'),0)>=3) AS p3,SUM(COALESCE(json_extract(u.state,'$.nOp'),0)>=30) AS p30,SUM((SELECT COUNT(*) FROM user_days d WHERE d.uid=u.id)>=2) AS back,SUM(u.seen>=?) AS now1 FROM ad_starts a JOIN users u ON u.id=a.uid WHERE a.code=? AND a.new=1",B.code,Date.now()-36e5,B.code);
+    const pay=await one("SELECT COALESCE(SUM(p.stars),0) AS s,COUNT(DISTINCT p.uid) AS u FROM payments p JOIN ad_starts a ON a.uid=p.uid AND a.code=? AND a.new=1 WHERE p.status IN ('paid','done') AND COALESCE(p.charge,'')<>'bal'",B.code);
+    out.push({code:B.code,name:B.name,link:"t.me/"+(env.BOT_USERNAME||"VoinyEpohBot")+"?start=a_"+B.code,all:st.all1||0,nw:st.nw||0,today:st.today||0,nwToday:st.nwToday||0,gift:pl.gift||0,p3:pl.p3||0,p30:pl.p30||0,back:pl.back||0,now:pl.now1||0,stars:pay.s||0,payers:pay.u||0})}
+  return out}
 async function adBonus(env,me){await adEnsure(env);const codes=Object.keys(AD_BONUS);
   const r=me.dev&&me.start&&AD_BONUS[me.start]?{code:me.start}:await env.DB.prepare("SELECT code FROM ad_starts WHERE uid=? AND new=1 AND code IN ("+codes.map(()=>"?").join(",")+") LIMIT 1").bind(me.id,...codes).first();
   if(!r)return {none:1};return doAction(env,me,"ad_bonus",{},{adBon:AD_BONUS[r.code]})}
@@ -4861,7 +4869,7 @@ async function handle(req,env){{
       if(a==="src_users"){if(!isAdmin(env,me.id))fail("Нет доступа");const code=String(p.code||"").toLowerCase().slice(0,32);
         const rows=(await env.DB.prepare(STREAK_SQL+" SELECT u.id,COALESCE(u.nick,u.name) AS name,u.created,u.seen,u.album,COALESCE(r.mx,0) AS mx,COALESCE(r.cur,0) AS cur,(SELECT COUNT(*) FROM user_days x WHERE x.uid=u.id) AS days FROM users u LEFT JOIN best r ON r.uid=u.id WHERE u.src=?2 ORDER BY r.mx DESC,u.created DESC LIMIT 300").bind(dayNum(Date.now()),code).all()).results;
         return J({ok:true,res:{code,rows}})}
-      if(a==="stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await adminStats(env),S:await stateFor(env,me)})}
+      if(a==="stats"){if(!isAdmin(env,me.id))fail("Нет доступа");const R=await adminStats(env);try{R.adNow=await adNow(env)}catch(e){console.error("adNow",e)}return J({ok:true,res:R,S:await stateFor(env,me)})}
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}

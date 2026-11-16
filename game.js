@@ -2214,6 +2214,18 @@ const pct=(a,b)=>b?Math.round(a/b*100)+"%":"—";
 async function loadStats(force){if(!S.admin||!ONLINE)return;if(!force&&stData&&NOW()-stAt<60000){drawStats();return}
   const r=await act("stats");if(!r)return;stData=r;stAt=NOW();drawStats()}
 function drawStats(){drawStats0();const R=stData,b=$("st-body");if(!R||!b)return;
+  if(R.adNow&&R.adNow.length){const ab=document.createElement("div");ab.className="adnow";
+    ab.innerHTML=R.adNow.map(A=>{const row=(ic,t,v,sub)=>'<div class="adr"><span>'+ic+' '+t+'</span><b>'+v+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>';
+      return '<h4>📣 Реклама: '+escH(A.name)+'</h4><div class="adlink"><code>'+escH(A.link)+'</code></div>'+
+        row("👆","Нажали «Старт» по ссылке",A.all,"сегодня: "+A.today)+
+        row("🆕","Из них новые игроки",A.nw,"сегодня: "+A.nwToday+" · старые игроки подарок не получают")+
+        row("🎁","Получили подарок (легендарка)",A.gift,"")+
+        row("🎴","Открыли 3+ карточки",A.p3,pct(A.p3,A.nw)+" от новых")+
+        row("🔥","Втянулись (30+ карточек)",A.p30,pct(A.p30,A.nw)+" от новых")+
+        row("📅","Вернулись на 2-й день",A.back,pct(A.back,A.nw)+" от новых")+
+        row("🟢","Сейчас в игре (за час)",A.now,"")+
+        row("⭐","Заплатили звёздами",A.stars+" ⭐",A.payers+" чел.")}).join("")+'<small class="adhint">Обновляется при открытии статистики. Остальные таблицы ниже — старые ссылки.</small>';
+    b.prepend(ab)}
   const L=R.srcs||[];const box=document.createElement("div");box.className="srcbox";
   const pc=(a,b)=>b?'<u>'+Math.round(a/b*100)+'%</u>':'';
   box.innerHTML="<h4>🔗 Переходы по рекламным ссылкам — воронка</h4>"+(L.length?"<div class=\"srct f\"><b>метка</b><b>зашли</b><b>новые</b><b>1-я карта</b><b>ник</b><b>3+ воина</b><b>2-й день</b></div>"+L.map(r=>{const f=r.fresh||0;return `<div class="srct f"><span></span><i>${r.visits||0}</i><i>${f}</i><i>${r.c1||0}${pc(r.c1||0,f)}</i><i>${r.nk||0}${pc(r.nk||0,f)}</i><i>${r.act||0}${pc(r.act||0,f)}</i><i>${r.back||0}${pc(r.back||0,f)}</i></div>`}).join(""):"<small>Пока никто не заходил. Ссылка: t.me/VoinyEpohBot?startapp=s_метка</small>")+"<small>«зашли» — открыли игру по ссылке; «новые» — впервые в игре; дальше — сколько новых дошли до шага (% от новых): открыли 1-ю карточку → ввели ник → собрали 3+ разных воинов → вернулись на 2-й день</small>";
