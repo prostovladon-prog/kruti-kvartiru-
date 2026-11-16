@@ -3620,3 +3620,21 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .unlbox.party{background:linear-gradient(180deg,#fff8d6,#fff)}
 
 .chfine{font-size:9px!important;line-height:1.25;opacity:.55;background:none!important;padding:0!important;margin-top:6px;text-align:center;font-weight:500}
+/* 🔥 огонёк */
+.fire-box{margin-top:10px;padding:10px;border-radius:14px;background:linear-gradient(135deg,rgba(255,120,40,.18),rgba(255,40,80,.12));border:2px solid rgba(255,140,40,.5)}
+.fire-top{display:flex;gap:10px;align-items:center}.fire-ic{font-size:30px;animation:fireB 1.2s ease-in-out infinite}.fire-ic.big{font-size:38px}.fire-top small{display:block;opacity:.8;font-size:12px}
+@keyframes fireB{0%,100%{transform:scale(1)}50%{transform:scale(1.12) rotate(-4deg)}}
+.fire-bar{position:relative;height:20px;margin-top:8px;border-radius:10px;background:rgba(0,0,0,.25);overflow:hidden}.fire-bar u{display:block;height:100%;background:linear-gradient(90deg,#ff9a2a,#ff3a5a)}.fire-bar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.fire-lost{margin-top:8px;text-align:center}.fire-lost b{display:block;margin-bottom:6px}
+/* 🏆 витрина */
+.sc-fire{margin:6px 0;padding:6px 10px;border-radius:12px;background:rgba(255,120,40,.15);font-size:13px;text-align:center}
+#msheet.fire-frame{box-shadow:inset 0 0 0 4px #ff7a1a,0 0 30px rgba(255,100,30,.6)}
+.sc-tro{margin-top:12px}.sc-tro h3{margin:0 0 6px}.tro-g{display:grid;grid-template-columns:1fr 1fr;gap:6px}.tro{display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:10px;background:rgba(255,210,63,.12);border:1px solid rgba(255,210,63,.35);font-size:12px;line-height:1.2}.tro i{font-style:normal;font-size:20px}
+/* 🤝 пары */
+.pair-box{margin-top:12px;padding-top:10px;border-top:2px dashed rgba(255,255,255,.2)}.pair-ok{font-style:normal;color:#3ddc84;font-weight:800}.pair-wait{font-style:normal;opacity:.6}
+/* ⚔️ битва кланов */
+.cww-t{font-style:normal;font-size:12px;font-weight:800;color:#ffd23f}.cww-l{display:flex;flex-direction:column;gap:4px;margin:6px 0}.cww-r{display:flex;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.06)}.cww-r.me{background:rgba(61,220,132,.2);border:1px solid #3ddc84}.cww-r span{flex:1}.cww-r em{font-style:normal;font-weight:900}.cww-my{text-align:center;font-size:13px}
+/* 🐉 драконьи карты */
+.dgc-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0}.dgc-row span{display:flex;flex-direction:column;align-items:center;font-size:22px;opacity:.45;filter:grayscale(1)}.dgc-row span.on{opacity:1;filter:none}.dgc-row small{font-size:9px;line-height:1.1;text-align:center}
+.dgc-b{font-style:normal;font-weight:900;color:#3ddc84}
+#dg-root.dg-star{position:relative;border-radius:18px;box-shadow:inset 0 0 0 3px #ffd23f,0 0 26px rgba(168,85,247,.45)}#dg-root.dg-star::before{content:"✨ ЗВЁЗДНЫЙ ОБЛИК";position:absolute;top:-11px;right:14px;z-index:3;padding:3px 10px;border-radius:10px;background:linear-gradient(90deg,#a855f7,#ffd23f);color:#1a0838;font-size:11px;font-weight:900;letter-spacing:1px}

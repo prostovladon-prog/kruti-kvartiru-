@@ -522,3 +522,48 @@ DETAILED["Банда"]=id=>{const u="bnd"+String(id).replace(/[^a-z0-9_]/gi,""),
  '<g><animateTransform attributeName="transform" type="translate" values="0 0;0 0;-16 -6;-16 -6;0 0" keyTimes="0;.38;.46;.62;.75" dur="3s" repeatCount="indefinite"/>'+P("Дракула",116,50,80)+'</g>'+
  '<g transform="translate(156 56)" opacity="0"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.44;.48;.66;.74" dur="3s" repeatCount="indefinite"/><path d="M-22 -8 L22 -10 L18 10 L-20 8Z" fill="#d61f3a" stroke="#fff" stroke-width="2"/><text y="5" text-anchor="middle" font-size="12" font-weight="900" fill="#fff">КУСЬ!</text></g>'+
  '</svg>'};
+
+/* 🔥 Огонёк: дни подряд + спасение за звёзды */
+function fireBox(){const st=$("streak");if(!st||!S)return;const box=st.closest(".box");if(!box)return;let f=$("fire-box");if(!f){f=document.createElement("div");f.id="fire-box";f.className="fire-box";box.appendChild(f)}
+ const F=S.fire||{n:0,best:0},n=F.n|0,nx=FIRE.mil.find(x=>x>n)||n+1,lost=S.fireLost&&S.fireLost.day===today(NOW())?S.fireLost:null,k=Math.min(1,n/nx);
+ f.innerHTML='<div class="fire-top"><span class="fire-ic'+(n>=7?" big":"")+'">🔥</span><span><b>Огонёк: '+n+' '+plural(n,"день","дня","дней")+' подряд</b><small>Рекорд: '+(F.best|0)+' · бонус к награде: +'+Math.min(5,Math.floor(n/7))+' 🎴'+(S.fireFrame?' · 🔥 огненная рамка':'')+'</small></span></div>'+
+  '<div class="fire-bar"><u style="width:'+(k*100)+'%"></u><span>до '+nx+' дней: '+(nx===30?"огненная рамка профиля":nx===100?"титул «Неугасимый»":"+5 🎴 бонусом")+'</span></div>'+
+  (lost?'<div class="fire-lost"><b>💨 Огонёк погас — было '+lost.n+' '+plural(lost.n,"день","дня","дней")+'</b><button type="button" class="craftbtn" id="fire-save">🔥 Спасти за '+FIRE.save+' ⭐</button></div>':'')}
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#fire-save"))buyItem({item:"fsave"})});
+{const _rs=renderStreak;renderStreak=function(){const r=_rs.apply(this,arguments);try{fireBox()}catch(e){}return r}}
+{const _ps=payShow;payShow=function(r){if(r&&r.item==="fsave"&&r.status!=="refund"){renderAll();try{sfx.coin();hapN("success")}catch(e){}toast("🔥 Огонёк спасён!");return}return _ps.apply(this,arguments)}}
+{const o=$("st-go");if(o){const _c=o.onclick;o.onclick=async()=>{const r=await act("streak");if(!r)return;sfx.coin();toast((r.frame?"🔥 30 дней! Огненная рамка профиля открыта! ":"")+"+"+(1+(r.fsp||0))+" 🎴 · огонёк "+r.fire+" "+plural(r.fire,"день","дня","дней")+" подряд");renderAll()}}}
+
+/* 🏆 Витрина: огонёк и трофеи */
+{const _os=openShowcase;openShowcase=function(F){const r=_os.apply(this,arguments);try{const sh=$("msheet"),who=sh.querySelector(".who");
+ if(F.fire&&(F.fire.n||F.fire.best)){const d=document.createElement("div");d.className="sc-fire";d.innerHTML='🔥 <b>'+(F.fire.n|0)+'</b> '+plural(F.fire.n|0,"день","дня","дней")+' подряд · рекорд '+(F.fire.best|0)+(F.fire.title?' · <b>Неугасимый</b>':'');if(who)who.after(d)}
+ if(F.fire&&F.fire.frame)sh.querySelector(".box,.who")&&sh.classList.add("fire-frame");
+ const T=F.tro||[];if(T.length){const d=document.createElement("div");d.className="sc-tro";d.innerHTML='<h3>🏆 Трофеи · '+T.length+'</h3><div class="tro-g">'+T.map(x=>'<div class="tro"><i>'+escH(x.ic||"🏆")+'</i><span>'+escH(x.txt||"")+'</span></div>').join("")+'</div>';sh.appendChild(d)}}catch(e){}return r}}
+{const _cm=closeModal;closeModal=function(){try{$("msheet").classList.remove("fire-frame")}catch(e){}return _cm.apply(this,arguments)}}
+
+/* 🤝 Братья по оружию — в окне друзей */
+{const _fd=frDraw;frDraw=function(r){const o=_fd.apply(this,arguments);try{const box=$("msheet").querySelector(".frbox");if(!box)return o;const d=document.createElement("div");d.className="pair-box";d.innerHTML='<p class="cln">Загружаю «Братья по оружию»…</p>';box.appendChild(d);
+ act("pair_list").then(P=>{if(!P)return;const L=(P.list||[]).slice().sort((a,b)=>(b.inv-a.inv)||((b.ok&&!b.got)-(a.ok&&!a.got))||(b.n-a.n)).slice(0,15);d.innerHTML='<h3>🤝 Братья по оружию</h3><p class="cln">Позови друга по своей ссылке. Когда вы <b>оба</b> откроете по '+P.need+' карточек — каждый получит редкую карточку на двоих. Её нельзя купить или продать.</p>'+
+  (L.length?L.map(x=>'<div class="fr-r"><span><b>'+(x.inv?"🎖 ":"")+escH(x.name)+'</b><small>'+(x.inv?"позвал тебя":"твой друг")+' · ты '+Math.min(P.me,P.need)+'/'+P.need+' · друг '+Math.min(x.n,P.need)+'/'+P.need+'</small></span>'+(x.got?'<em class="pair-ok">✅ есть</em>':x.ok?'<button type="button" class="mini2 pair-go" data-pc="'+x.uid+'">🎁 Забрать</button>':'<em class="pair-wait">⏳</em>')+'</div>').join(""):'<p class="cln">Пока нет друзей по приглашению. Ссылка — в «Пригласить друга».</p>');
+  d.onclick=async e=>{const b=e.target.closest("[data-pc]");if(!b)return;b.disabled=true;const q=await act("pair_claim",{uid:+b.dataset.pc});if(q){try{sfx.fanfare();burst(4);hapN("success")}catch(_){}toast("🤝 «Братья по оружию» — в твоей коллекции!");frOpen()}else b.disabled=false}})}catch(e){}return o}}
+DETAILED["Братья по оружию"]=id=>{const u="pr"+String(id).replace(/[^a-z0-9_]/gi,""),P=(h,x,y,s,fl)=>{const H=HEROES[h];if(!H)return "";const raw=portrait(h,null).replace(/^[\s\S]*?<svg[^>]*>/,"").replace(/<\/svg>\s*$/,"");const k=u+"c"+x;return '<clipPath id="'+k+'"><circle cx="'+(x+s/2)+'" cy="'+(y+s/2)+'" r="'+(s/2)+'"/></clipPath><g clip-path="url(#'+k+')"><g transform="translate('+(fl?x+s:x)+' '+y+') scale('+(fl?-s/200:s/200)+' '+s/200+')">'+raw+'</g></g><circle cx="'+(x+s/2)+'" cy="'+(y+s/2)+'" r="'+(s/2)+'" fill="none" stroke="url(#'+u+'g)" stroke-width="5"/>'};
+ return '<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><linearGradient id="'+u+'g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#c47a12"/></linearGradient><radialGradient id="'+u+'r"><stop offset="0" stop-color="#3a7bd5" stop-opacity=".6"/><stop offset="1" stop-color="#0a1430" stop-opacity="0"/></radialGradient></defs>'+
+ '<rect width="200" height="200" fill="#0e1a3a"/><circle cx="100" cy="95" r="110" fill="url(#'+u+'r)"/>'+[0,1,2,3,4,5,6,7].map(i=>'<path d="M100 95 L'+(100+Math.cos(i*.785)*160)+' '+(95+Math.sin(i*.785)*160)+'" stroke="#3a7bd5" stroke-width="10" opacity=".15"/>').join("")+
+ P(11,4,34,96,0)+P(10,100,34,96,1)+
+ '<g transform="translate(100 140)"><g><animateTransform attributeName="transform" type="translate" values="0 0;0 -4;0 0" dur="1.6s" repeatCount="indefinite"/><circle r="26" fill="url(#'+u+'g)" stroke="#2a1400" stroke-width="3"/><text y="10" text-anchor="middle" font-size="28">🤝</text></g></g>'+
+ '<g transform="translate(100 182)"><rect x="-80" y="-13" width="160" height="24" rx="8" fill="rgba(10,14,40,.92)" stroke="url(#'+u+'g)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="11" font-weight="900" letter-spacing="1.5" fill="url(#'+u+'g)">НАВСЕГДА ВМЕСТЕ</text></g></svg>'};
+
+/* ⚔️ Битва кланов выходных */
+let cwD=null,cwAt=0;async function cwLoad(){if(Date.now()-cwAt<60e3&&cwD)return cwD;const r=await act("cw_get",{},{quiet:1});if(r){cwD=r;cwAt=Date.now()}return cwD}
+{const _dc=drawClan;drawClan=function(){const o=_dc.apply(this,arguments);try{const b=$("clan-body");if(!b||!clData)return o;let w=$("cww-box");if(!w){w=document.createElement("div");w.id="cww-box";w.className="box cww";b.prepend(w)}
+ const R=cwD;if(!R){w.innerHTML='<p class="cln">⚔️ Битва кланов выходных…</p>';cwLoad().then(()=>{if(cwD)drawClan()});return o}
+ const now=Date.now(),left=R.on?R.end-now:R.start-now,ft=ms=>{const h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h>=24?Math.floor(h/24)+" д "+(h%24)+" ч":h+" ч "+m+" мин"};
+ w.innerHTML='<div class="rowb"><h3>⚔️ Битва кланов выходных</h3><em class="cww-t">'+(R.on?"идёт · ещё "+ft(left):"старт в субботу · через "+ft(Math.max(0,left)))+'</em></div><p class="cln">Суббота 00:00 — воскресенье 22:00. Каждая открытая карточка участника = очко клана. Топ-3 клана: <b>каждому участнику</b> '+R.prize.join(" / ")+'</p>'+
+  (R.top&&R.top.length?'<div class="cww-l">'+R.top.slice(0,5).map((c,i)=>'<div class="cww-r'+(clData.clan&&c.id===clData.clan.id?" me":"")+'"><b>'+(["🥇","🥈","🥉"][i]||(i+1)+".")+'</b><span>'+escH(c.name)+'</span><em>'+fmtN(c.n)+'</em></div>').join("")+'</div>':'<p class="cln">'+(R.on?"Пока никто не набрал очков — открой карточку первым!":"Таблица появится в субботу.")+'</p>')+
+  (R.my&&(R.on||R.my.n)?'<p class="cww-my">Твой клан: <b>'+R.my.place+' место</b> · '+fmtN(R.my.n)+' очков</p>':'');}catch(e){}return o}}
+
+/* 🐉 Драконьи карты усиливают твоего дракона */
+{const _rd=renderDragon;renderDragon=function(){const o=_rd.apply(this,arguments);try{const R=$("dg-root"),D=dgOf();if(!R||!D)return o;const have=new Set((S.cards||[]).filter(c=>HEROES[c.h]&&HEROES[c.h][4].dgc).map(c=>c.h)),L=HEROES.map((H,i)=>H[4].dgc?i:-1).filter(i=>i>=0),n=have.size,b=Math.round((n*.03+(n>=7?.09:0))*100);
+ let w=$("dgc-box");if(!w){w=document.createElement("div");w.id="dgc-box";w.className="box dgc-box";R.appendChild(w)}
+ w.innerHTML='<div class="rowb"><h3>🐉 Драконьи карты</h3><em class="dgc-b">+'+b+'% к силе</em></div><div class="dgc-row">'+L.map(h=>'<span class="'+(have.has(h)?"on":"")+'" title="'+escH(HEROES[h][0])+'">'+(have.has(h)?"🐉":"🔒")+'<small>'+escH(HEROES[h][0].replace(" дракон",""))+'</small></span>').join("")+'</div><p class="cln">'+(n>=7?'✨ Все 7 собраны — твой дракон в <b>звёздном облике</b> и сильнее на 30%!':'Каждая карта дракона в коллекции даёт +3% к силе твоего дракона. Собери все 7 — +30% и звёздный облик ✨')+'</p>';
+ R.classList.toggle("dg-star",n>=7)}catch(e){}return o}}

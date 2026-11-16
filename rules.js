@@ -159,6 +159,7 @@ const HEROES=[
  ["Звёздный дракон","Драконы",4,"Родился из упавшей звезды. Говорят, исполняет одно желание.",{dgc:1,b:6,hue:240,p:[8,8,7,7,8]}],
  /* 139: 👑 карта «Набора фаната» — все воины игры на одном холсте + подпись создателя. Не выпадает, не продаётся, не дерётся */
  ["Все Воины Эпох","Все эпохи",4,"Все воины игры на одном холсте и подпись создателя «Воинов Эпох». Только для самых преданных фанатов — у каждого владельца свой номер, навсегда.",{fan:1,hue:45,p:[10,10,10,10,10]}],
+ ["Братья по оружию","Дружба",3,"Эту карточку получают только двое: тот, кто позвал друга, и сам друг. Вместе — сильнее.",{bro:1,hue:200,p:[7,7,7,7,7]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -474,7 +475,12 @@ function capOf(st){return capParts(st).all}
 const VIP_SPINS=13, vipOn=st=>(st.vipUntil||0)>Date.now(), vipTier=st=>vipOn(st)?Math.max(1,Math.min(3,st.vipT||1)):0;
 const spinCap=st=>vipOn(st)?VIP_T[vipTier(st)].sp:SPINS_MAX;
 function refill(st,now){const cap=spinCap(st);if(st.spins==null)st.spins=cap;if(st.refillAt&&now>=st.refillAt){st.spins=Math.max(st.spins,cap);st.refillAt=null}}
-function checkStreak(st,now){const t=today(now);if(st.streak&&st.streak.last===t)return;const n=st.streak&&st.streak.last===yday(now)?st.streak.n%7+1:1;st.streak={last:t,n,claimed:false}}
+/* 🔥 огонёк: дни подряд без перерыва (в отличие от недельной серии). Погас — можно спасти за звёзды в тот же день */
+const FIRE={save:25,mil:[7,14,21,30,50,100]};
+function fireTouch(st,now){const t=today(now),F=st.fire||(st.fire={n:0,last:"",best:0});if(F.last===t)return;
+  if(F.last&&F.last!==yday(now)&&F.n>=3)st.fireLost={n:F.n,day:t};F.n=F.last===yday(now)?F.n+1:1;F.last=t;F.best=Math.max(F.best||0,F.n)}
+function fireRew(n){return {sp:Math.min(5,Math.floor(n/7)),bonus:n%7===0?5:0,frame:n===30,title:n===100}}
+function checkStreak(st,now){fireTouch(st,now);const t=today(now);if(st.streak&&st.streak.last===t)return;const n=st.streak&&st.streak.last===yday(now)?st.streak.n%7+1:1;st.streak={last:t,n,claimed:false}}
 function touch(st,now){refill(st,now);checkStreak(st,now);day(st,now);boss(st,now);st.ach=st.ach||{};st.doneCh=st.doneCh||{}}
 
 /* ---------- карточки ----------
@@ -548,6 +554,7 @@ SHOP.gbox3={n:"Королевский сундук гемов",stars:500,gbox:1,
 function gboxLv(L){let r=Math.random();for(const [lv,p] of L){if(r<p)return lv;r-=p}return L[L.length-1][0]}
 SHOP.diap={n:"Алмазный профиль",stars:1000,dia:1,d:["💎 сияющий алмазный ник — в топе, чате и профиле","✨ анимированная алмазная рамка профиля","👑 навсегда — один раз и на всю жизнь"]};
 SHOP.chpin={n:"Закреп в чате на 1 час",stars:50,chpin:1,d:["📌 твоё сообщение наверху чата у всех — 1 час"]};
+SHOP.fsave={n:"Спасти огонёк",stars:FIRE.save,fsave:1,d:["🔥 огонёк продолжится, как будто ты не пропускал день"]};
 SHOP.motto={n:"Фраза в профиле",stars:150,motto:1,d:["💬 твоя фраза в витрине — её видят все, кто открыл твой профиль"]};
 SHOP.tsp={n:"Именной турнир",stars:1000,tsp:1,d:["🏆 субботний турнир пройдёт в твою честь","⭐ игра добавляет к призам 300 / 150 / 50 ⭐","📣 пост в канале и всем участникам"]};
 SHOP.fan={n:"Набор фаната",stars:20000,fan:1,d:["🎁 секретный подарок лично от создателя игры — админ напишет тебе","👑 карта «Все Воины Эпох» с подписью создателя — свой номер, навсегда","📣 пост о тебе в канале и сияющая строка в ленте LIVE"]};
@@ -665,7 +672,7 @@ function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточк
 function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail(/^map:/.test(String(c.dest||""))?"Этот воин охраняет регион на карте мира":"Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 /* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
 /* подарочная карточка «Ошибка печати» № 000010 (приз за 10 друзей): не продаётся, не меняется, не сжигается, в боях «на карточку» не участвует */
-const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f===9);
+const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f===9||!!(HEROES[c.h]&&HEROES[c.h][4].bro));
 const NOTRADE_MSG="Эта карточка подарена и существует в одном экземпляре: её нельзя продать, обменять или сжечь";
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
 function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(FIN[c.f].collab?"Бесценная карточка коллекционная: в боях не участвует":TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
@@ -845,7 +852,8 @@ const dgItemPow=it=>Math.round(DG_R[it.r].p*(1+.12*(it.lv||0))*(it.s==="amul"?1.
 const dgUpCost=it=>20*(it.r+1)*((it.lv||0)+1);
 function dgEq(D){return DG_SLOT.map(S=>(D.inv||[]).find(it=>it.id===(D.eq||{})[S.k])).filter(Boolean)}
 function dgSetBonus(eq){const n={};eq.forEach(it=>n[it.t]=(n[it.t]||0)+1);let best=null;for(const k in n)if(!best||n[k]>n[best])best=k;const c=best?n[best]:0;return {k:best,n:c,b:c>=5?.25:c>=3?.1:0}}
-function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b)*(D.evo==="fire"?1.1:1)*(1+dgGemB(D,"ruby")+dgGemB(D,"diam")))}
+const dgCardB=D=>{const n=(D&&D.dcn)|0;return n*.03+(n>=7?.09:0)};
+function dgPower(D){if(!D)return 0;const B=DG_BREED[D.b]||DG_BREED[0],eq=dgEq(D),g=eq.reduce((a,it)=>a+dgItemPow(it),0),sb=dgSetBonus(eq);return Math.round(((100+D.lv*45)*B.m+g)*(1+sb.b)*(D.evo==="fire"?1.1:1)*(1+dgGemB(D,"ruby")+dgGemB(D,"diam"))*(1+dgCardB(D)))}
 const dgSat=(D,now)=>Math.max(0,Math.min(100,(D.sat||0)-(now-(D.satAt||now))/3600e3*DG.satH*(D.evo==="ice"?.6:1)*(1-Math.min(.6,dgGemB(D,"emer")))));
 function dgBonus(st,now){const D=st&&st.dg;if(!D)return 0;let b=Math.min(.2,.02+dgPower(D)/40000);if(dgSat(D,now)<DG.hungry)b/=2;return Math.round(b*1000)/1000}
 function dgDay(D,now){const d=mskDay(now);if(D.d!==d){D.d=d;D.tp=0;D.fd=0;D.wx=0;D.nest=0;D.gift=0}return D}
@@ -1068,7 +1076,8 @@ const ACTIONS={
   frame(G){const c=notHalf(own(G,G.p.id)),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(F.only==="season"){if(!(G.st.frames||[]).includes("season"))fail("Рамка сезона — награда боевого пропуска")}else if(F.only&&!G.ctx.pioneer)fail("Эта рамка только для первых "+PIONEERS+" игроков");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
 
   task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;const dgx=st.dg?dgAddXp(st,ctx,DG.taskXp):0;return {r:T.r,dgx}},
-  streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;return {n:st.streak.n}},
+  streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;if(st.streak.n===7)st.guar=(st.guar||0)+1;
+    const F=st.fire||{n:1},R=fireRew(F.n);st.spins+=R.sp+R.bonus;if(R.frame)st.fireFrame=1;if(R.title)st.fireTitle=1;return {n:st.streak.n,fire:F.n,fsp:R.sp+R.bonus,frame:R.frame?1:0}},
   ach(G){const A=ACH.find(a=>a.id===G.p.id);if(!A)fail("Нет такого достижения");if(G.st.ach[A.id])fail("Уже получено");if(!A.ok(G.st,G.cards))fail("Достижение ещё не выполнено");G.st.ach[A.id]=1;G.st.spins+=A.r;return {r:A.r,t:A.t}},
 
   nb_claim(G){const st=G.st,ctx=G.ctx,V=nbView(st,ctx);if(V.done)fail("Все подарки новичка уже получены");if(V.today)fail("Сегодняшний подарок уже забран — приходи завтра");if(!V.can)fail("Следующий подарок откроется завтра");
@@ -1187,6 +1196,7 @@ const ACTIONS={
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
     if(I.kolo)add(makeCard(ctx,KOLO,4));
     if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";dcSn(ctx,c,HEROES[h][4].sn);add(c)}
+    if(I.fsave){const Lz=st.fireLost;if(!Lz||Lz.day!==today(ctx.now))fail("Огонёк сейчас не нужно спасать");st.fire.n=Lz.n+1;st.fire.best=Math.max(st.fire.best||0,st.fire.n);delete st.fireLost}
     if(I.motto)st.motto=String(p.text||"").slice(0,60);
     if(I.shelfx)st.shelfX=1;
     if(I.myst){const pool=MYST.map((x,i)=>i).sort(()=>Math.random()-.5).slice(0,3);st.myst={o:pool,t:Date.now()}}
@@ -1344,6 +1354,7 @@ ACTIONS.dg_wish=function(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала 
   for(const k in H){const f=ACTIONS[k];if(!f)continue;ACTIONS[k]=function(G){const r=f.apply(this,arguments);try{const [w,n]=H[k](r,G.p);dgWishAdd(G.st,G.ctx.now,w,n)}catch(e){}return r}}}
 function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);
   const D0=day(st,ctx.now),o0=D0.opened,w0=st.totalWins||0,c0=st.crafted||0;const res=A(G)||{};
+  try{if(st.dg){const s=new Set();for(const c of G.cards)if(HEROES[c.h]&&HEROES[c.h][4].dgc)s.add(c.h);st.dg.dcn=s.size}}catch(e){}
   try{const D=day(st,ctx.now);passAdd(st,ctx,"open",Math.max(0,D.opened-o0));passAdd(st,ctx,"win",Math.max(0,(st.totalWins||0)-w0));
     if(name==="camp_tap")passAdd(st,ctx,"tap",res.n|0);if(name==="train"||name==="forge")passAdd(st,ctx,"up",1);if(name==="craft"||name==="merge")passAdd(st,ctx,"craft",1);
     if(name==="wheel")passAdd(st,ctx,"wheel",1);if(name==="sell")passAdd(st,ctx,"sell",1);if(name==="sellmany"||name==="sellcommon")passAdd(st,ctx,"sell",res.n|0||1)}catch(e){}

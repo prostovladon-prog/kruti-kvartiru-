@@ -1992,7 +1992,7 @@ async function openParam(p){
 function renderFriends(){const box=$("friends");if(!box)return;box.innerHTML="";const F=friendsGet(),names=Object.keys(F).sort((a,b)=>F[b].t-F[a].t);
   if(!names.length){box.innerHTML='<p style="margin:0;color:#5a5f80">Пока никто не присылал витрину. Отправь свою, и друг пришлёт в ответ.</p>';return}
   names.forEach(n=>{const d=document.createElement("div");d.className="fr";d.innerHTML='<span><b></b><br><small></small></span><button type="button" class="mini2">Открыть</button>';
-    d.querySelector("b").textContent=n;d.querySelector("small").textContent=(F[n].p.startsWith("u_")?"последний раз ":"витрина от ")+new Date(F[n].t).toLocaleDateString("ru-RU");
+    d.querySelector("b").textContent=n;d.querySelector("small").textContent=(String(F[n].p||"").startsWith("u_")?"последний раз ":"витрина от ")+new Date(F[n].t).toLocaleDateString("ru-RU");
     d.querySelector("button").onclick=()=>openParam(F[n].p);box.appendChild(d)})}
 function handleStart(){let p=null;try{p=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param"))}catch(e){}
   if(!p){const q=new URLSearchParams(location.search).get("startapp");if(q)p=q}
