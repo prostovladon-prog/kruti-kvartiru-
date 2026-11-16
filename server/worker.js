@@ -3657,8 +3657,8 @@ const LFR=[{k:"m",n:"Мифический сундук + Королевский 
   {k:"l",n:"Легендарный + Королевский сундук",ic:"⭐",usd:"$10",items:[{shop:"legend"},{shop:"royal"}],d:["⭐ Легендарный сундук — 10 карточек, легенда внутри","👑 Королевский сундук — 60 прокруток и 6 половинок"]},
   {k:"r",n:"Королевский сундук + Сундук воина",ic:"👑",usd:"$6",items:[{shop:"royal"},{shop:"warrior"}],d:["👑 Королевский сундук — 60 прокруток и 6 половинок","⚔️ Сундук воина — 5 карточек, эпик внутри"]}];
 const CHAL_FR={id:"2026-11-16",lot:1,chest:1,fr:1,ttl:"🎟 РОЗЫГРЫШ СУНДУКОВ ЗА ДРУЗЕЙ · $41",fine:"* $ — стоимость призов по цене звёзд Telegram. Призы выдаются внутри игры.",noL2:1,min:1,lch:LFR,start:Date.UTC(2026,10,16,5,0),end:Date.UTC(2026,10,16,19,30),prizes:LFR.map(c=>c.n),
-  img:"assets/post-fr1.jpg?v=1",imgs:["assets/post-fr1.jpg?v=1","assets/post-fr2.jpg?v=1","assets/post-fr3.jpg?v=1","assets/post-fr4.jpg?v=1","assets/post-fr5.jpg?v=1"],
-  slots:[8,12,18,20.5,21.5],chanSlots:[8,12,18,20.5,21.5],lastOnly:21.5,chan:"@voinyepoh"};
+  img:"assets/post-fr1.jpg?v=1",imgs:["assets/post-fr1.jpg?v=1","assets/post-fr3.jpg?v=1","assets/post-fr4.jpg?v=1"],
+  slots:[8,15,20.5],chanSlots:[8,15,20.5],chan:"@voinyepoh"};   // 3 рассылки: утро, после учёбы, вечер за 2 часа до итогов
 const FRP=()=>LFR.map((x,k)=>MEDAL[k]+" "+x.usd+" — "+x.n).join("\n"),FRS="\n\n* $ — стоимость призов по цене звёзд Telegram. Призы выдаются внутри игры.",
   FRHOW="👥 Пригласи друга по своей ссылке — получи билет\n🎟 Каждый друг = +1 билет: 5 друзей — 5 билетов, 20 друзей — 20 билетов\n📈 Больше билетов — больше шанс\n✅ Друг считается, когда откроет "+CHAL_OPEN+" карточки";
 function frText(C,slot,rows,now){const h=lotHook(C,rows),last=C.slots[slot]===C.lastOnly;
