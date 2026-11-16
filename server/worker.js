@@ -162,10 +162,22 @@ const HEROES=[
  /* 139: 👑 карта «Набора фаната» — все воины игры на одном холсте + подпись создателя. Не выпадает, не продаётся, не дерётся */
  ["Все Воины Эпох","Все эпохи",4,"Все воины игры на одном холсте и подпись создателя «Воинов Эпох». Только для самых преданных фанатов — у каждого владельца свой номер, навсегда.",{fan:1,hue:45,p:[10,10,10,10,10]}],
  ["Братья по оружию","Дружба",3,"Эту карточку получают только двое: тот, кто позвал друга, и сам друг. Вместе — сильнее.",{bro:1,hue:200,p:[7,7,7,7,7]}],
+ ["Варяг","Северный путь",0,"Служил наёмником у князей и императоров. Лодка, топор и долгая дорога «из варяг в греки».",{base:1,helm:"viking",weapon:"axe",shield:"round",shc:"#3a6a2a",armor:"mail",beard:"#8a5a2a",hue:120,skin:0,p:[4,3,2,3,2]}],
+ ["Ландскнехт","Германия, XVI век",0,"Пёстрые штаны, огромная алебарда и жалованье вперёд. Без денег воевать не пойдёт.",{base:1,helm:"kettle",weapon:"halberd",armor:"cloth",stache:"#c4842c",hue:330,skin:0,p:[3,3,2,3,3]}],
+ ["Бедуин","Аравия",0,"Знает пустыню лучше карты. Найдёт воду там, где другие видят только песок.",{base:1,helm:"band",weapon:"saber",armor:"cloth",stache:"#1a1008",hue:40,skin:2,p:[3,2,4,3,2]}],
+ ["Скифская лучница","Великая степь",1,"Стреляет на скаку назад, не оборачиваясь. Греки думали, что это амазонки.",{base:1,female:1,hair:"braids",hairc:"#c98a2a",helm:"phrygcap",weapon:"bow",armor:"pelt",hue:25,skin:1,p:[4,2,5,3,4]}],
+ ["Госпитальер","Орден крестоносцев",1,"Рыцарь-монах: днём лечит раненых, а ночью стоит на стене крепости.",{base:1,helm:"knight",weapon:"sword",shield:"cross",armor:"plate",cape:"#1a1a1a",hue:0,skin:0,p:[4,5,2,4,4]}],
+ ["Воин-ягуар","Ацтеки",1,"Шкура ягуара — знак лучших бойцов империи ацтеков. Берёт врага в плен живым.",{base:1,helm:"band",weapon:"club",armor:"pelt",x:["flames"],hue:45,skin:2,fierce:1,p:[5,3,4,4,3]}],
+ ["Хускарл","Англосаксы",2,"Личная стража короля. Стоит в стене щитов до последнего вздоха.",{base:1,helm:"viking",weapon:"axe",shield:"round",shc:"#c0392b",armor:"mail",beard:"#d9a441",cape:"#2a4fb0",fierce:1,hue:220,skin:0,p:[6,6,3,5,4]}],
+ ["Эль Сид","Испания, XI век",2,"Непобедимый рыцарь Кастилии. Говорят, выиграл битву уже после своей смерти.",{base:1,helm:"knight",plume:"#ffd60a",weapon:"sword",shield:"kite",shc:"#c0392b",armor:"plate",cape:"#c0392b",beard:"#3a2a1a",hue:10,skin:1,p:[6,5,4,5,6]}],
+ ["Чингисхан","Монгольская империя",3,"Объединил степь и построил самую большую империю на суше. Его гонцы скакали быстрее ветра.",{base:1,helm:"mongol",gold:1,weapon:"saber",armor:"scale",cape:"#7a1a1a",stache:"#1a1008",beard:"#1a1008",x:["aura"],glow:"#ffb84d",fierce:1,hue:30,skin:2,p:[8,6,7,6,8]}],
+ ["Один","Мифы Скандинавии",4,"Всеотец богов. Отдал глаз за мудрость, а два ворона приносят ему вести со всего мира.",{base:1,hair:"long",hairc:"#e9edf5",helm:"winged",gold:1,weapon:"spear",armor:"mail",cape:"#1a2a6a",beard:"#e9edf5",brows:"#e9edf5",x:["aura","wings"],glow:"#7ad0ff",hue:225,skin:0,p:[9,7,6,8,9]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
-const isBase=h=>h<NBASE||!!(HEROES[h]&&HEROES[h][4].base), BASE=HEROES.map((H,i)=>i).filter(isBase), NHEROES=BASE.length, baseNo=h=>BASE.indexOf(h)+1;
+const isBase=h=>h<NBASE||!!(HEROES[h]&&HEROES[h][4].base), BASE=HEROES.map((H,i)=>i).filter(isBase), baseNo=h=>BASE.indexOf(h)+1;
+/* альбом = все воины, которые выпадают в прокрутах: обычные + карты драконов */
+const inAlbum=h=>isBase(h)||!!(HEROES[h]&&HEROES[h][4].dgc), ALBUM=HEROES.map((H,i)=>i).filter(inAlbum), NHEROES=ALBUM.length;
 const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h]&&HEROES[h][4].duo), DUO_F=7, DUO_RUN=2;
 const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
@@ -271,7 +283,7 @@ const ACH=[
  {id:"cr",t:"Алхимик",d:"Сделай удачный крафт",r:2,ok:(st)=>(st.crafted||0)>=1},
  {id:"jp",t:"Вся Япония",d:"Собери всех воинов Японии",r:3,ok:(st,cards)=>{const h=haveSet(cards);return HEROES.every((H,i)=>H[1]!=="Япония"||h.has(i))}},
  {id:"half",t:"Полальбома",d:"Собери 16 разных воинов",r:3,ok:(st,cards)=>[...haveSet(cards)].filter(isBase).length>=16},
- {id:"all",t:"Коллекционер",d:"Собери весь альбом",r:10,ok:(st,cards)=>[...haveSet(cards)].filter(isBase).length>=NHEROES}];
+ {id:"all",t:"Коллекционер",d:"Собери весь альбом",r:10,ok:(st,cards)=>[...haveSet(cards)].filter(inAlbum).length>=NHEROES}];
 const DEST=[
  {k:"Разведка у реки",t:"1 минута",ms:60e3,xp:20,m:[5,15],sp:.1,card:0},
  {k:"Набег на побережье",t:"1 час",ms:3600e3,xp:60,m:[20,60],sp:.35,card:.03},
@@ -2023,7 +2035,7 @@ async function folWeekTick(env){const now=Date.now(),wk=mskWeek(now),prev=mskWee
 async function profile(env,p,me){
   const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,state,pioneer,vip_until FROM users WHERE id=?").bind(Math.floor(+p.uid||0)).first();if(!u)fail("Игрок не найден");
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 3").bind(u.id).all()).results.map(r=>pub(rowToCard(r)));
-  const have=await env.DB.prepare("SELECT COUNT(DISTINCT h) AS n FROM cards WHERE owner=?").bind(u.id).first();
+  const have=await env.DB.prepare("SELECT COUNT(DISTINCT h) AS n FROM cards WHERE owner=? AND h IN ("+ALBUM.join(",")+")").bind(u.id).first();
   const gs=(await env.DB.prepare("SELECT id,k,no,shelf FROM gifts WHERE owner=?").bind(u.id).all()).results;
   if(me&&me.id!==u.id)await env.DB.prepare("UPDATE users SET gv=gv+1 WHERE id=?").bind(u.id).run();
   const gv=((await env.DB.prepare("SELECT gv FROM users WHERE id=?").bind(u.id).first())||{}).gv||0;

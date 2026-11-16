@@ -1015,7 +1015,7 @@ function skelRows(n){return Array.from({length:n},()=>'<div class="skel"><i clas
 /* ---------- album ---------- */
 function renderAlbum(){
   const box=$("album");box.innerHTML="";let have=0;
-  HEROES.forEach((H,i)=>{if(!isBase(i))return;
+  HEROES.forEach((H,i)=>{if(!inAlbum(i))return;
     const mine=S.cards.filter(c=>c.h===i),got=mine.length>0;if(got)have++;
     const d=document.createElement("div");d.className="slot "+(got?"have":"empty");d.style.setProperty("--hc",HT[H[2]].c);
     const fins=[...new Set(mine.map(c=>c.f))].sort();
@@ -1430,7 +1430,7 @@ const everIssued=(h,f)=>ONLINE?((S.prints||{})[h+"-"+f]||0):localCtx().issuedOf(
 function renderRare(){const g=$("rare-g");if(!g||!S)return;const own=new Set(S.cards.map(c=>c.h)),tot=HEROES.reduce((a,H)=>a+HW[H[2]],0);
   const list=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]>=3).sort((a,b)=>HEROES[b][2]-HEROES[a][2]);
   const ever=h=>ONLINE?FIN.reduce((a,F,f)=>a+((S.prints||{})[h+"-"+f]||0),0):S.cards.filter(c=>c.h===h).length;
-  const errFree=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&everIssued(i,4)<1),goldLeft=list.map(i=>[i,FIN[3].run-everIssued(i,3)]);
+  const errFree=HEROES.map((H,i)=>i).filter(i=>inAlbum(i)&&everIssued(i,4)<1),goldLeft=list.map(i=>[i,FIN[3].run-everIssued(i,3)]);
   const key=JSON.stringify([list.map(i=>own.has(i)?1:0),list.map(ever),errFree,goldLeft]);if(key===rareDrawn)return;rareDrawn=key;
   g.innerHTML=list.map(i=>{const H=HEROES[i],t=H[2],p=HW[t]/tot,one=Math.round(1/p),n=ever(i);
     return '<div class="rare-c'+(t===4?' myth':'')+'" style="--c:'+HT[t].c+'">'+(own.has(i)?'<span class="own" title="Есть у тебя">✅</span>':'')+'<div class="p">'+portrait(i,null,1)+'</div><b>'+H[0]+'</b><small>'+HT[t].k+'</small><i>1 из '+fmtN(one)+'</i>'+
