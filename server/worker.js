@@ -3814,7 +3814,8 @@ async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(C&&C
   return {id:C.id,start:C.start,end:C.end,left:Math.max(0,(now<C.start?C.start:C.end)-now),phase:chalPhase(C,now),prizes:C.prizes,need:CHAL_OPEN,x2:now>=C.start&&now<C.end?1:0,
     top:rows.slice(0,10).map((r,k)=>({place:k+1,name:r.name,n:r.n,d:r.d,l2:r.l2,vip:r.vip,me:r.uid===me.id?1:0})),me:{n:mine.n,d:mine.d,l2:mine.l2,place:mine.place},total:rows.length,
     lot:C.lot?1:0,secret:C.secret?1:0,multi:C.multi?1:0,vip:C.vip?1:0,vipDays:C.vipDays||0,noL2:C.noL2?1:0,min:C.min||0,tickets:C.lot?lotIn(C,rows).reduce((a,r)=>a+r.n,0):0,players:C.lot?lotIn(C,rows).length:0,big:C.big||C.chest?1:0,pnote:C.pnote||null,chest:C.chest?1:0,ttl:C.ttl||null,ttOn:C.tt?1:0,fine:C.fine||null,chests:C.chest?(C.lch||LCH).map(x=>({n:x.n,ic:x.ic,usd:x.usd,d:x.d})):null,xbal:C.xbal||null,
-    tt:C.tt?await ttMine(env,C,me.id):null}}
+    tt:C.tt?await ttMine(env,C,me.id):null,
+    pend:now>=C.start?(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)<?").bind(me.id,C.start,C.end,CHAL_OPEN).first())||{}).n||0):0}}
 async function ttMine(env,C,uid){const r=await env.DB.prepare("SELECT url,st FROM tt_sub WHERE contest=? AND uid=?").bind(C.id,uid).first();return r?{url:r.url,st:r.st}:{st:-1}}
 async function ttApi(env,me,a,p){const C=await chalCfg(env),now=Date.now();if(!C||!C.tt)fail("Сейчас нет конкурса с TikTok");
   if(a==="tt_send"){if(now<C.start||now>=C.end)fail("Конкурс сейчас не идёт");let url=String(p.url||"").trim().slice(0,300);

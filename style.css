@@ -1173,7 +1173,7 @@ nav.tabs #tab-gold i{position:absolute;top:-10px;right:-4px;font-style:normal;fo
 .trsh{position:absolute;top:-40%;left:-60%;width:40%;height:180%;transform:rotate(20deg);pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:trshine 3.6s ease-in-out infinite}
 @keyframes trshine{0%,55%{left:-60%}100%{left:130%}}
 .trader>*{position:relative}.trader>.dia,.trader>.trsh{position:absolute}
-.dia{width:22px;height:22px;transform:rotate(45deg);z-index:3;border:2px solid var(--ink);border-radius:3px;
+.dia:not(.face){width:22px;height:22px;transform:rotate(45deg);z-index:3;border:2px solid var(--ink);border-radius:3px;
   background:linear-gradient(135deg,#ffffff,#bdefff 35%,#5ac8fa 60%,#e0d6ff 80%,#ffffff);box-shadow:0 0 10px #9fe8ff,inset 0 0 4px #fff;animation:diag 2.4s ease-in-out infinite}
 .dia.d1{top:8px;left:8px}.dia.d2{top:8px;right:8px;animation-delay:.6s}.dia.d3{bottom:8px;left:8px;animation-delay:1.2s}.dia.d4{bottom:8px;right:8px;animation-delay:1.8s}
 @keyframes diag{50%{box-shadow:0 0 18px #fff,0 0 30px #9fe8ff;filter:brightness(1.3)}}
@@ -1762,7 +1762,7 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
 .gc.err .ic{animation-name:wbob!important}
 /* лавка/торговец */
 .trader .tri.star,.trader .tri.star *{animation:none!important}
-.dia{animation:none!important}
+.dia:not(.face){animation:none!important}
 /* витрины подарков: в сетке карточки не качаются в 3D (это самое тяжёлое), блик и лучи — только у редких */
 .gc{animation:none!important}
 .gc:not(.myth):not(.err):not(.luck) .glare,.gc:not(.myth):not(.err) .rays{animation:none!important;display:none}

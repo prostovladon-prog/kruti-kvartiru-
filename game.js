@@ -1415,7 +1415,7 @@ function drawLot(C,left,hm){const M=C.me,inn=M.n>=C.min,T=C.tickets||0;
   $("chal-p").innerHTML='<div>'+(C.secret?'🤫<b>~$100</b>секрет':'🏆<b>'+C.prizes[0]+'</b>подарок')+'</div><div>🎟<b>'+T+'</b>'+plural(T,"билет","билета","билетов")+'</div><div>👥<b>'+(C.players||0)+'</b>'+plural(C.players||0,"участник","участника","участников")+'</div>';
   const me=$("chal-me");me.innerHTML="";const mb=document.createElement("div"),sm=document.createElement("small");
   mb.textContent=C.phase==="soon"?"Подготовь друзей — счёт начнётся в "+hm(C.start):inn?"🎟 Ты в розыгрыше! У тебя "+M.n+" "+plural(M.n,"билет","билета","билетов")+" · шанс "+(T?Math.max(.1,Math.round(M.n/T*1000)/10):100)+"%":"У тебя "+M.n+" из "+C.min+" друзей — ещё "+(C.min-M.n)+" и ты в розыгрыше!";
-  sm.textContent="твои друзья: "+M.d+" · друзья друзей: "+M.l2+(inn?" · каждый новый друг = +1 билет":"");me.append(mb);if(C.phase!=="soon")me.append(sm);
+  sm.textContent="твои друзья: "+M.d+(C.noL2?"":" · друзья друзей: "+M.l2)+(C.pend?" · ещё "+C.pend+" ждут: друг должен открыть "+(C.need||3)+" карточки":"")+(inn?" · каждый новый друг = +1 билет":"");me.append(mb);if(C.phase!=="soon")me.append(sm);
   const Tb=$("chal-top");Tb.innerHTML="";const P=C.top.filter(r=>r.n>=C.min);
   if(C.phase!=="soon"){if(!P.length)Tb.innerHTML='<div class="empty">Пока никто не набрал '+C.min+' друзей — стань первым участником!</div>';
     for(const r of P){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent="🎟";d.children[1].textContent=(r.vip?"👑 ":"")+r.name;d.children[2].textContent=r.n+" · "+(T?Math.round(r.n/T*100):0)+"%";Tb.append(d)}}
