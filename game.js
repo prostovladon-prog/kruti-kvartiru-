@@ -2501,7 +2501,7 @@ function drawChat(){const box=$("ch-list");if(!box)return;const atEnd=box.scroll
   if(!chatItems.length)box.innerHTML='<p class="chempty">Пока тихо. Напиши первым!</p>';
   chatItems.forEach(m=>{const d=document.createElement("div");const mine=ONLINE?m.uid===S.uid:m.uid===0;d.className="chm"+(mine?" me":"");
     d.innerHTML='<div class="chh"><button type="button" class="chn"></button><span class="cht"></span></div><div class="chx"></div>';
-    const n=d.querySelector(".chn");fxName(n,champMark(m.uid)+(m.vip?"👑 ":"")+(m.pi?"🏅 ":""),m.name+(m.a?" ★":""),m.uid);if(m.vip)d.classList.add("vipm");n.style.color=m.a?"#d4380d":nickCol(m.name);
+    const n=d.querySelector(".chn");fxName(n,champMark(m.uid)+(m.vip?"👑 ":"")+(m.pi?"🏅 ":"")+(m.ft!=null?["📣","⭐","🏅","👑"][m.ft]+" ":""),m.name+(m.a?" ★":""),m.uid);if(m.ft>=2){const tt=document.createElement("small");tt.className="chft";tt.textContent=m.ft>=3?"Икона эпох":"Легенда сообщества";n.after(tt)}if(m.vip)d.classList.add("vipm");n.style.color=m.a?"#d4380d":nickCol(m.name);
     d.querySelector(".cht").textContent=new Date(m.t).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     d.querySelector(".chx").textContent=m.text;
     n.onclick=()=>{if(ONLINE&&m.uid>0&&m.uid!==S.uid){closeChat();openParam("u_"+m.uid)}};
