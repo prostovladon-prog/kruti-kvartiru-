@@ -1390,6 +1390,9 @@ let chData=null,chAt=0;
 const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
 async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=await act("chal_get");chData=r&&r.id?r:null;if(chData)chData._t=NOW();drawChal()}
 function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
+  {const go=$("chal-go");if(go&&S&&S.uid){go.textContent="📨 Отправить другу мою ссылку";let L=$("chal-link");if(!L){L=document.createElement("div");L.id="chal-link";L.className="chal-link";go.after(L)}
+    const url=linkFor("r_"+S.uid);if(L.dataset.u!==url){L.dataset.u=url;L.innerHTML='<small>Билет дают только за <b>новых</b> игроков, которые зайдут по <b>твоей</b> ссылке и откроют '+(C.need||3)+' карточки:</small><div><code>'+escH(url.replace(/^https:\/\//,""))+'</code><button type="button" class="mini2">📋 Копировать</button></div>';
+      L.querySelector("button").onclick=()=>{try{navigator.clipboard.writeText(url);toast("📋 Ссылка скопирована — отправь её другу")}catch(e){toast(url)}}}}}
   const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
   box.querySelector(".chal-h span").textContent=C.secret?"🤫 СЕКРЕТНЫЙ ПРИЗ":C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";box.classList.toggle("secret",!!C.secret);
   if(C.lot)return drawLot(C,left,hm);

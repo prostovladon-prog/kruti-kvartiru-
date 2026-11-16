@@ -351,6 +351,12 @@ async function loadUser(env,me){
   let u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first();
   if(!u){await createUser(env,me);u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(me.id).first()}
   if(u&&u.banned)fail("⛔ Аккаунт заблокирован за накрутку приглашений");
+  /* рефка не теряется: друг сначала нажал «Старт» в боте без ссылки, а потом открыл игру по ссылке друга — привязываем, пока он ещё не играл */
+  else if(u&&!u.ref){const m=/^r_(\d+)$/.exec(me.start||""),inv=m?+m[1]:0;
+    if(inv&&inv!==me.id){let n=0;try{n=JSON.parse(u.state||"{}").nOp||0}catch(e){}
+      if(n<3&&(!u.seen||Date.now()-u.created<30*60e3)&&await env.DB.prepare("SELECT 1 FROM users WHERE id=?").bind(inv).first()){
+        const r=await env.DB.prepare("UPDATE users SET ref=? WHERE id=? AND ref IS NULL").bind(inv,me.id).run();
+        if(r.meta.changes===1){u.ref=inv;let x2=false;try{const C=await chalCfg(env),now=Date.now();x2=!!C&&now>=C.start&&now<C.end}catch(e){}try{await refReward(env,inv,x2);await bump(env,"new_ref_late").run()}catch(e){console.error("lateref",e&&e.message)}}}}}
   else if(u.ref&&!u.seen)try{const pd=await kvGet(env,"refpend:"+me.id);if(pd&&pd.inv){await kvSet(env,"refpend:"+me.id,{done:1});await refReward(env,pd.inv,!!pd.x2)}}catch(e){console.error("refpend",e&&e.message)}
   const cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=?").bind(me.id).all()).results.map(rowToCard);
   return {u,cards};
