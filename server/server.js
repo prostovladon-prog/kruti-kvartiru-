@@ -3273,7 +3273,7 @@ async function handle(req,env){{
         if(!fid||fid===me.id)fail("Нельзя добавить самого себя");const ex=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(fid).first();if(!ex)fail("Игрок не найден");
         const cnt=await env.DB.prepare("SELECT COUNT(*) AS n FROM friends WHERE uid=?").bind(me.id).first();if(cnt.n>=100)fail("В друзьях максимум 100 игроков");
         const r=await env.DB.prepare("INSERT OR IGNORE INTO friends(uid,fid,t) VALUES(?,?,?)").bind(me.id,fid,now).run();
-        if(r.meta.changes===1){const back=await env.DB.prepare("SELECT 1 FROM friends WHERE uid=? AND fid=?").bind(fid,me.id).first();try{await notify(env,fid,"👥 "+(await nameOf(env,me.id))+(back?" тоже добавил тебя в друзья! Теперь вы друзья в «Воинах Эпох»":" добавил тебя в друзья! Открой его витрину и добавь в ответ"),"👥 Друзья",PAGE+"?fr=1")}catch(e){}}
+        if(r.meta.changes===1){const back=await env.DB.prepare("SELECT 1 FROM friends WHERE uid=? AND fid=?").bind(fid,me.id).first();/* без сообщения в бот — игрок увидит уведомление в самой игре */}
         return J({ok:true,res:{added:ex.n}})}
       if(a==="fr_del"){await env.DB.prepare("DELETE FROM friends WHERE uid=? AND fid=?").bind(me.id,Math.floor(+p.uid||0)).run();return J({ok:true,res:{}})}
       const L=(await env.DB.prepare("SELECT f.fid AS uid,COALESCE(u.nick,u.name) AS name,u.seen,u.vip_until AS vu,u.clan,(SELECT 1 FROM friends b WHERE b.uid=f.fid AND b.fid=f.uid) AS mut,(SELECT COUNT(DISTINCT h) FROM cards WHERE owner=f.fid) AS have FROM friends f JOIN users u ON u.id=f.fid WHERE f.uid=? ORDER BY u.seen DESC LIMIT 100").bind(me.id).all()).results;

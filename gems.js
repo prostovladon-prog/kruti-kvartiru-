@@ -587,3 +587,12 @@ let cwD=null,cwAt=0;async function cwLoad(){if(Date.now()-cwAt<60e3&&cwD)return 
    v.innerHTML=F.list.length?F.list.map(x=>'<div class="fol-ev" data-fu="'+x.uid+'"><b>'+escH(x.name||"Игрок")+'</b> '+escH(x.txt)+'<small>'+ago(x.t)+'</small></div>').join(""):'<p class="cln">Пока пусто. Подпишись на сильных игроков — их выбивания, победы и находки появятся здесь.</p>'}
   else{const T=await act("fol_top");if(!T)return;v.innerHTML=T.list.length?T.list.map((x,i)=>'<div class="fol-ev" data-fu="'+x.uid+'"><b>'+(["🥇","🥈","🥉"][i]||(i+1)+".")+' '+escH(x.name||"Игрок")+'</b> <em>'+fmtN(x.n)+' '+plural(x.n,"подписчик","подписчика","подписчиков")+'</em></div>').join(""):'<p class="cln">Пока ни у кого нет подписчиков — стань первым!</p>'}};
  v.onclick=async e=>{const x=e.target.closest("[data-fu]");if(!x)return;const P=await act("profile",{uid:+x.dataset.fu});if(P)openShowcase(P)}}catch(e){}return o}}
+
+/* 👥 «тебя добавили в друзья» — уведомление в игре, а не в боте */
+let frIncT=0;async function frIncCheck(){if(Date.now()-frIncT<600000||!S||!ONLINE||document.hidden||!$("modal").hidden||$("tut")||$("nks")||$("sbg")||$("chg")||$("frinc"))return;
+  frIncT=Date.now();let r=null;const _t=toast;toast=()=>{};try{r=await act("fr_list")}catch(e){}finally{toast=_t}if(!r||!r.inc)return;
+  let seen=[];try{seen=JSON.parse(localStorage.getItem("we-frinc")||"[]")}catch(e){}const nw=r.inc.filter(x=>!seen.includes(x.uid));
+  try{localStorage.setItem("we-frinc",JSON.stringify(r.inc.map(x=>x.uid).concat(seen).slice(0,300)))}catch(e){}if(!nw.length)return;
+  const b=document.createElement("div");b.id="frinc";b.innerHTML='<span>👥 <b>'+escH(nw[0].name)+'</b>'+(nw.length>1?' и ещё '+(nw.length-1):'')+' '+(nw.length>1?'добавили':'добавил')+' тебя в друзья</span><button type="button" class="mini2">Ответить</button>';
+  document.body.appendChild(b);hap("light");const k=()=>{try{b.remove()}catch(e){}};b.querySelector("button").onclick=()=>{k();frOpen()};b.onclick=e=>{if(e.target===b)k()};setTimeout(k,9000)}
+setTimeout(()=>setInterval(()=>{try{frIncCheck()}catch(e){}},20000),5000);
