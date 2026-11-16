@@ -3127,6 +3127,10 @@ const CDV={id:"cdv_1511",at:Date.UTC(2026,10,15,17,55),until:Date.UTC(2026,10,15
 const DCB={id:"dcb_1511",at:Date.UTC(2026,10,15,18,25),until:Date.UTC(2026,10,15,21,30),photo:"assets/post-dc1511.jpg",btn:"🎰 Забрать карту дня",link:"",
  chan:"❗ КАРТЫ ДНЯ — ОШИБКА ПЕЧАТИ!\n\n🎩 НАПОЛЕОН — пушка стреляет, ядро летит прямо по карточке\n⭐ 2500 или выбей в Особом прокруте\n\n💀 БАНДА — Баба Яга, Кощей и Дракула вместе (Дракула кусается!)\n⭐ 3500 · самая редкая, шанс 0,1%\n\nВсего по 2 штуки каждой: одну покупает самый быстрый, вторую выбивают.\n⏰ Только сегодня до 01:00 · шанс постоянный весь вечер — ждать конца бесполезно!\n\n👉 @VoinyEpohBot",
  dm:"❗ Карты дня — Ошибка печати, только до 01:00!\n\n🎩 Наполеон — ⭐ 2500 или выбей в Особом прокруте\n💀 Банда (Баба Яга + Кощей + Дракула) — ⭐ 3500, шанс 0,1%\n\nВсего по 2 штуки. Шанс одинаковый весь вечер — не жди, крути сейчас!"};
+/* 16.11 — 25 огоньков набрали: выкладываем промокод в канал и в бот */
+const PRB={id:"prb_1611",at:Date.UTC(2026,10,16,11,10),until:Date.UTC(2026,10,16,15,0),photo:"assets/post-akt1.jpg",btn:"🎁 Ввести промокод",link:"",
+ chan:"🔥 ВЫ СДЕЛАЛИ ЭТО — 25 ОГОНЬКОВ!\n\nДержите обещанный промокод:\n\n🎟 ОГОНЬ25\n\n🎴 20 прокруток + 💰 15 000 монет + ⭐ 5 звёзд\n\n⚡ Только для первых 100 игроков — кто быстрее!\nВводи: в игре «Ещё → Промокод»\n\n👉 @VoinyEpohBot",
+ dm:"🔥 Канал набрал 25 огоньков — вот обещанный промокод!\n\n🎟 ОГОНЬ25\n🎴 20 прокруток + 💰 15 000 монет + ⭐ 5 звёзд\n\n⚡ Только первые 100 игроков! Вводи в игре: «Ещё → Промокод»"};
 /* 16.11 посты на актив в канал: 11:30 — «25 реакций = промокод», 17:30 — викторина (quiz-опрос) + призыв голосовать за серии */
 const AKT=[{id:"akt1_1611",at:Date.UTC(2026,10,16,8,30),photo:"assets/post-akt1.jpg",promo:{code:"ОГОНЬ25",sp:20,cash:15000,st:5,mx:100,until:Date.UTC(2026,10,17,20,59)},
   text:"🔥 ДАВАЙ ПРОВЕРИМ, СКОЛЬКО НАС!\n\nНаберём 25 реакций под этим постом — и я выложу секретный промокод:\n🎴 20 прокруток + 💰 15 000 монет + ⭐ 5 звёзд\n\nКод будет для первых 100 игроков — так что не проспи!\nСтавь 🔥 👇"},
@@ -3139,7 +3143,7 @@ async function aktTick(env){const now=Date.now();for(const P of AKT){if(now<P.at
   if(!f.ph&&(f.n||0)<10){f.n=(f.n||0)+1;await kvSet(env,P.id,f);const r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+P.photo,caption:P.text,reply_markup:{inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]}});
     if(r&&r.ok){f.ph=1;await kvSet(env,P.id,f);if(P.promo)for(const a of ADMINS)try{await notify(env,a,"🔥 Пост «25 реакций» вышел в канале. Промокод уже создан: "+P.promo.code+" ("+P.promo.sp+" прокруток + "+P.promo.cash+" монет + "+(P.promo.st||0)+" ⭐, первые "+P.promo.mx+"). Как наберётся 25 реакций — выложи его в канал.","⚔️ Открыть")}catch(e){}}else console.error("akt photo",r&&r.description)}
   if(f.ph&&P.poll&&!f.pl&&(f.pn||0)<10){f.pn=(f.pn||0)+1;await kvSet(env,P.id,f);const r=await tgApi(env,"sendPoll",Object.assign({chat_id:CHANNEL,is_anonymous:true},P.poll));if(r&&r.ok){f.pl=1;await kvSet(env,P.id,f)}else console.error("akt poll",r&&r.description)}}}
-async function cdvTick(env){{const n=Date.now();if(n>=DCB.at&&n<DCB.until)await blastRun(env,DCB)}const now=Date.now();if(now<CDV.at||now>CDV.until)return;
+async function cdvTick(env){{const n=Date.now();if(n>=DCB.at&&n<DCB.until)await blastRun(env,DCB);if(n>=PRB.at&&n<PRB.until){const P=AKT[0].promo;await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin,st) VALUES(?,?,?,?,?,?,0,0,0,0,?) ON CONFLICT(code) DO NOTHING").bind(P.code,P.sp,P.cash,P.mx,P.until,n,P.st||0).run();await blastRun(env,PRB)}}const now=Date.now();if(now<CDV.at||now>CDV.until)return;
   const f=(await kvGet(env,"cdv_1511"))||{};
   if(!f.pin){await kvSet(env,"chat_pin",{id:0,name:"Администрация",text:"🃏 Делаем «Карту дня»? Пишите в чат «да» или «нет» — решаете вы!",t:now,until:CDV.until});delete topCache.chatpin;f.pin=1;await kvSet(env,"cdv_1511",f)}
   await blastRun(env,CDV);
