@@ -3647,3 +3647,6 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .fol-tabs{display:flex;gap:6px;margin:6px 0}.fol-tabs button{flex:1}.fol-tabs button.on{background:#ffd23f;color:#2a1050}
 .fol-view{max-height:46vh;overflow:auto;margin-bottom:8px}.fol-ev{padding:8px 10px;margin:4px 0;border-radius:10px;background:rgba(0,0,0,.06);font-size:13px;line-height:1.3;cursor:pointer}.fol-ev small{display:block;opacity:.6;font-size:11px}.fol-ev em{font-style:normal;opacity:.8}
 .chft{margin-left:6px;font-size:10px;font-weight:800;color:#c47a12}
+/* Перевёрнутая печать: картинка вверх ногами */
+.front.upside .art{transform:rotate(180deg)}
+.front.upside .top b{color:#ff2e63}
