@@ -1109,6 +1109,9 @@ const ACTIONS={
   path_claim(G){const st=G.st,P=st.path||(st.path={got:[]}),i=G.p.i|0;
     if(G.p.fin){if(P.fin)fail("Сундук уже открыт");if(!PATH.every((x,k)=>P.got.includes(k)))fail("Сначала пройди все шаги");P.fin=1;st.spins+=PATH_FIN.sp;st.guar=(st.guar||0)+PATH_FIN.guar;return {sp:PATH_FIN.sp,fin:1}}
     const S=PATH[i];if(!S)fail("Нет такого шага");if(P.got.includes(i))fail("Уже получено");if(!pathOk(st,G.ctx,i))fail("Шаг ещё не выполнен");P.got.push(i);st.spins+=S.sp;return {i,sp:S.sp}},
+  ad_bonus(G){const {st,ctx}=G,B=ctx.adBon;if(!B)fail("Бонуса нет");if(st.adb)fail("Бонус уже получен");
+    const L=HEROES.map((x,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===3&&!HEROES[i][4].one&&!HEROES[i][4].duo&&!HEROES[i][4].comp&&!HEROES[i][4].bro),h=L[Math.floor(Math.random()*L.length)];
+    let f=1;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;const c=makeCard(ctx,h,f);c.how="adb";st.adb=B.code;st.spins+=B.sp;addCard(G,c);return {card:c,sp:B.sp,from:B.from}},
   chat_reward(G){if(!G.ctx.chatOk)fail("Сначала вступи в чат");if(G.st.chatGot)fail("Награда за чат уже получена");G.st.chatGot=1;G.st.spins+=5;return {r:5}},
   sub_reward(G){if(!G.ctx.subOk)fail("Сначала подпишись на канал");if(G.st.subGot2)fail("Награда за подписку уже получена");G.st.subGot2=1;G.st.spins+=10;return {r:10}},
 

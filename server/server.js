@@ -1530,6 +1530,13 @@ async function subCheck(env,me){
   return doAction(env,me,"sub_reward",{},{subOk:true});
 }
 
+/* 🎁 бонус за приход по рекламной ссылке (только новым игрокам): t.me/VoinyEpohBot?start=a_<метка> */
+const AD_BONUS={kartochki:{code:"kartochki",name:"Чат коллекционеров футбольных карточек",from:"от чата коллекционеров",sp:30}};
+async function adEnsure(env){if(adEnsure.ok)return;for(const B of Object.values(AD_BONUS))await env.DB.prepare("INSERT OR IGNORE INTO ad_links(code,name,created) VALUES(?,?,?)").bind(B.code,B.name,Date.now()).run();adEnsure.ok=1}
+async function adBonus(env,me){await adEnsure(env);const codes=Object.keys(AD_BONUS);
+  const r=me.dev&&me.start&&AD_BONUS[me.start]?{code:me.start}:await env.DB.prepare("SELECT code FROM ad_starts WHERE uid=? AND new=1 AND code IN ("+codes.map(()=>"?").join(",")+") LIMIT 1").bind(me.id,...codes).first();
+  if(!r)return {none:1};return doAction(env,me,"ad_bonus",{},{adBon:AD_BONUS[r.code]})}
+
 /* чат игроков: бот должен быть участником (лучше админом) группы */
 const CHAT="@voinyepohchat";
 async function chatCheck(env,me){
@@ -2250,9 +2257,9 @@ async function onUpdate(env,upd){
   const m=upd.message;if(!m||!m.chat||m.chat.type!=="private"||!m.from)return;
   const text=String(m.text||""),[cmd,arg]=text.split(/\s+/),name=String(m.from.first_name||"воин").slice(0,32);
   const play=(t,url)=>({inline_keyboard:[[{text:t,web_app:{url:url||PAGE}}],[{text:"📣 Канал игры",url:"https://t.me/"+CHANNEL.slice(1)}]]});
+  if(cmd==="/start"&&arg&&/^a_[A-Za-z0-9_-]{1,32}$/.test(arg))await adStart(env,m.from.id,arg.slice(2));   // сначала считаем рекламу — пока игрок ещё «новый»
   if(cmd==="/start"&&arg&&/^(r_\d+|s_[A-Za-z0-9_-]{1,32})$/.test(arg)){await createUser(env,{id:m.from.id,name,start:arg,bot:1});await trackSrc(env,{id:m.from.id,start:arg})}
   else if(cmd==="/start")try{await createUser(env,{id:m.from.id,name,start:"",bot:1})}catch(e){console.error("start-create",e&&e.message)}   // голый «Старт» тоже сохраняем — чтобы попал в рассылку
-  if(cmd==="/start"&&arg&&/^a_[A-Za-z0-9_-]{1,32}$/.test(arg))await adStart(env,m.from.id,arg.slice(2));   // рекламная ссылка: считаем «Старт»   // приглашение по ссылке ?start=r_<id>
   if(cmd==="/stop"){try{await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(m.from.id).run()}catch(e){}
     return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"🔕 Уведомления выключены. Чтобы включить их снова, напиши /start"})}
   if(cmd==="/terms")return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"📜 Пользовательское соглашение и политика конфиденциальности: "+PAGE+"terms.html"});
@@ -3324,6 +3331,7 @@ async function handle(req,env){{
       if(a==="top")return J({ok:true,...await top(env,me,p)});
       if(a==="sub_check"){const r=await subCheck(env,me);return J({ok:true,...r})}
       if(a==="chat_check"){const r=await chatCheck(env,me);return J({ok:true,...r})}
+      if(a==="ad_bonus"){const r=await adBonus(env,me);return J({ok:true,...(r.none?{res:{none:1}}:r)})}
       if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize"||a==="trader_take"||a==="trader_give"||a==="auc_win"||a==="cas_comp")fail("Неизвестное действие");
       if(a==="shop")return J({ok:true,res:await shopInfo(env,me)});
       if(a==="invoice")return J({ok:true,res:await invoice(env,me,p)});

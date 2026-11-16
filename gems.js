@@ -596,3 +596,12 @@ let frIncT=0;async function frIncCheck(){if(Date.now()-frIncT<600000||!S||!ONLIN
   const b=document.createElement("div");b.id="frinc";b.innerHTML='<span>👥 <b>'+escH(nw[0].name)+'</b>'+(nw.length>1?' и ещё '+(nw.length-1):'')+' '+(nw.length>1?'добавили':'добавил')+' тебя в друзья</span><button type="button" class="mini2">Ответить</button>';
   document.body.appendChild(b);hap("light");const k=()=>{try{b.remove()}catch(e){}};b.querySelector("button").onclick=()=>{k();frOpen()};b.onclick=e=>{if(e.target===b)k()};setTimeout(k,9000)}
 setTimeout(()=>setInterval(()=>{try{frIncCheck()}catch(e){}},20000),5000);
+
+/* 🎁 бонус новичку, пришедшему по рекламной ссылке партнёров */
+{let tries=0;const t=setInterval(async()=>{if(++tries>40){clearInterval(t);return}if(!S||!ONLINE)return;clearInterval(t);
+  if(S.adb||(S.created&&NOW()-S.created>2*864e5))return;try{if(localStorage.getItem("we-adb"))return}catch(e){}
+  let r=null;const _t=toast;toast=()=>{};try{r=await act("ad_bonus")}finally{toast=_t}try{localStorage.setItem("we-adb","1")}catch(e){}
+  if(!r||!r.card)return;const go=()=>{if(!$("modal").hidden||$("tut")||$("nks")){setTimeout(go,3000);return}
+    const m=$("modal"),sh=$("msheet");m.hidden=false;const H=HEROES[r.card.h];
+    sh.innerHTML='<div class="box nickbox"><h3>🎁 Подарок '+escH(r.from||"от друзей")+'!</h3><p>Ты пришёл от наших друзей — держи <b>легендарную карточку «'+escH(H[0])+'»</b> и <b>+'+r.sp+' 🎴 прокруток</b>!</p><button type="button" class="craftbtn" id="adb-go">⚔️ Посмотреть карточку</button></div>';
+    sfx.fanfare();burst(6);hapN("success");renderAll();$("adb-go").onclick=()=>{closeModal();openCardView(r.card)}};go()},1500)}
