@@ -502,12 +502,20 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
 
 /* ---------- рынок: настоящие игроки ---------- */
 async function market(env,me){
+  await pcapClean(env);
   const rows=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? ORDER BY c.listed_at DESC LIMIT 60").bind(me.id).all()).results;
   {const dh=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].dgc),seen=new Set(rows.map(r=>r.id));if(dh.length){const more=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h IN ("+dh.join(",")+") ORDER BY c.listed_at DESC LIMIT 40").bind(me.id).all()).results;for(const r of more)if(!seen.has(r.id))rows.push(r)}}
   return {items:rows.map(r=>({id:r.id,card:pub(rowToCard(r)),price:r.list_price,seller:r.seller_name||"Игрок"}))};
 }
+/* 💰 против инфляции: цена на рынке и монеты в обмене — не больше 3× цены карточки; крупные сделки — комиссия 12% */
+const PRICE_X=3,BIG_DEAL=1e6,BIG_FEE=.12,COLLAB_F=FIN.map((F,i)=>F.collab?i:-1).filter(i=>i>=0);
+const priceCap=c=>c&&FIN[c.f]&&FIN[c.f].collab?Infinity:Math.max(1000,Math.round((+c.v||0)*PRICE_X));
+const feeOf=price=>price>=BIG_DEAL?BIG_FEE:FEE;
+async function pcapClean(env){if(pcapClean.ok)return;pcapClean.ok=1;try{if(await kvGet(env,"pcap1"))return;await kvSet(env,"pcap1",1);
+  await env.DB.prepare("UPDATE cards SET list_price=NULL,listed_at=NULL WHERE list_price IS NOT NULL AND list_price>MAX(1000,ROUND(v*"+PRICE_X+"))"+(COLLAB_F.length?" AND f NOT IN ("+COLLAB_F.join(",")+")":"")).run()}catch(e){console.error("pcap",e)}}
 async function list(env,me,p){
   const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e11))fail("Цена от 1 до 100 000 000 000 🪙");
+  {const c=await env.DB.prepare("SELECT v,f FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();const mx=priceCap(c);if(c&&price>mx)fail("Слишком дорого. Максимум для этой карточки — "+fmtD(mx)+" 🪙 (3× её цена)")}
   const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND NOT (f=4 AND sn='000010') AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
     .bind(price,Date.now(),p.id|0,me.id,me.id,MAX_LOTS).run();
   if(r.meta.changes!==1)fail("Карточку нельзя выставить: она в походе, уже на рынке, подарена (подарочные не продаются) или у тебя уже "+MAX_LOTS+" лотов");
@@ -528,11 +536,11 @@ async function buy(env,me,p){
   if(take.meta.changes!==1)fail("Этот лот уже купили");
   const payR=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(price,me.id,price).run();
   if(payR.meta.changes!==1){await env.DB.prepare("UPDATE cards SET owner=?,list_price=?,listed_at=? WHERE id=? AND owner=?").bind(seller,price,Date.now(),c.id,me.id).run();fail("Не хватает денег")}
-  const got=Math.round(price*(1-FEE)*100)/100;
+  const fee=feeOf(price),got=Math.round(price*(1-fee)*100)/100;
   if(price>=DTOP_MIN_PRICE){await dtopAdd(env,"trade",me.id,1);await dtopAdd(env,"trade",seller,1)}
   await env.DB.batch([env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(got,seller),
     env.DB.prepare("INSERT INTO sales(card,h,seller,buyer,buyer_name,price,got,t) VALUES(?,?,?,?,?,?,?,?)").bind(c.id,c.h,seller,me.id,bu.nick||me.name,price,got,Date.now())]);
-  await notify(env,seller,"💰 "+(bu.nick||me.name)+" купил твою карточку «"+HEROES[c.h][0]+"» за "+fmtD(price)+" 🪙"+". Тебе зачислено "+fmtD(got)+" 🪙"+" (минус 5% рынка)","Открыть игру");
+  await notify(env,seller,"💰 "+(bu.nick||me.name)+" купил твою карточку «"+HEROES[c.h][0]+"» за "+fmtD(price)+" 🪙"+". Тебе зачислено "+fmtD(got)+" 🪙"+" (минус "+Math.round(fee*100)+"% рынка)","Открыть игру");
   return {card:pub(rowToCard(Object.assign(c,{owner:me.id,list_price:null})))};
 }
 
@@ -2712,7 +2720,7 @@ async function tradeApi(env,me,a,p){const now=Date.now(),d0=(dayNum(now))*864e5-
     await notify(env,T.id,"🎁 "+myName+" подарил тебе карточку: "+cname(c)+"! Она уже в твоей коллекции.","🗂 Открыть",PAGE+"?cards=1");return {to:T.name}}
   if(a==="tr_offer"){const T=await trUser(env,p);if(!T)fail("Игрока с таким ником нет");if(T.id===me.id)fail("Это ты 🙂");await ageOk(me.id);await ageOk(T.id,T.name);
     if((await one("SELECT COUNT(*) AS n FROM trades WHERE a=? AND kind='swap' AND t>=?",me.id,d0)).n>=TR.offerDay)fail("Не больше "+TR.offerDay+" предложений обмена в день");
-    const cash=Math.max(0,Math.min(1e10,Math.floor(+p.cash||0)));const mc=p.my?await card(p.my,me.id):{id:0,v:0},tc=await card(p.their,T.id);if(!mc)fail("Твою карточку сейчас нельзя обменять");if(!tc)fail("Эту карточку игрока сейчас нельзя обменять");
+    const cash=Math.max(0,Math.min(1e10,Math.floor(+p.cash||0)));const mc=p.my?await card(p.my,me.id):{id:0,v:0},tc=await card(p.their,T.id);if(!mc)fail("Твою карточку сейчас нельзя обменять");if(!tc)fail("Эту карточку игрока сейчас нельзя обменять");{const mx=priceCap(tc);if(cash>mx)fail("Слишком много монет за эту карточку. Максимум — "+fmtD(mx)+" 🪙 (3× её цена)")}
     if(!mc.id&&cash<1000)fail("Предложи хотя бы 1 000 🪙");{const mu=await one("SELECT cash FROM users WHERE id=?",me.id);if((mu.cash||0)<cash)fail("Не хватает монет для такого предложения")}
     if(await one("SELECT id FROM trades WHERE status='new' AND a=? AND ac=? AND bc=?",me.id,mc.id,tc.id).id)fail("Такое предложение уже отправлено");
     const r=await env.DB.prepare("INSERT INTO trades(kind,a,b,ac,bc,status,t,cash) VALUES('swap',?,?,?,?,'new',?,?) RETURNING id").bind(me.id,T.id,mc.id,tc.id,now,cash).first();

@@ -672,10 +672,10 @@ function eshopCheck(st,k,v,now){const I=ESHOP[k];if(!I)fail("Нет такого
 const empLvl=p=>{let L=1;while(L<EMP.MAXL&&p>=empLvP(L+1))L++;return L};
 const empRank=p=>{let r=0;EMP.R.forEach((x,i)=>{if(p>=x.p)r=i});return r};
 /* 🏛 Зал славы: выставленные карточки приносят монеты — 0,5% ценности в час, копится до 12 ч. Собранная коллекция героя (все 4 отделки: обычная, блестящая, голограмма, золотая) — +10% к доходу зала, до +50% */
-const HOF={tiers:[[5e4,.005],[5e5,.0025],[5e6,.001],[Infinity,.0005]],rate:.005,cap:12*36e5,slots:[2,3,4,5,6],slotP:[0,2000,8000,25000,80000],coll:.1,collMax:.5};
+const HOF={tiers:[[5e4,.005],[5e5,.0025],[5e6,.0008],[Infinity,.0001]],rate:.005,cap:12*36e5,slots:[2,3,4,5,6],slotP:[0,2000,8000,25000,80000],coll:.1,collMax:.5};
 const hofSlots=(st,cards)=>HOF.slots[Math.min(HOF.slots.length-1,st.hofL||0)]+(cards?EMP.hof[empRank(empPower(st,cards))]:0)+(st.es_hofp?1:0);
 function hofColl(cards){const m={};for(const c of cards)if(c.f<=3)(m[c.h]||(m[c.h]=new Set())).add(c.f);let n=0;for(const k in m)if(m[k].size>=4)n++;return n}
-/* доход карты в зале — ступенчато: первые 50к стоимости 0,5%/ч, 50к–500к 0,25%, 500к–5М 0,1%, выше 5М 0,05% */
+/* доход карты в зале — ступенчато: первые 50к стоимости 0,5%/ч, 50к–500к 0,25%, 500к–5М 0,08%, выше 5М 0,01% (17.11 — против инфляции) */
 function hofCard(v){let r=0,lo=0;v=v||0;for(const [hi,p] of HOF.tiers){if(v<=lo)break;r+=(Math.min(v,hi)-lo)*p;lo=hi}return r}
 function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=hofCard(c.v);return v*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))*(1+EMP.inc*empRank(empPower(st,cards)))}
 function rollCard(ctx,epic){
