@@ -53,8 +53,8 @@ function nickScreen(){if(!S||S.nick||$("nks"))return;const o=document.createElem
  const go=async()=>{try{checkNick(i.value)}catch(e){er.textContent=e.message;return}$("nk-ok").disabled=true;const r=await act("nick",{nick:i.value});$("nk-ok").disabled=false;if(!r)return;
    o.remove();sfx.fanfare();burst(4);hapN("success");try{Object.keys(tpCache).forEach(k=>delete tpCache[k])}catch(e){}renderAll();toast("⚔️ Добро пожаловать, «"+r.nick+"»!"+(r.gift?" +"+r.gift+" 🎴":""))};
  $("nk-ok").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()}}
-/* 📢 подписка — обязательно, но не сразу: после 5 минут в игре за день; для всех игроков */
-function subGate(){let pt=0;try{pt=+localStorage.getItem("we-ptime-"+mskDay(NOW()))||0}catch(e){}if(!S||!ONLINE||S.subGot2||pt<5*60000||$("sbg")||$("tut")||$("nks"))return;const o=document.createElement("div");o.id="sbg";document.body.appendChild(o);
+/* 📢 подписка — обязательно, но не сразу: после 15 открытий; для всех игроков */
+function subGate(){if(!S||!ONLINE||S.subGot2||(S.nOp||0)<15||$("chg")||$("sbg")||$("tut")||$("nks"))return;const o=document.createElement("div");o.id="sbg";document.body.appendChild(o);
  o.innerHTML='<div class="nk-stage"><div class="sb-ic">📢</div></div><div class="tu-txt"><h2>Подпишись на наш канал</h2><p>Там промокоды, конкурсы со звёздами и новости обновлений. За подписку — <b>+10 🎴</b> прокруток сразу.</p>'+
   '<button type="button" class="tu-next" id="sb-go">📢 Подписаться</button><button type="button" class="tu-open" id="sb-ck">✅ Я подписался — проверить</button><small class="nkerr" id="sb-er"></small></div>';
  $("sb-go").onclick=()=>{hap("light");try{tg.openTelegramLink("https://t.me/"+String(typeof CHANNEL!=="undefined"?CHANNEL:"@voinyepoh").replace("@",""))}catch(e){open("https://t.me/voinyepoh")}};
@@ -65,9 +65,9 @@ setInterval(()=>{try{subGate()}catch(e){}},2500);
 const _startOnb=startOnb;startOnb=function(){let d=null;try{d=localStorage.getItem("we-tut2")||localStorage.getItem("we-onb")}catch(e){}if(d||!S||S.cards.length)return false;tutOpen(false);return true};
 const _askNick=askNick;askNick=function(){if($("tut")||$("nks"))return;if(S&&!S.nick&&ONLINE&&nickReady())return nickScreen();_askNick()};
 
-/* 💬 чат игроков — обязательно после 15 минут в игре (и только после подписки на канал) */
+/* 💬 чат игроков — обязательно после 5 минут в игре за день */
 {let last=Date.now();setInterval(()=>{try{const now=Date.now(),d=now-last;last=now;if(document.hidden||d>10000)return;const k="we-ptime-"+mskDay(NOW());localStorage.setItem(k,String((+localStorage.getItem(k)||0)+d))}catch(e){}},5000)}
-function chatGate(){if(!S||!ONLINE||S.chatGot||!S.subGot2||$("sbg")||$("tut")||$("nks")||$("chg"))return;let t=0;try{t=+localStorage.getItem("we-ptime-"+mskDay(NOW()))||0}catch(e){}if(t<15*60000)return;
+function chatGate(){if(!S||!ONLINE||S.chatGot||$("sbg")||$("tut")||$("nks")||$("chg"))return;let t=0;try{t=+localStorage.getItem("we-ptime-"+mskDay(NOW()))||0}catch(e){}if(t<5*60000)return;
  const o=document.createElement("div");o.id="chg";document.body.appendChild(o);
  o.innerHTML='<div class="nk-stage"><div class="sb-ic">💬</div></div><div class="tu-txt"><h2>Вступи в чат игроков</h2><p>Хвастайся выпадениями, ищи клан и напарников, узнавай секреты первым. За вступление — <b>+5 🎴</b> прокруток.</p>'+
   '<button type="button" class="tu-next" id="ch-go">💬 Вступить в чат</button><button type="button" class="tu-open" id="ch-ck">✅ Я вступил — проверить</button><small class="nkerr" id="ch-er"></small></div>';
