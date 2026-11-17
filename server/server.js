@@ -3220,7 +3220,7 @@ let sunOk=0;async function sunTick(env){const now=Date.now();if(now<SUN.at||now>
 async function koloTick(env){const n=Date.now();try{await funSeed(env)}catch(e){console.error("fun",e)}try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await cdvTick(env)}catch(e){console.error("cdv",e)}try{await aktTick(env)}catch(e){console.error("akt",e)}try{await cwwTick(env)}catch(e){console.error("cww",e)}try{await folWeekTick(env)}catch(e){console.error("folwk",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
 /* 🌙 НОЧНИК (13.11): +200 ⭐ к пополнению от 150 ⭐ — только первым 10 пополнившим (BCAP), потом промокод выключается */
 /* 🎉 17.11 развлекательные коды: 2 поста «30 реакций → промокод» (код публикует админ) + охота: код спрятан во вкладке игры, первые 10 */
-const FUN=[{code:"РЕАКЦИЯ",sp:10,cash:3000,mx:50},{code:"ОГОНЁК30",sp:10,cash:3000,mx:50}],FUN_UNTIL=Date.UTC(2026,10,17,20,59);
+const FUN=[{code:"РЕАКЦИЯ",sp:10,cash:3000,mx:50},{code:"ОГОНЁК30",sp:30,cash:3000,mx:50}],FUN_UNTIL=Date.UTC(2026,10,17,20,59);
 const HUNT={code:"СЫЩИК",sp:30,cash:10000,mx:10,sec:"album",at:Date.UTC(2026,10,17,14,0),until:Date.UTC(2026,10,17,19,0)};
 let funOk=0;async function funSeed(env){if(funOk)return;funOk=1;const now=Date.now();if(now>FUN_UNTIL)return;
   for(const F of [...FUN,HUNT])await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,?,?,?,?,?,0,0,0,0)").bind(promoKey(F.code),F.sp,F.cash,F.mx,F===HUNT?HUNT.until:FUN_UNTIL,now).run()}
@@ -3243,7 +3243,7 @@ let casBusy=false;async function casBlastTick(env){const now=Date.now();if(casBu
 let btkBusy=false;
 async function blastTkTick(env){const now=Date.now();if(!BLAST_TK.on||btkBusy||now<BLAST_TK.at||now>BLAST_TK.until)return;btkBusy=true;try{await blastRun(env,BLAST_TK)}finally{btkBusy=false}}
 /* 🔥 17.11 вечер: пост «30 огоньков = промокод» в канал + в бота; бот сам считает реакции и на 30 выкладывает код ОГОНЁК30 */
-const FIRE30={id:"fire30_1711",on:true,photo:"assets/post-fire30.jpg",btn:"🔥 Поставить огонёк",url:"https://t.me/voinyepoh",
+const FIRE30={id:"fire30_1711",on:false,photo:"assets/post-fire30.jpg",btn:"🔥 Поставить огонёк",url:"https://t.me/voinyepoh",
   chan:"🔥 30 ОГОНЬКОВ = ПРОМОКОД!\n\nНаберём 30 реакций под этим постом — и бот сам выложит сюда промокод на 🎴 10 прокруток + 💰 3 000 монет\n\nЖми 🔥 👇 Считаем!",
   dm:"🔥 Воин, в канале раздача!\n\nНаберём 30 огоньков под постом — и там сразу появится промокод на 🎴 10 прокруток + 💰 3 000 монет. Первые 50 активаций!\n\nЖми кнопку и ставь 🔥 👇"};
 let f30Busy=false;async function fire30Tick(env){if(!FIRE30.on||f30Busy||Date.now()>FUN_UNTIL)return;f30Busy=true;try{await blastRun(env,FIRE30)}finally{f30Busy=false}}
