@@ -856,8 +856,9 @@ const STAT_IC=["⚔️","🛡","💨","❤️","🔥"],STAT_MAX=1300;
 function faceV2(root,c){const q=s=>root.querySelector(s),H=HEROES[c.h],t=H[2],art=q(".art");
   root.classList.add("t"+t);
   if(!root.querySelector(":scope>.gm"))root.insertAdjacentHTML("afterbegin",'<i class="gm g1"></i><i class="gm g2"></i><i class="gm g3"></i><i class="gm g4"></i>');
-  let sc=q(".scene");if(!sc){art.insertAdjacentHTML("afterbegin",'<svg class="scene" viewBox="0 0 300 270" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg><div class="xr"></div><div class="xa"></div>');sc=q(".scene")}
-  const k=ERA_SC[H[1]]||"castle";if(sc.dataset.k!==k){sc.innerHTML=SCENES[k];sc.dataset.k=k}
+  let sc=q(".scene");const k=ERA_SC[H[1]]||"castle";
+  if(!sc){art.insertAdjacentHTML("afterbegin",(root._mini?'<img class="scene" alt="" aria-hidden="true" decoding="async">':'<svg class="scene" viewBox="0 0 300 270" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>')+'<div class="xr"></div><div class="xa"></div>');sc=q(".scene")}
+  if(sc.dataset.k!==k){if(sc.tagName==="IMG")sc.src=artURL("sc|"+k,()=>'<svg viewBox="0 0 300 270" preserveAspectRatio="xMidYMid slice">'+SCENES[k]+'</svg>');else sc.innerHTML=SCENES[k];sc.dataset.k=k}
   let fx=q(".fx");if(t>=2){if(!fx){art.insertAdjacentHTML("beforeend",'<div class="fx" aria-hidden="true"></div>');fx=q(".fx")}
     if(fx.dataset.t!==String(t)){let h="";for(let i=0;i<(t>=4?14:t===3?10:6);i++)h+=`<i style="left:${8+((i*53)%84)}%;bottom:${4+(i*17)%24}%;--d:${2.2+(i%5)*.5}s;--dl:-${((i*.37)%3).toFixed(2)}s;--dx:${((i*29)%40)-20}px"></i>`;
       fx.innerHTML=(t>=3?'<svg class="slash" viewBox="0 0 300 270"><path d="M30 220 Q140 40 290 70" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".8"/><path d="M40 214 Q140 54 285 76" fill="none" stroke="var(--hac)" stroke-width="3" stroke-linecap="round"/></svg>':"")+h;fx.dataset.t=t}}
@@ -876,12 +877,31 @@ const DIA_GEM='<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradie
 function diaFace(root,c){[...root.classList].filter(x=>x.startsWith("dia-")).forEach(x=>root.classList.remove(x));root.querySelectorAll(".diam,.dxtra").forEach(e=>e.remove());
   const D=c.f===DIA_F&&DIA[c.h];if(!D)return;root.classList.add("dia-"+D.c);const art=root.querySelector(".art");if(!art)return;
   art.insertAdjacentHTML("beforeend",'<div class="diam" style="left:'+D.x+'%;top:'+D.y+'%">'+DIA_GEM+'</div>'+(["pix","ink","water","cosmos","ice","fire","flare","sepia","rust","splash","half","scratch","gemrain","eclipse","aurora","dust","glass","vhs","comic","blueprint"].includes(D.c)?'<div class="dxtra">'+(D.c==="water"?"ОШИБКА · ".repeat(60):"")+'</div>':""))}
+/* ⚡ арт мини-карточек (портрет и сцена эпохи) — картинкой из SVG: рисуется один раз на героя/оттенок/сцену, дальше браузер берёт готовое.
+   Внутри <img> свои id, поэтому уникальные id градиентов не нужны; SMIL вырезан (в мини анимации и так стоят) */
+const ART=new Map();
+function artURL(key,mk){let u=ART.get(key);if(u)return u;
+  /* разметка портретов писалась для HTML (повторы атрибутов и т.п.) — пропускаем через HTML-парсер и сериализуем как валидный XML */
+  const t=document.createElement("template");t.innerHTML=mk();const el=t.content.querySelector("svg");if(!el)return "";
+  el.querySelectorAll("animate,animateTransform,animateMotion,set").forEach(a=>a.remove());const svg=new XMLSerializer().serializeToString(el);
+  try{u=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}))}catch(e){u="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)}ART.set(key,u);return u}
+const ptKey=c=>{const W=HEROES[c.h][4];return "pt|"+c.h+"|"+(c.hue!=null?c.hue:W.hue)};
+/* портреты со вложенными <svg> (драконы, «Три богатыря») зависят от CSS .hero svg — их оставляем как есть */
+const PT_INL=new Map();
+function ptImg(c){const k=ptKey(c);if(PT_INL.get(k))return portrait(c.h,c);if(!ART.has(k)){const raw=portrait(c.h,c);if((raw.match(/<svg/g)||[]).length>1){PT_INL.set(k,1);return raw}artURL(k,()=>raw)}
+  return '<img class="pti" alt="" aria-hidden="true" decoding="async" src="'+ART.get(k)+'">'}
+/* прогрев в простое: арт героев игрока готов заранее, первое открытие «Моих» без отрисовки SVG */
+function artWarm(){if(!S||!S.cards)return;const todo=[],seen=new Set();for(const c of S.cards){const k=ptKey(c);if(!seen.has(k)&&!ART.has(k)){seen.add(k);todo.push(c)}}
+  Object.keys(SCENES).forEach(k=>{if(!ART.has("sc|"+k))todo.push(k)});
+  const idle=window.requestIdleCallback||(f=>setTimeout(()=>f({timeRemaining:()=>8}),60));
+  const step=d=>{while(todo.length&&d.timeRemaining()>3){const x=todo.shift();const u=typeof x==="string"?artURL("sc|"+x,()=>'<svg viewBox="0 0 300 270" preserveAspectRatio="xMidYMid slice">'+SCENES[x]+'</svg>'):(ptImg(x),ART.get(ptKey(x)));if(!u)continue;try{const im=new Image();im.src=u;im.decode&&im.decode().catch(()=>{})}catch(e){}}if(todo.length)idle(step)};idle(step)}
+setTimeout(()=>{try{artWarm()}catch(e){}},2500);
 function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=tierOf(c.h),F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"")+(H[4].rl?" mega":"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
   q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
-  q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
+  q(".hero").innerHTML=root._mini?ptImg(c):portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
   const lb=q(".lvl");lb.hidden=lvl(c)<=1;lb.textContent="Ур. "+lvl(c);
@@ -918,7 +938,7 @@ function mqRun(){mqRaf=0;const t0=performance.now(),cy=innerHeight/2,arr=[];
   const ix=arr.map((_,i)=>i).sort((a,b)=>d[a]-d[b]);
   for(const i of ix){const el=arr[i];MQ.delete(el);if(d[i]>=1e9){if(miniIO)miniIO.observe(el);continue}fillMini(el);if(performance.now()-t0>7)break}
   if(MQ.size)mqRaf=requestAnimationFrame(mqRun)}
-function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;{const w=el._w||el.clientWidth;el._w=0;if(w)el.style.setProperty("--z",w/300)}/* масштаб сразу, иначе один кадр карточка огромная */el.style.setProperty("--sd",(Math.random()*6.5).toFixed(2)+"s");const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
+function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;{const w=el._w||el.clientWidth;el._w=0;if(w)el.style.setProperty("--z",w/300)}/* масштаб сразу, иначе один кадр карточка огромная */el.style.setProperty("--sd",(Math.random()*6.5).toFixed(2)+"s");const f=document.createElement("div");f._mini=1;f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
   if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)}
 function hydrate(root){const roots=Array.isArray(root)?root:[root],els=[];   // пачкой: все чтения размеров подряд — одна раскладка вместо десятков
   for(const r of roots){if(!r||!r.querySelectorAll)continue;const list=r.matches&&r.matches(".minic[data-k]")?[r]:r.querySelectorAll(".minic[data-k]");

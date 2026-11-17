@@ -3662,3 +3662,12 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .minic>div{animation:mnIn .16s ease-out}
 @keyframes mnIn{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.minic>div{animation:none}}
+
+/* ⚡ мини: портрет — <img class="pti"> из SVG; те же правила, что у .hero svg (порядок сохранён) */
+.art .hero img.pti{height:100%;width:auto;max-width:100%;overflow:visible;filter:drop-shadow(4px 4px 0 rgba(13,16,48,.6))}
+.front.star1 .art .hero img.pti{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--hc) 70%,#fff)) drop-shadow(4px 4px 0 rgba(13,16,48,.6))}
+.front.star2 .art .hero img.pti,.front.star3 .art .hero img.pti,.front.star4 .art .hero img.pti{filter:drop-shadow(0 0 10px var(--hc)) drop-shadow(0 0 3px #fff) drop-shadow(4px 4px 0 rgba(13,16,48,.6))}
+.front.star5 .art .hero img.pti{filter:drop-shadow(0 0 14px #ffd60a) drop-shadow(0 0 4px #fff)}
+.minic .art .hero img.pti{width:auto!important;height:100%!important;max-width:100%;flex-shrink:1}
+.face.front .art .hero img.pti{filter:drop-shadow(0 0 2px #000) drop-shadow(0 8px 12px rgba(0,0,0,.6))}
+.face.front .art img.scene{object-fit:cover;display:block}
