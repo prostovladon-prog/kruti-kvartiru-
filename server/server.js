@@ -1576,7 +1576,7 @@ async function chatCheck(env,me){
 const fmtD=n=>(Math.round(n*100)/100).toLocaleString("ru-RU").replace(/[\u00a0\u202f]/g," ");
 async function notify(env,uid,text,btn,url,photo){
   if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return false;
-  try{const kb={inline_keyboard:[[{text:btn||"Играть",web_app:{url:url||PAGE}}]]};
+  try{const kb={inline_keyboard:[[url&&/^https:\/\/t\.me\//.test(url)?{text:btn||"Открыть",url}:{text:btn||"Играть",web_app:{url:url||PAGE}}]]};
     const r=photo?await tgApi(env,"sendPhoto",{chat_id:uid,photo,caption:text.slice(0,1024),reply_markup:kb}):await tgApi(env,"sendMessage",{chat_id:uid,text,reply_markup:kb});
     if(!r.ok&&(r.error_code===403||r.error_code===400))await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(uid).run();   // заблокировал бота
     return !!r.ok}catch(e){return false}}
@@ -2223,10 +2223,10 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
 /* оплата прошла, а выдача упала (сервер перезапускался): добиваем раз в 5 секунд. И один раз включаем платежи в вебхуке бота */
 async function payTick(env){
   for(const r of (await env.DB.prepare("SELECT id FROM payments WHERE status='paid' AND paid<? LIMIT 3").bind(Date.now()-20e3).all()).results)await payApply(env,r.id);
-  if(!env.BOT_TOKEN||env.DEV==="1"||await cached("hookpay",600e3,()=>kvGet(env,"hook_pay_v1")))return;
+  if(!env.BOT_TOKEN||env.DEV==="1"||await cached("hookpay",600e3,()=>kvGet(env,"hook_pay_v2")))return;
   const w=await tgApi(env,"getWebhookInfo",{});if(!w.ok||!w.result||!w.result.url)return;
-  const r=await tgApi(env,"setWebhook",{url:w.result.url,secret_token:await hookSecret(env),allowed_updates:["message","pre_checkout_query"]});
-  if(r.ok){await kvSet(env,"hook_pay_v1",{t:Date.now()});delete topCache.hookpay}}
+  const r=await tgApi(env,"setWebhook",{url:w.result.url,secret_token:await hookSecret(env),allowed_updates:["message","pre_checkout_query","message_reaction_count"]});
+  if(r.ok){await kvSet(env,"hook_pay_v2",{t:Date.now()});delete topCache.hookpay}}
 async function payStatus(env,me,p){const P=await env.DB.prepare("SELECT id,item,status,res FROM payments WHERE id=? AND uid=?").bind(p.pid|0,me.id).first();if(!P)fail("Нет такого счёта");
   return {pid:P.id,item:P.item,status:P.status,res:P.res?JSON.parse(P.res):null}}
 /* топ донатеров месяца (без администраторов) и «Король Эпох» — первое место */
@@ -2265,7 +2265,7 @@ async function exportChunk(env,url){
 async function maintenance(env){return cached("maint",5e3,async()=>{try{const m=await kvGet(env,"maintenance");return !!(m&&m.on)}catch(e){return false}})}
 async function hookSecret(env){return hex(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("hook:"+env.BOT_TOKEN)))).slice(0,48)}
 async function setup(env,origin){const out={};
-  out.webhook=await tgApi(env,"setWebhook",{url:origin+"/tg",secret_token:await hookSecret(env),allowed_updates:["message","pre_checkout_query"]});
+  out.webhook=await tgApi(env,"setWebhook",{url:origin+"/tg",secret_token:await hookSecret(env),allowed_updates:["message","pre_checkout_query","message_reaction_count"]});
   out.name=await tgApi(env,"setMyName",{name:BOT_TEXT.name});
   out.short=await tgApi(env,"setMyShortDescription",{short_description:BOT_TEXT.short});
   out.desc=await tgApi(env,"setMyDescription",{description:BOT_TEXT.desc});
@@ -2296,6 +2296,7 @@ async function modChat(env,m){const chat=m.chat.id,u=m.from;if(!u||u.is_bot&&u.u
   if(r.ok)setTimeout(()=>tgApi(env,"deleteMessage",{chat_id:chat,message_id:r.result.message_id}).catch(()=>{}),30e3)}
 async function onUpdate(env,upd){
   if(upd.pre_checkout_query)return preCheckout(env,upd.pre_checkout_query);
+  if(upd.message_reaction_count){try{await fire30React(env,upd.message_reaction_count)}catch(e){console.error("f30r",e)}return}
   if(upd.message&&upd.message.successful_payment&&upd.message.from)return paidUpdate(env,upd.message.from.id,upd.message.successful_payment);
   {const g=upd.message;if(g&&g.chat&&(g.chat.type==="supergroup"||g.chat.type==="group")&&String(g.chat.username||"").toLowerCase()===CHAT.slice(1).toLowerCase()){try{await modChat(env,g)}catch(e){console.error("mod",e&&e.message)}return}}
   const m=upd.message;if(!m||!m.chat||m.chat.type!=="private"||!m.from)return;
@@ -3241,6 +3242,17 @@ let k2Busy=false;async function k2000Tick(env){const now=Date.now();if(k2Busy||n
 let casBusy=false;async function casBlastTick(env){const now=Date.now();if(casBusy||now<CAS_B.at||now>CAS_B.until)return;casBusy=true;try{await blastRun(env,CAS_B)}finally{casBusy=false}}
 let btkBusy=false;
 async function blastTkTick(env){const now=Date.now();if(!BLAST_TK.on||btkBusy||now<BLAST_TK.at||now>BLAST_TK.until)return;btkBusy=true;try{await blastRun(env,BLAST_TK)}finally{btkBusy=false}}
+/* 🔥 17.11 вечер: пост «30 огоньков = промокод» в канал + в бота; бот сам считает реакции и на 30 выкладывает код ОГОНЁК30 */
+const FIRE30={id:"fire30_1711",on:true,photo:"assets/post-fire30.jpg",btn:"🔥 Поставить огонёк",url:"https://t.me/voinyepoh",
+  chan:"🔥 30 ОГОНЬКОВ = ПРОМОКОД!\n\nНаберём 30 реакций под этим постом — и бот сам выложит сюда промокод на 🎴 10 прокруток + 💰 3 000 монет\n\nЖми 🔥 👇 Считаем!",
+  dm:"🔥 Воин, в канале раздача!\n\nНаберём 30 огоньков под постом — и там сразу появится промокод на 🎴 10 прокруток + 💰 3 000 монет. Первые 50 активаций!\n\nЖми кнопку и ставь 🔥 👇"};
+let f30Busy=false;async function fire30Tick(env){if(!FIRE30.on||f30Busy||Date.now()>FUN_UNTIL)return;f30Busy=true;try{await blastRun(env,FIRE30)}finally{f30Busy=false}}
+async function fire30React(env,R){if(!R||!R.chat||String(R.chat.username||"").toLowerCase()!==CHANNEL.slice(1))return;const k="blast:"+FIRE30.id,st=await kvGet(env,k);if(!st||!st.mid||R.message_id!==st.mid||st.rev)return;
+  const n=(R.reactions||[]).reduce((a,x)=>a+(x.total_count||0),0);st.rc=n;if(n<30){await kvSet(env,k,st);return}st.rev=1;await kvSet(env,k,st);
+  const cap="🎉 30 ОГОНЬКОВ ЕСТЬ — ДЕРЖИТЕ!\n\n🎟 Промокод: ОГОНЁК30\n🎴 10 прокруток + 💰 3 000 монет\n\nВводите в игре: ☰ Ещё → 🎟 Промокод. Только первые 50 — бегом! 🏃",kb={inline_keyboard:[[{text:"⚔️ Ввести промокод",url:"https://t.me/VoinyEpohBot"}]]};
+  let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/assets/post-fire30k.jpg",caption:cap,reply_markup:kb,reply_parameters:{message_id:st.mid,allow_sending_without_reply:true}});
+  if(!r.ok)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:cap,reply_markup:kb});
+  for(const a of ADMINS)await notify(env,a,r.ok?"🔥 Под постом 30 реакций — бот выложил промокод ОГОНЁК30 в канал.":"🔥 30 реакций набралось, но бот не смог выложить код в канал: "+(r.description||"")+"\nВыложи вручную: ОГОНЁК30","⚔️ Открыть")}
 async function blast2Tick(env){if(!BLAST2.on||b2Busy)return;b2Busy=true;try{await blastRun(env,BLAST2)}finally{b2Busy=false}}
 async function blastRun(env,BLAST2){if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
   try{const k="blast:"+BLAST2.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(!BLAST2.chan)st.ch=1;if(!BLAST2.dm)st.done=1;if(st.done&&st.ch)return;
@@ -3248,10 +3260,10 @@ async function blastRun(env,BLAST2){if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIF
       let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
       if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
       if(!r.ok&&st.chn>=6)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:BLAST2.chan,reply_markup:kb});
-      if(r.ok){st.ch=1;await kvSet(env,k,st)}else console.error("blast2 chan",st.chn,r.description)}
+      if(r.ok){st.ch=1;st.mid=r.result&&r.result.message_id;await kvSet(env,k,st)}else console.error("blast2 chan",st.chn,r.description)}
     if(st.done)return;const photo="https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo;
     const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
-    for(const u of us){if(await notify(env,u.id,BLAST2.dm,BLAST2.btn,PAGE+BLAST2.link,photo))st.n++;st.after=u.id}
+    for(const u of us){if(await notify(env,u.id,BLAST2.dm,BLAST2.btn,BLAST2.url||PAGE+BLAST2.link,photo))st.n++;st.after=u.id}
     if(us.length<25){st.done=1;for(const a of ADMINS)await notify(env,a,"✅ Рассылка «"+BLAST2.id+"» ушла "+st.n+" игрокам"+(st.ch?", пост в канале вышел":", пост в канал пока не вышел — пробую ещё")+".","⚔️ Открыть")}
     await kvSet(env,k,st)}catch(e){console.error("blast",BLAST2.id,e)}}
 async function p200Tick(env){const now=Date.now();if(now>=P200.until)return;if(!(await cached("p200c",60e3,()=>kvGet(env,"p200code")))){
@@ -3311,7 +3323,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
