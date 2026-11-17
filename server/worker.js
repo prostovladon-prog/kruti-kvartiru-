@@ -1918,16 +1918,21 @@ function fixIds(o,cards,seen=new Set()){if(!o||typeof o!=="object"||seen.has(o))
   for(const k in o)fixIds(o[k],cards,seen)}
 
 /* ---------- обычное действие: правила считают, сервер записывает всё одной пачкой ---------- */
-async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
+/* ⚡ короткий ответ на camp_tap (только для нового клиента, флаг p.short): без пересчёта тиражей по всей таблице карт и без полного состояния.
+   Если действию вдруг понадобятся тиражи (выдача карты) — бросаем NEEDCTX и повторяем с полным контекстом */
+const NEEDCTX={needCtx:1};
+function liteCtx(test){const no=()=>{throw NEEDCTX};let seq=0;return {now:Date.now(),test,events:[],compLeft:no,compSlot:no,compErr:no,compErrTake:no,issuedOf:no,issuedFin:no,nextNo:no,snFree:no,takeSn:no,newId:()=>"n"+(++seq)}}
+async function doAction(env,me,name,p,extra,short){try{await xhLoad(env)}catch(e){}
+  let full=!short;
   for(let attempt=0;attempt<8;attempt++){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
-    const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");try{hhKingSet(await kingDec(env))}catch(e){}
+    const {u,cards}=await loadUser(env,me),ctx=full?await makeCtx(env,env.TEST==="1"):liteCtx(env.TEST==="1");try{hhKingSet(await kingDec(env))}catch(e){}
     const st=JSON.parse(u.state||"{}");st.cash=u.cash;try{ctx.dcLive=DCS.some(X=>dcOn(X.h))}catch(e){}if(extra)Object.assign(ctx,extra);
     st.vipUntil=u.vip_until||0;st.vipT=u.vip_t||0;st.golemUntil=u.golem_until||0;ctx.admin=isAdmin(env,me.id);ctx.noRare=env.NO_RARE==="1";ctx.luck=ctx.admin&&(st.luckUntil||0)>ctx.now;ctx.pioneer=!!u.pioneer;ctx.nick=!!u.nick;ctx.created=u.created||Date.now();
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);if(name==="dsp_roll"){await xhLoad(env,1);const C=[];for(const X of DCS)if(dcOn(X.h)&&(await dcLeft(env,0,X.h)).spin>0)C.push(X);const X=C.length?C[Math.floor(Math.random()*C.length)]:null;ctx.dayH=X?X.h:-1;ctx.dayCh=X?dcChance(X):0}
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
-    const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
+    let out;try{out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p)}catch(e){if(e===NEEDCTX&&!full){full=true;attempt--;continue}throw e}
     const delta=Math.round((st.cash-u.cash)*100)/100;delete st.cash;
     // новая версия случайная: проверка ниже пропустит записи, только если именно этот запрос обновил игрока
     const nv=Math.floor(Math.random()*9e15)+1,guard="(SELECT ver FROM users WHERE id=?)=?",keep=new Set();
@@ -1953,6 +1958,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
     if(take&&rs[0].meta.changes!==1)fail("Соперник только что убрал эту карточку. Бой отменён, попробуй ещё раз");
     if(rs[take?1:0].meta.changes!==1){if(take)await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=?").bind(ctx.oppUid,ctx.takeCard,me.id).run();continue}
     if(out.cards.some(c=>typeof c.id==="string"&&(c.f>0||HEROES[c.h][2]>=3))||before.size!==keep.size)delete topCache.prints;   // тираж изменился
+    if(!full){out.res.events=ctx.events;return {Sp:{camp:st.camp,cash:Math.round((u.cash+delta)*100)/100},res:out.res}}   // короткий ответ: только лагерь и монеты
     const S=await stateFor(env,me);fixIds(out.res,S.cards);out.res.events=ctx.events;return {S,res:out.res};
   }
   throw new GameError("Сервер занят, попробуй ещё раз");
@@ -4893,7 +4899,7 @@ async function handle(req,env){{
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
-      const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);
+      const r=await doAction(env,me,a,p,undefined,a==="camp_tap"&&!!(p&&p.short));if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);
       if(a==="open_multi"&&r.res&&r.res.cards&&r.res.cards.some(c=>c.h===THOR))r.res.card=r.res.cards.find(c=>c.h===THOR);
       if((a==="open"||a==="open_multi")&&r.res&&r.res.card&&r.res.card.h===THOR){try{const nm=await nameOf(env,me.id);
         for(const ad of ADMINS)await notify(env,ad,"⚡⚡⚡ ТОР ВЫБИТ! Игрок "+nm+" (id "+me.id+") выбил Тора — ошибку печати, 1 из 1!\n\nВыдай обещанный приз: VIP навсегда и NFT-подарок.","⚔️ Открыть");

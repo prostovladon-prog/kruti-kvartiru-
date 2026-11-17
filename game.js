@@ -58,7 +58,7 @@ async function act(name,p){
     if(ONLINE){
       const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:name,p:p||{}})});
       let j;try{j=await r.json()}catch(e){throw new GameError(r.status===429||r.status>=500?"Сервер перегружен, попробуй через пару минут":"Нет связи с сервером. Попробуй ещё раз")}
-      if(!j.ok)throw new GameError(j.err||"Ошибка сервера");if(j.S)S=j.S;out=j.res||{};
+      if(!j.ok)throw new GameError(j.err||"Ошибка сервера");if(j.S)S=j.S;else if(j.Sp&&S)Object.assign(S,j.Sp);out=j.res||{};
     }else{
       if(name==="sub_check")name="sub_reward";if(name==="chat_check")name="chat_reward";
       if(LOCAL[name])out=LOCAL[name](p||{});
@@ -1372,7 +1372,8 @@ function campView(){const C=S.camp||{runes:0,en:CAMP_E0,at:NOW(),lv:{pw:0,en:0,r
   const mx=campMax(C),en=Math.min(mx,C.en+Math.max(0,NOW()-C.at)/campFull(C)*mx)-cpPend-cpFly,pw=campPow(C,S.cards);
   return {C,mx,en:Math.max(0,en),pw,runes:Math.floor(C.runes+(cpPend+cpFly)*pw),sq:campSq(C,NOW()),full:campFull(C)}}
 function openCamp(){setTab("camp");cpHp=null;renderCamp();sfx.lock();loadCampTop(true)}
-async function campFlush(){if(cpBusy||cpPend<1)return;cpBusy=true;cpFly=cpPend;cpPend=0;const r=await act("camp_tap",{n:cpFly});cpFly=0;cpBusy=false;
+let cpFull=0;   // короткий ответ сервера (только лагерь и монеты); полное состояние — не чаще раза в 10 с
+async function campFlush(){if(cpBusy||cpPend<1)return;cpBusy=true;cpFly=cpPend;cpPend=0;const sh=NOW()-cpFull<10000;if(!sh)cpFull=NOW();const r=await act("camp_tap",sh?{n:cpFly,short:1}:{n:cpFly});cpFly=0;cpBusy=false;
   if(r){if(r.crits){campFloat("💥 КРИТ ×"+r.crits,"crit");campShake();hap("heavy")}if(r.chests){campShake();campFloat("📦 +"+fmtN(r.chestR),"chest");sfx.reveal(3);hapN("success");toast("Мишень разбита! Сундук: +"+fmtN(r.chestR)+" рун")}cpHp=null}
   renderCamp(!(r&&r.chests))}   // полная пересборка блоков — только когда разбили мишень; иначе обновляем цифры
 function campFloat(t,cls,x,y){const ar=$("cp-ar");if(!ar)return;if(!cls&&ar.querySelectorAll(":scope>.cpf").length>=FXMAX.fl)return;const f=document.createElement("div");f.className="cpf "+(cls||"");f.textContent=t;
