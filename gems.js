@@ -608,8 +608,8 @@ setTimeout(()=>setInterval(()=>{try{frIncCheck()}catch(e){}},20000),5000);
 
 /* 🎁 призовые сундуки (розыгрыши, конкурсы): ждут игрока в игре, он открывает их сам */
 function przCheck(){if(!S||!(S.prz&&S.prz.length)||!$("modal").hidden||$("tut")||$("nks")||$("sbg")||$("chg")||document.querySelector(".wrev,.onb-hl"))return;
-  const x=S.prz[0],I=SHOP[x.k]||{n:"Сундук"},m=$("modal"),sh=$("msheet");m.hidden=false;let ic="";try{ic=CHEST_COL[x.k]?chestSVG(x.k,150):""}catch(e){}
-  sh.innerHTML='<div class="box nickbox przbox"><div class="kg-rays"></div><h3>🎁 Тебе приз!</h3><p class="cln">'+escH(x.src||"Розыгрыш")+'</p><div class="prz-ic">'+(ic||'<span>🎁</span>')+'</div><b class="prz-n">'+escH(I.n)+'</b>'+(S.prz.length>1?'<small class="cln">и ещё '+(S.prz.length-1)+' — откроешь следом</small>':'')+'<button type="button" class="craftbtn" id="prz-go">🔓 Открыть сундук</button></div>';
+  const x=S.prz[0],I=SHOP[x.k]||{n:"Сундук"},m=$("modal"),sh=$("msheet");m.hidden=false;let ic="";try{ic=x.k==="errq"?'<div class="mq-card big"><span>?</span><i>ОШИБКА ПЕЧАТИ</i></div>':CHEST_COL[x.k]?chestSVG(x.k,150):""}catch(e){}
+  sh.innerHTML='<div class="box nickbox przbox"><div class="kg-rays"></div><h3>🎁 Тебе приз!</h3><p class="cln">'+escH(x.src||"Розыгрыш")+'</p><div class="prz-ic">'+(ic||'<span>🎁</span>')+'</div><b class="prz-n">'+escH(I.n)+'</b>'+(S.prz.length>1?'<small class="cln">и ещё '+(S.prz.length-1)+' — откроешь следом</small>':'')+'<button type="button" class="craftbtn" id="prz-go">🔓 Открыть '+(x.k==="errq"?"карточку":"сундук")+'</button></div>';
   try{sfx.reveal&&sfx.reveal(3);hapN("success")}catch(e){}
   $("prz-go").onclick=async()=>{const b=$("prz-go");b.disabled=true;const r=await act("prize_open",{i:0});if(!r){b.disabled=false;return}closeModal();payShow({status:"paid",item:r.item||x.k,res:r})}}
 setInterval(()=>{try{przCheck()}catch(e){}},2500);

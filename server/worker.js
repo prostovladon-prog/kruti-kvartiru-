@@ -567,6 +567,8 @@ SHOP.luckbox={n:"Сундук удачи",stars:60,sp:10,luckH:3,d:["🎴 <b>10<
 SHOP.promo={n:"Сундук промокодов",stars:25,promo:1,d:["🎟 случайный <b>промокод</b>: прокрутки или ⭐ к пополнению","можно забрать себе или <b>подарить другу</b>","шанс на <b>+1000 ⭐</b>"]};
 SHOP.general={n:"Сундук полководца",stars:149,sp:15,cards:4,epic:1,horn:1,d:["🃏 <b>4</b> карточки, минимум <b>1 эпическая</b>","🎴 <b>15</b> прокруток","📯 <b>+3 битвы</b> в войне армий сегодня"]};
 SHOP.empire={n:"Сундук Империи",stars:499,sp:40,cards:6,leg:1,luckH:6,d:["🃏 <b>6</b> карточек, <b>легендарная</b> гарантирована","🎴 <b>40</b> прокруток","🍀 <b>6 часов</b> удачи","💎 шанс <b>3%</b> на Алмазную серию"]};
+/* ❓ приз розыгрыша: «Ошибка печати» случайного легендарного воина (тираж 1 — берём того, у кого её ещё нет). Не продаётся */
+SHOP.errq={n:"Тайная «Ошибка печати»",stars:0,errq:1,d:["❓ карточка «Ошибка печати» — воин в секрете до открытия"]};
 const PROMO_BOX=[{w:55,sp:5},{w:25,bon:100,bmin:250},{w:12,bon:300,bmin:500},{w:5,sp:20},{w:3,bon:1000,bmin:1000}];
 /* 💎 сундуки гемов: стихию игрок выбирает сам, шансы открыты; 5 уровня в сундуках нет — только кузня */
 const GBOX={gbox1:{lv:[[2,.8],[3,.2]],sh:40,day:0},gbox2:{lv:[[3,1]],lv2:[[2,.6],[3,.4]],sh:100,day:0},gbox3:{lv:[[4,1]],lv2:[[3,.6],[4,.4]],sh:150,day:3}};
@@ -1228,6 +1230,8 @@ const ACTIONS={
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
     if(I.kolo)add(makeCard(ctx,KOLO,4));
+    if(I.errq){let pool=[];for(const t of [3,2])if(!pool.length)pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===t&&!HEROES[i][4].sale&&ctx.issuedOf(i,4)<1);
+      if(pool.length)add(makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],4));else add(rollTier(ctx,4,DON))}
     if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";dcSn(ctx,c,HEROES[h][4].sn);add(c)}
     if(I.fsave){const Lz=st.fireLost;if(!Lz||Lz.day!==today(ctx.now))fail("Огонёк сейчас не нужно спасать");st.fire.n=Lz.n+1;st.fire.best=Math.max(st.fire.best||0,st.fire.n);delete st.fireLost}
     if(I.motto)st.motto=String(p.text||"").slice(0,60);
@@ -3821,19 +3825,26 @@ const LFR=[{k:"m",n:"Мифический сундук + Королевский 
 const CHAL_FR={id:"2026-11-16",lot:1,chest:1,fr:1,ttl:"🎟 РОЗЫГРЫШ СУНДУКОВ ЗА ДРУЗЕЙ · $41",fine:"* $ — стоимость призов по цене звёзд Telegram. Призы выдаются внутри игры.",noL2:1,min:1,lch:LFR,start:Date.UTC(2026,10,16,5,0),end:Date.UTC(2026,10,16,19,30),prizes:LFR.map(c=>c.n),
   img:"assets/post-fr1.jpg?v=1",imgs:["assets/post-fr1.jpg?v=1","assets/post-fr3.jpg?v=1","assets/post-fr4.jpg?v=1"],
   slots:[8,15,20.5],chanSlots:[8,15,20.5],chan:"@voinyepoh"};   // 3 рассылки: утро, после учёбы, вечер за 2 часа до итогов
-const FRP=()=>LFR.map((x,k)=>MEDAL[k]+" "+x.usd+" — "+x.n).join("\n"),FRS="\n\n* $ — стоимость призов по цене звёзд Telegram. Призы выдаются внутри игры.",
+/* 🎟 17.11 08:30–22:00 (Минск): розыгрыш за друзей №2 — новый вид (тайная «Ошибка печати» ❓ у 1 места), призы ждут победителя в игре, открывает сам */
+const LFR2=[{k:"q",n:"Тайная «Ошибка печати» ❓ + 2 королевских сундука",ic:"❓",usd:"$40",items:[{shop:"errq"},{shop:"royal"},{shop:"gbox3"}],
+    d:["❓ Карточка «Ошибка печати» — какой воин, узнаешь только когда откроешь. Тираж 1 штука","👑 Королевский сундук — 60 прокруток и 6 половинок","💎 Королевский сундук гемов — гем 4 ур. + ещё гем + 150 осколков"]},
+  {k:"g",n:"Королевский сундук + Большой сундук гемов",ic:"💎",usd:"$8",items:[{shop:"royal"},{shop:"gbox2"}],d:["👑 Королевский сундук — 60 прокруток и 6 половинок","💎 Большой сундук гемов — гем 3 ур. + ещё гем + 100 осколков"]},
+  {k:"r",n:"Королевский сундук + Сундук гемов",ic:"👑",usd:"$6",items:[{shop:"royal"},{shop:"gbox1"}],d:["👑 Королевский сундук — 60 прокруток и 6 половинок","💎 Сундук гемов — гем 2–3 ур. + 40 осколков"]}];
+const CHAL_FR2={id:"2026-11-17",lot:1,chest:1,fr:1,sk:"myst",tot:"$54",ttl:"❓ ТАЙНЫЙ РОЗЫГРЫШ ЗА ДРУЗЕЙ · $54",fine:"* $ — стоимость призов по цене звёзд Telegram. Призы ждут победителей в игре — откроют сами.",noL2:1,min:1,lch:LFR2,start:Date.UTC(2026,10,17,5,30),end:Date.UTC(2026,10,17,19,0),prizes:LFR2.map(c=>c.n),
+  img:"assets/post-fq1.jpg?v=1",imgs:["assets/post-fq1.jpg?v=1","assets/post-fq2.jpg?v=1","assets/post-fq3.jpg?v=1"],slots:[8.5,15,20],chanSlots:[8.5,15,20],chan:"@voinyepoh"};
+const FRP=C=>(C.lch||LFR).map((x,k)=>MEDAL[k]+" "+x.usd+" — "+x.n).join("\n"),FRS="\n\n* $ — стоимость призов по цене звёзд Telegram. Призы выдаются внутри игры.",
   FRHOW="👥 Пригласи друга по своей ссылке — получи билет\n🎟 Каждый друг = +1 билет: 5 друзей — 5 билетов, 20 друзей — 20 билетов\n📈 Больше билетов — больше шанс\n✅ Друг считается, когда откроет "+CHAL_OPEN+" карточки";
 function frText(C,slot,rows,now){const h=lotHook(C,rows),last=C.slots[slot]===C.lastOnly;
-  if(slot===0)return "🎟 СТАРТ! РОЗЫГРЫШ СУНДУКОВ НА $41 ЗА ДРУЗЕЙ\n\n"+FRP()+"\n\n"+FRHOW+"\n\n⏳ Сегодня в "+hmM(C.end)+" бот случайно выберет 3 победителей по билетам\n\n"+LOT_PAID+FRS+"\n\nЖми «Мои билеты» и отправляй ссылку друзьям 👇";
-  if(last)return "⏰ ПОСЛЕДНИЙ ЧАС! В "+hmM(C.end)+" разыгрываем сундуки на $25, $10 и $6\n\n"+h+"\n\nОдин друг прямо сейчас = ещё один билет 🔥"+FRS;
+  if(slot===0)return (C.sk?"❓ СТАРТ! ТАЙНЫЙ РОЗЫГРЫШ НА "+C.tot+" ЗА ДРУЗЕЙ\n\n🥇 Главный приз — карточка «Ошибка печати», но какой воин — секрет. Узнает только победитель, когда откроет 🤫\n\n":"🎟 СТАРТ! РОЗЫГРЫШ СУНДУКОВ НА $41 ЗА ДРУЗЕЙ\n\n")+FRP(C)+"\n\n"+FRHOW+"\n\n⏳ Сегодня в "+hmM(C.end)+" бот случайно выберет 3 победителей по билетам\n\n"+LOT_PAID+FRS+"\n\nЖми «Мои билеты» и отправляй ссылку друзьям 👇";
+  if(last)return "⏰ ПОСЛЕДНИЙ ЧАС! В "+hmM(C.end)+" разыгрываем призы на "+(C.lch||LFR).map(x=>x.usd).join(", ")+"\n\n"+h+"\n\nОдин друг прямо сейчас = ещё один билет 🔥"+FRS;
   const T=["","☀️ Розыгрыш сундуков за друзей в разгаре!","🔥 До розыгрыша "+fmtLeft(C.end-now)+" — зови друзей!","🌙 Вечер — все онлайн, лучшее время звать друзей!"][slot]||"🎟 Розыгрыш идёт!";
-  return T+"\n\n"+h+"\n\n"+FRP()+"\n\n🎟 Каждый друг = +1 билет · итоги сегодня в "+hmM(C.end)+FRS}
+  return T+"\n\n"+h+"\n\n"+FRP(C)+"\n\n🎟 Каждый друг = +1 билет · итоги сегодня в "+hmM(C.end)+FRS}
 function frChan(C,k,now,rows){const bot="\n\n👉 @VoinyEpohBot",h=lotHook(C,rows||[]),last=C.chanSlots[k]===C.lastOnly;
-  if(k===0)return {photo:1,text:"🎟 РОЗЫГРЫШ СУНДУКОВ НА $41 — СТАРТ!\n\n"+FRP()+"\n\n"+FRHOW+"\n\n⏳ Итоги сегодня в "+hmM(C.end)+" — 3 победителя, сундуки откроются у них в игре автоматически\n\n"+LOT_PAID+FRS+bot};
+  if(k===0)return {photo:1,text:(C.sk?"❓ ТАЙНЫЙ РОЗЫГРЫШ НА "+C.tot+" — СТАРТ!\n\n🥇 Главный приз — «Ошибка печати» с секретным воином. Кто внутри — узнает только победитель 🤫\n\n":"🎟 РОЗЫГРЫШ СУНДУКОВ НА $41 — СТАРТ!\n\n")+FRP(C)+"\n\n"+FRHOW+"\n\n⏳ Итоги сегодня в "+hmM(C.end)+" — 3 победителя, призы будут ждать их в игре — откроют сами\n\n"+LOT_PAID+FRS+bot};
   if(last)return {text:"⏰ До розыгрыша сундуков остался час!\n\n"+h+"\n\nВ "+hmM(C.end)+" бот случайно выберет трёх победителей по билетам. Позови ещё друга — это ещё один шанс 🔥"+FRS+bot};
   const T=["","☀️ Розыгрыш сундуков за друзей идёт","🔥 До розыгрыша — "+fmtLeft(C.end-now),"🌙 Вечер — зови друзей, пока все онлайн"][k]||"🎟 Розыгрыш идёт";
-  return {text:T+"\n\n"+h+"\n\n"+FRP()+"\n\n"+FRHOW+"\n⏳ Итоги сегодня в "+hmM(C.end)+FRS+bot}}
-async function chalCfg(env){return await cached("chalcfg",30e3,async()=>{const k=await kvGet(env,"chal");return k&&k.id>=CHAL_FR.id?k:CHAL_FR})}   // старый конкурс в kv не мешает новому
+  return {text:T+"\n\n"+h+"\n\n"+FRP(C)+"\n\n"+FRHOW+"\n⏳ Итоги сегодня в "+hmM(C.end)+FRS+bot}}
+async function chalCfg(env){return await cached("chalcfg",30e3,async()=>{const k=await kvGet(env,"chal");return k&&k.id>=CHAL_FR2.id?k:CHAL_FR2})}   // старый конкурс в kv не мешает новому
 const tk=n=>n+" "+(n%10===1&&n%100!==11?"билет":n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?"билета":"билетов");
 const lotIn=(C,rows)=>rows.filter(r=>r.n>=C.min);
 /* честный выбор победителя: случайное число по сумме билетов */
@@ -3859,7 +3870,7 @@ async function chalGet(env,me){const C=await chalCfg(env),now=Date.now();if(C&&C
   const i=rows.findIndex(r=>r.uid===me.id),mine=i>=0?{...rows[i],place:i+1}:{d:0,l2:0,n:0,place:0};
   return {id:C.id,start:C.start,end:C.end,left:Math.max(0,(now<C.start?C.start:C.end)-now),phase:chalPhase(C,now),prizes:C.prizes,need:CHAL_OPEN,x2:now>=C.start&&now<C.end?1:0,
     top:rows.slice(0,10).map((r,k)=>({place:k+1,name:r.name,n:r.n,d:r.d,l2:r.l2,vip:r.vip,me:r.uid===me.id?1:0})),me:{n:mine.n,d:mine.d,l2:mine.l2,place:mine.place},total:rows.length,
-    lot:C.lot?1:0,secret:C.secret?1:0,multi:C.multi?1:0,vip:C.vip?1:0,vipDays:C.vipDays||0,noL2:C.noL2?1:0,min:C.min||0,tickets:C.lot?lotIn(C,rows).reduce((a,r)=>a+r.n,0):0,players:C.lot?lotIn(C,rows).length:0,big:C.big||C.chest?1:0,pnote:C.pnote||null,chest:C.chest?1:0,ttl:C.ttl||null,ttOn:C.tt?1:0,fine:C.fine||null,chests:C.chest?(C.lch||LCH).map(x=>({n:x.n,ic:x.ic,usd:x.usd,d:x.d})):null,xbal:C.xbal||null,
+    lot:C.lot?1:0,secret:C.secret?1:0,multi:C.multi?1:0,vip:C.vip?1:0,vipDays:C.vipDays||0,noL2:C.noL2?1:0,min:C.min||0,tickets:C.lot?lotIn(C,rows).reduce((a,r)=>a+r.n,0):0,players:C.lot?lotIn(C,rows).length:0,big:C.big||C.chest?1:0,pnote:C.pnote||null,chest:C.chest?1:0,ttl:C.ttl||null,ttOn:C.tt?1:0,fine:C.fine||null,sk:C.sk||null,chests:C.chest?(C.lch||LCH).map(x=>({n:x.n,ic:x.ic,usd:x.usd,d:x.d})):null,xbal:C.xbal||null,
     tt:C.tt?await ttMine(env,C,me.id):null,
     pend:now>=C.start?(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)<?").bind(me.id,C.start,C.end,CHAL_OPEN).first())||{}).n||0):0}}
 async function ttMine(env,C,uid){const r=await env.DB.prepare("SELECT url,st FROM tt_sub WHERE contest=? AND uid=?").bind(C.id,uid).first();return r?{url:r.url,st:r.st}:{st:-1}}

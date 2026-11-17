@@ -565,6 +565,8 @@ SHOP.luckbox={n:"Сундук удачи",stars:60,sp:10,luckH:3,d:["🎴 <b>10<
 SHOP.promo={n:"Сундук промокодов",stars:25,promo:1,d:["🎟 случайный <b>промокод</b>: прокрутки или ⭐ к пополнению","можно забрать себе или <b>подарить другу</b>","шанс на <b>+1000 ⭐</b>"]};
 SHOP.general={n:"Сундук полководца",stars:149,sp:15,cards:4,epic:1,horn:1,d:["🃏 <b>4</b> карточки, минимум <b>1 эпическая</b>","🎴 <b>15</b> прокруток","📯 <b>+3 битвы</b> в войне армий сегодня"]};
 SHOP.empire={n:"Сундук Империи",stars:499,sp:40,cards:6,leg:1,luckH:6,d:["🃏 <b>6</b> карточек, <b>легендарная</b> гарантирована","🎴 <b>40</b> прокруток","🍀 <b>6 часов</b> удачи","💎 шанс <b>3%</b> на Алмазную серию"]};
+/* ❓ приз розыгрыша: «Ошибка печати» случайного легендарного воина (тираж 1 — берём того, у кого её ещё нет). Не продаётся */
+SHOP.errq={n:"Тайная «Ошибка печати»",stars:0,errq:1,d:["❓ карточка «Ошибка печати» — воин в секрете до открытия"]};
 const PROMO_BOX=[{w:55,sp:5},{w:25,bon:100,bmin:250},{w:12,bon:300,bmin:500},{w:5,sp:20},{w:3,bon:1000,bmin:1000}];
 /* 💎 сундуки гемов: стихию игрок выбирает сам, шансы открыты; 5 уровня в сундуках нет — только кузня */
 const GBOX={gbox1:{lv:[[2,.8],[3,.2]],sh:40,day:0},gbox2:{lv:[[3,1]],lv2:[[2,.6],[3,.4]],sh:100,day:0},gbox3:{lv:[[4,1]],lv2:[[3,.6],[4,.4]],sh:150,day:3}};
@@ -1226,6 +1228,8 @@ const ACTIONS={
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
     if(I.kolo)add(makeCard(ctx,KOLO,4));
+    if(I.errq){let pool=[];for(const t of [3,2])if(!pool.length)pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===t&&!HEROES[i][4].sale&&ctx.issuedOf(i,4)<1);
+      if(pool.length)add(makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],4));else add(rollTier(ctx,4,DON))}
     if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";dcSn(ctx,c,HEROES[h][4].sn);add(c)}
     if(I.fsave){const Lz=st.fireLost;if(!Lz||Lz.day!==today(ctx.now))fail("Огонёк сейчас не нужно спасать");st.fire.n=Lz.n+1;st.fire.best=Math.max(st.fire.best||0,st.fire.n);delete st.fireLost}
     if(I.motto)st.motto=String(p.text||"").slice(0,60);
