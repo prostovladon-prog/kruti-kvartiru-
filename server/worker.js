@@ -4,7 +4,7 @@
    Этот файл работает и в браузере (локальный режим), и на сервере (Cloudflare Worker).
    Здесь нет ничего про интерфейс: только данные игры и действия, которые меняют состояние игрока. */
 
-const DUEL_CAP=10000,DUEL_DAY=40000,CAP=250, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LPITY=90, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
+const DUEL_CAP=10000,DUEL_DAY=100000,CAP=250, REFILL_MS=4*3600e3, SPINS_MAX=10, PITY=30, LPITY=90, LMAX=10, FEE=.05, HOUSE=.9, PMAX=.8, EX_SLOTS=3, MAX_LOTS=5, QUICK=.85, START_CASH=100;
 const STN=["Атака","Броня","Скорость","Выносл.","Дух"];
 const HT=[{k:"Обычный",c:"#8f9bb3",b:[1,3]},{k:"Редкий",c:"#34c759",b:[4,9]},{k:"Эпический",c:"#0a84ff",b:[15,30]},{k:"Легендарный",c:"#bf5af2",b:[60,120]},{k:"Мифический",c:"#ff9f0a",b:[300,500]}];
 const HEROES=[
@@ -629,6 +629,8 @@ const mktCap=c=>{const m=capMul(c);return m===Infinity?Infinity:Math.max(1000,Ma
   mktFee=p=>p>=1e8?.2:p>=1e7?.15:p>=1e6?.12:FEE,mktFeeTxt=p=>p>=1e8?"сделки от 100 млн — 20%":p>=1e7?"сделки от 10 млн — 15%":"сделки от 1 млн — 12%";
 /* ⚔️ награда за бой без ставки: от ценности соперника, СВОЕЙ карты (25%) и минимум по редкости своей карты; не выше DUEL_CAP */
 const DUEL_MIN=[60,130,260,500,1000];function duelBase(me,opp){return Math.min(Math.max(+opp.v||0,(+me.v||0)*.25,DUEL_MIN[(HEROES[me.h]||[])[2]|0]||60),DUEL_CAP)}
+/* редкая карта (легенда, миф или любая отделка кроме обычной) — 10 000 монет за победу */
+const DUEL_RARE=10000,duelRare=c=>((HEROES[c.h]||[])[2]|0)>=3||(c.f|0)>0;function duelPay(me,opp){return duelRare(me)?DUEL_RARE:Math.round(duelBase(me,opp)*.3+5)}
 function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(c.h,c.f,c.no,c.sn,0)||1;c.sn=sn;if(ctx.takeSn)ctx.takeSn(sn);c.v=Math.round(c.v*(priceOf(c.h,c.f,c.no,sn,0)/v0)*100)/100}}catch(e){}}
 function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4].day||!x)continue;H[0]=String(x.n||"Карта дня").slice(0,40);H[1]=String(x.e||"Карта дня").slice(0,40);H[3]=String(x.d||"").slice(0,200);
   const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x","p","sn","sn2"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
@@ -1055,9 +1057,9 @@ const ACTIONS={
       else if(p.mode&&G.cards.length<capOf(st)){gotCard=makeCard(ctx,opp.h,opp.f,{stats:opp.stats,hue:opp.hue});addCard(G,gotCard)}
       else{   // награда без ставки: не больше DUEL_CAP, а за повторные победы над одной и той же карточкой сегодня — вдвое меньше каждый раз
         /* фикс фарма: награда не больше 30% от DUEL_CAP, за повторные победы над тем же ИГРОКОМ сегодня — вдвое меньше, и не больше DUEL_DAY монет в день с боёв */
-        let base=duelBase(me,opp);   /* награда растёт и от СВОЕЙ карты: сильной картой фармить ботов-слабаков выгоднее, чем раньше (было 100–300 монет) */const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{},sum:0};
+        let base=duelPay(me,opp);   /* награда растёт и от СВОЕЙ карты: сильной картой фармить ботов-слабаков выгоднее, чем раньше (было 100–300 монет) */const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{},sum:0};
         if(real){const k="u"+(ctx.oppUid||real.id),n=st.dw.m[k]||0;st.dw.m[k]=n+1;base*=Math.pow(.5,n)}
-        reward=Math.max(0,Math.min(Math.round(base*.3+5),DUEL_DAY-(st.dw.sum||0)));st.dw.sum=(st.dw.sum||0)+reward;if(reward)earn(st,reward)}}
+        reward=Math.max(0,Math.min(Math.round(base),DUEL_DAY-(st.dw.sum||0)));st.dw.sum=(st.dw.sum||0)+reward;if(reward)earn(st,reward)}}
     else{addXp(ctx,me,10);if(p.mode){if(real)ctx.giveAway=me.id;burn(G,[me.id]);lostCard=true}}   // с игроком карточка уходит к нему
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,gotCard,lostCard,real:!!real,oppName:real?G.ctx.oppName:null,oppUid:real?G.ctx.oppUid:null,dk,dg}},
 
@@ -1065,7 +1067,7 @@ const ACTIONS={
     const p2=p.oppStat!=null?p.oppStat|0:aiPick(opp,[myStat]);if(p2===myStat)fail("Эту характеристику уже выбрал соперник");
     const dk=dgBonus(st,ctx.now),picks=[myStat,p2,rndPick([myStat,p2])],before=snap(me),R=fight3(me,opp,picks,dk);
     const key=String(p.key||"x")+"_"+me.h,first=!st.doneCh[key];let reward=0;
-    if(R.w>R.l&&first){const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{},sum:0};reward=Math.max(0,Math.min(Math.round(duelBase(me,opp)*.3+5),DUEL_DAY-(st.dw.sum||0)));st.dw.sum=(st.dw.sum||0)+reward;if(reward)earn(st,reward);addXp(ctx,me,30);st.totalWins=(st.totalWins||0)+1;me.wins=(me.wins||0)+1;day(st,ctx.now).wins++;st.doneCh[key]=1}
+    if(R.w>R.l&&first){const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{},sum:0};reward=Math.max(0,Math.min(duelPay(me,opp),DUEL_DAY-(st.dw.sum||0)));st.dw.sum=(st.dw.sum||0)+reward;if(reward)earn(st,reward);addXp(ctx,me,30);st.totalWins=(st.totalWins||0)+1;me.wins=(me.wins||0)+1;day(st,ctx.now).wins++;st.doneCh[key]=1}
     else if(R.w<R.l&&first){addXp(ctx,me,10);st.doneCh[key]=1}
     return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward,first}},
 
