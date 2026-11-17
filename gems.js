@@ -269,10 +269,10 @@ function dspBan(){const sec=$("sec-spin");if(!sec||sec.hidden)return;let b=$("ds
 setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){const d=document.createElement("div");d.id="ch-poll";d.className="ch-poll";L.before(d);pollLoad()}}catch(e){}},500);
 
 /* ⚡ оптимизация памяти: списки не перерисовываются, если ничего не поменялось; при уходе с вкладки тяжёлые списки очищаются (на слабых телефонах из-за них вылетало) */
-{const SIG={};const sigCol=()=>JSON.stringify([colView,colSort,colF,colQ,colPick,[...colSel],S.cards,S.gsock||0,S.fav||0,S.favs||0,Math.floor(Date.now()/36e5)]),sigAlb=()=>JSON.stringify([S.cards.map(c=>c.h+"."+c.f),S.eras||0,S.ach||0]);
+{const SIG={},sigAlb=()=>JSON.stringify([S.cards.map(c=>c.h+"."+c.f),S.eras||0,S.ach||0]);
  const memo=(n,box,sig)=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){try{const b=$(box),k=sig();if(b&&b.childElementCount&&SIG[n]===k)return;const r=f.apply(this,arguments);SIG[n]=k;return r}catch(e){SIG[n]=null;return f.apply(this,arguments)}}};
- memo("renderCol","col",sigCol);memo("renderAlbum","album",sigAlb);
- const FREE={col:()=>{const b=$("col");if(b)b.innerHTML="";SIG.renderCol=null},album:()=>{const b=$("album");if(b)b.innerHTML="";SIG.renderAlbum=null},
+ /* renderCol без memo: он сам инкрементальный (меняет только изменившиеся плитки текущей страницы) */memo("renderAlbum","album",sigAlb);
+ const FREE={col:()=>{const b=$("col");if(b)b.innerHTML="";SIG.renderCol=null;try{COLT.clear()}catch(e){}},album:()=>{const b=$("album");if(b)b.innerHTML="";SIG.renderAlbum=null},
   craft:()=>{["cr-pick","cr-tgt","cr-slots"].forEach(id=>{const b=$(id);if(b){b.innerHTML="";b.dataset.k="";delete b.dataset.scrolled}});const p=$("cr-prev");if(p){p.innerHTML="";p.dataset.k=""}}};
  let cur=null;const _st=setTab;setTab=function(t){const prev=cur;cur=t;if(prev&&prev!==t&&FREE[prev]&&!(prev==="craft"&&crBusy)){try{FREE[prev]()}catch(e){}}return _st.apply(this,arguments)}}
 
@@ -284,7 +284,7 @@ setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){co
    (быстрая прокрутка 300+ карт на iPhone больше не копит сотни нарисованных карточек) */
 {const LISTS="#sec-col,#sec-album,.pickrow,.pkg,.cqpk";
  const vio=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{const el=e.target;if(!el.isConnected){vio.unobserve(el);return}
-   if(e.isIntersecting){if(el._gone&&el._card){el._gone=0;el._mc=el._card;el._w=e.boundingClientRect.width;fillMini(el)}}
+   if(e.isIntersecting){if(el._gone&&el._card){el._gone=0;el._mc=el._card;el._w=e.boundingClientRect.width;const r=e.boundingClientRect;if(r.bottom>0&&r.top<innerHeight)miniNow(el);else miniQ(el)}}
    else if(!el._gone&&el._card&&el.firstChild){el._gone=1;while(el.firstChild)el.removeChild(el.firstChild)}}),{rootMargin:"800px 0px"}):null;
  const _fm=fillMini;fillMini=function(el){const c=el&&el._mc;const r=_fm.apply(this,arguments);try{if(c&&vio&&el.closest&&el.closest(LISTS)&&!el._card){el._card=c;vio.observe(el)}}catch(e){}return r}}
 
@@ -310,7 +310,7 @@ function pagerApply(boxId,sel,per,label){const box=$(boxId);if(!box)return;const
    if(box.classList.contains("pickrow"))box.scrollLeft=0;else{const top=box.getBoundingClientRect().top+scrollY-120;scrollTo({top:Math.max(0,top)})}}};
  mk("pg-"+boxId,false);if(!box.classList.contains("pickrow"))mk("pgt-"+boxId,true)}
 {const W=(fn,args)=>{const f=window[fn];if(typeof f!=="function")return;window[fn]=function(){const r=f.apply(this,arguments);try{pagerApply(...args)}catch(e){}return r}};
- W("renderCol",["col",".tl2",30,"карты"]);W("renderAlbum",["album",".slot",30,"воины"]);W("renderCraft",["cr-pick",".pc",20,"карты"]);}
+ /* «Мои» листаются страницами внутри renderCol (game.js) — там в DOM только текущая страница */W("renderAlbum",["album",".slot",30,"воины"]);W("renderCraft",["cr-pick",".pc",20,"карты"]);}
 
 /* ===== 🎰 Беспроигрышная лотерея ===== */
 let LOTS=null;

@@ -3654,3 +3654,11 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 #frinc{position:fixed;left:12px;right:12px;top:calc(12px + var(--st,0px));z-index:9000;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#1c1430ee;border:1px solid #7c5cff;color:#fff;font-size:13px;box-shadow:0 8px 24px #0008;animation:frin .3s ease-out}#frinc span{flex:1}@keyframes frin{from{transform:translateY(-20px);opacity:0}}
 .chal-link{margin-top:8px;text-align:center}.chal-link small{display:block;opacity:.85;margin-bottom:6px}.chal-link div{display:flex;gap:6px;align-items:center;justify-content:center}.chal-link code{font-size:11px;background:#0003;padding:6px 8px;border-radius:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%}
 .adnow{background:#fff;border:2px solid #1a1a2e;border-radius:16px;padding:12px;margin:0 0 12px;color:#1a1a2e}.adnow h4{margin:0 0 6px}.adlink code{display:block;font-size:12px;background:#f1eefc;padding:6px 8px;border-radius:8px;margin-bottom:8px;word-break:break-all}.adr{display:grid;grid-template-columns:1fr auto;gap:0 8px;padding:6px 0;border-top:1px dashed #ddd}.adr span{font-size:13px}.adr b{font-size:18px;text-align:right}.adr small{grid-column:1/3;font-size:11px;opacity:.6}.adhint{display:block;margin-top:6px;font-size:11px;opacity:.6}
+/* ⚡ «Мои»: в режиме «Выбрать» кнопка «Собрать» прячется классом, без перестройки списка */
+.cgrid2.colpick .asmb{display:none}
+/* пока мини-карточка не нарисована — лёгкий силуэт в цвете редкости и имя героя, без «дыр» */
+.minic:empty::before{content:"";position:absolute;inset:3% 4%;border-radius:12%;background:linear-gradient(165deg,color-mix(in srgb,var(--c,#5a6aa8) 50%,#1a1f4a),#121633 78%);border:2px solid rgba(255,255,255,.14)}
+.minic:empty::after{content:attr(data-n);position:absolute;left:10%;right:10%;bottom:10%;text-align:center;font-weight:900;font-size:11px;line-height:1.15;color:rgba(255,255,255,.72)}
+.minic>div{animation:mnIn .16s ease-out}
+@keyframes mnIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.minic>div{animation:none}}

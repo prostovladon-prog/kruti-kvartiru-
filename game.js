@@ -903,10 +903,21 @@ function fillFace(root,c){
 /* ---------- маленькая копия карточки для списков ----------
    miniSlot(c) возвращает пустой span, а настоящая карточка дорисовывается, как только span попадёт на страницу. */
 const MINI=new Map();let miniN=0;
-function miniSlot(c){if(MINI.size>3000)MINI.clear();const k="m"+(++miniN);MINI.set(k,c);return `<span class="minic" data-k="${k}"></span>`}
+function miniSlot(c){if(MINI.size>3000)MINI.clear();const k="m"+(++miniN);MINI.set(k,c);const H=HEROES[c.h];return `<span class="minic" data-k="${k}"${H?` data-n="${String(H[0]).replace(/"/g,"&quot;")}"`:""}></span>`}
 const miniRO=typeof ResizeObserver!=="undefined"?new ResizeObserver(es=>es.forEach(e=>{const w=e.contentRect.width;if(w)e.target.style.setProperty("--z",w/300)})):null;
 /* мини-карточки рисуются, только когда подъезжают к экрану: список из 40 карт открывается сразу, без подвисания */
-const miniIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){miniIO.unobserve(e.target);e.target._w=e.boundingClientRect.width;fillMini(e.target)}}),{rootMargin:"500px 0px"}):null;
+const miniIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){miniIO.unobserve(e.target);e.target._w=e.boundingClientRect.width;const r=e.boundingClientRect;if(r.bottom>0&&r.top<innerHeight)miniNow(e.target);else miniQ(e.target)}}),{rootMargin:"1000px 0px"}):null;
+/* ⚡ очередь отрисовки мини: не больше ~7 мс за кадр, ближние к центру экрана — первыми; отсоединённые ждут, пока их вернут на страницу */
+const MQ=new Set();let mqRaf=0;
+function miniQ(el){MQ.add(el);if(!mqRaf)mqRaf=requestAnimationFrame(mqRun)}
+/* синхронно — не больше 3 мини за кадр (длинные задачи при прокрутке), остальное — в очередь */
+let mqSync=0,mqSyncRaf=0;function miniNow(el){if(mqSync<2){mqSync++;if(!mqSyncRaf)mqSyncRaf=requestAnimationFrame(()=>{mqSync=0;mqSyncRaf=0});fillMini(el)}else miniQ(el)}
+function mqRun(){mqRaf=0;const t0=performance.now(),cy=innerHeight/2,arr=[];
+  for(const el of MQ){if(!el._mc){MQ.delete(el);continue}if(!el.isConnected){MQ.delete(el);if(miniIO)miniIO.observe(el);continue}arr.push(el)}
+  const d=arr.map(el=>{const r=el.getBoundingClientRect();if(r.width)el._w=r.width;return r.width?Math.abs(r.top+r.height/2-cy):1e9});
+  const ix=arr.map((_,i)=>i).sort((a,b)=>d[a]-d[b]);
+  for(const i of ix){const el=arr[i];MQ.delete(el);if(d[i]>=1e9){if(miniIO)miniIO.observe(el);continue}fillMini(el);if(performance.now()-t0>7)break}
+  if(MQ.size)mqRaf=requestAnimationFrame(mqRun)}
 function fillMini(el){const c=el._mc;if(!c)return;el._mc=null;{const w=el._w||el.clientWidth;el._w=0;if(w)el.style.setProperty("--z",w/300)}/* масштаб сразу, иначе один кадр карточка огромная */el.style.setProperty("--sd",(Math.random()*6.5).toFixed(2)+"s");const f=document.createElement("div");f.innerHTML=FACE_TPL;el.appendChild(f);fillFace(f,c);
   if(miniRO)miniRO.observe(el);else el.style.setProperty("--z",(el.clientWidth||90)/300)}
 function hydrate(root){const roots=Array.isArray(root)?root:[root],els=[];   // пачкой: все чтения размеров подряд — одна раскладка вместо десятков
@@ -915,8 +926,10 @@ function hydrate(root){const roots=Array.isArray(root)?root:[root],els=[];   // 
   if(!els.length)return;
   if(!miniIO){els.forEach(fillMini);return}
   // то, что уже на экране (или рядом), рисуем сразу — без мигания; остальное по мере прокрутки
-  const H=innerHeight+600,near=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return true;const r=el.getBoundingClientRect();el._w=r.width;return r.width>0&&r.bottom>-600&&r.top<H&&r.right>-300&&r.left<innerWidth+300});
-  els.forEach((el,i)=>{if(near[i])fillMini(el);else miniIO.observe(el)})}
+  // на экране (и в окнах) — сразу, без мигания; рядом с экраном — через очередь по кадрам; остальное — по мере прокрутки
+  const H=innerHeight+600,pos=els.map(el=>{if(el.closest(".cqbt,.wrev,#modal"))return 2;const r=el.getBoundingClientRect();el._w=r.width;if(!(r.width>0&&r.right>-300&&r.left<innerWidth+300))return 0;return r.bottom>0&&r.top<innerHeight?2:r.bottom>-600&&r.top<H?1:0});
+  // новый список (открытие вкладки, страница ▶): первые 2 ряда (4 мини) — одной задачей сразу, даже если они чуть ниже экрана
+  let first=4;els.forEach((el,i)=>{if(pos[i]===2&&el.closest(".cqbt,.wrev,#modal"))fillMini(el);else if(pos[i]&&first>0){first--;fillMini(el)}else if(pos[i])miniQ(el);else miniIO.observe(el)})}
 new MutationObserver(ms=>{const L=[];for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)L.push(n);if(L.length)hydrate(L)}).observe(document.body,{childList:true,subtree:true});
 function showCard(c){fillFace(front,c);$("p-val").textContent=isCollab(c)?"БЕСЦЕННАЯ":fmt(c.v);$("sell-v").textContent=fmt(c.v*QUICK)}
 let current=null,busy=false;
@@ -1013,14 +1026,16 @@ $("sell").onclick=async()=>{if(!current||busy)return;if(!S.cards.some(x=>x.id===
 /* скелетоны: серые строки-заглушки, пока грузится список */
 function skelRows(n){return Array.from({length:n},()=>'<div class="skel"><i class="sk-a"></i><span><i class="sk-l"></i><i class="sk-s"></i></span><i class="sk-b"></i></div>').join("")}
 /* ---------- album ---------- */
+/* силуэты пустых слотов альбома рисуются, только когда слот виден (скрытые страницы не рисуются вовсе) */
+const phIO=typeof IntersectionObserver!=="undefined"?new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target;phIO.unobserve(el);if(el.isConnected&&!el.firstChild&&el.dataset.ph)el.innerHTML=portrait(+el.dataset.ph,null,1)}),{rootMargin:"400px 0px"}):null;
 function renderAlbum(){
-  const box=$("album");box.innerHTML="";let have=0;
+  const box=$("album");box.innerHTML="";let have=0;const BY=new Map();for(const c of S.cards){const L=BY.get(c.h);if(L)L.push(c);else BY.set(c.h,[c])}   // за один проход, а не filter на каждого героя
   HEROES.forEach((H,i)=>{if(!inAlbum(i))return;
-    const mine=S.cards.filter(c=>c.h===i),got=mine.length>0;if(got)have++;
+    const mine=BY.get(i)||[],got=mine.length>0;if(got)have++;
     const d=document.createElement("div");d.className="slot "+(got?"have":"empty");d.style.setProperty("--hc",HT[H[2]].c);
     const fins=[...new Set(mine.map(c=>c.f))].sort();
     if(got){const best=[...mine].sort((a,b)=>b.v-a.v)[0];d.innerHTML=miniSlot(best)+(mine.length>1?`<span class="cnt">×${mine.length}</span>`:"");d.onclick=()=>openCardView(best,{mine:true});box.appendChild(d);return}
-    d.innerHTML=`<span class="n">${String(i+1).padStart(2,"0")}</span><span class="e">${portrait(i,null,1)}</span><small></small>`;
+    d.innerHTML=`<span class="n">${String(i+1).padStart(2,"0")}</span><span class="e" data-ph="${i}"></span><small></small>`;if(phIO)phIO.observe(d.querySelector(".e"));else d.querySelector(".e").innerHTML=portrait(i,null,1);
     d.querySelector("small").textContent="???";box.appendChild(d)});
   const b=$("al-dup");if(b)b.onclick=()=>{const by={};S.cards.forEach(c=>{if(sellableUI(c)&&c.f===0&&HEROES[c.h][2]<=1)(by[c.h]=by[c.h]||[]).push(c)});
     setTab("col");colPick=true;colSel.clear();Object.values(by).forEach(a=>a.sort((x,y)=>y.v-x.v).slice(1).forEach(c=>colSel.add(c.id)));renderCol();if(!colSel.size&&typeof toast=="function")toast("Лишних обычных и редких дублей нет")};
@@ -1059,29 +1074,55 @@ function renderCol(){
   if(colView==="beauty"){renderBeauty();return}
   if(colView==="merge"){renderMerge();return}
   $("col-sort").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===colSort));
-  const box=$("col");box.innerHTML="";box.className="cgrid2";
-  if(!S.cards.length){box.className="list";box.innerHTML='<div class="empty-msg">Тут пока пусто. Открой первую карточку на вкладке «Крутить»</div>';return}
+  const box=$("col");colBind(box);
+  const clearTiles=()=>{box.querySelectorAll(":scope>.tl2").forEach(e=>e.remove());colPager(0,1)};
+  if(!S.cards.length){clearTiles();box.className="list";colMsg(box,'Тут пока пусто. Открой первую карточку на вкладке «Крутить»');return}
   const pw=c=>[0,1,2,3,4].reduce((a,i)=>a+(c.stats?eff(c,i):0),0),tier=c=>HEROES[c.h][2];
   const cmp={v:(a,b)=>b.v-a.v,r:(a,b)=>tier(b)-tier(a)||b.v-a.v,f:(a,b)=>b.f-a.f||b.v-a.v,n:(a,b)=>(b.created||0)-(a.created||0)||String(b.id).localeCompare(String(a.id)),p:(a,b)=>pw(b)-pw(a)}[colSort];
-  const NEWT=Date.now()-864e5,isNew=c=>(c.created||0)>NEWT,fq=(colQ||"").toLowerCase(),fl=[...S.cards].filter(c=>{if(fq&&!HEROES[c.h][0].toLowerCase().includes(fq))return false;const F=colF;
+  const NEWT=Date.now()-864e5,isNew=c=>(c.created||0)>NEWT,fq=(colQ||"").toLowerCase(),fl=S.cards.filter(c=>{if(fq&&!HEROES[c.h][0].toLowerCase().includes(fq))return false;const F=colF;
     return F==="all"||(F==="new"&&isNew(c))||(F[0]==="r"&&F.length===2&&tier(c)===+F[1])||(F==="err"&&(c.f===4||c.f===8))||(F==="gem"&&((S.gsock||{})[c.id]||[]).length)});
   {const n=$("cf-n");if(n)n.textContent=fl.length===S.cards.length?"":"Показано "+fl.length+" из "+S.cards.length}
-  if(!fl.length){box.className="list";box.innerHTML='<div class="empty-msg">Под фильтр ничего не подошло</div>';return}
-  fl.sort((a,b)=>(isNew(b)-isNew(a))||cmp(a,b)).forEach(c=>{const t=tier(c),el=document.createElement("div");el.className="tl2"+(t===3?" leg":t===4?" myth":"")+(isNew(c)?" isnew":"");el.style.setProperty("--c",HT[t].c);
-    el.innerHTML=`${isNew(c)?'<span class="nwb">NEW</span>':""}<span class="rb">${tierOf(c.h).k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
-    const cb=el.querySelector(".cbtn");cb.setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");cb.onclick=()=>openCardView(c,{mine:true});
-    if(colPick){const ok=sellableUI(c);el.classList.add(ok?"pick":"nopick");if(colSel.has(c.id))el.classList.add("sel");
-      el.insertAdjacentHTML("beforeend",'<span class="pk">'+(colSel.has(c.id)?"✓":"")+'</span>');
-      el.onclick=e=>{e.stopPropagation();if(!ok){toast(c.listed?"Карточка на рынке":away(c)?"Карточка занята":"Эту карточку нельзя продать системе");return}if(colSel.has(c.id))colSel.delete(c.id);else colSel.add(c.id);sfx.tick&&sfx.tick();renderCol()};
-      el.querySelectorAll("button").forEach(b=>b.onclick=null)}
-    if(c.part&&!colPick&&!away(c)&&compHave(c.h).ok){el.classList.add("cmp-rdy");const ab=document.createElement("button");ab.type="button";ab.className="asmb";ab.textContent="🧩 Собрать";ab.onclick=async e=>{e.stopPropagation();hap("medium");ab.disabled=true;if(typeof compGo==="function"&&await compGo(c.h))renderCol();else ab.disabled=false};el.appendChild(ab)}
-    else if(canForge(c)){const fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";cb.appendChild(fb)}
-    const m=el.querySelector(".more");
-    if(away(c)){m.textContent=c.listed?"🏷":c.lock?"⚔️":"🧭";m.title=c.listed?"На рынке":c.lock?"В бою на арене":"В походе"}else if(FIN[c.f].excl){m.textContent="🏆";m.title="Трофей"}
-    if(!colPick)m.onclick=()=>cardMenu(c);box.appendChild(el)});
+  if(!fl.length){clearTiles();box.className="list";colMsg(box,"Под фильтр ничего не подошло");return}
+  colMsg(box,"");box.className="cgrid2"+(colPick?" colpick":"");
+  fl.sort((a,b)=>(isNew(b)-isNew(a))||cmp(a,b));
+  /* ⚡ страница из 30 карточек: в DOM только она; плитки переиспользуются по id (уже нарисованные мини не перерисовываются) */
+  const pages=Math.ceil(fl.length/COL_PER),p=Math.min(COL_PG.p,pages-1);COL_PG.p=p;const page=fl.slice(p*COL_PER,(p+1)*COL_PER);
+  COL_CM.clear();page.forEach(c=>COL_CM.set(String(c.id),c));
+  const keep=new Set(),tiles=page.map(c=>{const t=tier(c),nw=isNew(c),gs=(S.gsock||{})[c.id],k=JSON.stringify(c)+"|"+(gs?gs.join():"")+"|"+nw;
+    let E=COLT.get(String(c.id));if(E&&E.k===k){COLT.delete(String(c.id));COLT.set(String(c.id),E)}else{if(E)E.el.remove();E={k,el:colTile(c,t,nw)};COLT.set(String(c.id),E)}
+    colExtras(E.el,c);keep.add(E.el);return E.el});
+  box.querySelectorAll(":scope>.tl2").forEach(e=>{if(!keep.has(e))e.remove()});
+  tiles.forEach((el,i)=>{const want=i?tiles[i-1].nextElementSibling:box.querySelector(":scope>.tl2");if(el!==want)box.insertBefore(el,i?tiles[i-1].nextSibling:want)});
+  if(COLT.size>COL_PER*3){for(const [id,E] of COLT){if(COLT.size<=COL_PER*3)break;if(!E.el.isConnected)COLT.delete(id)}}
+  colPaint();colPager(p,pages,fl.length);
   colBar();$("col-pick").textContent=colPick?"✖ Отменить выбор":"☑️ Выбрать";
 }
-$("col-pick").onclick=()=>{colPick=!colPick;colSel.clear();renderCol()};
+/* плитка коллекции: строится один раз на карточку; обработчики — один делегированный на весь список */
+const COL_PER=30,COL_PG={p:0},COLT=new Map(),COL_CM=new Map();
+function colTile(c,t,nw){const el=document.createElement("div");el.className="tl2"+(t===3?" leg":t===4?" myth":"")+(nw?" isnew":"");el.dataset.id=c.id;el.style.setProperty("--c",HT[t].c);
+  el.innerHTML=`${nw?'<span class="nwb">NEW</span>':""}<span class="rb">${tierOf(c.h).k.toUpperCase()}</span>${c.f?`<span class="fb">${FIN[c.f].k}</span>`:""}<button type="button" class="cbtn">${miniSlot(c)}</button><div class="pp"><b class="num">${fmtC(c.v)}</b><button type="button" class="more" aria-label="Действия">⋯</button></div>`;
+  el.querySelector(".cbtn").setAttribute("aria-label",HEROES[c.h][0]+", рассмотреть и закалить");
+  const m=el.querySelector(".more");if(away(c)){m.textContent=c.listed?"🏷":c.lock?"⚔️":"🧭";m.title=c.listed?"На рынке":c.lock?"В бою на арене":"В походе"}else if(FIN[c.f].excl){m.textContent="🏆";m.title="Трофей"}return el}
+/* то, что зависит от остальной коллекции (можно собрать / закалить), проверяем каждый раз — это дёшево */
+function colExtras(el,c){const asm=!!(c.part&&!away(c)&&compHave(c.h).ok),fg=!asm&&canForge(c);el.classList.toggle("cmp-rdy",asm);
+  let ab=el.querySelector(":scope>.asmb");if(asm&&!ab){ab=document.createElement("button");ab.type="button";ab.className="asmb";ab.textContent="🧩 Собрать";el.appendChild(ab)}else if(!asm&&ab)ab.remove();
+  const cb=el.querySelector(".cbtn");let fb=cb.querySelector(".forgeb");if(fg&&!fb){fb=document.createElement("span");fb.className="forgeb";fb.textContent="⭐ Можно закалить";cb.appendChild(fb)}else if(!fg&&fb)fb.remove()}
+/* «Выбрать»: тап меняет только класс плитки и панель снизу, без перестройки списка */
+function colPaint(){const box=$("col");if(!box)return;box.classList.toggle("colpick",colPick);box.querySelectorAll(":scope>.tl2").forEach(el=>{const c=COL_CM.get(el.dataset.id);if(!c)return;
+  const ok=sellableUI(c),on=colPick&&colSel.has(c.id);el.classList.toggle("pick",colPick&&ok);el.classList.toggle("nopick",colPick&&!ok);el.classList.toggle("sel",on);
+  let pk=el.querySelector(":scope>.pk");if(colPick&&!pk){pk=document.createElement("span");pk.className="pk";el.appendChild(pk)}else if(!colPick&&pk)pk.remove();if(pk)pk.textContent=on?"✓":""})}
+function colMsg(box,txt){let m=box.querySelector(":scope>.empty-msg");if(!txt){if(m)m.remove();return}if(!m){m=document.createElement("div");m.className="empty-msg";box.appendChild(m)}m.textContent=txt}
+function colPager(p,n,total){const box=$("col");["pg-col","pgt-col"].forEach((id,top)=>{let b=$(id);if(n<=1){if(b)b.remove();return}
+  if(!b){b=document.createElement("div");b.id=id;b.className="pgbar";if(top)box.before(b);else box.after(b);
+    b.onclick=e=>{const x=e.target.closest("[data-pg]");if(!x||x.disabled)return;COL_PG.p=Math.max(0,COL_PG.p+(+x.dataset.pg));try{hap("light")}catch(_){}renderCol();const t=box.getBoundingClientRect().top+scrollY-120;scrollTo({top:Math.max(0,t)})}}
+  b.innerHTML='<button type="button" data-pg="-1"'+(p?"":" disabled")+'>◀</button><span><b>'+(p+1)+'</b> / '+n+'<small>карты '+(p*COL_PER+1)+'–'+Math.min(total,(p+1)*COL_PER)+' из '+total+'</small></span><button type="button" data-pg="1"'+(p<n-1?"":" disabled")+'>▶</button>'})}
+function colBind(box){if(box._bound)return;box._bound=1;box.addEventListener("click",async e=>{const el=e.target.closest(".tl2");if(!el||el.parentElement!==box)return;const c=COL_CM.get(el.dataset.id);if(!c)return;
+  if(colPick){e.stopPropagation();if(!sellableUI(c)){toast(c.listed?"Карточка на рынке":away(c)?"Карточка занята":"Эту карточку нельзя продать системе");return}
+    if(colSel.has(c.id))colSel.delete(c.id);else colSel.add(c.id);sfx.tick&&sfx.tick();colPaint();colBar();return}
+  const ab=e.target.closest(".asmb");if(ab){e.stopPropagation();hap("medium");ab.disabled=true;if(typeof compGo==="function"&&await compGo(c.h))renderCol();else ab.disabled=false;return}
+  if(e.target.closest(".more")){cardMenu(c);return}
+  if(e.target.closest(".cbtn"))openCardView(c,{mine:true})})}
+$("col-pick").onclick=()=>{colPick=!colPick;colSel.clear();colPaint();colBar();$("col-pick").textContent=colPick?"✖ Отменить выбор":"☑️ Выбрать"};
 /* меню «⋯»: рассмотреть или продать — чтобы не продать карточку случайным нажатием */
 function cardMenu(c){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;const busy=away(c),tro=FIN[c.f].excl;
   sh.innerHTML='<div class="box nickbox cmenu"><div class="sellprev"></div><h3></h3><button type="button" class="craftbtn" id="cm-view">'+(c.part?'🧩 Собрать воина':'🔍 Рассмотреть и закалить')+'</button><button type="button" class="ghost cm-num" id="cm-num">✍️ Свой номер на карточке</button>'+(busy||tro?'<p class="cm-note"></p>':'<button type="button" class="linkbtn" id="cm-sell"></button>')+'<button type="button" class="ghost" id="cm-x">Закрыть</button></div>';
