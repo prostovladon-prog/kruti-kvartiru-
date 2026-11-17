@@ -3741,9 +3741,30 @@ async function setup(env,origin){const out={};
   const ok=Object.values(out).every(r=>r&&r.ok);
   return new Response((ok?"✅ Готово! Бот настроен: приветствие, описание, команды и кнопка «Играть».":"⚠️ Не всё получилось, подробности ниже. Если ошибка про токен, проверь секрет BOT_TOKEN.")+"\n\n"+Object.entries(out).map(([k,v])=>k+": "+(v&&v.ok?"ok":JSON.stringify(v))).join("\n"),{headers:{"Content-Type":"text/plain; charset=utf-8"}});
 }
+/* 🛡 модерация @voinyepohchat нашим ботом: мат, чужие ссылки и пересылки — удалить + предупреждение; 3 за сутки — мут 24 ч; флуд — мут 10 мин */
+const MOD_BAD=/(^|[^а-яёa-z])(на|по|за|от|вы|при|про|у|до|раз|пере|съ|въ|долбо|хит(ро)?|недо)?(ху[йяеёию]|пизд|бля[дт ь]|бля$|[её]б[аеиуо]?[нлтшрк]|[её]бну|[её]б$|сук[аио]|суч[кь]|муда[кч]|мудил|пид[оае]р|залуп|гандон|шлюх|дроч)/i,
+  MOD_OK=/(t\.me|telegram\.me)\/(voinyepoh(bot|chat)?|VoinyEpohBot)\b|77-221-147-102\.sslip\.io|prostovladon-prog\.github\.io/i;
+const modW=new Map(),modF=new Map();let modAd=null,modAdT=0;
+async function modAdmins(env,chat){if(modAd&&Date.now()-modAdT<6e5)return modAd;const r=await tgApi(env,"getChatAdministrators",{chat_id:chat});modAd=new Set((r.result||[]).map(x=>x.user&&x.user.id));modAdT=Date.now();return modAd}
+async function modChat(env,m){const chat=m.chat.id,u=m.from;if(!u||u.is_bot&&u.username!=="GroupAnonymousBot"||m.sender_chat||m.is_automatic_forward||ADMINS.includes(u.id))return;
+  if((await modAdmins(env,chat)).has(u.id))return;
+  const now=Date.now(),nm=(u.first_name||"игрок").slice(0,24),mute=async(sec,why)=>{await tgApi(env,"restrictChatMember",{chat_id:chat,user_id:u.id,permissions:{can_send_messages:false},until_date:Math.floor(now/1e3)+sec});
+    const r=await tgApi(env,"sendMessage",{chat_id:chat,text:"🔇 "+nm+" — мут на "+(sec>=86400?"сутки":Math.round(sec/60)+" мин")+": "+why});if(r.ok)setTimeout(()=>tgApi(env,"deleteMessage",{chat_id:chat,message_id:r.result.message_id}).catch(()=>{}),60e3)};
+  // флуд: больше 6 сообщений за 8 секунд
+  const F=(modF.get(u.id)||[]).filter(t=>now-t<8e3);F.push(now);modF.set(u.id,F);if(F.length>6){modF.delete(u.id);return mute(600,"флуд")}
+  const text=String(m.text||m.caption||""),ents=[...(m.entities||[]),...(m.caption_entities||[])];
+  const links=ents.filter(e=>e.type==="url"||e.type==="text_link").map(e=>e.type==="text_link"?e.url:text.substr(e.offset,e.length));
+  const fwd=m.forward_origin&&(m.forward_origin.type==="channel"||m.forward_origin.type==="chat")&&!/^voinyepoh/i.test((m.forward_origin.chat||m.forward_origin.sender_chat||{}).username||"");
+  const why=MOD_BAD.test(text.replace(/ё/gi,"е").toLowerCase().replace(/[^а-яa-z0-9\s]/g," "))||MOD_BAD.test(text.toLowerCase())?"мат":links.some(l=>!MOD_OK.test(l))||/(^|\s)@\w{4,}bot\b/i.test(text)&&!/@VoinyEpohBot/i.test(text)?"чужие ссылки и реклама":fwd?"пересылка из чужих каналов":"";
+  if(!why)return;await tgApi(env,"deleteMessage",{chat_id:chat,message_id:m.message_id});
+  const W=(modW.get(u.id)||[]).filter(t=>now-t<864e5);W.push(now);modW.set(u.id,W);
+  if(W.length>=3){modW.delete(u.id);return mute(86400,"3 предупреждения")}
+  const r=await tgApi(env,"sendMessage",{chat_id:chat,text:"⚠️ "+nm+", тут нельзя: "+why+". Предупреждение "+W.length+"/3 — на третьем мут на сутки"});
+  if(r.ok)setTimeout(()=>tgApi(env,"deleteMessage",{chat_id:chat,message_id:r.result.message_id}).catch(()=>{}),30e3)}
 async function onUpdate(env,upd){
   if(upd.pre_checkout_query)return preCheckout(env,upd.pre_checkout_query);
   if(upd.message&&upd.message.successful_payment&&upd.message.from)return paidUpdate(env,upd.message.from.id,upd.message.successful_payment);
+  {const g=upd.message;if(g&&g.chat&&(g.chat.type==="supergroup"||g.chat.type==="group")&&String(g.chat.username||"").toLowerCase()===CHAT.slice(1).toLowerCase()){try{await modChat(env,g)}catch(e){console.error("mod",e&&e.message)}return}}
   const m=upd.message;if(!m||!m.chat||m.chat.type!=="private"||!m.from)return;
   const text=String(m.text||""),[cmd,arg]=text.split(/\s+/),name=String(m.from.first_name||"воин").slice(0,32);
   const play=(t,url)=>({inline_keyboard:[[{text:t,web_app:{url:url||PAGE}}],[{text:"📣 Канал игры",url:"https://t.me/"+CHANNEL.slice(1)}]]});
