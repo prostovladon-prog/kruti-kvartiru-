@@ -65,7 +65,7 @@ function gemDraw(){const sh=$("msheet"),H=S.gsh||{},I=S.gems||{},d=today(Date.no
   sh.querySelectorAll(".gbx-go").forEach(b=>b.onclick=()=>{closeModal();buyItem({item:b.dataset.k,el:GEMV.el||"f"})});
   sh.querySelectorAll(".gem-go").forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await act("gem_roll",{k:b.dataset.k});if(r)toast(r.ok?"💎 ВЫБИЛ! "+gemName(r.g):"Не повезло… вернулось "+GEM.cost.back+" осколков");gemDraw()});
   sh.querySelectorAll(".gem-up").forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await act("gem_up",{g:b.dataset.g});if(r)toast(r.ok?"⬆️ Получилось: "+gemName(r.g):"Не вышло, сгорел 1 гем");gemDraw()});
-  sh.querySelectorAll("select[data-put]").forEach(x=>x.onchange=async()=>{if(!x.value)return;await act("gem_put",{id:+x.dataset.put||x.dataset.put,g:x.value});gemDraw()});
+  sh.querySelectorAll("select[data-put]").forEach(x=>x.onchange=async()=>{if(!x.value)return;await act("gem_put",{id:+x.dataset.put||x.dataset.put,g:x.value});try{renderAll()}catch(e){}gemDraw()});
   sh.querySelectorAll("[data-pull]").forEach(b=>b.onclick=async()=>{if(!confirm("Вынуть гем за "+fmtC(GEM.pull.cash).replace(/<[^>]+>/g,"")+"? С шансом "+Math.round(GEM.pull.brk*100)+"% он разобьётся."))return;const r=await act("gem_pull",{id:+b.dataset.pull||b.dataset.pull,i:+b.dataset.i});if(r)toast(r.brk?"💥 Гем разбился":"Гем вернулся в сумку");gemDraw()})}
 /* гемы влияют на силу карт и на клиенте */
 {const _ra=renderAll;renderAll=function(){try{if(S&&S.cards)gemAnn(S,S.cards)}catch(e){}return _ra.apply(this,arguments)}}

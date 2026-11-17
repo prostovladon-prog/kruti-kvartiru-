@@ -2452,7 +2452,7 @@ async function renderRk(force){const box=$("rk-box");if(!box)return;if(!ONLINE){
   if(I.active&&!rkMatch)rkOpen(I.active);else if(I.queued&&!rkMatch&&!$("rkm"))rkSearch(I.queued)}
 $("rk-go").onclick=()=>rkPick();
 function rkPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  const list=S.cards.filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>wclass(b.h)-wclass(a.h)||rkPower(b)-rkPower(a));
+  try{gemAnn(S,S.cards)}catch(e){}const list=S.cards.filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>rkPower(b)-rkPower(a));   /* сильнейшие (с гемами) — первыми */
   sh.innerHTML='<div class="box nickbox"><h3>Выбери воина для рейтингового боя</h3><p class="rkpn">Соперник будет из той же весовой категории</p><div class="pkg rkpk">'+list.map(c=>'<button type="button" class="pki" data-id="'+c.id+'">'+miniSlot(c)+'<span class="rkwc">'+WC_IC[wclass(c.h)]+'</span>'+(rkTiredC(c)?'<span class="rktd">😮‍💨</span>':"")+'<small>'+abil(c.h)[0]+" "+abil(c.h)[1]+'</small></button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
   $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=async e=>{const b=e.target.closest("[data-id]");if(!b)return;const c=S.cards.find(x=>String(x.id)===b.dataset.id);if(!c)return;closeModal();rkStart(c)}}
 async function rkStart(c){if(rkBusy)return;rkBusy=true;try{rkLastCard=c.id;const r=await act("rk_find",{id:c.id});if(!r)return;rkInfo=null;if(r.match)rkOpen(r.match);else rkSearch(r.queued)}finally{rkBusy=false}}
