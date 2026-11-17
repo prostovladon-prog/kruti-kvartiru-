@@ -142,6 +142,9 @@ async function ensureSchema(env){if(schemaOk)return;
   try{await env.DB.prepare("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)").run();
     await env.DB.prepare("INSERT INTO kv(k,v) VALUES('schema_v',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").bind(String(SCHEMA_V)).run()}catch(e){}
   schemaOk=true}
+/* 💎 гемы лежат в state.gsock владельца — подкладываем их в карточку для любых боёв */
+async function gsockOf(env,uid){try{const u=await env.DB.prepare("SELECT json_extract(state,'$.gsock') AS g FROM users WHERE id=?").bind(uid).first();return u&&u.g?JSON.parse(u.g):{}}catch(e){return {}}}
+async function withGems(env,uid,c){try{if(c&&uid){const u=await env.DB.prepare("SELECT json_extract(state,'$.gsock') AS g FROM users WHERE id=?").bind(uid).first();const g=u&&u.g?(JSON.parse(u.g)[c.id]||[]):[];if(g.length)c.gm=g}}catch(e){}return c}
 function rowToCard(r){return {id:r.id,h:r.h,f:r.f,no:r.no,sn:r.sn,hue:r.hue,v:r.v,stats:JSON.parse(r.stats),xp:r.xp,wins:r.wins,stars:r.stars||0,frame:r.frame,part:r.part||0,cust:r.nice===2?1:0,
   away:r.away,dest:r.dest,listed:r.list_price!=null?1:0,listPrice:r.list_price||0,lock:r.room_id?1:0}}
 const pub=c=>({id:c.id,h:c.h,f:c.f,no:c.no,sn:c.sn,hue:c.hue,v:c.v,stats:c.stats,xp:c.xp,wins:c.wins,stars:c.stars||0,frame:c.frame,part:c.part||0,cust:c.cust?1:0});
@@ -866,7 +869,7 @@ function roomView(r,uid){
 async function myRoom(env,uid){return env.DB.prepare("SELECT * FROM rooms WHERE (host=? OR guest=?) AND phase IN ('open','p0','s0','p1','s1','s2') ORDER BY id DESC LIMIT 1").bind(uid,uid).first()}
 async function arenaCard(env,me,id){
   const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(id|0,me.id).first();
-  if(!c)fail("Эту карточку нельзя взять в бой: она на рынке, в походе или уже в бою");if(FIN[c.f]&&FIN[c.f].excl)fail("«Основатель» — трофей, в боях не участвует");if(c.part)fail("Половинка не воюет. Собери целого воина");return rowToCard(c)}
+  if(!c)fail("Эту карточку нельзя взять в бой: она на рынке, в походе или уже в бою");if(FIN[c.f]&&FIN[c.f].excl)fail("«Основатель» — трофей, в боях не участвует");if(c.part)fail("Половинка не воюет. Собери целого воина");return withGems(env,me.id,rowToCard(c))}
 async function arena(env,me,a,p){
   const now=Date.now();
   if(a==="arena_list"){
@@ -920,7 +923,7 @@ async function rkUser(env,uid){const u=await env.DB.prepare("SELECT id,COALESCE(
 const rkTired=(st,id,now)=>{const f=((st||{}).fat||{})[id];return !!(f&&f.n>=FAT_N&&now-f.t<FAT_MS)};
 async function rkActive(env,uid){return env.DB.prepare("SELECT * FROM rm WHERE (a=? OR (b=? AND ghost=0)) AND phase<>'done' ORDER BY id DESC LIMIT 1").bind(uid,uid).first()}
 async function rkCardOf(env,uid,id){const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(id|0,uid).first();
-  if(!c)fail("Эту карточку нельзя взять в бой: она на рынке, в походе или уже в бою");if(FIN[c.f]&&FIN[c.f].excl)fail("«Основатель» — трофей, в боях не участвует");if(c.part)fail("Половинка не воюет. Собери целого воина");return rowToCard(c)}
+  if(!c)fail("Эту карточку нельзя взять в бой: она на рынке, в походе или уже в бою");if(FIN[c.f]&&FIN[c.f].excl)fail("«Основатель» — трофей, в боях не участвует");if(c.part)fail("Половинка не воюет. Собери целого воина");return withGems(env,uid,rowToCard(c))}
 /* создать бой; карточки блокируются (room_id = −id боя) */
 async function rkCreate(env,A,B,ghost){const now=Date.now(),wa=wclass(A.card.h),wb=wclass(B.card.h),under={a:wa<wb?1:0,b:wb<wa?1:0};
   const S=rkInit(A.card,B.card,{a:{tired:A.tired,under:under.a},b:{tired:B.tired,under:under.b}});
@@ -972,7 +975,7 @@ async function rkMatchSearch(env,me,q,wide){const now=Date.now();
 async function rkGhost(env,me,q){const now=Date.now(),hs=HEROES.map((H,i)=>i).filter(i=>wclass(i)===q.wc&&!HEROES[i][4].collab);
   const r=await env.DB.prepare(`SELECT c.*,COALESCE(u.nick,u.name) AS owner_name,u.rating AS orating FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND c.owner<>? AND c.part=0 AND c.f<>5 AND NOT (c.f=4 AND c.sn='000010') AND c.h IN (${hs.join(",")}) ORDER BY ABS(COALESCE(u.rating,0)-?)+ABS(RANDOM()%400) LIMIT 1`).bind(me.id,q.rating).first();
   const mu=await rkUser(env,me.id),mc=await rkCardOf(env,me.id,q.card);
-  const oc=r?rowToCard(r):phantom(hs[Math.floor(Math.random()*hs.length)],0);
+  const oc=r?await withGems(env,r.owner,rowToCard(r)):phantom(hs[Math.floor(Math.random()*hs.length)],0);
   return rkCreate(env,{uid:me.id,name:mu.name,card:mc,tired:rkTired(rj(mu.state,{}),mc.id,now)},{uid:r?r.owner:0,name:r?(r.owner_name||"Игрок"):"Тень воина",card:oc,tired:false},true)}
 async function rkTop(env){return cached("rktop",15e3,async()=>(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,rating FROM users WHERE rating>0 AND rk_season=? ORDER BY rating DESC LIMIT 20").bind(seasonOf(Date.now())).all()).results.filter(r=>!isAdmin(env,r.id)))}
 async function rkApi(env,me,a,p){const now=Date.now();
@@ -1100,7 +1103,7 @@ async function tourMatchRoom(env,T,m){const now=Date.now(),P=async u=>env.DB.pre
   if(!ca||!cb){await env.DB.prepare("UPDATE tour_matches SET winner=? WHERE id=?").bind(ca||!cb?m.a:m.b,m.id).run();return}   // нет карточки — техническое поражение
   const code=Math.random().toString(36).slice(2,8);
   await env.DB.prepare("INSERT INTO rooms(code,priv,mode,host,host_name,hc,guest,guest_name,gc,phase,until,created,updated,tour) VALUES(?,1,0,?,?,?,?,?,?,'p0',?,?,?,?)")
-    .bind(code,m.a,pa.name,JSON.stringify(rowToCard(ca)),m.b,pb.name,JSON.stringify(rowToCard(cb)),now+FIRST_PICK_MS,now,now,T.id).run();
+    .bind(code,m.a,pa.name,JSON.stringify(await withGems(env,m.a,rowToCard(ca))),m.b,pb.name,JSON.stringify(await withGems(env,m.b,rowToCard(cb))),now+FIRST_PICK_MS,now,now,T.id).run();
   const r=await env.DB.prepare("SELECT id FROM rooms WHERE tour=? AND host=? AND guest=? ORDER BY id DESC LIMIT 1").bind(T.id,m.a,m.b).first();
   await env.DB.batch([env.DB.prepare("UPDATE cards SET room_id=? WHERE id IN (?,?)").bind(r.id,ca.id,cb.id),env.DB.prepare("UPDATE tour_matches SET room=? WHERE id=?").bind(r.id,m.id)]);
   const rn=["","1/32","1/16","1/8","1/4","полуфинал","финал"],left=await env.DB.prepare("SELECT COUNT(*) AS n FROM tour_matches WHERE tour=? AND round=?").bind(T.id,m.round).first();
@@ -1781,7 +1784,7 @@ if(now>D.end+864e5||D.end<LOT.first)return;
   finally{lotBusy=false}}
 async function alMate(env,uid){const r=await env.DB.prepare("SELECT mate FROM ally WHERE uid=?").bind(uid).first();return r?r.mate:0}
 async function alBest(env,uid){const R=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND COALESCE(away,0)=0 ORDER BY v DESC LIMIT 60").bind(uid).all()).results;let best=null,bp=0;
-  for(const row of R){const c=rowToCard(row);if(FIN[c.f]&&FIN[c.f].excl)continue;if(c.part)continue;let s=0;for(let i=0;i<5;i++)s+=eff(c,i)||0;if(s>bp){bp=s;best=c}}return {c:best?pub(best):null,pw:bp}}
+  const GS=await gsockOf(env,uid);for(const row of R){const c=rowToCard(row);if(GS[c.id]&&GS[c.id].length)c.gm=GS[c.id];if(FIN[c.f]&&FIN[c.f].excl)continue;if(c.part)continue;let s=0;for(let i=0;i<5;i++)s+=eff(c,i)||0;if(s>bp){bp=s;best=c}}return {c:best?pub(best):null,pw:bp}}
 async function alPair(env,a,b,now){await env.DB.prepare("DELETE FROM ally_q WHERE uid IN (?,?)").bind(a,b).run();await env.DB.prepare("INSERT OR REPLACE INTO ally(uid,mate,t) VALUES(?,?,?),(?,?,?)").bind(a,b,now,b,a,now).run()}
 async function alApi(env,me,a,p){const now=Date.now();
   if(a==="al_get"){const m=await alMate(env,me.id);const q=m?null:await env.DB.prepare("SELECT t FROM ally_q WHERE uid=?").bind(me.id).first();const my=await alBest(env,me.id);
@@ -1817,7 +1820,7 @@ async function mapAlAttack(env,me,rid,now){const m=await alMate(env,me.id);if(!m
   return {ally:1,won:win,rid,pa,pb,ch:Math.round(ch*100),rounds,me:{c:A1.c,pw:A1.pw},mate:{c:A2.c,pw:A2.pw},opp}}
 /* ⚔️ Война армий */
 async function warArmy(env,uid){const R=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 120").bind(uid).all()).results;const A=[];
-  for(const r of R){const c=rowToCard(r);if(!FIN[c.f]||FIN[c.f].excl||c.part)continue;A.push({c,p:cardPow(c)})}A.sort((a,b)=>b.p-a.p);return A.slice(0,WAR.army)}
+  const GS=await gsockOf(env,uid);for(const r of R){const c=rowToCard(r);if(GS[c.id]&&GS[c.id].length)c.gm=GS[c.id];if(!FIN[c.f]||FIN[c.f].excl||c.part)continue;A.push({c,p:cardPow(c)})}A.sort((a,b)=>b.p-a.p);return A.slice(0,WAR.army)}
 async function warInfo(env,uid,full){const u=await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,emp,glory,json_extract(state,'$.ava') AS ava,json_extract(state,'$.avfOn') AS avf,json_extract(state,'$.crest') AS crest,json_extract(state,'$.warSh') AS sh FROM users WHERE id=?").bind(uid).first();if(!u)return null;
   const A=full?await warArmy(env,uid):null;return {uid:u.id,name:u.name||"Игрок",emp:u.emp||0,glory:u.glory||0,ava:u.ava==null?null:+u.ava,avf:u.avf||null,crest:u.crest||null,sh:(u.sh||0)>Date.now()?1:0,army:A?A.map(x=>({c:pub(x.c),p:x.p})):undefined,ap:A?A.reduce((s,x)=>s+x.p,0):undefined}}
 async function warApi(env,me,a,p){const now=Date.now();const st=JSON.parse(((await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first())||{}).state||"{}");const lim=WAR.day+(st.warXD===today(now)?3:0),left=st.warD===today(now)?lim-(st.warN||0):lim;
