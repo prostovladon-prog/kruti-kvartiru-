@@ -52,6 +52,7 @@ function localCtx(){S.issued=S.issued||{};S.used=S.used||{};
 function issuedOfUI(h,f){if(FIN[f].run===Infinity)return 0;return ONLINE?((S.prints||{})[h+"-"+f]||0):localCtx().issuedOf(h,f)}
 
 /* ---------- действие игрока: локально или через сервер ---------- */
+let actNT=0;
 async function act(name,p){
   try{let out;
     if(ONLINE){
@@ -66,7 +67,7 @@ async function act(name,p){
     }
     (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!"+(STAR_LVL.includes(e.lv)?" Его можно закалить ★"+(STAR_LVL.indexOf(e.lv)+1)+" во вкладке «Мои»":""))});
     if(name==="open")setTimeout(()=>{if(S&&S.spins<=0)askPm()},4500);
-    news();fightNews();chatDot();showNotice();return out;
+    if(name!=="camp_tap"||NOW()-actNT>10000){actNT=NOW();news();fightNews();chatDot();showNotice()}return out;   // тапы лагеря шлются каждую секунду — новости по ним не чаще раза в 10 с
   }catch(e){if(!(e instanceof GameError))console.error(e);toast(e instanceof GameError?e.message:"Нет связи с сервером. Попробуй ещё раз");
     if(e instanceof GameError&&/^Коллекция заполнена|^У тебя полная коллекция/.test(e.message)&&typeof openCap==="function")setTimeout(()=>{if($("modal").hidden)openCap()},700);return null}
 }
@@ -1343,6 +1344,17 @@ function renderFree(){if(!S)return;
   const pw=cap>=5?"бесплатных прокруток":"бесплатные прокрутки";$("free-t").textContent=!S.refillAt?"Каждые 4 часа даётся "+cap+" "+pw+(cap>SPINS_MAX?" 👑":""):"Новые "+cap+" "+(cap>=5?"прокруток":"прокрутки")+" через "+leftTxt();$("open").classList.toggle("empty",n<=0);renderPromo();renderRare()}
 /* ---------- Тренировочный лагерь ---------- */
 let cpPend=0,cpFly=0,cpBusy=false,cpHp=null,cpLastT=-1;
+/* ⚡ лагерь без лагов: анимации перезапускаются без принудительной раскладки (класс снимаем сейчас, ставим в следующем кадре) */
+const reAnim=(el,c)=>{if(!el)return;el.classList.remove(c);(el._ra||(el._ra=new Set())).add(c);if(!el._raf)el._raf=requestAnimationFrame(()=>{el._raf=0;el._ra.forEach(x=>el.classList.add(x));el._ra.clear()})};
+/* тренер ищется один раз на коллекцию, а не на каждый тап */
+{const _ct=campTrainer,M=new WeakMap();campTrainer=function(cards){if(!cards||typeof cards!=="object")return _ct(cards);if(M.has(cards))return M.get(cards);const r=_ct(cards);M.set(cards,r);return r}}
+/* размеры арены и мишени читаются один раз и обновляются только при прокрутке/повороте экрана */
+let cpRect=null;const cpRects=()=>{if(!cpRect){const a=$("cp-ar"),g=$("cp-tg");cpRect={a:a.getBoundingClientRect(),g:g.getBoundingClientRect()}}return cpRect};
+addEventListener("scroll",()=>{cpRect=null},{passive:true});addEventListener("resize",()=>{cpRect=null});
+/* перерисовка лагеря — не чаще раза за кадр */
+let cpRaf=0;const campLater=()=>{if(!cpRaf)cpRaf=requestAnimationFrame(()=>{cpRaf=0;renderCamp(true)})};
+/* эффекты тапа: не больше N живых элементов, переиспользуются */
+const FXMAX={sp:24,fl:8,sl:4};
 const UP_IC={pw:"👊",en:"🔋",rg:"⏱",cr:"💥",sq:"🛡"};
 const TG_SVG=[
  `<rect x="94" y="150" width="12" height="100" rx="3" fill="#8a5a2b" stroke="#0d1030" stroke-width="4"/><rect x="58" y="238" width="84" height="16" rx="6" fill="#6b4420" stroke="#0d1030" stroke-width="4"/><rect x="38" y="92" width="124" height="16" rx="7" fill="#d9a441" stroke="#0d1030" stroke-width="4"/><ellipse cx="100" cy="128" rx="44" ry="52" fill="#f2c45a" stroke="#0d1030" stroke-width="5"/><path d="M70 112h60M68 132h64M72 152h56" stroke="#b5832e" stroke-width="3"/><circle cx="100" cy="54" r="34" fill="#f2c45a" stroke="#0d1030" stroke-width="5"/><circle cx="100" cy="126" r="17" fill="#fff" stroke="#e24b4a" stroke-width="5"/><circle cx="100" cy="126" r="6" fill="#e24b4a"/><path d="M86 48l8 8m0-8l-8 8M106 48l8 8m0-8l-8 8" stroke="#0d1030" stroke-width="4"/><path d="M88 72q12-8 24 0" stroke="#0d1030" stroke-width="4" fill="none"/>`,
@@ -1362,26 +1374,25 @@ function campView(){const C=S.camp||{runes:0,en:CAMP_E0,at:NOW(),lv:{pw:0,en:0,r
 function openCamp(){setTab("camp");cpHp=null;renderCamp();sfx.lock();loadCampTop(true)}
 async function campFlush(){if(cpBusy||cpPend<1)return;cpBusy=true;cpFly=cpPend;cpPend=0;const r=await act("camp_tap",{n:cpFly});cpFly=0;cpBusy=false;
   if(r){if(r.crits){campFloat("💥 КРИТ ×"+r.crits,"crit");campShake();hap("heavy")}if(r.chests){campShake();campFloat("📦 +"+fmtN(r.chestR),"chest");sfx.reveal(3);hapN("success");toast("Мишень разбита! Сундук: +"+fmtN(r.chestR)+" рун")}cpHp=null}
-  renderCamp()}
-function campFloat(t,cls,x,y){const ar=$("cp-ar");if(!ar)return;const f=document.createElement("div");f.className="cpf "+(cls||"");f.textContent=t;
-  const r=ar.getBoundingClientRect();f.style.left=(x!=null?x-r.left:r.width/2)+"px";f.style.top=(y!=null?y-r.top:r.height*.35)+"px";ar.append(f);setTimeout(()=>f.remove(),900)}
+  renderCamp(!(r&&r.chests))}   // полная пересборка блоков — только когда разбили мишень; иначе обновляем цифры
+function campFloat(t,cls,x,y){const ar=$("cp-ar");if(!ar)return;if(!cls&&ar.querySelectorAll(":scope>.cpf").length>=FXMAX.fl)return;const f=document.createElement("div");f.className="cpf "+(cls||"");f.textContent=t;
+  const r=cpRects().a;f.style.left=(x!=null?x-r.left:r.width/2)+"px";f.style.top=(y!=null?y-r.top:r.height*.35)+"px";ar.append(f);setTimeout(()=>f.remove(),900)}
 let cpCombo=0,cpLast=0,cpTrH=-2;
-function campFx(x,y,big){const ar=$("cp-ar"),r=ar.getBoundingClientRect(),lx=x-r.left,ly=y-r.top;
+function campFx(x,y,big){const ar=$("cp-ar"),r=cpRects().a,lx=x-r.left,ly=y-r.top;const nSl=ar.querySelectorAll(":scope>.cp-slash").length,nSp=ar.querySelectorAll(":scope>.cp-sp").length;if(nSl>=FXMAX.sl&&nSp>=FXMAX.sp)return;
   const sl=document.createElementNS("http://www.w3.org/2000/svg","svg");sl.setAttribute("viewBox","0 0 100 100");sl.setAttribute("class","cp-slash");sl.style.left=lx+"px";sl.style.top=ly+"px";sl.style.setProperty("--r",(Math.random()*120-60)+"deg");
-  sl.innerHTML='<path d="M8 70 Q50 -6 92 34" fill="none" stroke="#fff" stroke-width="'+(big?12:8)+'" stroke-linecap="round" opacity=".95"/><path d="M14 66 Q50 6 86 36" fill="none" stroke="#ffd60a" stroke-width="3" stroke-linecap="round"/>';ar.append(sl);setTimeout(()=>sl.remove(),300);
-  for(let i=0;i<(big?9:5);i++){const p=document.createElement("i");p.className="cp-sp";const a=Math.random()*Math.PI*2,d=30+Math.random()*(big?70:40);p.style.left=lx+"px";p.style.top=ly+"px";p.style.setProperty("--dx",Math.cos(a)*d+"px");p.style.setProperty("--dy",Math.sin(a)*d+"px");ar.append(p);setTimeout(()=>p.remove(),460)}}
-function campShake(){const a=$("cp-ar");a.classList.remove("shake");void a.offsetWidth;a.classList.add("shake")}
-function campHit(e){const V=campView();if(V.en<1){$("cp-tg").classList.remove("no");void $("cp-tg").offsetWidth;$("cp-tg").classList.add("no");hapN("error");
+  sl.innerHTML='<path d="M8 70 Q50 -6 92 34" fill="none" stroke="#fff" stroke-width="'+(big?12:8)+'" stroke-linecap="round" opacity=".95"/><path d="M14 66 Q50 6 86 36" fill="none" stroke="#ffd60a" stroke-width="3" stroke-linecap="round"/>';if(nSl<FXMAX.sl){ar.append(sl);setTimeout(()=>sl.remove(),300)}
+  for(let i=0;i<Math.min(big?9:5,FXMAX.sp-nSp);i++){const p=document.createElement("i");p.className="cp-sp";const a=Math.random()*Math.PI*2,d=30+Math.random()*(big?70:40);p.style.left=lx+"px";p.style.top=ly+"px";p.style.setProperty("--dx",Math.cos(a)*d+"px");p.style.setProperty("--dy",Math.sin(a)*d+"px");ar.append(p);setTimeout(()=>p.remove(),460)}}
+function campShake(){reAnim($("cp-ar"),"shake")}
+function campHit(e){const V=campView();if(V.en<1){reAnim($("cp-tg"),"no");hapN("error");
     $("cp-eh").textContent="Энергия кончилась. Полная через "+tleft(Math.ceil((1-V.en/V.mx)*V.full))+" — бот напомнит";return}
   cpPend++;const T=TARGETS[V.C.t];cpHp=(cpHp==null?V.C.hp:cpHp)-V.pw;if(cpHp<=0)cpHp=T.hp;
   const now=performance.now();cpCombo=now-cpLast<450?cpCombo+1:1;cpLast=now;const cb=$("cp-combo");
-  if(cpCombo>=5){$("cp-cbn").textContent="×"+cpCombo;cb.classList.add("on");cb.classList.remove("pop");void cb.offsetWidth;cb.classList.add("pop")}
-  const g=$("cp-tg");g.classList.remove("hit");void g.offsetWidth;g.classList.add("hit");
-  const h=$("cp-hero");h.classList.remove("atk");void h.offsetWidth;h.classList.add("atk");
-  const tr=g.getBoundingClientRect(),x=tr.left+tr.width*(.35+Math.random()*.3),y=tr.top+tr.height*(.25+Math.random()*.35);
+  if(cpCombo>=5){$("cp-cbn").textContent="×"+cpCombo;cb.classList.add("on");reAnim(cb,"pop")}
+  const g=$("cp-tg");reAnim(g,"hit");reAnim($("cp-hero"),"atk");
+  const tr=cpRects().g,x=tr.left+tr.width*(.35+Math.random()*.3),y=tr.top+tr.height*(.25+Math.random()*.35);
   campFx(x,y,cpCombo>=10);campFloat("+"+String(V.pw).replace(".",","),"",x,y-20);hap(cpCombo>=10?"medium":"light");tone(140+Math.random()*80+Math.min(cpCombo,30)*6,.05,"square",.05);
   $("cp-tip").style.opacity=0;
-  if(cpPend>=25)campFlush();renderCamp(true)}
+  if(cpPend>=25)campFlush();campLater()}
 setInterval(()=>{if(performance.now()-cpLast>700&&$("cp-combo"))$("cp-combo").classList.remove("on")},300);
 function renderCamp(light){if(!S||$("sec-camp").hidden)return;const V=campView(),C=V.C,T=TARGETS[C.t];updCash();
   $("cp-ru").textContent=fmtN(V.runes);const tr=campTrainer(S.cards),tb=campBonus(S.cards);
@@ -2339,7 +2350,7 @@ function goSub(k){if(k==="camp")openCamp();else if(k==="prof")openShelf();else i
 function setTab(t){if(t!=="col"&&colPick){colPick=false;colSel.clear();colBar()}if(t!=="camp"&&$("sec-camp")&&!$("sec-camp").hidden)campFlush();["spin","duel","album","craft","shop","col","top","camp","gold","cas","prof","clan","conq","pass","quest","odds","dragon"].forEach(k=>{const e=$("sec-"+k);if(e)e.hidden=k!==t});
   const grp=GRP[t]||t,nv=["cas","gold","prof","quest","odds"].includes(grp)?"more":grp;["spin","cards","fight","clan","dragon","shop","more"].forEach(n=>{const b=$("tab-"+n);if(b)b.setAttribute("aria-selected",n===nv)});if(GRP[t])lastSub[grp]=t;drawSub(t);renderAll();scrollTo(0,0)}
 $("tab-spin").onclick=()=>setTab("spin");$("tab-gold").onclick=()=>openGold("chest");$("fchest").onclick=()=>openGold("chest");$("tab-cards").onclick=()=>setTab(lastSub.cards||"col");$("tab-fight").onclick=()=>goSub(lastSub.fight||"duel");$("tab-cas").onclick=()=>{if(typeof openCas==="function"&&ONLINE)openCas("rc");else setTab("cas")};$("tab-shop").onclick=()=>setTab("shop");$("tab-clan").onclick=()=>{try{menuClose()}catch(e){}goSub("clan")};$("tab-prof").onclick=()=>goSub(lastSub.prof||"prof");
-let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/ 🪙$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtK(V.runes);r.title=fmtN(V.runes)+" рун";if(lastRu>=0&&V.runes>lastRu){r.classList.remove("cash-pop");void r.offsetWidth;r.classList.add("cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
+let lastRu=-1;function updCash(){if(!S)return;const e=$("cash");e.textContent=fmtC(S.cash).replace(/ 🪙$/,"");e.title=fmt(S.cash);try{const V=campView(),r=$("cash-r");r.textContent=fmtK(V.runes);r.title=fmtN(V.runes)+" рун";if(lastRu>=0&&V.runes>lastRu){reAnim(r,"cash-pop")}lastRu=V.runes;$("camp-dot").hidden=!(V.en>=V.mx*.99||V.sq>=campSqRate(V.C)*SQ_HOURS*.99&&V.C.lv.sq)}catch(x){}}
 $("cash-rw").onclick=()=>openCamp();$("free-camp").onclick=()=>openCamp();
 function renderAll(){if(!S)return;updCash();{const on=!ONLINE||!!S.shopOn;$("gold-go").hidden=!on;$("gold-hdr").hidden=!on;$("tab-gold").hidden=!on;$("fchest").hidden=!on;document.querySelector("nav.tabs").classList.toggle("g9",on);
   $("fchest-t").textContent=S.newbie?"СУНДУКИ":"−50%"}if($("sec-camp")&&!$("sec-camp").hidden)renderCamp();if(!$("sec-album").hidden)renderAlbum();if(!$("sec-col").hidden)renderCol();if(!$("sec-craft").hidden&&!crBusy)renderCraft();if(!$("sec-duel").hidden)renderBattle();if(!$("sec-gold").hidden)renderGold();if(!$("sec-shop").hidden&&!(document.activeElement&&document.activeElement.tagName==="INPUT"))renderShop();if(!$("sec-album").hidden){renderAch();renderShow();renderFriends()}if(!$("sec-col").hidden)renderMerge();if(!$("sec-top").hidden)renderTop();renderTasks();renderFree();renderStreak();renderBonus();renderStory();renderPioneer();pioneerNews();renderFounder();founderNews();renderPm();renderWheel();if(!busy)setTimeout(forgeHint,1500);$("topup").hidden=ONLINE&&!S.test&&!S.admin}
