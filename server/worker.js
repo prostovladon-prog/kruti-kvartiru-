@@ -1074,7 +1074,7 @@ const ACTIONS={
     B.hits++;B.dmg=Math.min(BOSS.hp,B.dmg+dmg);team.forEach(c=>addXp(ctx,c,20));return {dmg,crit}},
   /* 🗺 эпохи: прокрутки + монеты + ЛЕГЕНДАРНАЯ карта (блестящая); кто собрал раньше — добирает легендарку; все эпохи — мифическая и титул */
   era_claim(G){const {st,ctx}=G;st.eras=st.eras||{};st.eraL=st.eraL||{};
-    if(G.p.k==="all"){if(st.eraAll)fail("Награда уже получена");if(!ERAS.every(x=>st.eras[x.k]))fail("Собери все эпохи");st.eraAll=1;st.spins=(st.spins||0)+ERA_ALL.sp;
+    if(G.p.k==="all"){if(st.eraAll)fail("Награда уже получена");if(!ERAS.every(x=>st.eras[x.k]))fail("Собери все эпохи");st.eraAll=1;st.spins=(st.spins||0)+ERA_ALL.sp;st.titles=st.titles||[];if(!st.titles.includes("keeper"))st.titles.push("keeper");if(!st.title)st.title="keeper";
       const pool=HEROES.map((H,k)=>k).filter(k=>isBase(k)&&HEROES[k][2]===4&&!HEROES[k][4].nc&&!HEROES[k][4].one&&!HEROES[k][4].don&&!HEROES[k][4].collab),card=makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],1);addCard(G,card);return {k:"all",sp:ERA_ALL.sp,cash:0,card}}
     const E=ERAS.find(x=>x.k===G.p.k);if(!E)fail("Нет такой эпохи");const have=haveSet(G.cards);
     if(st.eras[E.k]&&st.eraL[E.k])fail("Награда уже получена");
@@ -1394,7 +1394,7 @@ ACTIONS.dg_wish=function(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала 
 /* прогресс желаний — от обычных действий */
 {const H={dg_tap:(r,p)=>["tap",r&&r.n||0],dg_feed:()=>["feed",1],dga_apply:()=>["fight",1],open:()=>["spin",1],open_multi:r=>["spin",r&&r.cards?r.cards.length:0],dg_exp:()=>["exp",1],dg_play:()=>["play",1]};
   for(const k in H){const f=ACTIONS[k];if(!f)continue;ACTIONS[k]=function(G){const r=f.apply(this,arguments);try{const [w,n]=H[k](r,G.p);dgWishAdd(G.st,G.ctx.now,w,n)}catch(e){}return r}}}
-function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);if(ctx.dcLive===false&&st.dsp)st.dsp=0;   /* особые прокруты живут только пока идёт карта дня: копить заранее нельзя */
+function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);if(st.eraAll&&!(st.titles||[]).includes("keeper")){st.titles=st.titles||[];st.titles.push("keeper")}   /* титул «Хранитель эпох» тем, кто собрал эпохи до его появления */const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);if(ctx.dcLive===false&&st.dsp)st.dsp=0;   /* особые прокруты живут только пока идёт карта дня: копить заранее нельзя */
   const D0=day(st,ctx.now),o0=D0.opened,w0=st.totalWins||0,c0=st.crafted||0;const res=A(G)||{};
   try{if(st.dg){const s=new Set();for(const c of G.cards)if(HEROES[c.h]&&HEROES[c.h][4].dgc)s.add(c.h);st.dg.dcn=s.size}}catch(e){}
   try{const D=day(st,ctx.now);passAdd(st,ctx,"open",Math.max(0,D.opened-o0));passAdd(st,ctx,"win",Math.max(0,(st.totalWins||0)-w0));
@@ -1412,7 +1412,7 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
 /* титулы за деньги игры: покупаются один раз навсегда, деньги сгорают. Виден рядом с ником в топах, чате и рейтинге */
 const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8},season:{n:"Герой сезона",ic:"🎖",price:0,pass:1},
   immortal:{n:"Бессмертный",ic:"🔥",price:0,stars:300},emperor:{n:"Император",ic:"🏛",price:0,stars:700},author:{n:"Соавтор",ic:"✍️",price:0,stars:2000,month:3},
-  patron:{n:"Меценат",ic:"❤️",price:0,sup:1},vstar:{n:"Звезда Эпох",ic:"🎬",price:0,ex:1}};
+  patron:{n:"Меценат",ic:"❤️",price:0,sup:1},vstar:{n:"Звезда Эпох",ic:"🎬",price:0,ex:1},keeper:{n:"Хранитель эпох",ic:"🗺",price:0,ex:1,how:"собери все эпохи"}};
 /* 🎨 косметика за ⭐: анимация выпадения карточки и фон профиля (видят все, кто открывает твою витрину) */
 const DFX={storm:{n:"Гроза",ic:"⚡",stars:249},fire:{n:"Пламя",ic:"🔥",stars:249},stars:{n:"Звездопад",ic:"🌠",stars:249}};
 const PBG={space:{n:"Космос",ic:"🌌",stars:199},lava:{n:"Лава",ic:"🌋",stars:199},aurora:{n:"Северное сияние",ic:"🌈",stars:199},gold:{n:"Золото",ic:"💰",stars:299}};
