@@ -1349,8 +1349,8 @@ const reAnim=(el,c)=>{if(!el)return;el.classList.remove(c);(el._ra||(el._ra=new 
 /* тренер ищется один раз на коллекцию, а не на каждый тап */
 {const _ct=campTrainer,M=new WeakMap();campTrainer=function(cards){if(!cards||typeof cards!=="object")return _ct(cards);if(M.has(cards))return M.get(cards);const r=_ct(cards);M.set(cards,r);return r}}
 /* размеры арены и мишени читаются один раз и обновляются только при прокрутке/повороте экрана */
-let cpRect=null;const cpRects=()=>{if(!cpRect){const a=$("cp-ar"),g=$("cp-tg");cpRect={a:a.getBoundingClientRect(),g:g.getBoundingClientRect()}}return cpRect};
-addEventListener("scroll",()=>{cpRect=null},{passive:true});addEventListener("resize",()=>{cpRect=null});
+/* размеры арены и мишени: одно чтение за кадр, в начале тапа (до любых записей) — тосты, баннеры и «Сейчас важно» над ареной учитываются сразу */
+let cpRect=null;const cpRects=()=>{if(!cpRect){const a=$("cp-ar"),g=$("cp-tg");cpRect={a:a.getBoundingClientRect(),g:g.getBoundingClientRect()};requestAnimationFrame(()=>{cpRect=null})}return cpRect};
 /* перерисовка лагеря — не чаще раза за кадр */
 let cpRaf=0;const campLater=()=>{if(!cpRaf)cpRaf=requestAnimationFrame(()=>{cpRaf=0;renderCamp(true)})};
 /* эффекты тапа: не больше N живых элементов, переиспользуются */
@@ -1383,7 +1383,7 @@ function campFx(x,y,big){const ar=$("cp-ar"),r=cpRects().a,lx=x-r.left,ly=y-r.to
   sl.innerHTML='<path d="M8 70 Q50 -6 92 34" fill="none" stroke="#fff" stroke-width="'+(big?12:8)+'" stroke-linecap="round" opacity=".95"/><path d="M14 66 Q50 6 86 36" fill="none" stroke="#ffd60a" stroke-width="3" stroke-linecap="round"/>';if(nSl<FXMAX.sl){ar.append(sl);setTimeout(()=>sl.remove(),300)}
   for(let i=0;i<Math.min(big?9:5,FXMAX.sp-nSp);i++){const p=document.createElement("i");p.className="cp-sp";const a=Math.random()*Math.PI*2,d=30+Math.random()*(big?70:40);p.style.left=lx+"px";p.style.top=ly+"px";p.style.setProperty("--dx",Math.cos(a)*d+"px");p.style.setProperty("--dy",Math.sin(a)*d+"px");ar.append(p);setTimeout(()=>p.remove(),460)}}
 function campShake(){reAnim($("cp-ar"),"shake")}
-function campHit(e){const V=campView();if(V.en<1){reAnim($("cp-tg"),"no");hapN("error");
+function campHit(e){cpRects();const V=campView();if(V.en<1){reAnim($("cp-tg"),"no");hapN("error");
     $("cp-eh").textContent="Энергия кончилась. Полная через "+tleft(Math.ceil((1-V.en/V.mx)*V.full))+" — бот напомнит";return}
   cpPend++;const T=TARGETS[V.C.t];cpHp=(cpHp==null?V.C.hp:cpHp)-V.pw;if(cpHp<=0)cpHp=T.hp;
   const now=performance.now();cpCombo=now-cpLast<450?cpCombo+1:1;cpLast=now;const cb=$("cp-combo");

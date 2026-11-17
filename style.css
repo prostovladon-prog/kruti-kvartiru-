@@ -3662,3 +3662,17 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .minic>div{animation:mnIn .16s ease-out}
 @keyframes mnIn{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.minic>div{animation:none}}
+
+/* ⚡ perf/camp-fx: те же эффекты лагеря, но без пересчёта размытия каждый кадр */
+/* герой: тени на неподвижном слое внутри, качается только слой — тень рисуется один раз */
+#sec-camp .cp-hero{filter:none;will-change:transform}
+#sec-camp .cp-hero .cp-hpic{filter:drop-shadow(0 18px 14px rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(255,210,63,.55))}
+#sec-camp .cp-ar.lite .cp-hero .cp-hpic{filter:none}
+/* мишень: диск — отдельный слой (тени не перерисовываются при ударе), вспышка удара — белая плёнка по прозрачности вместо filter */
+#sec-camp .tgd{will-change:transform}
+#sec-camp .tgd::after{content:"";position:absolute;inset:-4px;border-radius:50%;background:#fff;opacity:0;transition:opacity .08s;pointer-events:none}
+#sec-camp .cp-tg.hit .tgd{filter:none}#sec-camp .cp-tg.hit .tgd::after{opacity:.2}
+#sec-camp .cp-tg.hit .tge{filter:drop-shadow(2px 3px 0 rgba(13,16,48,.6))}
+/* факелы: свечение — статичная тень вокруг пламени, мерцание только transform/opacity */
+#sec-camp .cp-torch{filter:none;box-shadow:0 0 14px 3px rgba(255,159,10,.75);will-change:transform}
+#sec-camp .cp-torch::before{will-change:transform,opacity}

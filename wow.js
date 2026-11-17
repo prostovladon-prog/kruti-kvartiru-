@@ -1089,3 +1089,11 @@ let esPick={frame:"fire",crest:"🦅"};
     if(cr){esPick.crest=cr.dataset.cr;renderGold();return}
     if(us){const r=await act("avf_set",{v:S.avfOn?"":Object.keys(S.avf||{})[0]});if(r)renderGold();return}
     if(bu&&!bu.disabled){const k=bu.dataset.k;buyItem({item:"eshop",k,v:k==="frame"?esPick.frame:k==="crest"?esPick.crest:""})}}}}
+
+/* 🐢 автоматический лёгкий режим: если в первые ~2,5 с тапания кадров меньше 45 в секунду — включаем сам и подсказываем.
+   Если игрок сам выключал лёгкий режим — не трогаем. */
+{let mon=null,lastTap=0;const AUTO_FPS=45,WIN=2500;
+ const start=()=>{if(campLite||mon)return;let man=null;try{man=localStorage.getItem("we-lite")}catch(e){}if(man==="0")return;
+   mon={t0:performance.now(),n:0};const f=()=>{if(!mon)return;mon.n++;const dt=performance.now()-mon.t0;if(dt<WIN){requestAnimationFrame(f);return}
+     const fps=mon.n/(dt/1000);mon=null;if(fps<AUTO_FPS&&!campLite&&!$("sec-camp").hidden){campLite=true;try{localStorage.setItem("we-lite-auto","1")}catch(e){}liteApply();toast("🐢 Включил лёгкий режим — так тапать плавнее. Вернуть эффекты: кнопка «Лёгкий режим» под ареной")}};requestAnimationFrame(f)};
+ const ar=$("cp-ar");if(ar)ar.addEventListener("pointerdown",()=>{const t=performance.now();if(t-lastTap>3000)start();lastTap=t},{passive:true})}
