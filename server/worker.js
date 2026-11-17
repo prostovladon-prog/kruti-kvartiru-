@@ -3742,7 +3742,7 @@ async function setup(env,origin){const out={};
   return new Response((ok?"✅ Готово! Бот настроен: приветствие, описание, команды и кнопка «Играть».":"⚠️ Не всё получилось, подробности ниже. Если ошибка про токен, проверь секрет BOT_TOKEN.")+"\n\n"+Object.entries(out).map(([k,v])=>k+": "+(v&&v.ok?"ok":JSON.stringify(v))).join("\n"),{headers:{"Content-Type":"text/plain; charset=utf-8"}});
 }
 /* 🛡 модерация @voinyepohchat нашим ботом: мат, чужие ссылки и пересылки — удалить + предупреждение; 3 за сутки — мут 24 ч; флуд — мут 10 мин */
-const MOD_BAD=/(^|[^а-яёa-z])(на|по|за|от|вы|при|про|у|до|раз|пере|съ|въ|долбо|хит(ро)?|недо)?(ху[йяеёию]|пизд|бля[дт ь]|бля$|[её]б[аеиуо]?[нлтшрк]|[её]бну|[её]б$|сук[аио]|суч[кь]|муда[кч]|мудил|пид[оае]р|залуп|гандон|шлюх|дроч)/i,
+const MOD_BAD=/(^|[^а-яёa-z])(на|по|за|от|вы|при|про|у|о|до|раз|пере|съ|въ|долбо|хит(ро)?|недо)?(ху[йяеёию]|пизд|бля[дт ь]|бля$|[её]б[аеиуо]?[нлтшрк]|[её]бну|[её]б$|сук[аио]|суч[кь]|муда[кч]|мудил|пид[оае]р|залуп|гандон|шлюх|дроч)/i,
   MOD_OK=/(t\.me|telegram\.me)\/(voinyepoh(bot|chat)?|VoinyEpohBot)\b|77-221-147-102\.sslip\.io|prostovladon-prog\.github\.io/i;
 const modW=new Map(),modF=new Map();let modAd=null,modAdT=0;
 async function modAdmins(env,chat){if(modAd&&Date.now()-modAdT<6e5)return modAd;const r=await tgApi(env,"getChatAdministrators",{chat_id:chat});modAd=new Set((r.result||[]).map(x=>x.user&&x.user.id));modAdT=Date.now();return modAd}
