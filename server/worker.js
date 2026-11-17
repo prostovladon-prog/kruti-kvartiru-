@@ -1216,6 +1216,11 @@ const ACTIONS={
     if(R.gem){const el=["f","w","e","a"][Math.floor(Math.random()*4)];gemAdd(st,el+R.gem)}
     if(R.gsh){const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});["f","w","e","a"].forEach(e=>H[e]=(H[e]||0)+R.gsh)}
     delete st.myst;return {got:R.n,ic:R.ic}},
+  /* 🎁 призовые сундуки: сервер кладёт их в очередь, игрок открывает сам при входе в игру */
+  prize_add(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,p}=G;if(!SHOP[p.item])fail("Нет такого товара");st.prz=st.prz||[];st.pays=st.pays||[];
+    if(st.pays.includes(p.pid)||st.prz.some(x=>x.pid===p.pid))return {dup:1};st.prz.push({k:p.item,pid:p.pid,src:String(p.src||"Приз").slice(0,60),at:G.ctx.now});return {n:st.prz.length}},
+  prize_open(G){const {st}=G,L=st.prz||[],i=Math.max(0,G.p.i|0),x=L[i];if(!x)fail("Сундук уже открыт");L.splice(i,1);if(!L.length)delete st.prz;
+    G.p={item:x.k,pid:x.pid};const was=G.ctx.grant;G.ctx.grant=true;try{const r=ACTIONS.grant(G)||{};r.item=x.k;r.src=x.src;return r}finally{G.ctx.grant=was}},
   grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,I=SHOP[p.item];if(!I)fail("Нет такого товара");
     st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     const got=[],add=c=>{c.how="chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
@@ -3780,7 +3785,7 @@ const CHAL_DEFAULT={id:"2026-11-06",lot:1,chest:1,tt:1,noL2:1,min:1,start:Date.U
   img:"assets/post-chest2.jpg?v=1",slots:[8,10,13,17,20,21],chanSlots:[8,10,13,17,20,21],lastOnly:21,chan:"@voinyepoh"};
 async function chestGive(env,uid,name,k,C){const X=(C.lch||LCH)[k],me={id:uid,name:name||"Игрок"},got=[];let n=0;
   for(const it of X.items){n++;try{
-    if(it.shop){const r=(await doAction(env,me,"grant",{item:it.shop,pid:"chest:"+C.id+":"+k+":"+n},{grant:true})).res||{};got.push(SHOP[it.shop].n+(r.cards&&r.cards.length?" ("+r.cards.length+" карт.)":""))}
+    if(it.shop){await doAction(env,me,"prize_add",{item:it.shop,pid:"chest:"+C.id+":"+k+":"+n,src:C.ttl||"Розыгрыш"},{grant:true});got.push(SHOP[it.shop].n+" (ждёт в игре — откроет сам)")}
     else if(it.vip){const now=Date.now(),u=await env.DB.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").bind(uid).first()||{},act=(u.vip_until||0)>now,until=Math.max(now,u.vip_until||0)+it.days*864e5,t=act?Math.max(u.vip_t||1,it.vip):it.vip;
       await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(until,t,uid).run();got.push(VIP_T[it.vip].n+" "+it.days+" дн.")}
     else if(it.mpass){await doAction(env,me,"mpass_grant",{},{grant:true});got.push("Премиум-пропуск завоевателя")}}catch(e){console.error("chest",k,it,e);got.push("⚠️ не выдано: "+JSON.stringify(it))}}
@@ -4042,9 +4047,9 @@ async function chalTick(env){if(chalBusy)return chalBusy;chalBusy=(async()=>{con
       for(let k=0;k<Ws.length;k++){const w=Ws[k],X=LL[k];if(!X){const amt=(C.xbal||[])[k]||0;if(amt)await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(amt,w.uid).run();log.push([amt+" ⭐ на баланс"]);
           await notify(env,w.uid,(k+1)+" МЕСТО В РОЗЫГРЫШЕ СУНДУКОВ! 🎉\n\nУ тебя было "+tk(w.n)+" из "+T+" — и удача тебя заметила 🍀\n\n⭐ "+amt+" звёзд уже на твоём балансе в игре — трать в Сокровищнице на что захочешь!","⭐ Открыть игру");continue}
         const got=await chestGive(env,w.uid,w.name,k,C);log.push(got);
-        await notify(env,w.uid,(MEDAL[k]||"🎖")+" ТЫ ВЫИГРАЛ "+X.ic+" "+X.n.toUpperCase()+"!\n\nУ тебя было "+tk(w.n)+" из "+T+" — и удача выбрала тебя 🍀\n\nСундук уже открыт у тебя в игре:\n"+X.d.map(x=>"• "+x).join("\n")+"\n\nЗаходи смотреть, что выпало 🔥","🎁 Открыть игру")}
+        await notify(env,w.uid,(MEDAL[k]||"🎖")+" ТЫ ВЫИГРАЛ "+X.ic+" "+X.n.toUpperCase()+"!\n\nУ тебя было "+tk(w.n)+" из "+T+" — и удача выбрала тебя 🍀\n\nСундуки уже ждут тебя в игре — заходи и открой их сам:\n"+X.d.map(x=>"• "+x).join("\n")+"\n\n🎁 Открыть сундуки 🔥","🎁 Открыть игру")}
       for(const a of ADMINS)await notify(env,a,"💎 Розыгрыш сундуков "+C.id+": участников "+P.length+", билетов "+T+".\n\nПобедители (сундуки выданы автоматически):\n"+(Ws.map((w,k)=>(MEDAL[k]||"🎖")+" "+w.name+" (id "+w.uid+") — "+tk(w.n)+(w.tt?" (вкл. TikTok)":"")+" → "+C.prizes[k]+"\n   "+log[k].join(", ")).join("\n")||"никто не набрал билетов")+"\n\nВсе участники:\n"+(P.slice(0,30).map(r=>r.name+" (id "+r.uid+") — "+tk(r.n)).join("\n")||"—"),"⚔️ Открыть");
-      await chanSend(env,C,{text:Ws.length?"🎉 ИТОГИ РОЗЫГРЫША СУНДУКОВ!\n\nУчастников: "+P.length+", билетов: "+T+"\n\n"+Ws.map((w,k)=>(MEDAL[k]||"🎖")+" "+w.name+" — "+(LL[k]?LL[k].ic+" "+LL[k].n:"⭐ "+C.prizes[k]+" на баланс")+" ("+tk(w.n)+")").join("\n")+"\n\nПоздравляем! Призы уже у победителей в игре 🎁 Спасибо всем, кто звал друзей"+(C.tt?" и снимал видео":"")+" — следующий розыгрыш скоро 🔥\n\n👉 @VoinyEpohBot":"💎 Розыгрыш завершён — в этот раз никто не набрал билетов. Сундуки переносятся на следующий розыгрыш 🔥\n\n👉 @VoinyEpohBot"});
+      await chanSend(env,C,{text:Ws.length?"🎉 ИТОГИ РОЗЫГРЫША СУНДУКОВ!\n\nУчастников: "+P.length+", билетов: "+T+"\n\n"+Ws.map((w,k)=>(MEDAL[k]||"🎖")+" "+w.name+" — "+(LL[k]?LL[k].ic+" "+LL[k].n:"⭐ "+C.prizes[k]+" на баланс")+" ("+tk(w.n)+")").join("\n")+"\n\nПоздравляем! Сундуки уже ждут победителей в игре — откроют сами 🎁 Спасибо всем, кто звал друзей"+(C.tt?" и снимал видео":"")+" — следующий розыгрыш скоро 🔥\n\n👉 @VoinyEpohBot":"💎 Розыгрыш завершён — в этот раз никто не набрал билетов. Сундуки переносятся на следующий розыгрыш 🔥\n\n👉 @VoinyEpohBot"});
       return}
     if(C.big){const Ws=lotDrawN(C,all,3);R.winners=Ws;await kvSet(env,"chal_res:"+C.id,R);for(let k=0;k<Ws.length;k++)await trophyAdd(env,Ws[k].uid,"chal:"+C.id,MEDAL[k]||"🎖",(k+1)+" место в розыгрыше: "+String(C.prizes[k]||"приз").replace(/<[^>]*>/g,""));
       for(let k=0;k<Ws.length;k++){const w=Ws[k];await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(C.usd[k],w.uid).run();

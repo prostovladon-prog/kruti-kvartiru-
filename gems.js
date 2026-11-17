@@ -605,3 +605,11 @@ setTimeout(()=>setInterval(()=>{try{frIncCheck()}catch(e){}},20000),5000);
     const m=$("modal"),sh=$("msheet");m.hidden=false;const H=HEROES[r.card.h];
     sh.innerHTML='<div class="box nickbox"><h3>🎁 Подарок '+escH(r.from||"от друзей")+'!</h3><p>Ты пришёл от наших друзей — держи <b>легендарную карточку «'+escH(H[0])+'»</b> и <b>+'+r.sp+' 🎴 прокруток</b>!</p><button type="button" class="craftbtn" id="adb-go">⚔️ Посмотреть карточку</button></div>';
     sfx.fanfare();burst(6);hapN("success");renderAll();$("adb-go").onclick=()=>{closeModal();openCardView(r.card)}};go()},1500)}
+
+/* 🎁 призовые сундуки (розыгрыши, конкурсы): ждут игрока в игре, он открывает их сам */
+function przCheck(){if(!S||!(S.prz&&S.prz.length)||!$("modal").hidden||$("tut")||$("nks")||$("sbg")||$("chg")||document.querySelector(".wrev,.onb-hl"))return;
+  const x=S.prz[0],I=SHOP[x.k]||{n:"Сундук"},m=$("modal"),sh=$("msheet");m.hidden=false;let ic="";try{ic=CHEST_COL[x.k]?chestSVG(x.k,150):""}catch(e){}
+  sh.innerHTML='<div class="box nickbox przbox"><div class="kg-rays"></div><h3>🎁 Тебе приз!</h3><p class="cln">'+escH(x.src||"Розыгрыш")+'</p><div class="prz-ic">'+(ic||'<span>🎁</span>')+'</div><b class="prz-n">'+escH(I.n)+'</b>'+(S.prz.length>1?'<small class="cln">и ещё '+(S.prz.length-1)+' — откроешь следом</small>':'')+'<button type="button" class="craftbtn" id="prz-go">🔓 Открыть сундук</button></div>';
+  try{sfx.reveal&&sfx.reveal(3);hapN("success")}catch(e){}
+  $("prz-go").onclick=async()=>{const b=$("prz-go");b.disabled=true;const r=await act("prize_open",{i:0});if(!r){b.disabled=false;return}closeModal();payShow({status:"paid",item:r.item||x.k,res:r})}}
+setInterval(()=>{try{przCheck()}catch(e){}},2500);

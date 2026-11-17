@@ -1214,6 +1214,11 @@ const ACTIONS={
     if(R.gem){const el=["f","w","e","a"][Math.floor(Math.random()*4)];gemAdd(st,el+R.gem)}
     if(R.gsh){const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});["f","w","e","a"].forEach(e=>H[e]=(H[e]||0)+R.gsh)}
     delete st.myst;return {got:R.n,ic:R.ic}},
+  /* 🎁 призовые сундуки: сервер кладёт их в очередь, игрок открывает сам при входе в игру */
+  prize_add(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,p}=G;if(!SHOP[p.item])fail("Нет такого товара");st.prz=st.prz||[];st.pays=st.pays||[];
+    if(st.pays.includes(p.pid)||st.prz.some(x=>x.pid===p.pid))return {dup:1};st.prz.push({k:p.item,pid:p.pid,src:String(p.src||"Приз").slice(0,60),at:G.ctx.now});return {n:st.prz.length}},
+  prize_open(G){const {st}=G,L=st.prz||[],i=Math.max(0,G.p.i|0),x=L[i];if(!x)fail("Сундук уже открыт");L.splice(i,1);if(!L.length)delete st.prz;
+    G.p={item:x.k,pid:x.pid};const was=G.ctx.grant;G.ctx.grant=true;try{const r=ACTIONS.grant(G)||{};r.item=x.k;r.src=x.src;return r}finally{G.ctx.grant=was}},
   grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,I=SHOP[p.item];if(!I)fail("Нет такого товара");
     st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
     const got=[],add=c=>{c.how="chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
