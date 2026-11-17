@@ -509,13 +509,13 @@ async function market(env,me){
 }
 /* 💰 против инфляции: цена на рынке и монеты в обмене — не больше 3× цены карточки; крупные сделки — комиссия 12% */
 const PRICE_X=3,BIG_DEAL=1e6,BIG_FEE=.12,COLLAB_F=FIN.map((F,i)=>F.collab?i:-1).filter(i=>i>=0);
-const priceCap=c=>c&&FIN[c.f]&&FIN[c.f].collab?Infinity:Math.max(1000,Math.round((+c.v||0)*PRICE_X));
-const feeOf=price=>price>=BIG_DEAL?BIG_FEE:FEE;
+const priceCap=c=>c?mktCap(c):1000;
+const feeOf=price=>mktFee(price);
 async function pcapClean(env){if(pcapClean.ok)return;pcapClean.ok=1;try{if(await kvGet(env,"pcap1"))return;await kvSet(env,"pcap1",1);
   await env.DB.prepare("UPDATE cards SET list_price=NULL,listed_at=NULL WHERE list_price IS NOT NULL AND list_price>MAX(1000,ROUND(v*"+PRICE_X+"))"+(COLLAB_F.length?" AND f NOT IN ("+COLLAB_F.join(",")+")":"")).run()}catch(e){console.error("pcap",e)}}
 async function list(env,me,p){
   const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e11))fail("Цена от 1 до 100 000 000 000 🪙");
-  {const c=await env.DB.prepare("SELECT v,f FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();const mx=priceCap(c);if(c&&price>mx)fail("Слишком дорого. Максимум для этой карточки — "+fmtD(mx)+" 🪙 (3× её цена)")}
+  {const c=await env.DB.prepare("SELECT v,f,h FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();const mx=priceCap(c);if(c&&price>mx)fail("Слишком дорого. Максимум для этой карточки — "+fmtD(mx)+" 🪙 (3× её цена)")}
   const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND NOT (f=4 AND sn='000010') AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
     .bind(price,Date.now(),p.id|0,me.id,me.id,MAX_LOTS).run();
   if(r.meta.changes!==1)fail("Карточку нельзя выставить: она в походе, уже на рынке, подарена (подарочные не продаются) или у тебя уже "+MAX_LOTS+" лотов");
