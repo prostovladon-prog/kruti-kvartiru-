@@ -613,3 +613,12 @@ function przCheck(){if(!S||!(S.prz&&S.prz.length)||!$("modal").hidden||$("tut")|
   try{sfx.reveal&&sfx.reveal(3);hapN("success")}catch(e){}
   $("prz-go").onclick=async()=>{const b=$("prz-go");b.disabled=true;const r=await act("prize_open",{i:0});if(!r){b.disabled=false;return}closeModal();payShow({status:"paid",item:r.item||x.k,res:r})}}
 setInterval(()=>{try{przCheck()}catch(e){}},2500);
+
+/* 🔎 охота за промокодом: код спрятан в одной из вкладок (S.hunt.sec), первые 10 вводят */
+function huntCheck(){const H=S&&S.hunt,old=$("hunt-x");if(!H||!H.code){if(old)old.remove();return}const sec=$("sec-"+H.sec);if(!sec||sec.hidden){return}if(old&&sec.contains(old))return;if(old)old.remove();
+  const b=document.createElement("button");b.type="button";b.id="hunt-x";b.className="hunt-x";b.innerHTML="📜";b.setAttribute("aria-label","Свиток");
+  b.onclick=()=>{hap("medium");try{sfx.reveal&&sfx.reveal(2)}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
+    sh.innerHTML='<div class="box nickbox prbox hunt-box"><div class="prtk">📜</div><h3>Ты нашёл свиток!</h3><p class="cln">Внутри промокод. Успей ввести — он сработает только у первых '+(S.hunt.left<10?"(осталось "+S.hunt.left+") ":"")+'10 игроков</p><div class="hunt-code">'+escH(H.code)+'</div><button type="button" class="craftbtn" id="hunt-go">🎟 Ввести промокод</button></div>';
+    $("hunt-go").onclick=()=>{closeModal();promoOpen();const i=$("pr-in");if(i){i.value=H.code;i.focus()}}};
+  sec.style.position=sec.style.position||"relative";sec.appendChild(b)}
+setInterval(()=>{try{huntCheck()}catch(e){}},1500);
