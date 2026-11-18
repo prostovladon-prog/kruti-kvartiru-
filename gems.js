@@ -709,3 +709,11 @@ function castleDraw(){const box=$("castle-box");if(!box||!S)return;if(NOW()<CAST
   const ub=$("cst-up");if(ub)ub.onclick=async()=>{const N=CASTLE[S.castle|0];if(!confirm("Построить «"+N.n+"» за "+N.cost.toLocaleString("ru")+" 🪙?\n\n+"+N.sl+" мест в коллекции и доход "+N.inc.toLocaleString("ru")+" 🪙 в день."))return;ub.disabled=true;const r=await act("castle_up");if(!r){ub.disabled=false;return}try{sfx.fanfare();burst&&burst(3)}catch(e){}hapN("success");toast("🏰 Замок ур. "+r.lv+"! Теперь в коллекции "+r.cap+" мест");renderAll()}}
 {const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{if(!$("sec-castle").hidden)castleDraw()}catch(e){}}}
 setInterval(()=>{try{if(S&&!$("sec-castle").hidden){const b=$("castle-box");if(b)b.dataset.k="";castleDraw()}}catch(e){}},NOW()<CASTLE_AT?1000:30000);
+/* 🎯 цель новичка: 15 открытий → гарантированная легенда (15-е открытие) */
+function o15Draw(){const sec=$("sec-spin");if(!sec||!S)return;let b=$("o15bar");const n=S.nOp||0,show=S.nick&&n<15&&!S.o15;
+  if(!show){if(b)b.remove();return}
+  if(!b){b=document.createElement("div");b.id="o15bar";b.className="o15bar";sec.prepend(b)}
+  const k=n+"";if(b.dataset.k===k)return;b.dataset.k=k;
+  b.innerHTML='<div class="o15t">🎯 Открой <b>15</b> карт — <b>15-я точно ЛЕГЕНДАРНАЯ</b></div><div class="o15p"><i style="width:'+Math.round(n/15*100)+'%"></i><span>'+n+' / 15</span></div>'}
+{const _rq=renderAll;renderAll=function(){_rq.apply(this,arguments);try{o15Draw()}catch(e){}}}
+{const _a15=act;act=async function(n,p){const r=await _a15(n,p);try{if((n==="open"||n==="open_multi")&&r&&r.o15){S.o15=1;setTimeout(()=>{sfx.fanfare();hapN("success");burst(4);toast("🎯 Цель выполнена: 15 открытий — ЛЕГЕНДАРНЫЙ воин твой!")},1800)}o15Draw()}catch(e){}return r}}

@@ -188,14 +188,14 @@ function subpCan(){return typeof S!=="undefined"&&S&&ONLINE&&!S.subGot2&&$("moda
 function subpBack(min){subpLS(Date.now());subpCool=min*60e3;closeModal()}
 function openSubPop(){const m=$("modal"),sh=$("msheet");m.hidden=false;let st=0,busy=false;
   sh.innerHTML='<div class="box subpop" id="subpop"><div class="sp-ic"><svg viewBox="0 0 24 24"><path d="M21.5 4.3 2.9 11.5c-1.1.4-1.1 1.1-.2 1.4l4.7 1.5 1.8 5.6c.2.6.4.8.8.8.4 0 .6-.2.9-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.7c.3-1.3-.5-1.9-1.3-1.5z" fill="#fff"/></svg></div>'+
-  '<h3>Подпишись на канал, чтобы играть дальше</h3><p class="sp-ch">@'+CHANNEL+'</p>'+
+  '<h3>Подпишись на канал — +10 прокруток прямо сейчас</h3><p class="sp-ch">@'+CHANNEL+'</p>'+
   '<ul><li>🔥 Новые карточки и обновления первым</li><li>👑 Розыгрыши VIP и призов</li><li>🎁 Промокоды и бонусы только для подписчиков</li></ul>'+
   '<div class="sp-rw">🎰 <b>+10 прокруток</b> за подписку</div>'+
   '<button type="button" class="craftbtn" id="sp-go">📢 Подписаться</button>'+
   '<button type="button" class="mini2 sp-chk" id="sp-chk">✅ Проверить подписку</button><p class="sp-t" id="sp-t"></p>'+
   '<button type="button" class="ghost sp-back" id="sp-back" hidden>← Назад в игру</button></div>';
   const go=$("sp-go"),ck=$("sp-chk"),t=$("sp-t"),bk=$("sp-back");
-  bk.onclick=()=>{hap("light");subpBack(3)};
+  bk.onclick=()=>{hap("light");subpBack(360)};
   const done=(msg)=>{sfx.coin();hapN("success");burst(2);closeModal();renderAll();toast(msg)};
   const check=async(auto)=>{if(busy||!$("subpop"))return;busy=true;ck.disabled=true;t.textContent="Проверяю…";
     let err="";const _t=toast;toast=m=>{err=String(m||"");if(!auto)_t(m)};let r=null;try{r=await act("sub_check")}finally{toast=_t}
@@ -211,7 +211,11 @@ function openSubPop(){const m=$("modal"),sh=$("msheet");m.hidden=false;let st=0,
   const back=()=>{if(st&&$("subpop")&&document.visibilityState!=="hidden")setTimeout(()=>check(true),700)};
   document.addEventListener("visibilitychange",back);try{tg&&tg.onEvent&&tg.onEvent("activated",back)}catch(e){}
 }
-setInterval(()=>{if(Date.now()-subpT0>SUBP_AFTER&&subpCan())openSubPop()},10e3);
+/* подписка: не по таймеру, а в нужный момент — новичок застрял до 15 открытий (3 мин без прокруток), получил легенду за 15-е, или кончились прокрутки */
+let subpOp=Date.now(),subpWhy=0;
+{const _as=act;act=async function(n,p){const r=await _as(n,p);try{if(n==="open"||n==="open_multi"){subpOp=Date.now();if(r&&r.o15)subpWhy=Date.now()+4500;else if(S&&S.spins<=0)subpWhy=Date.now()+2500}}catch(e){}return r}}
+setInterval(()=>{if(!subpCan()||!S.nick)return;const n=S.nOp||0,now=Date.now();
+  if((subpWhy&&now>=subpWhy)||(n<15&&now-subpOp>=3*6e4)){subpWhy=0;subpOp=now;openSubPop()}},5e3);
 /* ===================== ✉️ Личные сообщения: игрок ↔ игрок, администрация → игрок ===================== */
 let dmPeerId=0,dmItems=[],dmTimer=0,dmInfo=null;
 function dmTime(t){const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"})}

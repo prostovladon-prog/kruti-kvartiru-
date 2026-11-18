@@ -503,7 +503,7 @@ class GameError extends Error{}
 function fail(m){throw new GameError(m)}
 
 /* ---------- состояние игрока ---------- */
-function freshState(){return {wel:0,cash:START_CASH,spins:SPINS_MAX+2,refillAt:null,pity:0,guar:0,best:0,bestFin:0,niceCount:0,crafted:0,totalWins:0,ach:{},doneCh:{},squad:[]}}
+function freshState(){return {wel:0,cash:START_CASH,spins:20,refillAt:null,pity:0,guar:0,best:0,bestFin:0,niceCount:0,crafted:0,totalWins:0,ach:{},doneCh:{},squad:[]}}
 function day(st,now){if(!st.day||st.day.d!==today(now))st.day={d:today(now),opened:0,wins:0,crafts:0,got:[]};return st.day}
 function boss(st,now){if(!st.boss||st.boss.w!==weekKey(now))st.boss={w:weekKey(now),dmg:0,got:[],day:"",hits:0,extra:0,squad:[]};if(st.boss.day!==today(now)){st.boss.day=today(now);st.boss.hits=0;st.boss.extra=0}return st.boss}
 /* сколько прокруток даётся раз в 4 часа: VIP получает 5 (сервер ставит st.vipUntil) */
@@ -1031,9 +1031,9 @@ const ACTIONS={
   hof_slot(G){const {st}=G;const L=st.hofL||0;if(L>=HOF.slots.length-1)fail("Все места в зале открыты");pay(st,HOF.slotP[L+1]);st.hofL=L+1;return {slots:hofSlots(st)}},
   open_multi(G){const {st,ctx}=G;refill(st,ctx.now);const want=Math.max(2,Math.min(10,G.p.n|0||5));if(st.spins<=0)fail("Прокрутки закончились");
     const free=capOf(st)-G.cards.length;if(free<=0)fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
-    const n=Math.min(want,st.spins,free),cards=[];let wel=0;
-    for(let i=0;i<n;i++){try{const r=ACTIONS.open(G);cards.push(r.card);if(r.wel)wel=1}catch(e){if(!cards.length)throw e;break}}
-    return {cards,wel,asked:want}},
+    const n=Math.min(want,st.spins,free),cards=[];let wel=0,o15=0;
+    for(let i=0;i<n;i++){try{const r=ACTIONS.open(G);cards.push(r.card);if(r.wel)wel=1;if(r.o15)o15=1}catch(e){if(!cards.length)throw e;break}}
+    return {cards,wel,o15,asked:want}},
   /* 🎥 эфир: карточка для зрителя — обычные шансы, без прокруток и без удачи; карточка уходит «в ожидание» по коду */
   live_roll(G){if(!G.ctx.grant||!G.ctx.admin)fail("Неизвестное действие");const {ctx}=G;ctx.luck=false;let c=null;
     if(Math.random()<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}
@@ -1053,10 +1053,11 @@ const ACTIONS={
     if(!c&&!epic&&!ctx.noRare&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
     st.nOp=(st.nOp||0)+1;let wel=0;
     if(st.wel===0&&st.nOp>=2&&!c){wel=1;st.wel=1;const pl=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===3),h=pl[Math.floor(Math.random()*pl.length)];c=makeCard(ctx,h,ctx.issuedOf(h,1)<FIN[1].run?1:0)}   // подарок новичку: на 2-й прокрутке легендарный воин с блеском
+    let o15=0;if(st.nOp===15&&!st.o15&&!c){o15=1;st.o15=1;c=rollTier(ctx,3)}   // цель новичка: 15-е открытие — гарантированная легенда
     const leg=!c&&(st.lpity||0)>=LPITY-1;   // гарантия легенды: 90-я прокрутка без легендарки — точно легендарка
     ctx.fBoost=(st.luckU||0)>ctx.now;ctx.fForce=(st.fpity||0)>=LUCK.pity-1;if(!c)c=rollCard(ctx,leg?3:epic);ctx.fBoost=ctx.fForce=false;st.fpity=c.f>=2?0:(st.fpity||0)+1;if(epic&&!wel&&(st.guar||0)>0&&HEROES[c.h][2]>=2)st.guar--;
     st.pity=HEROES[c.h][2]>=2?0:(st.pity||0)+1;st.lpity=HEROES[c.h][2]>=3?0:(st.lpity||0)+1;
-    addCard(G,c);day(st,ctx.now).opened++;return wel?{card:c,wel:1}:{card:c}},
+    addCard(G,c);day(st,ctx.now).opened++;const R0={card:c};if(wel)R0.wel=1;if(o15)R0.o15=1;return R0},
 
   sell(G){const c=burnable(freeCard(G,G.p.id)),got=Math.round(c.v*QUICK*(hhIs(G.ctx.now,"coin")?1.5:1)*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
 
