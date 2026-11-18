@@ -3323,7 +3323,7 @@ const REACT2={id:"react_1811",on:true,at:Date.UTC(2026,10,18,9,0),code:"ЖАРА
   chan:"🔥 30 ОГОНЬКОВ = ПРОМОКОД НА 30 ПРОКРУТОК!\n\nНаберём 30 реакций под этим постом — и бот сам выложит сюда промокод на 🎴 30 прокруток + 💰 3 000 монет\n\nЖми 🔥 👇 Считаем!",
   dm:"🔥 Воин, в канале раздача!\n\nНаберём 30 огоньков под постом — и там сразу появится промокод на 🎴 30 прокруток + 💰 3 000 монет. Первые 50 активаций!\n\nЖми кнопку и ставь 🔥 👇"};
 /* 18.11 ~19:30: 40 реакций → ОГОНЬ40 (40 прокруток, первые 15) */
-const REACT3={id:"react_1811b",on:true,at:Date.UTC(2026,10,18,16,25),code:"ОГОНЬ40",goal:40,sp:40,cash:0,mx:15,photo:"assets/post-react40.jpg",photoK:"assets/post-react40k.jpg",btn:"🔥 Поставить огонёк",url:"https://t.me/voinyepoh",
+const REACT3={id:"react_1811b",on:true,at:Date.UTC(2026,10,18,16,25),code:"ОГОНЬ40",goal:40,sp:40,cash:0,mx:15,photo:"assets/post-react40.jpg",photoK:"assets/post-react40k.jpg",anim:"assets/post-react40.mp4",animK:"assets/post-react40k.mp4",btn:"🔥 Поставить огонёк",url:"https://t.me/voinyepoh",
   chan:"🔥 40 РЕАКЦИЙ = ПРОМОКОД НА 40 ПРОКРУТОК!\n\nНаберём 40 реакций под этим постом — и бот сам выложит сюда промокод на 🎴 40 прокруток.\n\n⚠️ Сработает только у первых 15 — следите за постом!\n\nЖми реакцию 👇 Считаем!",
   dm:"🔥 Воин, в канале раздача!\n\nНаберём 40 реакций под постом — и там сразу появится промокод на 🎴 40 прокруток. Только первые 15 активаций!\n\nЖми кнопку и ставь реакцию 👇"};
 const HUNTP={id:"hunt_1811",on:true,at:HUNT.at,photo:"assets/post-hunt.jpg",btn:"📜 Искать свиток",link:"",
@@ -3381,14 +3381,15 @@ async function fire30React(env,R){if(!R||!R.chat||String(R.chat.username||"").to
   console.log("react upd",R.message_id,st&&st.mid,(R.reactions||[]).length);if(!st||!st.mid||R.message_id!==st.mid||st.rev)return;
   const n=(R.reactions||[]).reduce((a,x)=>a+(x.total_count||0),0);if(!st.rc)for(const a of ADMINS)await notify(env,a,"👀 Бот видит реакции под постом: "+n+" / "+G+". Код выложу сам на "+G+".","⚔️ Открыть");st.rc=n;if(n<G){await kvSet(env,k,st);return}st.rev=1;await kvSet(env,k,st);
   const cap="🎉 "+G+" РЕАКЦИЙ ЕСТЬ — ДЕРЖИТЕ!\n\n🎟 Промокод: "+code+"\n🎴 "+SP+" прокруток"+(CA?" + 💰 "+CA.toLocaleString("ru")+" монет":"")+"\n\nВводите в игре: ☰ Ещё → 🎟 Промокод. Только первые "+MX+" — бегом! 🏃",kb={inline_keyboard:[[{text:"⚔️ Ввести промокод",url:"https://t.me/VoinyEpohBot"}]]};
-  let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+(B.photoK||"assets/post-fire30k.jpg"),caption:cap,reply_markup:kb,reply_parameters:{message_id:st.mid,allow_sending_without_reply:true}});
+  let r=B.animK?await tgApi(env,"sendAnimation",{chat_id:CHANNEL,animation:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+B.animK,caption:cap,reply_markup:kb,reply_parameters:{message_id:st.mid,allow_sending_without_reply:true}}):{ok:false};
+  if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+(B.photoK||"assets/post-fire30k.jpg"),caption:cap,reply_markup:kb,reply_parameters:{message_id:st.mid,allow_sending_without_reply:true}});
   if(!r.ok)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:cap,reply_markup:kb});
   for(const a of ADMINS)await notify(env,a,r.ok?"🔥 Под постом "+G+" реакций — бот выложил промокод "+code+" в канал.":"🔥 "+G+" реакций набралось, но бот не смог выложить код в канал: "+(r.description||"")+"\nВыложи вручную: "+code,"⚔️ Открыть")}
 async function blast2Tick(env){if(!BLAST2.on||b2Busy)return;b2Busy=true;try{await blastRun(env,BLAST2)}finally{b2Busy=false}}
 async function blastRun(env,BLAST2){if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
   try{const k="blast:"+BLAST2.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(!BLAST2.chan)st.ch=1;if(!BLAST2.dm)st.done=1;if(st.done&&st.ch)return;
     if(!st.ch&&st.chn<20&&now-st.cht>30e3){st.chn++;st.cht=now;await kvSet(env,k,st);const kb={inline_keyboard:[[{text:BLAST2.btn,url:"https://t.me/VoinyEpohBot"}]]};
-      let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
+      let r=await (BLAST2.anim?tgApi(env,"sendAnimation",{chat_id:CHANNEL,animation:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.anim+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb}):tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb}));
       if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
       if(!r.ok&&st.chn>=6)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:BLAST2.chan,reply_markup:kb});
       if(r.ok){st.ch=1;st.mid=r.result&&r.result.message_id;await kvSet(env,k,st)}else console.error("blast2 chan",st.chn,r.description)}
