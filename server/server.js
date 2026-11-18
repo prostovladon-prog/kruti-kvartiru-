@@ -3287,7 +3287,7 @@ async function koloTick(env){const n=Date.now();try{await funSeed(env)}catch(e){
 const FUN=[{code:"РЕАКЦИЯ",sp:10,cash:3000,mx:50},{code:"ОГОНЁК30",sp:30,cash:3000,mx:50}],FUN_UNTIL=Date.UTC(2026,10,17,20,59);
 /* 18.11: охота за свитком 18:00–22:00 (Минск), код СВИТОК, первые 10; и пост реакций в 12:00 с кодом ЖАРА30 */
 const HUNT={code:"СВИТОК",sp:30,cash:10000,mx:10,sec:"album",at:Date.UTC(2026,10,18,15,0),until:Date.UTC(2026,10,18,19,0)};
-const FUN2=[{code:"ЖАРА30",sp:30,cash:3000,mx:50,until:Date.UTC(2026,10,18,20,59)},{...HUNT}];
+const FUN2=[{code:"ЖАРА30",sp:30,cash:3000,mx:50,until:Date.UTC(2026,10,18,20,59)},{...HUNT},{code:"ОГОНЬ40",sp:40,cash:0,mx:15,until:Date.UTC(2026,10,19,20,59)}];
 let funOk=0;async function funSeed(env){if(funOk)return;funOk=1;const now=Date.now();
   for(const F of [...FUN.map(x=>({...x,until:FUN_UNTIL})),...FUN2])if(now<F.until)await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,?,?,?,?,?,0,0,0,0)").bind(promoKey(F.code),F.sp,F.cash,F.mx,F.until,now).run()}
 async function huntNow(env){const now=Date.now();if(now<HUNT.at||now>=HUNT.until)return null;await funSeed(env);
@@ -3322,6 +3322,10 @@ let dcaBusy=false;async function dcAnnTick(env){if(!DCANN.on||dcaBusy||Date.now(
 const REACT2={id:"react_1811",on:true,at:Date.UTC(2026,10,18,9,0),code:"ЖАРА30",photo:"assets/post-react30.jpg",photoK:"assets/post-react30k.jpg",btn:"🔥 Поставить огонёк",url:"https://t.me/voinyepoh",
   chan:"🔥 30 ОГОНЬКОВ = ПРОМОКОД НА 30 ПРОКРУТОК!\n\nНаберём 30 реакций под этим постом — и бот сам выложит сюда промокод на 🎴 30 прокруток + 💰 3 000 монет\n\nЖми 🔥 👇 Считаем!",
   dm:"🔥 Воин, в канале раздача!\n\nНаберём 30 огоньков под постом — и там сразу появится промокод на 🎴 30 прокруток + 💰 3 000 монет. Первые 50 активаций!\n\nЖми кнопку и ставь 🔥 👇"};
+/* 18.11 ~19:30: 40 реакций → ОГОНЬ40 (40 прокруток, первые 15) */
+const REACT3={id:"react_1811b",on:true,at:Date.UTC(2026,10,18,16,25),code:"ОГОНЬ40",goal:40,sp:40,cash:0,mx:15,photo:"assets/post-react40.jpg",photoK:"assets/post-react40k.jpg",btn:"🔥 Поставить огонёк",url:"https://t.me/voinyepoh",
+  chan:"🔥 40 РЕАКЦИЙ = ПРОМОКОД НА 40 ПРОКРУТОК!\n\nНаберём 40 реакций под этим постом — и бот сам выложит сюда промокод на 🎴 40 прокруток.\n\n⚠️ Сработает только у первых 15 — следите за постом!\n\nЖми реакцию 👇 Считаем!",
+  dm:"🔥 Воин, в канале раздача!\n\nНаберём 40 реакций под постом — и там сразу появится промокод на 🎴 40 прокруток. Только первые 15 активаций!\n\nЖми кнопку и ставь реакцию 👇"};
 const HUNTP={id:"hunt_1811",on:true,at:HUNT.at,photo:"assets/post-hunt.jpg",btn:"📜 Искать свиток",link:"",
   chan:"📜 ОХОТА ЗА СВИТКОМ!\n\nПрямо сейчас в одной из вкладок игры спрятан светящийся свиток 📜 Внутри — промокод на 🎴 30 прокруток + 💰 10 000 монет.\n\n⚠️ Сработает только у первых 10, кто найдёт и введёт!\n\nПодсказка: ищи там, где собирают эпохи 👀\n\nВремя пошло ⏳ 👉 @VoinyEpohBot",
   dm:"📜 Охота за свитком началась!\n\nВ одной из вкладок игры спрятан светящийся свиток с промокодом на 🎴 30 прокруток + 💰 10 000 монет. Сработает только у первых 10!\n\nПодсказка: ищи там, где собирают эпохи 👀"};
@@ -3367,18 +3371,19 @@ let u18Busy=false;async function upd18Tick(env){const now=Date.now();if(!UPD18.o
   try{await blastRun(env,UPD18);const k=await kvGet(env,"upd18chat");if(!k){await kvSet(env,"upd18chat",1);
     const r=await tgApi(env,"sendPhoto",{chat_id:CHAT,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+UPD18.photo,caption:UPD18.chan.slice(0,1020),reply_markup:{inline_keyboard:[[{text:"🏰 Играть",url:"https://t.me/VoinyEpohBot"}]]}});if(!r.ok)console.error("upd18 chat",r.description)}}finally{u18Busy=false}}
 let erBusy=false;
-let r2Busy=false,hpBusy=false;async function fun18Tick(env){const now=Date.now();
+let r3Busy=false,r2Busy=false,hpBusy=false;async function fun18Tick(env){const now=Date.now();
   if(ERRP.on&&!erBusy&&now>=ERRP.at&&now<ERRP.at+5*36e5){erBusy=true;try{await blastRun(env,ERRP)}finally{erBusy=false}}
   if(REACT2.on&&!r2Busy&&now>=REACT2.at&&now<REACT2.at+6*36e5){r2Busy=true;try{await blastRun(env,REACT2)}finally{r2Busy=false}}
+  if(REACT3.on&&!r3Busy&&now>=REACT3.at&&now<REACT3.at+6*36e5){r3Busy=true;try{await blastRun(env,REACT3)}finally{r3Busy=false}}
   if(HUNTP.on&&!hpBusy&&now>=HUNTP.at&&now<HUNT.until){hpBusy=true;try{await blastRun(env,HUNTP)}finally{hpBusy=false}}}
 let f30Busy=false;async function fire30Tick(env){if(!FIRE30.on||f30Busy||Date.now()>FUN_UNTIL)return;f30Busy=true;try{await blastRun(env,FIRE30)}finally{f30Busy=false}}
-async function fire30React(env,R){if(!R||!R.chat||String(R.chat.username||"").toLowerCase()!==CHANNEL.slice(1))return;const B=Date.now()>=REACT2.at?REACT2:FIRE30,code=B.code||"ОГОНЁК30",k="blast:"+B.id,st=await kvGet(env,k);
+async function fire30React(env,R){if(!R||!R.chat||String(R.chat.username||"").toLowerCase()!==CHANNEL.slice(1))return;const B=Date.now()>=REACT3.at?REACT3:Date.now()>=REACT2.at?REACT2:FIRE30,G=B.goal||30,SP=B.sp||30,CA=B.cash==null?3000:B.cash,MX=B.mx||50,code=B.code||"ОГОНЁК30",k="blast:"+B.id,st=await kvGet(env,k);
   console.log("react upd",R.message_id,st&&st.mid,(R.reactions||[]).length);if(!st||!st.mid||R.message_id!==st.mid||st.rev)return;
-  const n=(R.reactions||[]).reduce((a,x)=>a+(x.total_count||0),0);if(!st.rc)for(const a of ADMINS)await notify(env,a,"👀 Бот видит реакции под постом: "+n+" / 30. Код выложу сам на 30.","⚔️ Открыть");st.rc=n;if(n<30){await kvSet(env,k,st);return}st.rev=1;await kvSet(env,k,st);
-  const cap="🎉 30 ОГОНЬКОВ ЕСТЬ — ДЕРЖИТЕ!\n\n🎟 Промокод: "+code+"\n🎴 30 прокруток + 💰 3 000 монет\n\nВводите в игре: ☰ Ещё → 🎟 Промокод. Только первые 50 — бегом! 🏃",kb={inline_keyboard:[[{text:"⚔️ Ввести промокод",url:"https://t.me/VoinyEpohBot"}]]};
+  const n=(R.reactions||[]).reduce((a,x)=>a+(x.total_count||0),0);if(!st.rc)for(const a of ADMINS)await notify(env,a,"👀 Бот видит реакции под постом: "+n+" / "+G+". Код выложу сам на "+G+".","⚔️ Открыть");st.rc=n;if(n<G){await kvSet(env,k,st);return}st.rev=1;await kvSet(env,k,st);
+  const cap="🎉 "+G+" РЕАКЦИЙ ЕСТЬ — ДЕРЖИТЕ!\n\n🎟 Промокод: "+code+"\n🎴 "+SP+" прокруток"+(CA?" + 💰 "+CA.toLocaleString("ru")+" монет":"")+"\n\nВводите в игре: ☰ Ещё → 🎟 Промокод. Только первые "+MX+" — бегом! 🏃",kb={inline_keyboard:[[{text:"⚔️ Ввести промокод",url:"https://t.me/VoinyEpohBot"}]]};
   let r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+(B.photoK||"assets/post-fire30k.jpg"),caption:cap,reply_markup:kb,reply_parameters:{message_id:st.mid,allow_sending_without_reply:true}});
   if(!r.ok)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:cap,reply_markup:kb});
-  for(const a of ADMINS)await notify(env,a,r.ok?"🔥 Под постом 30 реакций — бот выложил промокод "+code+" в канал.":"🔥 30 реакций набралось, но бот не смог выложить код в канал: "+(r.description||"")+"\nВыложи вручную: "+code,"⚔️ Открыть")}
+  for(const a of ADMINS)await notify(env,a,r.ok?"🔥 Под постом "+G+" реакций — бот выложил промокод "+code+" в канал.":"🔥 "+G+" реакций набралось, но бот не смог выложить код в канал: "+(r.description||"")+"\nВыложи вручную: "+code,"⚔️ Открыть")}
 async function blast2Tick(env){if(!BLAST2.on||b2Busy)return;b2Busy=true;try{await blastRun(env,BLAST2)}finally{b2Busy=false}}
 async function blastRun(env,BLAST2){if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
   try{const k="blast:"+BLAST2.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(!BLAST2.chan)st.ch=1;if(!BLAST2.dm)st.done=1;if(st.done&&st.ch)return;
