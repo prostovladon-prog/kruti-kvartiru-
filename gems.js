@@ -717,3 +717,79 @@ function o15Draw(){const sec=$("sec-spin");if(!sec||!S)return;let b=$("o15bar");
   b.innerHTML='<div class="o15t">🎯 Открой <b>15</b> карт — <b>15-я точно ЛЕГЕНДАРНАЯ</b></div><div class="o15p"><i style="width:'+Math.round(n/15*100)+'%"></i><span>'+n+' / 15</span></div>'}
 {const _rq=renderAll;renderAll=function(){_rq.apply(this,arguments);try{o15Draw()}catch(e){}}}
 {const _a15=act;act=async function(n,p){const r=await _a15(n,p);try{if((n==="open"||n==="open_multi")&&r&&r.o15){S.o15=1;setTimeout(()=>{sfx.fanfare();hapN("success");burst(4);toast("🎯 Цель выполнена: 15 открытий — ЛЕГЕНДАРНЫЙ воин твой!")},1800)}o15Draw()}catch(e){}return r}}
+/* ⚡ Карта дня 17.11: «Локи» — бог обмана. Огненные волосы, змей Ёрмунганд вокруг плеч, маска-лис, иллюзии-двойники */
+DETAILED["Локи"]=id=>{const u="lk"+String(id).replace(/[^a-z0-9_]/gi,""),R='repeatCount="indefinite"';
+ let runes="";for(let i=0;i<16;i++){const a=i*22.5;runes+='<path transform="rotate('+a+' 100 100) translate(100 17)" d="'+["M0 -4V4M0 -4L3 -1","M-2 -4V4M-2 0L2 -4M-2 0L2 4","M0 -4V4M-3 -1L3 1","M-2 -4L2 0L-2 4","M0 -4V4M0 0L3 -3M0 0L-3 -3"][i%5]+'" stroke="#ffcf5a" stroke-width="1.2" fill="none" stroke-linecap="round"/>'}
+ let sp="";for(let i=0;i<14;i++){const x=12+((i*53)%176),d=(2.2+(i%5)*.5).toFixed(1),b=((i*.37)%2).toFixed(2);sp+='<circle cx="'+x+'" cy="200" r="'+(i%3?1.2:2)+'" fill="'+(i%2?"#ffd36a":"#b98cff")+'"><animate attributeName="cy" values="205;-5" dur="'+d+'s" begin="-'+b+'s" '+R+'/><animate attributeName="opacity" values="0;1;0" dur="'+d+'s" begin="-'+b+'s" '+R+'/></circle>'}
+ const fig='<g id="'+u+'f">'+
+  /* плащ и плечи */
+  '<circle cx="100" cy="80" r="52" fill="url(#'+u+'au2)"><animate attributeName="r" values="48;56;48" dur="2.4s" '+R+'/></circle>'+
+  '<path d="M18 200 C22 168 40 150 66 142 L134 142 C160 150 178 168 182 200Z" fill="url(#'+u+'cl)" stroke="#ffc23a" stroke-width="1.6"/>'+
+  '<path d="M30 200 C34 176 50 160 70 152 M170 200 C166 176 150 160 130 152" stroke="#7a3aa8" stroke-width="2" fill="none" opacity=".7"/>'+
+  '<path d="M66 142 L100 176 L134 142 L124 140 L100 160 L76 140Z" fill="url(#'+u+'au)" stroke="#5a3a08" stroke-width="1"/>'+
+  '<path d="M100 160 L92 170 L100 182 L108 170Z" fill="#ff7a1a"><animate attributeName="fill" values="#ff7a1a;#ffe08a;#ff7a1a" dur="1.6s" '+R+'/></path>'+
+  '<path d="M44 154 Q56 146 70 146 L64 162 Q52 160 44 154Z M156 154 Q144 146 130 146 L136 162 Q148 160 156 154Z" fill="url(#'+u+'au)" stroke="#5a3a08" stroke-width="1"/>'+
+  /* шея */
+  '<path d="M90 118 L90 140 Q100 146 110 140 L110 118Z" fill="#e3b394"/><path d="M90 126 Q100 134 110 126 L110 132 Q100 140 90 132Z" fill="#b98466" opacity=".6"/>'+
+  /* волосы сзади — пламя */
+  '<g><path d="M70 96 C64 70 76 46 100 44 C124 46 136 70 130 96 C134 112 132 128 126 140 L118 132 C120 120 120 108 118 100 L82 100 C80 108 80 120 82 132 L74 140 C68 128 66 112 70 96Z" fill="url(#'+u+'fl)"/></g>'+
+  /* языки пламени над головой */
+  ['M76 66 C66 46 78 30 72 14 C88 26 94 44 90 62Z','M92 60 C86 36 100 20 98 2 C114 20 114 42 108 60Z','M108 62 C110 42 124 32 128 14 C136 34 130 52 120 66Z','M72 80 C56 70 56 52 48 42 C66 46 76 60 80 74Z','M124 76 C140 66 142 50 152 40 C150 58 138 72 120 80Z','M84 64 C80 50 88 42 86 30 C96 42 98 54 94 64Z','M104 62 C104 48 112 42 114 30 C120 44 116 56 110 64Z'].map((d,i)=>'<path d="'+d+'" fill="url(#'+u+'fl)"><animateTransform attributeName="transform" type="scale" additive="sum" values="1 1;1 '+(1.06+i*.02)+';1 .96;1 1" dur="'+(.9+i*.17).toFixed(2)+'s" '+R+'/></path>').join("")+
+  /* лицо */
+  '<path d="M78 92 C78 72 88 62 100 62 C112 62 122 72 122 92 C122 108 114 122 100 126 C86 122 78 108 78 92Z" fill="url(#'+u+'sk)"/>'+
+  '<path d="M78 92 C78 104 82 114 88 120 C84 108 84 98 86 88Z M122 92 C122 104 118 114 112 120 C116 108 116 98 114 88Z" fill="#c9957a" opacity=".45"/>'+
+  '<ellipse cx="87" cy="106" rx="4" ry="2" fill="#ff8a7a" opacity=".35"/><ellipse cx="113" cy="106" rx="4" ry="2" fill="#ff8a7a" opacity=".35"/>'+
+  '<path d="M100 126 C90 122 84 114 82 106 C88 116 94 120 100 121 C106 120 112 116 118 106 C116 114 110 122 100 126Z" fill="#c9957a" opacity=".6"/>'+
+  /* обруч с камнем */
+  '<path d="M78 80 Q100 70 122 80 L121 85 Q100 76 79 85Z" fill="url(#'+u+'au)" stroke="#5a3a08" stroke-width=".8"/>'+
+  '<path d="M100 72 L95 79 L100 86 L105 79Z" fill="#ff8a1f" stroke="#fff3c4" stroke-width=".8"><animate attributeName="fill" values="#ff8a1f;#fff3a0;#ff8a1f" dur="1.2s" '+R+'/></path>'+
+  /* чёлка пламенем на лоб */
+  '<path d="M80 86 C80 72 90 66 100 66 C92 70 88 76 88 86 C86 80 84 80 80 86Z M120 86 C120 72 110 66 100 66 C108 70 112 76 112 86 C114 80 116 80 120 86Z" fill="url(#'+u+'fl)"/>'+
+  /* брови — хитро */
+  '<path d="M84 90 Q90 85 96 89" stroke="#7a2a10" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M104 88 Q111 83 117 86" stroke="#7a2a10" stroke-width="2.6" fill="none" stroke-linecap="round"/>'+
+  /* глаза */
+  '<g><path d="M85 96 Q90 92 96 96 Q90 99 85 96Z M104 96 Q110 92 115 96 Q110 99 104 96Z" fill="#fff8ec"/>'+
+  '<circle cx="90.5" cy="95.8" r="2.3" fill="#ffb21a"/><circle cx="109.5" cy="95.8" r="2.3" fill="#ffb21a"/><circle cx="90.5" cy="95.8" r="1" fill="#2a0a00"/><circle cx="109.5" cy="95.8" r="1" fill="#2a0a00"/>'+
+  '<circle cx="90.5" cy="95.8" r="4" fill="#ffcf5a" opacity=".35"><animate attributeName="opacity" values=".1;.6;.1" dur="2s" '+R+'/></circle><circle cx="109.5" cy="95.8" r="4" fill="#ffcf5a" opacity=".35"><animate attributeName="opacity" values=".1;.6;.1" dur="2s" '+R+'/></circle>'+
+  /* моргание */
+  '<rect x="83" y="91" width="34" height="0" fill="url(#'+u+'sk)"><animate attributeName="height" values="0;0;8;0;0" keyTimes="0;.9;.94;.98;1" dur="4.2s" '+R+'/></rect></g>'+
+  /* нос и ухмылка */
+  '<path d="M100 98 Q98 106 96 108 Q100 110 103 108" stroke="#b97f62" stroke-width="1.3" fill="none" stroke-linecap="round"/>'+
+  '<path d="M91 114 Q100 117 110 111" stroke="#7a2a20" stroke-width="2" fill="none" stroke-linecap="round"><animate attributeName="d" values="M91 114 Q100 117 110 111;M91 114 Q100 118 111 109;M91 114 Q100 117 110 111" dur="3s" '+R+'/></path>'+
+  '<path d="M110 111 l2 -1.5" stroke="#7a2a20" stroke-width="1.4" stroke-linecap="round"/>'+
+  /* бородка */
+  '<path d="M96 120 Q100 128 104 120 Q100 123 96 120Z" fill="#c2401a"/>'+
+ '</g>';
+ return '<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs>'+
+  '<radialGradient id="'+u+'bg" cx=".5" cy=".42"><stop offset="0" stop-color="#5a1f6e"/><stop offset=".55" stop-color="#22093a"/><stop offset="1" stop-color="#07030d"/></radialGradient>'+
+  '<linearGradient id="'+u+'fl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#b3101e"/><stop offset=".45" stop-color="#ff6a1a"/><stop offset=".8" stop-color="#ffc93a"/><stop offset="1" stop-color="#fff6c0"/></linearGradient>'+
+  '<linearGradient id="'+u+'au" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#ffc23a"/><stop offset="1" stop-color="#a4660a"/></linearGradient>'+
+  '<linearGradient id="'+u+'cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a1a6a"/><stop offset="1" stop-color="#14061f"/></linearGradient>'+
+  '<radialGradient id="'+u+'au2"><stop offset="0" stop-color="#ffb21a" stop-opacity=".55"/><stop offset="1" stop-color="#ff6a1a" stop-opacity="0"/></radialGradient>'+
+  '<linearGradient id="'+u+'sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe2cc"/><stop offset="1" stop-color="#e3b394"/></linearGradient>'+
+  '<linearGradient id="'+u+'sn" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1fae6a"/><stop offset=".5" stop-color="#7dffb2"/><stop offset="1" stop-color="#0f6a40"/></linearGradient>'+
+  '<linearGradient id="'+u+'sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>'+
+  fig+'</defs>'+
+  '<rect width="200" height="200" fill="url(#'+u+'bg)"/>'+
+  /* круг рун */
+  '<g opacity=".75"><animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="40s" '+R+'/><circle cx="100" cy="100" r="88" fill="none" stroke="#ffcf5a" stroke-width=".8" stroke-dasharray="2 4"/><circle cx="100" cy="100" r="76" fill="none" stroke="#ffcf5a" stroke-width=".6" opacity=".6"/>'+runes+'</g>'+
+  sp+
+  /* двойники-иллюзии */
+  '<use href="#'+u+'f" transform="translate(-46 16) scale(.84) translate(17 3)" opacity="0"><animate attributeName="opacity" values="0;.32;.08;.32;0" dur="3.4s" '+R+'/></use>'+
+  '<use href="#'+u+'f" transform="translate(64 16) scale(.84) translate(17 3)" opacity="0"><animate attributeName="opacity" values="0;.32;.08;.32;0" dur="3.4s" begin="-1.7s" '+R+'/></use>'+
+  /* главный Локи, чуть покачивается */
+  '<g><animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="3s" '+R+'/><use href="#'+u+'f"/>'+
+  /* змей Ёрмунганд на плечах */
+  '<path d="M28 196 C30 160 58 150 80 156 C96 160 104 152 120 150 C142 147 160 156 168 168" fill="none" stroke="url(#'+u+'sn)" stroke-width="9" stroke-linecap="round"/>'+
+  '<path d="M28 196 C30 160 58 150 80 156 C96 160 104 152 120 150 C142 147 160 156 168 168" fill="none" stroke="#0a3a22" stroke-width="9" stroke-dasharray="1.2 4.8" stroke-linecap="round" opacity=".55"><animate attributeName="stroke-dashoffset" values="0;-12" dur="1.2s" '+R+'/></path>'+
+  '<path d="M28 194 C30 160 58 152 80 158 C96 162 104 154 120 152 C142 149 160 158 168 170" fill="none" stroke="#d8ffe6" stroke-width="1.6" opacity=".55"/>'+
+  '<g transform="translate(170 170) rotate(30)"><path d="M-6 -6 Q8 -8 12 0 Q8 8 -6 6Z" fill="#1fae6a" stroke="#0a3a22" stroke-width="1"/><circle cx="4" cy="-2.5" r="1.4" fill="#ffd23f"/>'+
+  '<path d="M12 0 l6 0 l3 -2 M18 0 l3 2" stroke="#ff2e63" stroke-width="1.2" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.6;.65;.8;.85" dur="2s" '+R+'/></path></g>'+
+  /* маска-лис в руке */
+  '<g transform="translate(40 150)"><g><animateTransform attributeName="transform" type="rotate" values="-12;10;-12" dur="2.6s" '+R+'/>'+
+  '<path d="M0 -16 L-12 -24 L-10 -8 Q-14 2 0 12 Q14 2 10 -8 L12 -24Z" fill="url(#'+u+'au)" stroke="#5a3a08" stroke-width="1"/><path d="M0 -16 L0 12 Q14 2 10 -8 L12 -24Z" fill="#ff7a1a" opacity=".55"/>'+
+  '<path d="M-6 -6 l3 1.5 M6 -6 l-3 1.5" stroke="#2a0a00" stroke-width="1.8" stroke-linecap="round"/></g></g>'+
+  '</g>'+
+  /* блик */
+  '<rect x="-120" y="0" width="80" height="200" fill="url(#'+u+'sh)" transform="skewX(-18)"><animate attributeName="x" values="-120;-120;260" keyTimes="0;.7;1" dur="4s" '+R+'/></rect>'+
+  '</svg>'};
