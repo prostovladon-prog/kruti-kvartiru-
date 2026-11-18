@@ -1840,7 +1840,7 @@ function encCard(c,out){const sn=+c.sn,v=Math.round(c.v*100);out.push(c.h,c.f,lv
   c.stats.forEach(x=>out.push((x>>8)&255,x&255));out.push((v>>>24)&255,(v>>16)&255,(v>>8)&255,v&255)}
 function decCard(a,i){const c={h:a[i],f:a[i+1],lv:a[i+2],hue:a[i+3]*2,no:(a[i+4]<<8)|a[i+5],sn:String((a[i+6]<<16)|(a[i+7]<<8)|a[i+8]).padStart(6,"0"),stats:[]};
   for(let k=0;k<5;k++)c.stats.push((a[i+9+k*2]<<8)|a[i+10+k*2]);c.v=((a[i+19]<<24)|(a[i+20]<<16)|(a[i+21]<<8)|a[i+22])/100;c.xp=25*Math.pow(c.lv-1,2);c.id="f"+i+"_"+c.sn;
-  if(c.h>=HEROES.length||(c.f>4&&c.f!==DUO_F)||HEROES[c.h][4].collab)throw 0;return c}
+  if(c.h>=HEROES.length||(!FIN[c.f]||(FIN[c.f].excl&&c.f!==DUO_F))||HEROES[c.h][4].collab)throw 0;return c}
 const CARD_B=23;
 function encName(){const u=new TextEncoder().encode(myName()).slice(0,40);return [u.length,...u]}
 function decName(a){const n=a[1];return {name:new TextDecoder().decode(new Uint8Array(a.slice(2,2+n))),i:2+n}}

@@ -3676,3 +3676,19 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .hunt-x{position:absolute;right:6px;top:46%;z-index:5;width:38px;height:38px;border:0;border-radius:50%;background:radial-gradient(circle,#ffe9a8,#ffb800 60%,rgba(255,184,0,0) 72%);font-size:22px;cursor:pointer;opacity:.85;animation:huntb 2.2s ease-in-out infinite}
 @keyframes huntb{50%{transform:scale(1.15) rotate(8deg);opacity:1}}.hunt-code{margin:6px auto 10px;padding:10px 16px;border-radius:14px;border:3px dashed var(--ink);font-family:var(--display);font-size:28px;letter-spacing:2px;background:#fff3c4;user-select:all}
 @media (prefers-reduced-motion:reduce){.hunt-x{animation:none}}
+/* 18.11 — 15 новых ошибок печати */
+.front.neg .art{filter:invert(1) hue-rotate(180deg)}
+.front.egold .art{filter:sepia(1) saturate(4) hue-rotate(-12deg) brightness(1.1)}.front.egold{--edge:repeating-linear-gradient(90deg,#ffcc33 0 6px,#a4660a 6px 12px)}
+.front.eblue .art{filter:hue-rotate(180deg) saturate(1.4)}
+.front.acid .art{filter:hue-rotate(90deg) saturate(3) contrast(1.1)}
+.front.rgb .art{filter:drop-shadow(-18px 0 0 rgba(255,0,200,.85)) drop-shadow(18px 0 0 rgba(0,255,200,.85)) saturate(1.4)}
+.front.dbl .art{filter:drop-shadow(22px 14px 0 rgba(255,140,40,.7)) drop-shadow(-10px -6px 0 rgba(0,0,0,.35))}
+.front.blot .art{position:relative}.front.blot .art::after{content:"";position:absolute;left:52%;top:38%;width:46%;height:40%;border-radius:47% 53% 41% 59%/55% 38% 62% 45%;background:radial-gradient(circle at 40% 40%,#5a1aa8,#2a0a5a 70%);opacity:.88;transform:rotate(-14deg);box-shadow:-30px 40px 0 -18px #3a0a7a,26px -22px 0 -20px #3a0a7a;pointer-events:none;mix-blend-mode:normal!important;animation:none!important;z-index:6;right:auto;bottom:auto}
+.front.shift .art{transform:translateX(16%)}
+.front.tall .art{transform:scale(.82,1.22);transform-origin:50% 70%}
+.front.mirror .art{transform:scaleX(-1)}
+.front.tilt .art{transform:rotate(14deg) scale(.92)}
+.front.bw .art{filter:grayscale(1) contrast(1.25)}
+.front.burn .art{filter:brightness(1.75) saturate(1.6) contrast(.85)}
+.front.pale .art{filter:saturate(.25) brightness(1.3) contrast(.8)}
+.front.blur .art{filter:blur(2.5px)}
