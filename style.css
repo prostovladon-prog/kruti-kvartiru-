@@ -3698,3 +3698,4 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .cst-lv{background:#ffd23f;color:#2a0012;border-radius:10px;padding:4px 10px;font-weight:900;font-size:13px}.cst-cap{font-weight:700}
 .cst-perks{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.cst-perks span{background:#f1eefc;border-radius:9px;padding:4px 8px;font-size:12px;font-weight:900;color:#1a1430}
 .cst-r{display:grid;grid-template-columns:46px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:12px;margin-top:6px;border:2px solid #e8e6f4}.cst-r.cur{border-color:#ffd23f;background:#fff7d6}.cst-r.lock{opacity:.55}.cst-r b{font-size:13px}.cst-r small{display:block;font-size:11px;color:#5a5f80;font-weight:700}.cst-r .c{font-weight:900;font-size:12px;text-align:right}
+.cst-lock{text-align:center}.cst-lock .cst-scene{filter:grayscale(.6) brightness(.8)}.cst-timer{font-family:var(--display);font-size:44px;font-weight:900;color:#c0242e;margin:6px 0}

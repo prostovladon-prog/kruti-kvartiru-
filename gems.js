@@ -695,7 +695,8 @@ function castleSVG(L,w,h){L=Math.max(0,L|0);let s='<svg width="'+w+'" height="'+
   if(L>=8)s+='<circle cx="180" cy="'+(184-80-L*9-(24+L)*1.6-30)+'" r="10" fill="#ffd23f"/>';
   if(L>=10)s+='<g opacity=".8">'+[0,1,2,3,4,5].map(i=>'<circle cx="'+(60+i*48)+'" cy="'+(40+(i%2)*20)+'" r="3" fill="#fff"/>').join('')+'</g>';
   return s+'</svg>'}
-function castleDraw(){const box=$("castle-box");if(!box||!S)return;const L=S.castle|0,P=capParts(S),N=CASTLE[L],got=castleReady(S,NOW()),inc=castleInc(L),pc=L?Math.min(100,got/Math.max(1,inc)*100):0;
+function castleDraw(){const box=$("castle-box");if(!box||!S)return;if(NOW()<CASTLE_AT){const l=CASTLE_AT-NOW(),hh=Math.floor(l/36e5),mm=Math.floor(l%36e5/6e4),ss=Math.floor(l%6e4/1e3);
+    box.innerHTML='<div class="box cst cst-lock"><h3>🏰 Замок откроется в 9:00</h3><div class="cst-scene">'+castleSVG(10,340,217)+'</div><div class="cst-timer">⏳ '+String(hh).padStart(2,"0")+':'+String(mm).padStart(2,"0")+':'+String(ss).padStart(2,"0")+'</div><p>Строй свой замок за монеты: каждый уровень даёт <b>место в коллекции</b> и <b>доход монет каждый день</b>. 10 уровней — от Шалаша до Легенды Эпох!</p></div>';box.dataset.k="";return}const L=S.castle|0,P=capParts(S),N=CASTLE[L],got=castleReady(S,NOW()),inc=castleInc(L),pc=L?Math.min(100,got/Math.max(1,inc)*100):0;
   const name=L?CASTLE[L-1].n:"Нет замка";
   let h='<div class="box cst"><div class="rowb"><h3>🏰 Мой замок</h3><span class="cst-lv">'+(L?"Ур. "+L+" · «"+name+"»":"не построен")+'</span></div><div class="cst-scene">'+castleSVG(L,340,217)+'</div>'+
    '<p class="cst-cap">📦 Место в коллекции: <b>'+S.cards.length+' / '+P.all+'</b>'+(P.castle?' · замок даёт <b>+'+P.castle+'</b>':'')+'</p></div>';
@@ -707,4 +708,4 @@ function castleDraw(){const box=$("castle-box");if(!box||!S)return;const L=S.cas
   const gb=$("cst-get");if(gb)gb.onclick=async()=>{gb.disabled=true;const r=await act("castle_get");if(!r){gb.disabled=false;return}sfx.coin();toast("+"+fmt(r.got)+" из замка");renderAll()};
   const ub=$("cst-up");if(ub)ub.onclick=async()=>{const N=CASTLE[S.castle|0];if(!confirm("Построить «"+N.n+"» за "+N.cost.toLocaleString("ru")+" 🪙?\n\n+"+N.sl+" мест в коллекции и доход "+N.inc.toLocaleString("ru")+" 🪙 в день."))return;ub.disabled=true;const r=await act("castle_up");if(!r){ub.disabled=false;return}try{sfx.fanfare();burst&&burst(3)}catch(e){}hapN("success");toast("🏰 Замок ур. "+r.lv+"! Теперь в коллекции "+r.cap+" мест");renderAll()}}
 {const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{if(!$("sec-castle").hidden)castleDraw()}catch(e){}}}
-setInterval(()=>{try{if(S&&!$("sec-castle").hidden){const b=$("castle-box");if(b)b.dataset.k="";castleDraw()}}catch(e){}},30000);
+setInterval(()=>{try{if(S&&!$("sec-castle").hidden){const b=$("castle-box");if(b)b.dataset.k="";castleDraw()}}catch(e){}},NOW()<CASTLE_AT?1000:30000);

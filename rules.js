@@ -511,11 +511,11 @@ const VIP_T=[null,{k:"silver",n:"VIP Серебро",ic:"🥈",sp:13,ex:1,stars:
 const SLOT_STEP=10, SLOT_COIN={pct:.3,min:100}, SLOT_STAR={stars:99,n:10,max:200}, VIP_CAP=500, VIP_SLOTS=[0,VIP_CAP,VIP_CAP,VIP_CAP];
 const capCoinPrice=st=>Math.max(SLOT_COIN.min,Math.ceil((st.cash||0)*SLOT_COIN.pct));
 /* 🏰 Замок: даёт место в коллекции и доход монет. Новичкам база 50; старым игрокам база заморожена (сколько было карт +20, не больше 250) */
-const CAP_NEW=50,CASTLE=[{n:"Шалаш",cost:3000,sl:30,inc:150},{n:"Деревянный форт",cost:15000,sl:50,inc:500},{n:"Каменный дом",cost:50000,sl:70,inc:1200},{n:"Замок",cost:150000,sl:100,inc:2500},{n:"Большой замок",cost:5e5,sl:150,inc:5000},
+const CASTLE_AT=Date.UTC(2026,10,18,6,0),CAP_NEW=50,CASTLE=[{n:"Шалаш",cost:3000,sl:30,inc:150},{n:"Деревянный форт",cost:15000,sl:50,inc:500},{n:"Каменный дом",cost:50000,sl:70,inc:1200},{n:"Замок",cost:150000,sl:100,inc:2500},{n:"Большой замок",cost:5e5,sl:150,inc:5000},
  {n:"Крепость",cost:1.5e6,sl:200,inc:10000},{n:"Цитадель",cost:5e6,sl:300,inc:25000},{n:"Королевский двор",cost:1.5e7,sl:400,inc:60000},{n:"Дворец Эпох",cost:5e7,sl:600,inc:150000},{n:"Легенда Эпох",cost:1.5e8,sl:1000,inc:350000}];
 const castleSlots=L=>CASTLE.slice(0,L|0).reduce((a,x)=>a+x.sl,0),castleInc=L=>L>0?CASTLE[L-1].inc:0;
 function castleReady(st,now){const L=st.castle|0;if(!L)return 0;const t=Math.min(864e5,Math.max(0,now-(st.castleAt||now)));return Math.floor(castleInc(L)*t/864e5)}
-function capInit(st,cards){if(st.capOld==null)st.capOld=(!(cards&&cards.length)&&!(st.nOp>0))?CAP_NEW:Math.min(CAP,Math.max(CAP_NEW,(cards?cards.length:0)+20))}
+function capInit(st,cards,now){if(now!=null&&now<CASTLE_AT)return;if(st.capOld==null)st.capOld=(!(cards&&cards.length)&&!(st.nOp>0))?CAP_NEW:Math.min(CAP,Math.max(CAP_NEW,(cards?cards.length:0)+20))}
 function capParts(st){const base=st.capOld!=null?st.capOld:CAP,cs=castleSlots(st.castle),c=st.capC?1:0,s=Math.min(SLOT_STAR.max,st.capS||0),own=base+cs+c*SLOT_STEP+s*SLOT_STAR.n,v=vipTier(st)?Math.max(0,VIP_CAP-own):0;return {base,castle:cs,coin:c*SLOT_STEP,c,star:s*SLOT_STAR.n,s,vip:v,own,all:own+v}}
 function capOf(st){return capParts(st).all}
 const VIP_SPINS=13, vipOn=st=>(st.vipUntil||0)>Date.now(), vipTier=st=>vipOn(st)?Math.max(1,Math.min(3,st.vipT||1)):0;
@@ -1405,7 +1405,7 @@ const ACTIONS={
     D.inv=(D.inv||[]).filter(it=>{if(!ids.has(it.id)||eqIds.has(it.id))return true;got+=Math.round(DG_R[it.r].dis*(1+.5*(it.lv||0)));n++;return false});if(!n)fail("Выбери предметы (надетые разбирать нельзя)");
     D.sh=(D.sh||0)+got;return {sh:got,n}},
   /* расширение коллекции: +10 мест за монеты (цена растёт) и +50 за звёзды (выдаёт сервер после оплаты) */
-  castle_up(G){const {st,ctx}=G,L=st.castle|0;if(L>=CASTLE.length)fail("Замок уже максимального уровня");const N=CASTLE[L];if(st.cash<N.cost)fail("Нужно "+N.cost.toLocaleString("ru")+" 🪙");
+  castle_up(G){const {st,ctx}=G,L=st.castle|0;if(ctx.now<CASTLE_AT)fail("Замок откроется сегодня в 9:00");if(L>=CASTLE.length)fail("Замок уже максимального уровня");const N=CASTLE[L];if(st.cash<N.cost)fail("Нужно "+N.cost.toLocaleString("ru")+" 🪙");
     const got=castleReady(st,ctx.now);if(got)earn(st,got);st.cash=Math.round((st.cash-N.cost)*100)/100;st.castle=L+1;st.castleAt=ctx.now;return {lv:st.castle,got,cap:capOf(st)}},
   castle_get(G){const {st,ctx}=G;if(!(st.castle|0))fail("Сначала построй замок");const got=castleReady(st,ctx.now);if(got<1)fail("Пока нечего собирать — загляни позже");earn(st,got);st.castleAt=ctx.now;return {got}},
   cap_buy(G){const {st}=G;if(st.capC)fail("За монеты место расширяется только один раз. Дальше — за звёзды или VIP");const n=capCoinPrice(st);
@@ -1430,7 +1430,7 @@ ACTIONS.dg_wish=function(G){const {st,ctx}=G,D=st.dg;if(!D)fail("Сначала 
 /* прогресс желаний — от обычных действий */
 {const H={dg_tap:(r,p)=>["tap",r&&r.n||0],dg_feed:()=>["feed",1],dga_apply:()=>["fight",1],open:()=>["spin",1],open_multi:r=>["spin",r&&r.cards?r.cards.length:0],dg_exp:()=>["exp",1],dg_play:()=>["play",1]};
   for(const k in H){const f=ACTIONS[k];if(!f)continue;ACTIONS[k]=function(G){const r=f.apply(this,arguments);try{const [w,n]=H[k](r,G.p);dgWishAdd(G.st,G.ctx.now,w,n)}catch(e){}return r}}}
-function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);capInit(st,cards);if(st.eraAll&&!(st.titles||[]).includes("keeper")){st.titles=st.titles||[];st.titles.push("keeper")}   /* титул «Хранитель эпох» тем, кто собрал эпохи до его появления */const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);if(ctx.dcLive===false&&st.dsp)st.dsp=0;   /* особые прокруты живут только пока идёт карта дня: копить заранее нельзя */
+function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неизвестное действие");touch(st,ctx.now);capInit(st,cards,ctx.now);if(st.eraAll&&!(st.titles||[]).includes("keeper")){st.titles=st.titles||[];st.titles.push("keeper")}   /* титул «Хранитель эпох» тем, кто собрал эпохи до его появления */const G={st,cards,ctx,p:p||{}};gemAnn(st,cards);if(ctx.dcLive===false&&st.dsp)st.dsp=0;   /* особые прокруты живут только пока идёт карта дня: копить заранее нельзя */
   const D0=day(st,ctx.now),o0=D0.opened,w0=st.totalWins||0,c0=st.crafted||0;const res=A(G)||{};
   try{if(st.dg){const s=new Set();for(const c of G.cards)if(HEROES[c.h]&&HEROES[c.h][4].dgc)s.add(c.h);st.dg.dcn=s.size}}catch(e){}
   try{const D=day(st,ctx.now);passAdd(st,ctx,"open",Math.max(0,D.opened-o0));passAdd(st,ctx,"win",Math.max(0,(st.totalWins||0)-w0));
