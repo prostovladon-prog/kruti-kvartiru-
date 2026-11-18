@@ -662,6 +662,19 @@ function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4]
   const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x","p","sn","sn2"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
 SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
 SHOP.refbox={n:"Сундук друга",stars:0,noBuy:1,cards:3,epic:1,d:["🃏 <b>3</b> карточки","минимум <b>1 эпическая</b>","даётся за каждого приглашённого друга"]};
+Object.assign(SHOP,{
+ build:{n:"Сундук строителя",stars:99,cash:3e5,sp:10,cards:5,d:["🪙 <b>300 000</b> монет — на замок","🎴 <b>10</b> прокруток","🃏 <b>5</b> карточек"]},
+ cash1:{n:"Малая казна",stars:49,cash:1e5,d:["🪙 <b>100 000</b> монет"]},
+ cash2:{n:"Казна",stars:199,cash:6e5,d:["🪙 <b>600 000</b> монет","выгоднее малой в <b>1,5</b> раза"]},
+ cash3:{n:"Королевская казна",stars:499,cash:2e6,d:["🪙 <b>2 000 000</b> монет","выгоднее малой в <b>2</b> раза"]},
+ arch:{n:"Сундук архитектора",stars:299,arch:1,sp:20,d:["🏰 замок <b>+1 уровень</b> бесплатно","🎴 <b>20</b> прокруток","замок на максимуме — <b>3 млн</b> 🪙 вместо уровня"]},
+ night:{n:"Ночной сундук",stars:79,night:1,cards:8,epic:1,luckH:2,d:["🌙 продаётся только <b>22:00–02:00</b>","🃏 <b>8</b> карточек, минимум <b>1 эпическая</b>","🍀 <b>2 часа</b> удачи"]},
+ duelb:{n:"Сундук дуэлянта",stars:199,duelb:1,duelx:5e4,cards:5,d:["💎 гем <b>3 ур.</b> (случайная стихия)","⚔️ <b>+50 000</b> к лимиту монет за дуэли — на сегодня","🃏 <b>5</b> карточек"]},
+ collb:{n:"Сундук коллекционера",stars:399,collb:6,d:["🃏 <b>6</b> карточек","только воины, которых <b>у тебя ещё нет</b>"]},
+ goldb:{n:"Золотой сундук",stars:999,goldb:1,d:["🟡 <b>3</b> карточки с <b>золотой</b> отделкой","одна из них — <b>легендарная</b>","золотых всего 10 на воина — если тираж кончился, будет Голограмма"]},
+ clanb:{n:"Сундук клана",stars:249,clanb:1,cards:5,d:["🃏 тебе <b>5</b> карточек","🛡 каждому в твоём клане — <b>+5</b> прокруток","все узнают, кто угостил"]},
+ clsp:{n:"Подарок клана",stars:0,noBuy:1,sp:5,d:["🎴 <b>5</b> прокруток от соклановца"]},
+ roul:{n:"Сундук-рулетка",stars:39,roul:1,d:["🎰 один приз: от <b>5</b> прокруток до <b>мифика</b>","шансы: 5 прокр. 40% · 10 прокр. 25% · карточка 15% · эпик 10% · 25 прокр. 6% · легенда 3,5% · мифик 0,5%"]}});
 SHOP.custom={n:"Карточка твоей мечты",stars:3500,manual:1,d:["нарисуем <b>любого героя</b>, какого захочешь","с <b>любым номером</b>","только у тебя, в единственном экземпляре"]};
 /* свой номер: 100 ⭐ + 100 ⭐ за каждый «икс» красивого номера (777 777 ×15 = 1600 ⭐) */
 const numPrice=sn=>{const c=classify(sn);return 100+(c?c.m*100:0)};
@@ -1278,6 +1291,18 @@ const ACTIONS={
     if(I.shelfx)st.shelfX=1;
     if(I.myst){const pool=MYST.map((x,i)=>i).sort(()=>Math.random()-.5).slice(0,3);st.myst={o:pool,t:Date.now()}}
     let gems=null;if(I.gbox){const B=GBOX[p.item],el=GEM.el[p.el]?p.el:"f";gems=[el+gboxLv(B.lv)];if(B.lv2)gems.push(el+gboxLv(B.lv2));gems.forEach(g=>gemAdd(st,g));const H=st.gsh||(st.gsh={f:0,w:0,e:0,a:0});H[el]=(H[el]||0)+B.sh}
+    const plainH=i=>{const X=HEROES[i][4];return isBase(i)&&!X.one&&!X.comp&&!X.day&&!X.sale&&!X.collab};
+    let note="";if(I.cash)earn(st,I.cash);
+    if(I.arch){const L=st.castle|0;if(L<CASTLE.length){const g=castleReady(st,ctx.now);if(g)earn(st,g);st.castle=L+1;st.castleAt=ctx.now;note="🏰 Замок вырос до «"+CASTLE[L].n+"»!"}else{earn(st,3e6);note="🏰 Замок уже максимальный — +3 000 000 🪙"}}
+    if(I.duelx){const d=today(ctx.now);if(!st.dw||st.dw.d!==d)st.dw={d,m:{},sum:0};st.dw.sum=(st.dw.sum||0)-I.duelx}
+    if(I.duelb){const el=GEM.el[p.el]?p.el:["f","w","e","a"][Math.floor(Math.random()*4)];gemAdd(st,el+"3");note="💎 Гем 3 ур. в инвентаре"}
+    if(I.collb){const have=new Set(G.cards.map(c=>c.h));for(let k=0;k<I.collb;k++){const pool=HEROES.map((H,i)=>i).filter(i=>plainH(i)&&!have.has(i)&&HEROES[i][2]<=3);
+      if(!pool.length){add(rollCard(ctx,true));continue}const h=pool[pick(pool.map(i=>HW[HEROES[i][2]]+.3))];have.add(h);add(makeCard(ctx,h,0))}}
+    if(I.goldb){for(let k=0;k<3;k++){const t=k===0?3:Math.random()<.5?2:1,pool=HEROES.map((H,i)=>i).filter(i=>plainH(i)&&HEROES[i][2]===t);let h=pool[Math.floor(Math.random()*pool.length)],f=3;
+      const ok=pool.filter(i=>ctx.issuedOf(i,3)<FIN[3].run);if(ok.length)h=ok[Math.floor(Math.random()*ok.length)];else f=2;add(makeCard(ctx,h,f))}}
+    if(I.roul){const R=[[40,"sp",5],[25,"sp",10],[15,"c",0],[10,"c",1],[6,"sp",25],[3.5,"l"],[.5,"m"]],x=R[pick(R.map(r=>r[0]))];
+      if(x[1]==="sp"){st.spins+=x[2];note="🎰 Рулетка: +"+x[2]+" прокруток"}else if(x[1]==="c"){add(rollCard(ctx,!!x[2]));note=x[2]?"🎰 Рулетка: эпическая карточка!":"🎰 Рулетка: карточка"}
+      else if(x[1]==="l"){add(rollTier(ctx,3));note="🎰 Рулетка: ЛЕГЕНДА!"}else{add(rollTier(ctx,4,DON));note="🎰 Рулетка: МИФИК!!!"}}
     if(I.twins){const d=rollDuo(ctx);if(d)add(d);else st.guar=(st.guar||0)+3}
     if(I.cards){let n=I.cards;
       {const dp=DIA_P[p.item];if(dp&&!ctx.noRare&&Math.random()<dp){const d=rollDia(ctx);if(d){add(d);n--}}}   // 💎 шанс на Алмазную серию
@@ -1287,7 +1312,7 @@ const ACTIONS={
       if(I.epic){add(rollCard(ctx,true));n--}
       for(;n>0;n--)add(rollCard(ctx,false))}
     st.pays.push(p.pid);if(st.pays.length>40)st.pays=st.pays.slice(-40);
-    return {item:p.item,sp:I.sp||0,guar:I.guar||0,cards:got,gems,gsh:gems?[GEM.el[p.el]?p.el:"f",GBOX[p.item].sh]:undefined}},
+    return {item:p.item,note,cash:I.cash||0,sp:I.sp||0,guar:I.guar||0,cards:got,gems,gsh:gems?[GEM.el[p.el]?p.el:"f",GBOX[p.item].sh]:undefined}},
 
   /* странствующий торговец: покупка (цену и карточку назначает сервер) и продажа ему нужного воина */
   trader_take(G){const T=G.ctx.trader;if(!T)fail("Неизвестное действие");const {st,ctx}=G;if(G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Продай лишнее или расширь место");
@@ -3555,7 +3580,7 @@ async function dcApi(env,me,a,p){await xhLoad(env,1);
   if(a==="dc_stop"){if(DC){DC.until=Date.now();await kvSet(env,"dc",DC)}return {ok:1}}
   fail("Неизвестное действие")}
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
-  if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
+  if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.night){const hh=new Date(Date.now()+TZ).getUTCHours();if(hh>=2&&hh<22)fail("Ночной сундук продаётся только с 22:00 до 02:00");}if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
@@ -3708,7 +3733,9 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         const what=B.sp?"+"+B.sp+" прокруток":"+"+B.bon+" ⭐ к пополнению от "+B.bmin+" ⭐";res.promo={code,what,big:B.bon>=300||B.sp>=20?1:0};
         if(B.bon>=1000)try{await hypeAdd(env,P.uid,"🎟 выбил промокод на +1000 ⭐ из сундука!",1)}catch(e){}
         try{await notify(env,P.uid,"🎟 Твой промокод из сундука: "+code+"\n\nВнутри: "+what+". Действует 14 дней, активировать может 1 человек — себе или другу 🎁","🎟 Ввести код",PAGE+"?promo=1")}catch(e){}}
-      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+"Всё уже в игре."}
+      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+(res.cash?"+"+Number(res.cash).toLocaleString("ru")+" 🪙. ":"")+(res.note?res.note+" ":"")+"Всё уже в игре.";
+      if(I.clanb)try{const cu=await env.DB.prepare("SELECT clan,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(cu&&cu.clan){const mem=(await clanMembers(env,cu.clan)).filter(m=>m.id!==P.uid);
+        for(const m of mem){try{await doAction(env,{id:m.id,name:m.name},"grant",{item:"clsp",pid:"cl:"+P.id+":"+m.id},{grant:true});await notify(env,m.id,"🛡 "+cu.n+" открыл Сундук клана — тебе +5 прокруток!","🎴 Крутить")}catch(e){}}msg+=" 🛡 Соклановцы получили по +5 прокруток ("+mem.length+")."}else msg+=" (Ты не в клане — бонус соклановцам некому отдать.)"}catch(e){console.error("clanb",e&&e.message)}}
     else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");
       let r;try{r=await env.DB.prepare("UPDATE cards SET sn=?,nice=2 WHERE id=? AND owner=?").bind(d.sn,c.id,P.uid).run()}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Номер "+fmtSn(d.sn)+" успели занять");throw e}
       if(r.meta.changes!==1)fail("Карточка больше не у тебя, номер не поставлен");res={card:c.id,sn:d.sn,old:c.sn};msg="✍️ Готово! Теперь у твоей карточки номер "+fmtSn(d.sn)+"."}

@@ -2045,7 +2045,7 @@ async function dcApi(env,me,a,p){await xhLoad(env,1);
   if(a==="dc_stop"){if(DC){DC.until=Date.now();await kvSet(env,"dc",DC)}return {ok:1}}
   fail("Неизвестное действие")}
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
-  if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
+  if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.night){const hh=new Date(Date.now()+TZ).getUTCHours();if(hh>=2&&hh<22)fail("Ночной сундук продаётся только с 22:00 до 02:00");}if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
     if(I.month&&await mythLeft(env,except)<=0)fail("Мифические сундуки этого месяца раскуплены. Новые появятся 1-го числа");
@@ -2198,7 +2198,9 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         const what=B.sp?"+"+B.sp+" прокруток":"+"+B.bon+" ⭐ к пополнению от "+B.bmin+" ⭐";res.promo={code,what,big:B.bon>=300||B.sp>=20?1:0};
         if(B.bon>=1000)try{await hypeAdd(env,P.uid,"🎟 выбил промокод на +1000 ⭐ из сундука!",1)}catch(e){}
         try{await notify(env,P.uid,"🎟 Твой промокод из сундука: "+code+"\n\nВнутри: "+what+". Действует 14 дней, активировать может 1 человек — себе или другу 🎁","🎟 Ввести код",PAGE+"?promo=1")}catch(e){}}
-      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+"Всё уже в игре."}
+      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+(res.cash?"+"+Number(res.cash).toLocaleString("ru")+" 🪙. ":"")+(res.note?res.note+" ":"")+"Всё уже в игре.";
+      if(I.clanb)try{const cu=await env.DB.prepare("SELECT clan,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(cu&&cu.clan){const mem=(await clanMembers(env,cu.clan)).filter(m=>m.id!==P.uid);
+        for(const m of mem){try{await doAction(env,{id:m.id,name:m.name},"grant",{item:"clsp",pid:"cl:"+P.id+":"+m.id},{grant:true});await notify(env,m.id,"🛡 "+cu.n+" открыл Сундук клана — тебе +5 прокруток!","🎴 Крутить")}catch(e){}}msg+=" 🛡 Соклановцы получили по +5 прокруток ("+mem.length+")."}else msg+=" (Ты не в клане — бонус соклановцам некому отдать.)"}catch(e){console.error("clanb",e&&e.message)}}
     else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");
       let r;try{r=await env.DB.prepare("UPDATE cards SET sn=?,nice=2 WHERE id=? AND owner=?").bind(d.sn,c.id,P.uid).run()}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Номер "+fmtSn(d.sn)+" успели занять");throw e}
       if(r.meta.changes!==1)fail("Карточка больше не у тебя, номер не поставлен");res={card:c.id,sn:d.sn,old:c.sn};msg="✍️ Готово! Теперь у твоей карточки номер "+fmtSn(d.sn)+"."}
