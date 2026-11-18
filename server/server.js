@@ -1071,11 +1071,20 @@ async function aucBid(env,me,p){const A=await aucCur(env),now=Date.now();if(!A||
   if(A.top){await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(A.bid,A.top).run();
     await notify(env,A.top,"🔨 Твою ставку на аукционе перебил "+nm+": "+fmtD(amt)+" 🪙"+". Деньги вернулись. Успей перебить!","🔨 К аукциону",PAGE+"?shop=1")}
   delete topCache.feed;return aucView(await env.DB.prepare("SELECT * FROM auc WHERE id=?").bind(A.id).first(),me)}
-async function aucTick(env){const now=Date.now(),A=await aucCur(env);if(!A)return;
+/* разовая починка: победителям прошлых аукционов, кому карточка не выдалась (тираж «ошибки печати» успели занять) — выдаём */
+let aucFixOk=0;async function aucFix(env){if(aucFixOk)return;aucFixOk=1;if(await kvGet(env,"aucfix1"))return;await kvSet(env,"aucfix1",{t:Date.now()});
+  const L=(await env.DB.prepare("SELECT * FROM auc WHERE done=1 AND top IS NOT NULL AND top>0 ORDER BY id DESC LIMIT 14").all()).results;const out=[];
+  for(const A of L){const has=await env.DB.prepare("SELECT id FROM cards WHERE h=? AND f=? AND (owner=? OR (how='auction' AND created>=?)) LIMIT 1").bind(A.h,A.f,A.top,A.until-36e5).first();if(has)continue;
+    try{const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(A.top).first();await doAction(env,{id:A.top,name:(u&&u.name)||"Игрок"},"auc_win",{},{auc:{h:A.h,f:A.f,stats:rj(A.stats,[]),hue:A.hue,v:A.v}});
+      await notify(env,A.top,"🏆 Извини за задержку! Карточка с аукциона «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — уже в твоей коллекции.","🎴 Смотреть");out.push(A.top+":"+HEROES[A.h][0])}catch(e){console.error("aucfix",e)}}
+  for(const a of ADMINS)if(out.length)await notify(env,a,"🔧 Починка аукциона: выдал карточки — "+out.join(", "),"⚔️ Открыть")}
+async function aucTick(env){try{await aucFix(env)}catch(e){console.error("aucfix",e)}const now=Date.now(),A=await aucCur(env);if(!A)return;
   if(!A.done&&now>=A.until&&now>=A.start){const t=await env.DB.prepare("UPDATE auc SET done=1 WHERE id=? AND done=0").bind(A.id).run();if(t.meta.changes!==1)return;
     if(A.top){try{const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(A.top).first();
       await doAction(env,{id:A.top,name:(u&&u.name)||"Игрок"},"auc_win",{},{auc:{h:A.h,f:A.f,stats:rj(A.stats,[]),hue:A.hue,v:A.v}});
-      await notify(env,A.top,"🏆 Ты выиграл аукцион дня! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — за "+fmtD(A.bid)+" 🪙"+". Карточка уже в коллекции.","🎴 Смотреть")}catch(e){console.error("auc win",e)}}
+      await notify(env,A.top,"🏆 Ты выиграл аукцион дня! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — за "+fmtD(A.bid)+" 🪙"+". Карточка уже в коллекции.","🎴 Смотреть")}catch(e){console.error("auc win",e);
+      /* не смогли выдать — возвращаем ставку, чтобы монеты не сгорели впустую */
+      try{await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(A.bid,A.top).run();await notify(env,A.top,"⚠️ Не получилось выдать карточку аукциона — ставка "+fmtD(A.bid)+" 🪙 вернулась тебе. Напиши в поддержку, разберёмся!","🎴 Открыть игру")}catch(e2){}}}
     return}
   // за минуту до старта: рассылка «аукцион начинается»
   const k=await kvGet(env,"auc_note");if(!A.done&&now>=A.start-60e3&&now<A.start+AUC_MS&&(!k||k.id!==A.id||!k.done)){const st=k&&k.id===A.id?k:{id:A.id,after:0,done:0};

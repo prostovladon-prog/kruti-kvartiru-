@@ -524,7 +524,7 @@ function priceOf(h,f,no,sn,top,part){const [a,b]=HT[HEROES[h][2]].b;let v=(a+Mat
   if(isComp(h)){v*=[5,.3,1.5][part|0];if(!part&&f===0&&no===1)v*=3}
   if(FIN[f].run!==Infinity&&no===1)v*=3;const cl=classify(sn);if(cl)v*=cl.m;if(top)v*=2;return Math.round(v*100)/100}
 function makeCard(ctx,h,f,preset){
-  if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
+  if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&!(preset&&preset.force)&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
   const no=ctx.nextNo(h,f),sn=genNumber(ctx,HEROES[h][4].sale?0:f),B=cardBody(h,f,preset);
   return {id:ctx.newId(),h,f,no,sn,hue:B.hue,stats:B.stats,v:priceOf(h,f,no,sn,B.top),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0};
 }
@@ -1028,7 +1028,7 @@ const ACTIONS={
 
   craft(G){const {st,ctx,p}=G;const ids=[...new Set(p.ids||[])];if(!ids.length||ids.length>5)fail("Выбери от 1 до 5 карточек");
     const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(isComp(h))fail("Составных воинов не крафтят: их собирают из половинок");if(!craftable(f))fail("«Ошибку печати» нельзя скрафтить — её можно только выбить");if(!craftOk(h))fail("Этого воина не крафтят");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
-    if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
+    if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&!(preset&&preset.force)&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
     const inp=ids.map(id=>notHalf(burnable(freeCard(G,id)),"Половинки нельзя сжигать в крафте")),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),cp=craftPrice(h,f),amu=0;   /* 10.11: амулет удачи убран */
     if(amu)pay(st,amuCost(h,f));
     const pr=Math.min(CRAFT_MAX(f,h)+amu,HOUSE*sum/cp+amu);if(pr<=0)fail("Шанс слишком мал");
@@ -1270,7 +1270,7 @@ const ACTIONS={
   present_seen(G){G.st.prs=[];return {}},
   title_set(G){const st=G.st,k=G.p.k||"";if(k&&!(st.titles||[]).includes(k))fail("Сначала купи этот титул");st.title=k;return {k}},
   /* выигрыш аукциона: только сервер, карточка кладётся даже сверх лимита */
-  auc_win(G){const A=G.ctx.auc;if(!A)fail("Неизвестное действие");const card=makeCard(G.ctx,A.h,A.f,{stats:A.stats,hue:A.hue});card.v=A.v;card.how="auction";G.cards.push(card);noteCard(G.st,card);return {card}},
+  auc_win(G){const A=G.ctx.auc;if(!A)fail("Неизвестное действие");const card=makeCard(G.ctx,A.h,A.f,{stats:A.stats,hue:A.hue,force:1});   /* лот аукциона зарезервирован: тираж не проверяем */card.v=A.v;card.how="auction";G.cards.push(card);noteCard(G.st,card);return {card}},
   /* награда за сезон рейтинга: только сервер */
   season_prize(G){if(!G.ctx.season)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.sp)st.spins+=p.sp;if(p.guar)st.guar=(st.guar||0)+p.guar;let card=null;
     if(p.tier){card=rollTier(ctx,p.tier);card.how="chest";G.cards.push(card);noteCard(st,card)}return {card}},

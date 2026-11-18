@@ -526,7 +526,7 @@ function priceOf(h,f,no,sn,top,part){const [a,b]=HT[HEROES[h][2]].b;let v=(a+Mat
   if(isComp(h)){v*=[5,.3,1.5][part|0];if(!part&&f===0&&no===1)v*=3}
   if(FIN[f].run!==Infinity&&no===1)v*=3;const cl=classify(sn);if(cl)v*=cl.m;if(top)v*=2;return Math.round(v*100)/100}
 function makeCard(ctx,h,f,preset){
-  if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
+  if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&!(preset&&preset.force)&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
   const no=ctx.nextNo(h,f),sn=genNumber(ctx,HEROES[h][4].sale?0:f),B=cardBody(h,f,preset);
   return {id:ctx.newId(),h,f,no,sn,hue:B.hue,stats:B.stats,v:priceOf(h,f,no,sn,B.top),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0};
 }
@@ -1030,7 +1030,7 @@ const ACTIONS={
 
   craft(G){const {st,ctx,p}=G;const ids=[...new Set(p.ids||[])];if(!ids.length||ids.length>5)fail("Выбери от 1 до 5 карточек");
     const h=p.h|0,f=p.f|0;if(!HEROES[h]||!FIN[f])fail("Неверная цель");if(isComp(h))fail("Составных воинов не крафтят: их собирают из половинок");if(!craftable(f))fail("«Ошибку печати» нельзя скрафтить — её можно только выбить");if(!craftOk(h))fail("Этого воина не крафтят");if(FIN[f].excl)fail("Эту отделку нельзя скрафтить");
-    if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
+    if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&!(preset&&preset.force)&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
     const inp=ids.map(id=>notHalf(burnable(freeCard(G,id)),"Половинки нельзя сжигать в крафте")),sum=inp.reduce((a,c)=>a+c.v,0),t=targetPrice(h,f),cp=craftPrice(h,f),amu=0;   /* 10.11: амулет удачи убран */
     if(amu)pay(st,amuCost(h,f));
     const pr=Math.min(CRAFT_MAX(f,h)+amu,HOUSE*sum/cp+amu);if(pr<=0)fail("Шанс слишком мал");
@@ -1272,7 +1272,7 @@ const ACTIONS={
   present_seen(G){G.st.prs=[];return {}},
   title_set(G){const st=G.st,k=G.p.k||"";if(k&&!(st.titles||[]).includes(k))fail("Сначала купи этот титул");st.title=k;return {k}},
   /* выигрыш аукциона: только сервер, карточка кладётся даже сверх лимита */
-  auc_win(G){const A=G.ctx.auc;if(!A)fail("Неизвестное действие");const card=makeCard(G.ctx,A.h,A.f,{stats:A.stats,hue:A.hue});card.v=A.v;card.how="auction";G.cards.push(card);noteCard(G.st,card);return {card}},
+  auc_win(G){const A=G.ctx.auc;if(!A)fail("Неизвестное действие");const card=makeCard(G.ctx,A.h,A.f,{stats:A.stats,hue:A.hue,force:1});   /* лот аукциона зарезервирован: тираж не проверяем */card.v=A.v;card.how="auction";G.cards.push(card);noteCard(G.st,card);return {card}},
   /* награда за сезон рейтинга: только сервер */
   season_prize(G){if(!G.ctx.season)fail("Неизвестное действие");const {st,ctx,p}=G;if(p.sp)st.spins+=p.sp;if(p.guar)st.guar=(st.guar||0)+p.guar;let card=null;
     if(p.tier){card=rollTier(ctx,p.tier);card.how="chest";G.cards.push(card);noteCard(st,card)}return {card}},
@@ -2547,11 +2547,20 @@ async function aucBid(env,me,p){const A=await aucCur(env),now=Date.now();if(!A||
   if(A.top){await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(A.bid,A.top).run();
     await notify(env,A.top,"🔨 Твою ставку на аукционе перебил "+nm+": "+fmtD(amt)+" 🪙"+". Деньги вернулись. Успей перебить!","🔨 К аукциону",PAGE+"?shop=1")}
   delete topCache.feed;return aucView(await env.DB.prepare("SELECT * FROM auc WHERE id=?").bind(A.id).first(),me)}
-async function aucTick(env){const now=Date.now(),A=await aucCur(env);if(!A)return;
+/* разовая починка: победителям прошлых аукционов, кому карточка не выдалась (тираж «ошибки печати» успели занять) — выдаём */
+let aucFixOk=0;async function aucFix(env){if(aucFixOk)return;aucFixOk=1;if(await kvGet(env,"aucfix1"))return;await kvSet(env,"aucfix1",{t:Date.now()});
+  const L=(await env.DB.prepare("SELECT * FROM auc WHERE done=1 AND top IS NOT NULL AND top>0 ORDER BY id DESC LIMIT 14").all()).results;const out=[];
+  for(const A of L){const has=await env.DB.prepare("SELECT id FROM cards WHERE h=? AND f=? AND (owner=? OR (how='auction' AND created>=?)) LIMIT 1").bind(A.h,A.f,A.top,A.until-36e5).first();if(has)continue;
+    try{const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(A.top).first();await doAction(env,{id:A.top,name:(u&&u.name)||"Игрок"},"auc_win",{},{auc:{h:A.h,f:A.f,stats:rj(A.stats,[]),hue:A.hue,v:A.v}});
+      await notify(env,A.top,"🏆 Извини за задержку! Карточка с аукциона «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — уже в твоей коллекции.","🎴 Смотреть");out.push(A.top+":"+HEROES[A.h][0])}catch(e){console.error("aucfix",e)}}
+  for(const a of ADMINS)if(out.length)await notify(env,a,"🔧 Починка аукциона: выдал карточки — "+out.join(", "),"⚔️ Открыть")}
+async function aucTick(env){try{await aucFix(env)}catch(e){console.error("aucfix",e)}const now=Date.now(),A=await aucCur(env);if(!A)return;
   if(!A.done&&now>=A.until&&now>=A.start){const t=await env.DB.prepare("UPDATE auc SET done=1 WHERE id=? AND done=0").bind(A.id).run();if(t.meta.changes!==1)return;
     if(A.top){try{const u=await env.DB.prepare("SELECT name FROM users WHERE id=?").bind(A.top).first();
       await doAction(env,{id:A.top,name:(u&&u.name)||"Игрок"},"auc_win",{},{auc:{h:A.h,f:A.f,stats:rj(A.stats,[]),hue:A.hue,v:A.v}});
-      await notify(env,A.top,"🏆 Ты выиграл аукцион дня! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — за "+fmtD(A.bid)+" 🪙"+". Карточка уже в коллекции.","🎴 Смотреть")}catch(e){console.error("auc win",e)}}
+      await notify(env,A.top,"🏆 Ты выиграл аукцион дня! «"+HEROES[A.h][0]+"», "+FIN[A.f].k.toLowerCase()+" — за "+fmtD(A.bid)+" 🪙"+". Карточка уже в коллекции.","🎴 Смотреть")}catch(e){console.error("auc win",e);
+      /* не смогли выдать — возвращаем ставку, чтобы монеты не сгорели впустую */
+      try{await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(A.bid,A.top).run();await notify(env,A.top,"⚠️ Не получилось выдать карточку аукциона — ставка "+fmtD(A.bid)+" 🪙 вернулась тебе. Напиши в поддержку, разберёмся!","🎴 Открыть игру")}catch(e2){}}}
     return}
   // за минуту до старта: рассылка «аукцион начинается»
   const k=await kvGet(env,"auc_note");if(!A.done&&now>=A.start-60e3&&now<A.start+AUC_MS&&(!k||k.id!==A.id||!k.done)){const st=k&&k.id===A.id?k:{id:A.id,after:0,done:0};
