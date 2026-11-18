@@ -678,3 +678,6 @@ DETAILED["Один"]=id=>{const u="od"+String(id).replace(/[^a-z0-9_]/gi,""),R='
   raven("M20 60 C40 20 160 20 180 60 C160 100 40 100 20 60Z",7,"0",2.2)+raven("M180 40 C150 10 50 10 20 40 C50 80 150 80 180 40Z",9,"-3",1.8)+
   '<rect x="-120" y="0" width="80" height="200" fill="url(#'+u+'sh)" transform="skewX(-18)"><animate attributeName="x" values="-120;-120;260" keyTimes="0;.7;1" dur="4.5s" '+R+'/></rect>'+
   '</svg>'};
+
+/* гемы всегда в силе карты на клиенте: после боя S.cards приходят новыми объектами без c.gm, а renderAll не всегда вызывается — подставляем из S.gsock прямо в расчёте */
+{const _gm=gemMul;gemMul=function(c){try{if(c&&!c.gm&&typeof S!=="undefined"&&S&&S.gsock){const g=S.gsock[c.id];if(g&&g.length)c.gm=g}}catch(e){}return _gm(c)}}
