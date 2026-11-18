@@ -3692,3 +3692,5 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .front.burn .art{filter:brightness(1.75) saturate(1.6) contrast(.85)}
 .front.pale .art{filter:saturate(.25) brightness(1.3) contrast(.8)}
 .front.blur .art{filter:blur(2.5px)}
+.ordrow{display:flex;flex-direction:column;gap:6px}.ordrow .rowb b{font-size:15px}
+#msheet label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:13px;margin:6px 0;text-align:left}#msheet label select,#msheet label input{padding:10px;border-radius:12px;border:2px solid #1a1430;font-size:15px}
