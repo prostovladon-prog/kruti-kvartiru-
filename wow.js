@@ -1099,3 +1099,8 @@ let esPick={frame:"fire",crest:"🦅"};
     if(cr){esPick.crest=cr.dataset.cr;renderGold();return}
     if(us){const r=await act("avf_set",{v:S.avfOn?"":Object.keys(S.avf||{})[0]});if(r)renderGold();return}
     if(bu&&!bu.disabled){const k=bu.dataset.k;buyItem({item:"eshop",k,v:k==="frame"?esPick.frame:k==="crest"?esPick.crest:""})}}}}
+/* конкурс: ник Telegram подставляем сам; кнопка «Я участвую» — запасной обработчик на document (если старый onclick не привязался) */
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("#st-join");if(!b||b.onclick||b.disabled)return;e.preventDefault();
+  const tgi=$("st-tg");let v=tgi?tgi.value:"";if(!v){try{v=tg.initDataUnsafe.user.username||""}catch(_){}}
+  const r=await act("story_join",{tg:v,ig:$("st-ig")?$("st-ig").value:""});if(r){try{sfx.fanfare();burst(2);hapN("success")}catch(_){}toast("✅ Ты участвуешь! Не убирай @VoinyEpohBot до итогов");await loadChal()}},true);
+setInterval(()=>{const i=$("st-tg");if(i&&!i.value&&!i.dataset.af){i.dataset.af=1;try{const u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.username;if(u)i.value="@"+u}catch(e){}}},800);
