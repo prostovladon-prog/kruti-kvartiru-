@@ -3288,7 +3288,12 @@ const REACT2={id:"react_1811",on:true,at:Date.UTC(2026,10,18,9,0),code:"ЖАРА
 const HUNTP={id:"hunt_1811",on:true,at:HUNT.at,photo:"assets/post-hunt.jpg",btn:"📜 Искать свиток",link:"",
   chan:"📜 ОХОТА ЗА СВИТКОМ!\n\nПрямо сейчас в одной из вкладок игры спрятан светящийся свиток 📜 Внутри — промокод на 🎴 30 прокруток + 💰 10 000 монет.\n\n⚠️ Сработает только у первых 10, кто найдёт и введёт!\n\nПодсказка: ищи там, где собирают эпохи 👀\n\nВремя пошло ⏳ 👉 @VoinyEpohBot",
   dm:"📜 Охота за свитком началась!\n\nВ одной из вкладок игры спрятан светящийся свиток с промокодом на 🎴 30 прокруток + 💰 10 000 монет. Сработает только у первых 10!\n\nПодсказка: ищи там, где собирают эпохи 👀"};
+const ERRP={id:"err15_1811",on:true,at:Date.UTC(2026,10,18,13,30),photo:"assets/post-err15.jpg",btn:"🎰 Испытать удачу",link:"",
+  chan:"🖨 В ИГРЕ 15 НОВЫХ ОШИБОК ПЕЧАТИ!\n\nТипография снова ошиблась — и теперь из прокрута могут выпасть карточки с новым браком:\n\n🟡 Золотой брак — весь воин золотой (×1300 к цене!)\n⚪ Негатив — цвета наоборот (×1100)\n🔵 Синий брак · 🟢 Кислотная · 🌈 Сдвиг цвета\n🟣 Пятно краски · 👥 Двойной оттиск · 🪞 Зеркальная\n…и ещё 7 видов!\n\n💎 Каждая — 1 из 1 у своего воина. Самых дорогих на весь мир всего 3–4 штуки.\n\nУспей поймать первым 👉 @VoinyEpohBot",
+  dm:"🖨 В игре 15 новых ошибок печати!\n\nЗолотой брак, Негатив, Кислотная, Пятно краски и ещё 11 видов. Каждая — 1 из 1, самые дорогие дают до ×1300 к цене карты.\n\nКрути — может, первая выпадет тебе 👇"};
+let erBusy=false;
 let r2Busy=false,hpBusy=false;async function fun18Tick(env){const now=Date.now();
+  if(ERRP.on&&!erBusy&&now>=ERRP.at&&now<ERRP.at+5*36e5){erBusy=true;try{await blastRun(env,ERRP)}finally{erBusy=false}}
   if(REACT2.on&&!r2Busy&&now>=REACT2.at&&now<REACT2.at+6*36e5){r2Busy=true;try{await blastRun(env,REACT2)}finally{r2Busy=false}}
   if(HUNTP.on&&!hpBusy&&now>=HUNTP.at&&now<HUNT.until){hpBusy=true;try{await blastRun(env,HUNTP)}finally{hpBusy=false}}}
 let f30Busy=false;async function fire30Tick(env){if(!FIRE30.on||f30Busy||Date.now()>FUN_UNTIL)return;f30Busy=true;try{await blastRun(env,FIRE30)}finally{f30Busy=false}}
