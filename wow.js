@@ -907,8 +907,8 @@ function drawStory2(C,hm,dd){const box=$("chal"),joined=!!C.me,today=dd(C.end)==
   if($("st-cp2"))$("st-cp2").onclick=()=>{try{navigator.clipboard.writeText("@VoinyEpohBot");toast("Скопировано — вставь в ник или описание")}catch(e){toast("@VoinyEpohBot")}};
   if($("st-dl"))$("st-dl").onclick=()=>{try{if(tg&&tg.downloadFile){tg.downloadFile({url,file_name:"voiny-epoh-konkurs.jpg"});return}}catch(e){}try{tg&&tg.openLink?tg.openLink(url):open(url)}catch(e){open(url)}};
   if($("st-share"))$("st-share").onclick=()=>{const p={text:"Участвую в конкурсе «Воинов Эпох» 🎁 Залетай: @VoinyEpohBot"};try{tg.shareToStory(url,Object.assign({},p,{widget_link:{url:C.link,name:"Играть"}}))}catch(e){try{tg.shareToStory(url,p)}catch(x){toast("Не получилось — скачай фото и выложи вручную")}}};
-  if($("st-edit"))$("st-edit").onclick=e=>{e.preventDefault();box.querySelector(".sty-f").hidden=false;$("st-tg").value=C.me.tg||"";$("st-ig").value=C.me.ig||""};
-  if($("st-join"))$("st-join").onclick=async()=>{const r=await act("story_join",{tg:$("st-tg").value,ig:$("st-ig").value});if(r){sfx.fanfare();burst(2);hapN("success");toast("✅ Ты участвуешь! Не убирай @VoinyEpohBot до итогов");await loadChal()}}}
+  if($("st-edit"))$("st-edit").onclick=e=>{e.preventDefault();box.querySelector(".sty-f").hidden=false;$("st-tg").value=C.me.tg||"";if($("st-ig"))$("st-ig").value=C.me.ig||""};
+  if($("st-join"))$("st-join").onclick=async()=>{const r=await act("story_join",{tg:$("st-tg").value,ig:$("st-ig")?$("st-ig").value:""});if(r){sfx.fanfare();burst(2);hapN("success");toast("✅ Ты участвуешь! Не убирай @VoinyEpohBot до итогов");await loadChal()}}}
 function stPageUrl(){return location.origin+location.pathname.replace(/[^/]*$/,"")}
 /* админ: подтверждение победителей конкурса историй */
 let stRes=null;
