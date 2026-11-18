@@ -3694,3 +3694,7 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .front.blur .art{filter:blur(2.5px)}
 .ordrow{display:flex;flex-direction:column;gap:6px}.ordrow .rowb b{font-size:15px}
 #msheet label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:13px;margin:6px 0;text-align:left}#msheet label select,#msheet label input{padding:10px;border-radius:12px;border:2px solid #1a1430;font-size:15px}
+.cst-scene{border-radius:18px;overflow:hidden;border:3px solid #ffd23f;margin:8px 0;display:flex;justify-content:center;background:#ffd8a0}.cst-scene svg{width:100%;height:auto}
+.cst-lv{background:#ffd23f;color:#2a0012;border-radius:10px;padding:4px 10px;font-weight:900;font-size:13px}.cst-cap{font-weight:700}
+.cst-perks{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.cst-perks span{background:#f1eefc;border-radius:9px;padding:4px 8px;font-size:12px;font-weight:900;color:#1a1430}
+.cst-r{display:grid;grid-template-columns:46px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:12px;margin-top:6px;border:2px solid #e8e6f4}.cst-r.cur{border-color:#ffd23f;background:#fff7d6}.cst-r.lock{opacity:.55}.cst-r b{font-size:13px}.cst-r small{display:block;font-size:11px;color:#5a5f80;font-weight:700}.cst-r .c{font-weight:900;font-size:12px;text-align:right}

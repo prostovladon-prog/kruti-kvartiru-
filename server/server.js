@@ -783,7 +783,7 @@ async function pickOpponent(env,me,p,stake){
   const mine=await row("SELECT h,v FROM cards WHERE id=? AND owner=?",p.id|0,me.id);if(!mine)return null;
   let SEL="SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND c.owner<>? AND c.list_price IS NULL AND c.away=0 AND c.room_id IS NULL AND c.f<>5 AND NOT (c.f=4 AND c.sn='000010') AND c.part=0";   // «Основатель» в боях не участвует
   const args=[me.id];
-  if(stake){SEL+=" AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<?+"+SLOT_STEP+"*MIN(1,COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(mine.v*.5,mine.v*2,CAP)}
+  if(stake){SEL+=" AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<COALESCE(json_extract(u.state,'$.capOld'),?)+(CASE COALESCE(json_extract(u.state,'$.castle'),0) "+CASTLE.map((x,i)=>"WHEN "+(i+1)+" THEN "+castleSlots(i+1)).join(" ")+" ELSE 0 END)+"+SLOT_STEP+"*MIN(1,COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(mine.v*.5,mine.v*2,CAP)}
   let r=null;
   if(p.rematch)r=await row(SEL+" AND c.id=?",...args,p.rematch|0);
   if(!r){if(!stake&&Math.random()<.2)return null;   // иногда всё равно бот, чтобы соперники были разными

@@ -681,3 +681,30 @@ DETAILED["Один"]=id=>{const u="od"+String(id).replace(/[^a-z0-9_]/gi,""),R='
 
 /* гемы всегда в силе карты на клиенте: после боя S.cards приходят новыми объектами без c.gm, а renderAll не всегда вызывается — подставляем из S.gsock прямо в расчёте */
 {const _gm=gemMul;gemMul=function(c){try{if(c&&!c.gm&&typeof S!=="undefined"&&S&&S.gsock){const g=S.gsock[c.id];if(g&&g.length)c.gm=g}}catch(e){}return _gm(c)}}
+
+/* 🏰 Замок: место в коллекции + доход монет (вкладка «Карты → Замок») */
+function castleSVG(L,w,h){L=Math.max(0,L|0);let s='<svg width="'+w+'" height="'+h+'" viewBox="0 0 360 230"><defs><linearGradient id="csk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a5a"/><stop offset="1" stop-color="#ffd8a0"/></linearGradient><linearGradient id="cst" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8bca8"/><stop offset="1" stop-color="#8a7c68"/></linearGradient></defs><rect width="360" height="230" fill="url(#csk)"/><circle cx="290" cy="60" r="26" fill="#fff4c0"/><rect y="180" width="360" height="50" fill="#5aa04a"/>';
+  if(!L)return s+'<text x="180" y="150" text-anchor="middle" font-size="64">🏕</text><text x="180" y="205" text-anchor="middle" font-size="16" font-weight="900" fill="#1a1430">пустой участок</text></svg>';
+  if(L===1)return s+'<path d="M120 184 L180 110 L240 184Z" fill="#a0703a" stroke="#2a2018" stroke-width="4"/><path d="M165 184 L180 150 L195 184Z" fill="#2a2018"/></svg>';
+  if(L>=2)s+='<rect x="'+(180-60-L*9)+'" y="'+(150-L*3)+'" width="'+(120+L*18)+'" height="'+(34+L*3)+'" fill="'+(L<3?"#a0703a":"url(#cst)")+'" stroke="#2a2018" stroke-width="3"/>'+[...Array(8+L)].map((_,i)=>'<rect x="'+(180-60-L*9+i*((120+L*18)/(8+L)))+'" y="'+(140-L*3)+'" width="'+((120+L*18)/(8+L)*.55)+'" height="12" fill="'+(L<3?"#8a5a2a":"#b0a490")+'" stroke="#2a2018" stroke-width="2"/>').join('');
+  const tw=(x,th,r,c)=>'<rect x="'+(x-r)+'" y="'+(184-th)+'" width="'+(2*r)+'" height="'+th+'" fill="url(#cst)" stroke="#2a2018" stroke-width="3"/><path d="M'+(x-r-6)+' '+(184-th)+' L'+x+' '+(184-th-r*1.6)+' L'+(x+r+6)+' '+(184-th)+'Z" fill="'+c+'" stroke="#2a2018" stroke-width="3"/><rect x="'+(x-5)+'" y="'+(184-th+18)+'" width="10" height="16" rx="5" fill="#2a2018"/><path d="M'+x+' '+(184-th-r*1.6)+' v-18" stroke="#2a2018" stroke-width="3"/><path d="M'+x+' '+(184-th-r*1.6-18)+' l18 5 l-18 5Z" fill="#e0102e"/>';
+  if(L===2)s+='<rect x="160" y="90" width="40" height="94" fill="#a0703a" stroke="#2a2018" stroke-width="3"/><path d="M152 92 L180 60 L208 92Z" fill="#7a4a1a" stroke="#2a2018" stroke-width="3"/><path d="M168 184 v-24 a12 12 0 0 1 24 0 v24Z" fill="#3a2010"/>';
+  if(L>=4){s+=tw(180-70-L*8,70+L*4,16,'#3a5ac8');s+=tw(180+70+L*8,70+L*4,16,'#3a5ac8')}
+  if(L>=6){s+=tw(180-120-L*4,50+L*3,12,'#c0242e');s+=tw(180+120+L*4,50+L*3,12,'#c0242e')}
+  if(L>=3)s+=tw(180,80+L*9,24+L,'#c0242e')+'<path d="M166 184 v-26 a14 14 0 0 1 28 0 v26Z" fill="#5a3418" stroke="#2a2018" stroke-width="3"/>';
+  if(L>=8)s+='<circle cx="180" cy="'+(184-80-L*9-(24+L)*1.6-30)+'" r="10" fill="#ffd23f"/>';
+  if(L>=10)s+='<g opacity=".8">'+[0,1,2,3,4,5].map(i=>'<circle cx="'+(60+i*48)+'" cy="'+(40+(i%2)*20)+'" r="3" fill="#fff"/>').join('')+'</g>';
+  return s+'</svg>'}
+function castleDraw(){const box=$("castle-box");if(!box||!S)return;const L=S.castle|0,P=capParts(S),N=CASTLE[L],got=castleReady(S,NOW()),inc=castleInc(L),pc=L?Math.min(100,got/Math.max(1,inc)*100):0;
+  const name=L?CASTLE[L-1].n:"Нет замка";
+  let h='<div class="box cst"><div class="rowb"><h3>🏰 Мой замок</h3><span class="cst-lv">'+(L?"Ур. "+L+" · «"+name+"»":"не построен")+'</span></div><div class="cst-scene">'+castleSVG(L,340,217)+'</div>'+
+   '<p class="cst-cap">📦 Место в коллекции: <b>'+S.cards.length+' / '+P.all+'</b>'+(P.castle?' · замок даёт <b>+'+P.castle+'</b>':'')+'</p></div>';
+  if(L)h+='<div class="box"><div class="rowb"><div><small class="cln">ДОХОД ЗАМКА</small><br><b style="font-size:18px">'+fmt(inc)+' / день</b><br><small class="cln">копится до суток — заходи каждый день</small></div><button type="button" class="craftbtn" id="cst-get"'+(got<1?" disabled":"")+'>Собрать '+fmt(got)+'</button></div><div class="bar"><i style="width:'+pc+'%;background:linear-gradient(90deg,#ffb800,#ffd23f)"></i></div></div>';
+  if(N)h+='<div class="box"><div class="rowb"><div><small class="cln">'+(L?"СЛЕДУЮЩИЙ УРОВЕНЬ":"ПОСТРОИТЬ ЗАМОК")+'</small><br><b style="font-size:16px">Ур. '+(L+1)+' «'+N.n+'»</b></div><button type="button" class="craftbtn" id="cst-up"'+(S.cash<N.cost?" disabled":"")+'>'+fmt(N.cost)+'</button></div><div class="cst-perks"><span>📦 +'+N.sl+' мест</span><span>💰 доход '+fmt(N.inc)+'/день</span></div>'+(S.cash<N.cost?'<small class="cln">не хватает '+fmt(N.cost-S.cash)+'</small>':'')+'</div>';
+  else h+='<div class="box"><b>👑 Замок максимального уровня!</b></div>';
+  h+='<div class="box"><h3>📜 Уровни замка</h3>'+CASTLE.map((x,i)=>'<div class="cst-r'+(i===L-1?" cur":i>=L?" lock":"")+'"><div>'+castleSVG(i+1,46,30)+'</div><div><b>'+(i+1)+'. '+x.n+'</b><small>+'+x.sl+' мест · '+fmt(x.inc)+'/день</small></div><div class="c">'+(i<L-1?"✅":i===L-1?"⭐ сейчас":fmt(x.cost))+'</div></div>').join("")+'</div>';
+  if(box.dataset.k===h)return;box.dataset.k=h;box.innerHTML=h;
+  const gb=$("cst-get");if(gb)gb.onclick=async()=>{gb.disabled=true;const r=await act("castle_get");if(!r){gb.disabled=false;return}sfx.coin();toast("+"+fmt(r.got)+" из замка");renderAll()};
+  const ub=$("cst-up");if(ub)ub.onclick=async()=>{const N=CASTLE[S.castle|0];if(!confirm("Построить «"+N.n+"» за "+N.cost.toLocaleString("ru")+" 🪙?\n\n+"+N.sl+" мест в коллекции и доход "+N.inc.toLocaleString("ru")+" 🪙 в день."))return;ub.disabled=true;const r=await act("castle_up");if(!r){ub.disabled=false;return}try{sfx.fanfare();burst&&burst(3)}catch(e){}hapN("success");toast("🏰 Замок ур. "+r.lv+"! Теперь в коллекции "+r.cap+" мест");renderAll()}}
+{const _ra=renderAll;renderAll=function(){_ra.apply(this,arguments);try{if(!$("sec-castle").hidden)castleDraw()}catch(e){}}}
+setInterval(()=>{try{if(S&&!$("sec-castle").hidden){const b=$("castle-box");if(b)b.dataset.k="";castleDraw()}}catch(e){}},30000);
