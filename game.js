@@ -876,7 +876,77 @@ const DIA_GEM='<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradie
 function diaFace(root,c){[...root.classList].filter(x=>x.startsWith("dia-")).forEach(x=>root.classList.remove(x));root.querySelectorAll(".diam,.dxtra").forEach(e=>e.remove());
   const D=c.f===DIA_F&&DIA[c.h];if(!D)return;root.classList.add("dia-"+D.c);const art=root.querySelector(".art");if(!art)return;
   art.insertAdjacentHTML("beforeend",'<div class="diam" style="left:'+D.x+'%;top:'+D.y+'%">'+DIA_GEM+'</div>'+(["pix","ink","water","cosmos","ice","fire","flare","sepia","rust","splash","half","scratch","gemrain","eclipse","aurora","dust","glass","vhs","comic","blueprint"].includes(D.c)?'<div class="dxtra">'+(D.c==="water"?"ОШИБКА · ".repeat(60):"")+'</div>':""))}
+const paintBirthdayPrint=(()=>{
+const artInk='#0d1030', gold='#ffd23f', pink='#ff547d', aqua='#65e6ff', white='#fff5d0';
+const shape=(d,fill,stroke=artInk,w=3)=>`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+const circle=(x,y,r,c,s=artInk,w=2)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="${s}" stroke-width="${w}"/>`;
+const star=(x,y,r,c)=>shape(`M${x} ${y-r}l${r*.28} ${r*.72}L${x+r} ${y}l-${r*.72} ${r*.28}L${x} ${y+r}l-${r*.28} -${r*.72}L${x-r} ${y}l${r*.72} -${r*.28}Z`,c);
+const copy=(x,y,flip,content)=>`<g transform="translate(${x} ${y}) scale(${flip} 1)">${content}</g>`;
+const stream=(n,seed)=>{const R=rng(seed);return Array.from({length:n},(_,i)=>{
+  const x=8+R()*282,y=16+R()*224,c=[gold,pink,aqua,'#bc8dff','#77f1a1'][i%5],d=i%3===0?
+  star(x,y,4+R()*6,c):`<rect x="${x}" y="${y}" width="${4+R()*7}" height="${7+R()*9}" rx="2" fill="${c}" stroke="${artInk}" stroke-width="1.8" transform="rotate(${-60+R()*120} ${x} ${y})"/>`;return d}).join('')};
+const fireworks=(x,y,r,c,n=11)=>Array.from({length:n},(_,i)=>{const a=i*2*Math.PI/n;
+  const X=d=>(x+Math.cos(a)*d).toFixed(2),Y=d=>(y+Math.sin(a)*d).toFixed(2);
+  return shape(`M${X(r*.27)} ${Y(r*.27)}L${X(r)} ${Y(r)}`,'none',artInk,6)+
+    shape(`M${X(r*.27)} ${Y(r*.27)}L${X(r)} ${Y(r)}`,'none',c,3)+star(+X(r*1.13),+Y(r*1.13),4,c)}).join('')+star(x,y,11,white);
+const flag=(x,y,c)=>shape(`M${x} ${y}l25 2 -15 27Z`,c);
+const ribbon=(x,y,c)=>shape(`M${x} ${y}q34 -27 65 -2l19 18q-31 -13 -68 6l-17 9 6 -14 -15 -7Z`,c);
+const wax=(x,y,c)=>circle(x,y,28,c)+circle(x,y,21,'none','#ffe7a2',2)+
+  shape(`M${x-6} ${y-9}l7 -5v26m-10 0h20`,'none',white,5);
+const crown=(x,y,c)=>shape(`M${x} ${y+5}l13 11 12 -18 13 18 14 -13 -5 29h-42Z`,c);
+const flame=(x,y,c)=>shape(`M${x} ${y}q-11 -7 0 -23q4 7 7 12q4 8 -7 11Z`,c)+circle(x,y-5,3,white,'none',0);
+const candle=(x,y,h,c)=>shape(`M${x-5} ${y}v-${h}h10v${h}Z`,c)+
+  shape(`M${x-4} ${y-9}l8 -6m-8 -4 8 -6`,'none',white,2)+flame(x,y-h-3,gold);
+const goblet=(x,y,c)=>shape(`M${x-15} ${y}h30l-3 15q-2 9 -12 10q-10 -1 -12 -10Z`,c)+
+  shape(`M${x} ${y+25}v11m-10 0h20`,'none',gold,5);
+const balloon=(x,y,c)=>`<g><ellipse cx="${x}" cy="${y}" rx="17" ry="23" fill="${c}" stroke="${artInk}" stroke-width="3"/>`+
+  shape(`M${x} ${y+22}q6 12 -2 19t4 17`,'none',white,2)+shape(`M${x-9} ${y-3}q-1 -11 7 -15`,'none',white,3)+'</g>';
+const cake=(x,y)=>shape(`M${x} ${y}q34 -20 68 0v29q-36 15 -68 0Z`,'#ff91b7')+
+  shape(`M${x} ${y}q34 -20 68 0v8q-5 12 -11 2q-8 10 -15 -1q-8 12 -15 0q-9 11 -16 -1q-6 10 -11 -1Z`,white)+
+  [16,34,51].map((d,i)=>candle(x+d,y-6,13+i%2*7,i%2?aqua:pink)).join('');
+const DFX_PREVIEW={
+  confetti:()=>stream(24,801)+star(30,64,14,gold)+star(270,173,13,pink),
+  seal:()=>wax(244,162,'#ff9352')+wax(258,149,'#a83254')+star(220,121,9,white),
+  ribbon:()=>ribbon(5,74,pink)+ribbon(13,67,aqua)+copy(307,123,-1,ribbon(4,68,gold)),
+  candles:()=>[21,42,62,245,269].map((x,i)=>candle(x,215,22+i%3*13,i%2?pink:aqua)).join('')+fireworks(246,51,21,white,8),
+  flags:()=>shape('M0 44 Q145 100 300 33M0 34 Q145 89 300 23','none',white,3)+
+    [12,53,97,183,226,266].map((x,i)=>flag(x,[44,56,63,61,51,35][i],i%2?gold:pink)+flag(x+5,[36,48,55,53,43,27][i],i%2?aqua:'#bc8dff')).join(''),
+  toast:()=>`<g transform="rotate(-18 42 158)">${goblet(42,158,'#b55069')}</g><g transform="rotate(22 254 128)">${goblet(254,128,'#ff9367')}</g>`+
+    [[229,116],[250,102],[274,110],[230,100],[265,91]].map(([x,y],i)=>circle(x,y,3+i%3, i%2?pink:gold)).join(''),
+  curl:()=>shape('M10 24C78 23 80 105 40 88S12 120 56 134S14 189 7 179M296 38C216 31 223 70 252 72S296 107 248 110S215 143 293 167','none',artInk,11)+
+    shape('M10 24C78 23 80 105 40 88S12 120 56 134S14 189 7 179','none','#61f2a4',7)+shape('M296 38C216 31 223 70 252 72S296 107 248 110S215 143 293 167','none',pink,7)+star(40,200,9,gold),
+  crowns:()=>crown(20,40,'#df8545')+crown(15,34,gold)+
+    `<g transform="translate(299 210) rotate(180)">${crown(20,33,'#dba64e')}${crown(16,37,'#fff2a5')}</g>`+
+    [star(80,51,11,white),star(218,167,8,white),star(260,67,9,gold)].join(''),
+  bow:()=>shape('M1 229 L30 243 297 58 299 39Z','#944650')+shape('M1 222 L24 238 297 49 299 33Z',pink)+
+    shape('M241 86q-45 1 -35 -24q32 -4 41 16q26 -34 45 -16q3 17 -41 25l35 25 -23 1 -15 -17l-18 30 -19 -3Z','#ff9cbc')+circle(247,85,10,pink),
+  icing:()=>shape('M0 0H300V24Q287 51 272 25Q262 60 245 33Q232 78 215 30Q180 50 166 19Q139 54 113 22Q91 45 70 22Q46 70 30 31Q10 63 0 37Z','#ffb9d8')+
+    shape('M0 0H300V16Q287 43 272 17Q262 52 245 25Q232 70 215 22Q180 42 166 11Q139 46 113 14Q91 37 70 14Q46 62 30 23Q10 55 0 29Z',white)+stream(7,171),
+  blast:()=>fireworks(55,64,39,aqua)+fireworks(245,85,44,gold)+fireworks(239,202,25,pink,8),
+  stars:()=>[[28,52,13],[258,70,17],[49,174,18],[254,190,13],[38,219,9]].map(([x,y,r])=>star(x,y,r,artInk)+star(x+5,y-5,r*.73,gold)).join(''),
+  balloons:()=>[[32,69,pink],[53,49,gold],[255,63,aqua],[275,89,'#bf8cff']].map(([x,y,c])=>balloon(x+7,y-2,'none')+balloon(x,y,c)).join('')+star(241,175,12,gold),
+  final:()=>shape('M0 0h300v23Q241 37 200 11Q106 41 48 18Q20 34 0 24Z',gold)+
+    fireworks(55,56,35,gold)+fireworks(248,55,39,'#ff8443')+copy(211,187,1,cake(0,7))+star(28,207,14,white)
+};
+  return (root,D)=>{
+    if(!D)return;
+    const art=root.querySelector(".art");
+    root.style.setProperty("--fest-text",D.text);
+    root.style.setProperty("--edge","repeating-linear-gradient(105deg,"+D.accent+" 0 8px,#ffedb0 8px 13px,#4f2b79 13px 18px)");
+    root.querySelector(".top span").textContent="ПИР · 1 ИЗ 1";
+    root.querySelector(".finish").textContent=D.name;
+    art.insertAdjacentHTML("beforeend",'<svg class="festival-effect" viewBox="0 0 300 240" preserveAspectRatio="none" aria-hidden="true">'+DFX_PREVIEW[D.key]()+'</svg>');
+    if(["ribbon","icing","blast","final"].includes(D.key)){
+      const hero=art.querySelector(".hero"),duplicate=hero.cloneNode(true);
+      duplicate.classList.add("fest-shadow");
+      duplicate.style.translate=(D.key==="blast"?"-7px":"6px")+" 2px";
+      duplicate.querySelectorAll("[id]").forEach(n=>n.removeAttribute("id"));
+      art.insertBefore(duplicate,hero);
+    }
+  };
+})();
 function fillFace(root,c){
+  root.querySelectorAll(".festival-effect,.fest-shadow").forEach(e=>e.remove());
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=tierOf(c.h),F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"")+(H[4].rl?" mega":"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
@@ -894,11 +964,12 @@ function fillFace(root,c){
   {let nb=art&&art.querySelector(".ownnick");if(H[4].nick){if(!nb){nb=document.createElement("div");nb.className="ownnick";art.appendChild(nb)}nb.textContent="👑 "+H[4].nick}else if(nb)nb.remove()}
   let sb=q(".stars");if(!sb){sb=document.createElement("div");sb.className="stars";art.appendChild(sb)}
   sb.hidden=!st;sb.innerHTML="★".repeat(st)+"<i>"+"★".repeat(STAR_MAX-st)+"</i>";
-  const ER=c.f===4||c.f===DIA_F;root.style.clipPath=c.part?HALF_CLIP[c.part]:ER?tornPoly(sn):"";
+  const holiday=birthdayPrint(c),ER=c.f===4||c.f===DIA_F||!!holiday;
+  root.style.clipPath=c.part?HALF_CLIP[c.part]:ER?tornPoly(sn):"";
   root.querySelectorAll(".tear,.brak,.seam").forEach(e=>e.remove());if(ER)q(".in").insertAdjacentHTML("beforeend",tearSVG(sn));
   root.classList.toggle("half",!!c.part);root.classList.toggle("half-l",c.part===1);root.classList.toggle("half-r",c.part===2);root.classList.toggle("comp",isComp(c.h)&&!c.part);
   if(isComp(c.h)&&!c.part)q(".in").insertAdjacentHTML("beforeend",SEAM);
-  faceV2(root,c);diaFace(root,c);if(HEROES[c.h][4].collab&&typeof collabFace==="function")collabFace(root,c);
+  faceV2(root,c);diaFace(root,c);paintBirthdayPrint(root,holiday);if(HEROES[c.h][4].collab&&typeof collabFace==="function")collabFace(root,c);
 }
 /* ---------- маленькая копия карточки для списков ----------
    miniSlot(c) возвращает пустой span, а настоящая карточка дорисовывается, как только span попадёт на страницу. */
@@ -1034,7 +1105,7 @@ document.addEventListener("input",e=>{if(e.target.id!=="cf-q")return;clearTimeou
 const RK=["обычн.","редкие","эпич.","легенд.","миф."];
 /* выбор карточек для продажи */
 let colPick=false,colSel=new Set();
-const sellableUI=c=>!away(c)&&!FIN[c.f].excl&&!HEROES[c.h][4].one;
+const sellableUI=c=>!away(c)&&!FIN[c.f].excl&&!HEROES[c.h][4].one&&!birthdayPrint(c);
 function colBar(){let b=$("col-bar");if(!colPick){if(b)b.remove();return}
   if(!b){b=document.createElement("div");b.id="col-bar";b.className="colbar";document.body.appendChild(b)}
   const sel=S.cards.filter(c=>colSel.has(c.id)),sum=sel.reduce((a,c)=>a+c.v*QUICK,0);
