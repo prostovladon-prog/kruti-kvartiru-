@@ -3577,6 +3577,10 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 body:has(#sec-spin:not([hidden]) #chal[data-birthday]:not([hidden]))::after{
   opacity:1;background:#1d44c8 url("assets/birthday-one-month.svg") center/cover no-repeat;
 }
+.birthday-print .art .festival-effect{display:block;position:absolute;inset:0;width:100%!important;height:100%!important;z-index:5;pointer-events:none;overflow:hidden}
+.birthday-print .art .era,.birthday-print .art .tier,.birthday-print .art .finish,.birthday-print .art .ribbon{z-index:9}
+.birthday-print .art .finish{color:var(--fest-text);font-size:14px}
+.birthday-print .art .fest-shadow{opacity:.47;filter:grayscale(1) sepia(1) saturate(3);z-index:2;pointer-events:none}
 
 .tk-caps>div{display:flex;justify-content:space-between;align-items:center}.tk-caps>div.full small{color:#ff5a3a;font-weight:900}
 
