@@ -225,6 +225,28 @@ const FIN=[
  {k:"Пересвет",cls:"error burn",w:0.014,m:500,run:1,col:"#fff3a0",cap:12},
  {k:"Бледная",cls:"error pale",w:0.016,m:450,run:1,col:"#e0d0c0",cap:15},
  {k:"Размытая",cls:"error blur",w:0.016,m:450,run:1,col:"#a0b0c0",cap:15}];   // ошибка печати вверх ногами: всего 4 на весь мир, шанс ~1 на 25 000   // только у воинов-Близнецов: 2 карточки на весь мир   // коллаборация с «Номерком»: приз розыгрыша   // не выпадает: 3 карточки за 15 приглашённых друзей
+/* 🎂 Праздничный брак: отдельная отделка, выпускается только сервером. */
+const BIRTHDAY_PRINT_F=FIN.length;
+FIN.push({k:"Праздничный брак",cls:"error birthday-print",w:0,m:0,run:1,col:"#ffd23f",fest:1});
+const BIRTHDAY_PRINTS=[
+  {"h":27,"name":"Печать из конфетти","key":"confetti","v":125000,"text":"#ffdae3","accent":"#ff547d"},
+  {"h":29,"name":"Сургуч именинника","key":"seal","v":135000,"text":"#ffe1a8","accent":"#ff923d"},
+  {"h":56,"name":"Съехавшая лента","key":"ribbon","v":145000,"text":"#c3f8ff","accent":"#32d6df"},
+  {"h":31,"name":"Свечи с пересветом","key":"candles","v":560000,"text":"#fff4b5","accent":"#ffd23f"},
+  {"h":77,"name":"Двойная гирлянда","key":"flags","v":150000,"text":"#d8c5ff","accent":"#b579ff"},
+  {"h":59,"name":"Брызги тоста","key":"toast","v":155000,"text":"#ffdfac","accent":"#ff7649"},
+  {"h":84,"name":"Серпантин в валике","key":"curl","v":165000,"text":"#d2ffe2","accent":"#50e99d"},
+  {"h":64,"name":"Зеркало праздничной короны","key":"crowns","v":620000,"text":"#ffe7a0","accent":"#ffb52e"},
+  {"h":151,"name":"Подарочная перевязь","key":"bow","v":175000,"text":"#ffcfec","accent":"#f8499c"},
+  {"h":100,"name":"Сахарный след","key":"icing","v":185000,"text":"#ffe4f5","accent":"#fc85cc"},
+  {"h":101,"name":"Разорванный салют","key":"blast","v":690000,"text":"#e2f2ff","accent":"#55bcff"},
+  {"h":153,"name":"Звёздная просечка","key":"stars","v":190000,"text":"#fff1a6","accent":"#edb43b"},
+  {"h":152,"name":"Шары в две краски","key":"balloons","v":205000,"text":"#c4f5ff","accent":"#35d9dd"},
+  {"h":76,"name":"Финальный залив","key":"final","v":790000,"text":"#fff2a4","accent":"#ffd23f"}
+];
+const BIRTHDAY_PRINT_BY_H=Object.fromEntries(BIRTHDAY_PRINTS.map(x=>[x.h,x]));
+const birthdayPrint=c=>c&&c.f===BIRTHDAY_PRINT_F?BIRTHDAY_PRINT_BY_H[c.h]:undefined;
+const stakeProtected=c=>!!birthdayPrint(c)||noTrade(c);
 /* 💎 Алмазная серия: 51 «ошибок печати». Не продаются — выпадают в прокрутке (DIA_P.spin) и в Легендарном/Мифическом сундуке, пока не кончился тираж. У каждой свой дефект печати (c — css-класс) и спрятанный бриллиант (x,y — где он на рисунке), свой тираж */
 const finCap=(ctx,f,h)=>FIN[f].cap&&(!(ctx.issuedFin&&ctx.issuedFin(f)<FIN[f].cap)||ctx.issuedOf(h,f)>=FIN[f].run)?4:f;   // кончился общий тираж — обычная «Ошибка печати»
 const DIA_P={spin:.0005,legend:.02,empire:.03,mythic:.05};
@@ -647,7 +669,7 @@ function dqProg(st,now,k){const Q=dqDay(st,now),d=today(now),D=day(st,now);let v
 const DAY_SLOTS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].day),DSP={ch:.003,cap:3,per:3};
 /* красивый номер для карты дня (если свободен) — цена карточки растёт по правилам красивых номеров */
 /* 💰 рынок: потолок цены зависит от редкости (чем меньше тираж — тем выше), комиссия растёт с ценой (сжигает монеты на крупных сделках) */
-function capMul(c){const F=FIN[c.f]||{},H=(HEROES[c.h]||[])[4]||{};if(F.collab)return Infinity;
+function capMul(c){const F=FIN[c.f]||{},H=(HEROES[c.h]||[])[4]||{};if(F.collab)return Infinity;if(F.fest)return 3;
   if(F.run===1||H.day||H.one)return 20;if(F.run<=30)return 10;if(F.run<=100)return 6;if(F.run<=1000)return 4;return HEROES[c.h]&&HEROES[c.h][2]>=4?5:3}
 const mktCap=c=>{const m=capMul(c);return m===Infinity?Infinity:Math.max(1000,Math.round((+c.v||0)*m))},
   mktFee=p=>p>=1e8?.2:p>=1e7?.15:p>=1e6?.12:FEE,mktFeeTxt=p=>p>=1e8?"сделки от 100 млн — 20%":p>=1e7?"сделки от 10 млн — 15%":"сделки от 1 млн — 12%";
@@ -746,7 +768,7 @@ const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f=
 const NOTRADE_MSG="Эта карточка подарена и существует в одном экземпляре: её нельзя продать, обменять или сжечь";
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
 function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(FIN[c.f].collab?"Бесценная карточка коллекционная: в боях не участвует":TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
-function burnable(c){if(noTrade(c))fail(NOTRADE_MSG);if(FIN[c.f].collab)fail("Бесценную карточку нельзя продать системе или сжечь. Её можно только выставить на рынок — цену ставишь ты");if(FIN[c.f].excl)fail("«Основателя» нельзя продать системе или сжечь. Его можно выставить на рынок");if(HEROES[c.h][4].one)fail("Легенду 1 из 1 нельзя продать системе или сжечь — только на рынке");return c}
+function burnable(c){if(birthdayPrint(c))fail("Праздничную карту можно выставить на рынок, но нельзя сжечь или продать системе");if(noTrade(c))fail(NOTRADE_MSG);if(FIN[c.f].collab)fail("Бесценную карточку нельзя продать системе или сжечь. Её можно только выставить на рынок — цену ставишь ты");if(FIN[c.f].excl)fail("«Основателя» нельзя продать системе или сжечь. Его можно выставить на рынок");if(HEROES[c.h][4].one)fail("Легенду 1 из 1 нельзя продать системе или сжечь — только на рынке");return c}
 function addCard(G,c){if(G.cards.length>=capOf(G.st))fail("Коллекция заполнена ("+capOf(G.st)+"). Продай лишнее или расширь место");G.cards.push(c);noteCard(G.st,c)}
 /* карточка уходит из игры: её номер и место в тираже освобождаются и снова могут выпасть в прокрутках */
 function burn(G,ids){G.cards.forEach(x=>{if(ids.includes(x.id)&&G.ctx.release)G.ctx.release(x)});G.cards=G.cards.filter(x=>!ids.includes(x.id))}
@@ -1080,7 +1102,7 @@ const ACTIONS={
     const same=G.cards.filter(c=>c.h===h&&c.f===f&&!c.part&&!away(c)).sort((a,b)=>a.v-b.v);if(same.length<3)fail("Нужно три одинаковых карточки");
     const sum=same.slice(0,3).reduce((a,c)=>a+c.v,0);burn(G,same.slice(0,3).map(c=>c.id));const card=makeCard(ctx,h,f+1);card.v=Math.round(Math.min(card.v,sum*1.5)*100)/100;card.how="merge";addCard(G,card);return {card}},
 
-  duel(G){const {st,ctx,p}=G;const me=battleCard(G,p.id),stat=p.stat|0;if(p.mode&&noTrade(me))fail("Эта карточка не участвует в боях на карточку: она подарена и существует в одном экземпляре");if(stat<0||stat>4)fail("Неверная характеристика");
+  duel(G){const {st,ctx,p}=G;const me=battleCard(G,p.id),stat=p.stat|0;if(p.mode&&stakeProtected(me))fail("Эта карточка не участвует в боях на карточку: она подарена и существует в одном экземпляре");if(stat<0||stat>4)fail("Неверная характеристика");
     const t=HEROES[me.h][2],tt=Math.max(0,Math.min(4,t+[-1,0,0,0,1][Math.floor(Math.random()*5)]));
     const cand=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
     // соперник: карточка настоящего игрока (сервер подбирает её сам), иначе бот
