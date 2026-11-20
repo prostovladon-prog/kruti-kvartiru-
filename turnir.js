@@ -54,8 +54,8 @@ setInterval(()=>{try{ftuStrip()}catch(e){}},1500);
 /* 🗳 Голосование: все текущие «Выборы серии» на одной странице */
 function voteHub(){const m=$("modal"),sh=$("msheet");m.hidden=false;const L=(S&&S.vts)||[];
   const card=(id,ic,t,sub,st,cls)=>'<button type="button" class="vh-c '+cls+'" data-vid="'+id+'"><i>'+ic+'</i><span><b>'+t+'</b><small>'+sub+'</small></span><em>'+st+'</em></button>';
-  sh.innerHTML='<div class="box nickbox vhbox"><div class="vh-hd">🗳 <b>Голосование</b><small>Решай, что будет в следующей серии — и получай 🎴 за голос</small></div>'+
-   (L.length?L.map(V=>card(V.id,{sv1:"🪵",we1:"🪖",we2:"🛡",we3:"🏹",at1:"👾",we1b:"❄️",we2b:"🥊",we3b:"💰",at2:"🔮",kn1:"🤺"}[V.id]||"⚔️",escH(V.title),(V.hid?"🔒 СКРЫТО (видишь только ты) · ":"")+escH(V.ser||"Выбор серии")+" · что будет дальше?",V.ch?"✅ голос принят":"🔥 голосуй!",V.ch?"":"hot")).join(""):'<p class="cln">Скоро новая серия и новое голосование!</p>')+
+  sh.innerHTML='<div class="box nickbox vhbox"><div class="vh-hd">🗳 <b>Голосование</b><small>Выбирай героев и продолжения историй</small></div>'+
+   (L.length?L.map(V=>card(V.id,{"birthday-crown":"👑",sv1:"🪵",we1:"🪖",we2:"🛡",we3:"🏹",at1:"👾",we1b:"❄️",we2b:"🥊",we3b:"💰",at2:"🔮",kn1:"🤺"}[V.id]||"⚔️",escH(V.title),(V.hid?"🔒 СКРЫТО (видишь только ты) · ":"")+escH(V.ser||"Выбор серии")+(V.id==="birthday-crown"?" · выбери своего героя":" · что будет дальше?"),V.ch?"✅ голос принят":"🔥 голосуй!",V.ch?"":"hot")).join(""):'<p class="cln">Скоро новая серия и новое голосование!</p>')+
    '<button type="button" class="ghost" id="vh-x">Закрыть</button></div>';
   $("vh-x").onclick=closeModal;sh.querySelectorAll(".vh-c").forEach(b=>b.onclick=()=>{hap("light");vtOpen(b.dataset.vid)})}
 
