@@ -1195,6 +1195,8 @@ const ACTIONS={
   ad_bonus(G){const {st,ctx}=G,B=ctx.adBon;if(!B)fail("Бонуса нет");if(st.adb)fail("Бонус уже получен");
     const L=HEROES.map((x,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===3&&!HEROES[i][4].one&&!HEROES[i][4].duo&&!HEROES[i][4].comp&&!HEROES[i][4].bro),h=L[Math.floor(Math.random()*L.length)];
     let f=1;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;const c=makeCard(ctx,h,f);c.how="adb";st.adb=B.code;st.spins+=B.sp;addCard(G,c);return {card:c,sp:B.sp,from:B.from}},
+  community_reward(G){const proof=G.ctx.communityProof;if(!proof)fail("Сначала проверь подписки");let reward=0;
+    if(proof.channel&&!G.st.subGot2){G.st.subGot2=1;reward+=10}if(proof.chat&&!G.st.chatGot){G.st.chatGot=1;reward+=5}G.st.spins+=reward;return {reward,channel:!!proof.channel,chat:!!proof.chat}},
   chat_reward(G){if(!G.ctx.chatOk)fail("Сначала вступи в чат");if(G.st.chatGot)fail("Награда за чат уже получена");G.st.chatGot=1;G.st.spins+=5;return {r:5}},
   sub_reward(G){if(!G.ctx.subOk)fail("Сначала подпишись на канал");if(G.st.subGot2)fail("Награда за подписку уже получена");G.st.subGot2=1;G.st.spins+=10;return {r:10}},
 
@@ -1589,8 +1591,11 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=80;const NEWB_MS=3*864e5;
-const MIGRATIONS=["CREATE TABLE IF NOT EXISTS birthday_quiz (event TEXT NOT NULL,uid INTEGER NOT NULL,started INTEGER NOT NULL,deadline INTEGER NOT NULL,items TEXT NOT NULL,answers TEXT NOT NULL DEFAULT '[]',score INTEGER NOT NULL DEFAULT 0,done INTEGER NOT NULL DEFAULT 0,paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,uid))","ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
+const SCHEMA_V=81;const NEWB_MS=3*864e5;
+const MIGRATIONS=[
+ "CREATE TABLE IF NOT EXISTS recruit_entries (event TEXT NOT NULL,uid INTEGER NOT NULL,inviter INTEGER NOT NULL,opened_at INTEGER NOT NULL,checked_at INTEGER NOT NULL DEFAULT 0,qualified_at INTEGER NOT NULL DEFAULT 0,qualified INTEGER NOT NULL DEFAULT 0,reason TEXT NOT NULL DEFAULT 'pending',retry_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,uid))",
+ "CREATE TABLE IF NOT EXISTS recruit_awards (event TEXT NOT NULL,place INTEGER NOT NULL,uid INTEGER NOT NULL,n INTEGER NOT NULL,spins INTEGER NOT NULL,paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,place),UNIQUE(event,uid))",
+"CREATE TABLE IF NOT EXISTS birthday_quiz (event TEXT NOT NULL,uid INTEGER NOT NULL,started INTEGER NOT NULL,deadline INTEGER NOT NULL,items TEXT NOT NULL,answers TEXT NOT NULL DEFAULT '[]',score INTEGER NOT NULL DEFAULT 0,done INTEGER NOT NULL DEFAULT 0,paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,uid))","ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
     "ALTER TABLE users ADD COLUMN worth REAL NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN album INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN wins INTEGER NOT NULL DEFAULT 0",
@@ -2021,6 +2026,8 @@ async function stateFor(env,me){
     await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=?,emp=? WHERE id=?").bind(worth,album,wins,emp,me.id).run();
     const r0=empRank(u.emp||0),r1=empRank(emp);if(r1>r0&&r1>=3&&(u.emp||0)>0)try{await hypeAdd(env,me.id,EMP.R[r1].ic+" поднял Империю до ранга «"+EMP.R[r1].n+"»!",r1>=4)}catch(e){}}
   S.quiz=await birthdayQuizSummary(env,me.id);
+  S.community={required:!(S.subGot2&&S.chatGot),channel:!!S.subGot2,chat:!!S.chatGot};
+  S.recruit=await recruitSummary(env,me.id);
   return S;
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
@@ -2254,7 +2261,7 @@ async function birthdayReward(env,name,st,p,now){
 }
 
 /* ---------- обычное действие: правила считают, сервер записывает всё одной пачкой ---------- */
-async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
+async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let recruitProof;
   for(let attempt=0;attempt<8;attempt++){
     if(attempt)await new Promise(r=>setTimeout(r,Math.random()*40*attempt));  // кто-то менял игрока одновременно: ждём и пробуем снова
     const {u,cards}=await loadUser(env,me),ctx=await makeCtx(env,env.TEST==="1");try{hhKingSet(await kingDec(env))}catch(e){}
@@ -2281,6 +2288,16 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
     const take=ctx.takeCard?env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(me.id,ctx.takeCard,ctx.oppUid):null;
     const own=take?" AND (SELECT owner FROM cards WHERE id="+Math.floor(+ctx.takeCard)+")="+Math.floor(+me.id):"";   // id в Telegram больше 32 бит: без |0
     const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=?,dg_exp=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,st.dg&&st.dg.exp?st.dg.exp.end:0,me.id,u.ver)];
+    if((name==="open"||name==="open_multi")&&st.nOp>=15&&u.ref&&u.ref!==me.id){
+      const C=await recruitCfg(env);if(ctx.now>=C.start&&ctx.now<C.end&&u.created>=C.start&&u.created<C.end){
+        const exists=await env.DB.prepare("SELECT 1 FROM recruit_entries WHERE event=? AND uid=?").bind(RECRUIT.id,me.id).first();
+        if(!exists){if(!recruitProof)recruitProof=await communityMembership(env,me.id);const q=recruitProof.known&&recruitProof.channel&&recruitProof.chat?1:0,at=Date.now();
+          const reason=!recruitProof.known?"error":q?"ok":!recruitProof.channel&&!recruitProof.chat?"both":!recruitProof.channel?"channel":"chat";
+          stm.push(env.DB.prepare(`INSERT OR IGNORE INTO recruit_entries(event,uid,inviter,opened_at,checked_at,qualified_at,qualified,reason) SELECT ?,?,?,?,?,?,?,? WHERE ${guard} AND ?<?`)
+            .bind(RECRUIT.id,me.id,u.ref,ctx.now,recruitProof.known?at:0,q?at:0,q,reason,me.id,nv,at,C.end));
+        }
+      }
+    }
     const ins=[];   // новые карточки пишутся после удалений: собранный воин забирает номер и место тиража правой половинки
     for(const c of out.cards){
       if(typeof c.id==="string"){ins.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,frame,away,dest,created,part,how) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
@@ -5372,8 +5389,98 @@ async function birthdayQuizTick(env){
  await kvSet(env,"bq-paid:"+BQ_ID,1);
 }
 
+/* Призыв Эпох: новые друзья, 15 открытий и действующие подписки. */
+const RECRUIT={id:"recruit-2026-11-20",end:Date.UTC(2026,10,20,21),need:15,prizes:[100,75,50]};
+async function recruitCfg(env){return cached("recruit-cfg",60000,async()=>{
+ const key="recruit-cfg:"+RECRUIT.id,initial={start:Date.now(),end:RECRUIT.end};
+ await env.DB.prepare("INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)").bind(key,JSON.stringify(initial)).run();
+ return await kvGet(env,key);
+})}
+async function communityMembership(env,uid){
+ const check=async chat=>{try{const r=await tgApi(env,"getChatMember",{chat_id:chat,user_id:uid});if(!r.ok)return {known:false,member:false};const m=r.result||{};return {known:true,member:["member","administrator","creator"].includes(m.status)||(m.status==="restricted"&&!!m.is_member)}}catch(e){return {known:false,member:false}}};
+ const [channel,chat]=await Promise.all([check(env.CHANNEL||CHANNEL),check(env.CHAT||CHAT)]);
+ return {channel:channel.member,chat:chat.member,known:channel.known&&chat.known,channelKnown:channel.known,chatKnown:chat.known};
+}
+async function communityCheck(env,me){
+ const proof=me.dev?{channel:true,chat:true,known:true,channelKnown:true,chatKnown:true}:await communityMembership(env,me.id);
+ const result=await doAction(env,me,"community_reward",{},{communityProof:proof});
+ return {...proof,reward:result.res.reward,error:proof.known?"":"Telegram пока не подтвердил проверку. Нажми ещё раз через несколько секунд."};
+}
+async function recruitRanks(env){return (await env.DB.prepare(`SELECT e.inviter AS uid,COALESCE(i.nick,i.name,'Воин') AS name,COUNT(*) AS n,MAX(e.qualified_at) AS reached
+ FROM recruit_entries e JOIN users u ON u.id=e.uid JOIN users i ON i.id=e.inviter
+ WHERE e.event=? AND e.qualified=1 AND u.banned=0 AND i.banned=0
+ GROUP BY e.inviter ORDER BY n DESC,reached ASC,e.inviter ASC`).bind(RECRUIT.id).all()).results}
+async function recruitSummary(env,uid){
+ const C=await recruitCfg(env),now=Date.now();if(C.start>=C.end||now>C.end+864e5)return null;
+ const ranks=await cached("recruit-ranks",5000,()=>recruitRanks(env));const me=ranks.find(r=>r.uid===uid),place=ranks.findIndex(r=>r.uid===uid)+1;
+ const paid=await kvGet(env,"recruit-paid:"+RECRUIT.id);
+ return {start:C.start,end:C.end,now,phase:now<C.end?"on":paid?"done":"checking",n:me?.n||0,place,prizes:RECRUIT.prizes};
+}
+async function recruitView(env,uid){
+ const summary=await recruitSummary(env,uid);if(!summary)return {phase:"off"};
+ const ranks=await recruitRanks(env),C=await recruitCfg(env);
+ const friends=(await env.DB.prepare(`SELECT u.id,COALESCE(u.nick,u.name,'Воин') AS name,COALESCE(json_extract(u.state,'$.nOp'),0) AS opened,
+ COALESCE(e.qualified,0) AS qualified,COALESCE(e.reason,'open') AS reason,e.checked_at
+ FROM users u LEFT JOIN recruit_entries e ON e.event=? AND e.uid=u.id
+ WHERE u.ref=? AND u.created>=? AND u.created<? AND u.id<>? AND u.banned=0 ORDER BY u.created DESC LIMIT 100`)
+ .bind(RECRUIT.id,uid,C.start,C.end,uid).all()).results;
+ const awards=(await env.DB.prepare("SELECT place,uid,n,spins,paid FROM recruit_awards WHERE event=? ORDER BY place").bind(RECRUIT.id).all()).results;
+ return {...summary,top:ranks.slice(0,10),friends,awards,need:15,link:"https://t.me/"+(env.BOT_USERNAME||"VoinyEpohBot")+"?start=r_"+uid};
+}
+let recruitBusy=false;
+async function recruitTick(env){
+ if(recruitBusy)return;recruitBusy=true;
+ try{
+  const C=await recruitCfg(env),now=Date.now();if(C.start>=C.end)return;
+  if(await cached("recruit-paid",60000,()=>kvGet(env,"recruit-paid:"+RECRUIT.id)))return;
+  const final=now>=C.end;
+  const rows=(await env.DB.prepare(`SELECT e.* FROM recruit_entries e JOIN users u ON u.id=e.uid JOIN users i ON i.id=e.inviter
+   WHERE e.event=? AND u.banned=0 AND i.banned=0 AND e.retry_at<=? AND e.checked_at<?
+   ORDER BY e.checked_at ASC,e.opened_at ASC,e.uid ASC LIMIT 3`)
+   .bind(RECRUIT.id,now,final?C.end:now-300000).all()).results;
+  for(const e of rows){
+   const proof=await communityMembership(env,e.uid),at=Date.now();
+   if(!proof.known){await env.DB.prepare("UPDATE recruit_entries SET reason='error',retry_at=? WHERE event=? AND uid=? AND checked_at<?").bind(at+30000,RECRUIT.id,e.uid,final?C.end:at).run();continue}
+   const qualified=proof.channel&&proof.chat&&(!final||(e.qualified===1&&e.qualified_at<C.end))?1:0,reason=qualified?"ok":proof.channel&&proof.chat?"late":!proof.channel&&!proof.chat?"both":!proof.channel?"channel":"chat";
+   await env.DB.prepare(`UPDATE recruit_entries SET qualified=?,qualified_at=CASE WHEN ?=1 AND qualified=0 THEN ? ELSE qualified_at END,checked_at=?,reason=?,retry_at=0
+    WHERE event=? AND uid=? AND checked_at<?`).bind(qualified,qualified,at,at,reason,RECRUIT.id,e.uid,final?C.end:at).run();
+   delete topCache["recruit-ranks"];
+  }
+  if(!final)return;
+  const pending=await env.DB.prepare(`SELECT COUNT(*) AS n FROM recruit_entries e JOIN users u ON u.id=e.uid JOIN users i ON i.id=e.inviter
+   WHERE e.event=? AND u.banned=0 AND i.banned=0 AND e.checked_at<?`).bind(RECRUIT.id,C.end).first();
+  if(pending.n)return;
+  const winners=(await recruitRanks(env)).slice(0,3),stm=[];
+  winners.forEach((w,index)=>stm.push(env.DB.prepare("INSERT OR IGNORE INTO recruit_awards(event,place,uid,n,spins) VALUES(?,?,?,?,?)").bind(RECRUIT.id,index+1,w.uid,w.n,RECRUIT.prizes[index])));
+  stm.push(env.DB.prepare(`UPDATE users SET gift_spins=gift_spins+(SELECT SUM(a.spins) FROM recruit_awards a WHERE a.event=? AND a.uid=users.id AND a.paid=0)
+   WHERE id IN (SELECT uid FROM recruit_awards WHERE event=? AND paid=0)`).bind(RECRUIT.id,RECRUIT.id));
+  stm.push(env.DB.prepare("UPDATE recruit_awards SET paid=1 WHERE event=? AND paid=0").bind(RECRUIT.id));
+  stm.push(env.DB.prepare("INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)").bind("recruit-paid:"+RECRUIT.id,JSON.stringify({at:Date.now()})));
+  await env.DB.batch(stm);
+ }finally{recruitBusy=false}
+}
+const recruitText="👥 ПРИЗЫВ ЭПОХ — КОНКУРС ДО КОНЦА ДНЯ!\n\nПриглашай новых друзей по своей ссылке из игры. Топ-3 получат 100 / 75 / 50 прокруток.\n\nДруг засчитывается, когда выполнены все условия:\n• новый аккаунт пришёл по твоей ссылке после запуска конкурса;\n• открыл не менее 15 обычных карт (массовое открытие тоже считается);\n• вступил в @voinyepohchat и подписался на @voinyepoh;\n• выполнил условия до 23:59 по Минску.\n\nПодписки проверяет бот. Сохрани их до подведения итогов: в конце проверим ещё раз. Один друг засчитывается одному пригласившему. При равном числе друзей выше тот, кто раньше достиг результата.\n\nПлашка «Призыв Эпох» на главном экране — там твоя ссылка, зачтённые друзья и таблица лидеров. Итоги и призы автоматически после закрытия и проверки подписок.";
+let recruitMediaBusy=false;
+async function recruitComms(env){
+ if(recruitMediaBusy||!env.BOT_TOKEN||env.DEV==="1")return;const C=await recruitCfg(env),now=Date.now();if(now<C.start||now>=C.end||C.start>=C.end)return;
+ recruitMediaBusy=true;
+ try{
+  const waves=[{id:"launch",at:C.start,until:Math.min(C.start+36e5,C.end),text:recruitText},
+   {id:"2030",at:Date.UTC(2026,10,20,17,30),until:Date.UTC(2026,10,20,18),text:"⏳ До конца конкурса приглашений осталось 3,5 часа!\n\n"+recruitText},
+   {id:"2300",at:Date.UTC(2026,10,20,20),until:Date.UTC(2026,10,20,20,30),text:"🔥 Последний час «Призыва Эпох»! Успей пригласить друзей и проверить выполнение условий.\n\n"+recruitText}];
+  for(const W of waves){if(W.at<C.start||now<W.at||now>=W.until)continue;
+   await birthdaySend(env,"recruit:"+W.id+":channel",env.CHANNEL||CHANNEL,W.text);
+   await birthdaySend(env,"recruit:"+W.id+":chat",env.CHAT||CHAT,W.text);
+   const key="recruit-dm:"+RECRUIT.id+":"+W.id,state=await kvGet(env,key)||{after:0,done:false};if(state.done)continue;
+   const {results}=await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND banned=0 AND id>? ORDER BY id LIMIT 15").bind(state.after).all();
+   for(const u of results){await birthdaySend(env,"recruit:"+W.id+":dm:"+u.id,u.id,W.text);state.after=u.id;await kvSet(env,key,state)}
+   if(results.length<15){state.done=true;await kvSet(env,key,state)}
+  }
+ }finally{recruitMediaBusy=false}
+}
+
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -5425,6 +5532,10 @@ async function handle(req,env){{
       const day=await env.DB.prepare("SELECT kind,COUNT(*) AS n,COUNT(DISTINCT uid) AS u FROM crash_log WHERE t>? GROUP BY kind").bind(Date.now()-864e5).all();return J({ok:true,res:{items:R,day:day.results}})}
     await trackSrc(env,me);
     try{
+      if(a==="community_check"){const res=await communityCheck(env,me);return J({ok:true,res,S:await stateFor(env,me)})}
+      if(a==="recruit_get")return J({ok:true,res:await recruitView(env,me.id)});
+      if(a==="community_reward")fail("Неизвестное действие");
+      if(a==="open"||a==="open_multi"){const {u}=await loadUser(env,me),st=JSON.parse(u.state||"{}");if(!(st.subGot2&&st.chatGot))fail("Сначала подтверди подписки на канал и чат в обучении")}
       if(a==="market")return J({ok:true,res:await market(env,me),S:await stateFor(env,me)});
       if(a==="ord_list"||a==="ord_add"||a==="ord_cancel"||a==="ord_fill"){const res=await ({ord_list:ordList,ord_add:ordAdd,ord_cancel:ordCancel,ord_fill:ordFill})[a](env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="list"||a==="unlist"||a==="buy"){const res=await (a==="list"?list:a==="unlist"?unlist:buy)(env,me,p);const S=await stateFor(env,me);fixIds(res,S.cards);return J({ok:true,res,S})}

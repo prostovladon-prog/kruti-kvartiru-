@@ -1,4 +1,4 @@
-/* 🎓 Обучение 2.0: 13 экранов с живыми мини-сценами → обязательный ник → (после 15 открытий) обязательная подписка */
+/* 🎓 Обучение 2.0: 14 экранов с живыми мини-сценами → обязательный ник → обязательные канал и чат */
 const TUT=[
  {k:"spin",t:"Крути карточки",d:"Жми «Крутить» — выпадет случайный воин из 7 эпох. Каждая карта — коллекционная и только твоя.",c:"#ffb020"},
  {k:"rar",t:"Редкость решает",d:"Обычный → Редкий → Эпический → Легендарный → Мифический. Чем реже воин — тем он сильнее и дороже.",c:"#bf5af2",go:()=>encOpen("how")},
@@ -12,6 +12,7 @@ const TUT=[
  {k:"cas",t:"Казино",d:"Ракетка, Сапёр, слоты и Плинко. А в Реф-кейсе выпадают звёзды и NFT-подарки.",c:"#bf5af2",go:()=>openCas("rk")},
  {k:"fr",t:"Зови друзей",d:"Друг пришёл и начал играть — тебе прокрутка в Реф-кейсе. Джекпот — 500 ⭐!",c:"#3ddc84",go:()=>openCas("rc")},
  {k:"ev",t:"Конкурсы и подарки",d:"Турниры, конкурсы, сундуки и NFT-подарки — новое каждую неделю. Следи за плашками на главном.",c:"#ff9f0a",go:()=>voteHub()},
+ {k:"community",t:"Наше сообщество",d:"Подпишись на канал с новостями и вступи в чат игроков. После знакомства с игрой бот проверит обе подписки: за первую проверку канала +10 прокруток, чата +5.",c:"#ffb020"},
  {k:"go",t:"Твой первый воин ждёт",d:"Осталось одно — назови себя. Ник увидят все: в топах, на рынке и в ленте выпадений. А новые разделы — бой, дракон, кланы, карта и казино — откроются по мере игры, каждый с подарком 🎁",c:"#ffd23f"}];
 let TUTI=0,TUTM=false;
 const tutP=(h,cls)=>'<div class="tu-c '+(cls||"")+'">'+portrait(h,null,1)+'</div>';
@@ -31,10 +32,10 @@ function tutScene(k){const H=[19,20,11,64,26,22];switch(k){
  default:return '<div class="tu-go">'+tutP(19,"tu-big")+'</div>'}}
 function tutOpen(menu){TUTM=!!menu;TUTI=0;let o=$("tut");if(!o){o=document.createElement("div");o.id="tut";document.body.appendChild(o)}tutDraw()}
 function tutDraw(){const o=$("tut"),T=TUT[TUTI],n=TUT.length;
- o.innerHTML='<div class="tu-top">'+(TUTI?'<button type="button" id="tu-bk">‹ Назад</button>':'<span></span>')+'<button type="button" id="tu-sk">'+(TUTM?"Закрыть":"Пропустить")+'</button></div>'+
+ o.innerHTML='<div class="tu-top">'+(TUTI?'<button type="button" id="tu-bk">‹ Назад</button>':'<span></span>')+'<button type="button" id="tu-sk">'+(TUTM?"Закрыть":S?.community?.required?"К подпискам":"Пропустить")+'</button></div>'+
   '<div class="tu-stage" style="--c:'+T.c+'"><div class="tu-glow"></div><div class="tu-sc" data-k="'+T.k+'">'+tutScene(T.k)+'</div></div>'+
   '<div class="tu-txt"><h2>'+T.t+'</h2><p>'+T.d+'</p><div class="tu-pg"><i style="width:'+((TUTI+1)/n*100)+'%"></i></div><small>'+(TUTI+1)+' из '+n+'</small>'+
-  '<button type="button" class="tu-next" id="tu-nx">'+(TUTI===n-1?(TUTM?"Готово":"Придумать ник ✍️"):"Дальше")+'</button>'+(TUTM&&T.go?'<button type="button" class="tu-open" id="tu-op">Открыть: '+T.t+'</button>':'')+'</div>';
+  '<button type="button" class="tu-next" id="tu-nx">'+(TUTI===n-1?(TUTM?"Готово":S?.community?.required?"Вступить в сообщество":"Придумать ник ✍️"):"Дальше")+'</button>'+(TUTM&&T.go?'<button type="button" class="tu-open" id="tu-op">Открыть: '+T.t+'</button>':'')+'</div>';
  hap("light");$("tu-nx").onclick=()=>{if(TUTI<n-1){TUTI++;tutDraw()}else tutDone()};$("tu-sk").onclick=tutDone;if($("tu-bk"))$("tu-bk").onclick=()=>{TUTI--;tutDraw()};
  if($("tu-op"))$("tu-op").onclick=()=>{const g=T.go;tutClose();g()};
  let sx=null;o.ontouchstart=e=>{sx=e.touches[0].clientX};o.ontouchend=e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(dx<-60&&TUTI<n-1){TUTI++;tutDraw()}else if(dx>60&&TUTI>0){TUTI--;tutDraw()}}}
@@ -55,7 +56,7 @@ function nickScreen(){if(!S||S.nick||$("nks"))return;const o=document.createElem
  $("nk-ok").onclick=go;i.onkeydown=e=>{if(e.key==="Enter")go()}}
 /* 📢 подписка на канал — обязательно: старым игрокам сразу, новичкам после 15 открытий */
 const GATE_OLD=Date.UTC(2026,10,16,12,40),gateWait=()=>!(S.created&&S.created<GATE_OLD)&&(S.nOp||0)<15;   // кто играл до 16.11 15:40 — сразу; новички — после 15 открытий
-function subGate(){if(!S||!ONLINE||S.subGot2||gateWait()||$("chg")||$("sbg")||$("tut")||$("nks"))return;const o=document.createElement("div");o.id="sbg";document.body.appendChild(o);
+function subGate(){if(S&&S.community)return;if(!S||!ONLINE||S.subGot2||gateWait()||$("chg")||$("sbg")||$("tut")||$("nks"))return;const o=document.createElement("div");o.id="sbg";document.body.appendChild(o);
  o.innerHTML='<div class="nk-stage"><div class="sb-ic">📢</div></div><div class="tu-txt"><h2>Подпишись на наш канал</h2><p>Там промокоды, конкурсы со звёздами и новости обновлений. За подписку — <b>+10 🎴</b> прокруток сразу.</p>'+
   '<button type="button" class="tu-next" id="sb-go">📢 Подписаться</button><button type="button" class="tu-open" id="sb-ck">✅ Я подписался — проверить</button><small class="nkerr" id="sb-er"></small></div>';
  $("sb-go").onclick=()=>{hap("light");try{tg.openTelegramLink("https://t.me/"+String(typeof CHANNEL!=="undefined"?CHANNEL:"@voinyepoh").replace("@",""))}catch(e){open("https://t.me/voinyepoh")}};
@@ -68,7 +69,7 @@ const _askNick=askNick;askNick=function(){if($("tut")||$("nks"))return;if(S&&!S.
 
 /* 💬 чат игроков — обязательно: старым игрокам сразу, новичкам после 15 открытий (после канала) */
 {let last=Date.now();setInterval(()=>{try{const now=Date.now(),d=now-last;last=now;if(document.hidden||d>10000)return;const k="we-ptime-"+mskDay(NOW());localStorage.setItem(k,String((+localStorage.getItem(k)||0)+d))}catch(e){}},5000)}
-function chatGate(){if(!S||!ONLINE||S.chatGot||!S.subGot2||gateWait()||$("sbg")||$("tut")||$("nks")||$("chg"))return;
+function chatGate(){if(S&&S.community)return;if(!S||!ONLINE||S.chatGot||!S.subGot2||gateWait()||$("sbg")||$("tut")||$("nks")||$("chg"))return;
  const o=document.createElement("div");o.id="chg";document.body.appendChild(o);
  o.innerHTML='<div class="nk-stage"><div class="sb-ic">💬</div></div><div class="tu-txt"><h2>Вступи в чат игроков</h2><p>Хвастайся выпадениями, ищи клан и напарников, узнавай секреты первым. За вступление — <b>+5 🎴</b> прокруток.</p>'+
   '<button type="button" class="tu-next" id="ch-go">💬 Вступить в чат</button><button type="button" class="tu-open" id="ch-ck">✅ Я вступил — проверить</button><small class="nkerr" id="ch-er"></small></div>';
