@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="ru">
-<head><meta name="app-ver" content="e09df1dbf0">
+<head><meta name="app-ver" content="d06f2d5ddf">
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Воины Эпох</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Rubik:wght@400;500;700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=6f4767e3">
+<link rel="stylesheet" href="style.css?v=a9f1a82f">
 </head>
 <body>
 <div id="boot" style="position:fixed;inset:0;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle at 50% 35%,#3a5cff,#1d44c8 45%,#0b1a5a 100%);color:#fff;font-family:Rubik,system-ui,sans-serif;transition:opacity .45s,transform .45s">
@@ -255,7 +255,7 @@
       <div class="box"><h3>Выставить карточку</h3><div class="pickrow" id="sl-pick"></div>
         <div id="sl-form" style="display:none;flex-direction:column;gap:8px">
           <div class="tgtinfo"><span id="sl-name"></span><b class="num" id="sl-val"></b></div>
-          <div class="price-in"><input type="range" id="sl-range" min="50" max="300" value="120" aria-label="Цена в процентах от оценки"><input type="number" id="sl-price" min="1" step="1" aria-label="Цена в долларах"></div>
+          <div class="price-in"><input type="range" id="sl-range" min="50" max="300" value="120" aria-label="Цена в процентах от оценки"><input type="number" id="sl-price" min="1" max="100000000000" step="1" aria-label="Цена в монетах"></div>
           <p id="sl-hint"></p>
           <button type="button" class="craftbtn" id="sl-go">Выставить на рынок</button>
         </div>
@@ -363,10 +363,10 @@
 </div></nav>
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal" hidden><div class="sheet" id="msheet"></div></div>
-<script src="rules.js?v=4e4d41bd"></script>
-<script src="game.js?v=2af814ea"></script>
+<script src="rules.js?v=d29cd3e6"></script>
+<script src="game.js?v=e8d4599e"></script>
 <script src="wow.js?v=a454cb64"></script>
-<script src="menu.js?v=0702857a"></script>
+<script src="menu.js?v=61aaf459"></script>
 <script src="dragon.js?v=07720efa"></script>
 <script src="teach.js?v=33c2d2dd"></script>
 <script src="turnir.js?v=28704163"></script>
@@ -376,5 +376,6 @@
 <script src="tutor.js?v=78a8e670"></script>
 <script src="admin.js?v=7108744a"></script>
 <script src="gems.js?v=30bbeceb"></script>
+<script src="quiz.js?v=f32766e3"></script>
 </body>
 </html>

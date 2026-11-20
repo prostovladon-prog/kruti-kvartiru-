@@ -669,8 +669,9 @@ function dqProg(st,now,k){const Q=dqDay(st,now),d=today(now),D=day(st,now);let v
 const DAY_SLOTS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].day),DSP={ch:.003,cap:3,per:3};
 /* красивый номер для карты дня (если свободен) — цена карточки растёт по правилам красивых номеров */
 /* 💰 рынок: потолок цены зависит от редкости (чем меньше тираж — тем выше), комиссия растёт с ценой (сжигает монеты на крупных сделках) */
-function capMul(c){const F=FIN[c.f]||{},H=(HEROES[c.h]||[])[4]||{};if(F.collab)return Infinity;if(F.fest)return 3;
-  if(F.run===1||H.day||H.one)return 20;if(F.run<=30)return 10;if(F.run<=100)return 6;if(F.run<=1000)return 4;return HEROES[c.h]&&HEROES[c.h][2]>=4?5:3}
+function capMul(c){const F=FIN[c.f]||{},H=(HEROES[c.h]||[])[4]||{},tier=(HEROES[c.h]||[])[2]||0;
+  if(F.collab||F.fest||H.day||H.one||tier>=3||(F.run>0&&finRun(c)<=1000))return Infinity;
+  return [10,20,30][tier]||10}
 const mktCap=c=>{const m=capMul(c);return m===Infinity?Infinity:Math.max(1000,Math.round((+c.v||0)*m))},
   mktFee=p=>p>=1e8?.2:p>=1e7?.15:p>=1e6?.12:FEE,mktFeeTxt=p=>p>=1e8?"сделки от 100 млн — 20%":p>=1e7?"сделки от 10 млн — 15%":"сделки от 1 млн — 12%";
 /* ⚔️ награда за бой без ставки: от ценности соперника, СВОЕЙ карты (25%) и минимум по редкости своей карты; не выше DUEL_CAP */
