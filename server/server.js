@@ -2117,6 +2117,7 @@ async function dcApi(env,me,a,p){await xhLoad(env,1);
     DC={h,at,until:p.now?now+4*36e5:at+4*36e5};await kvSet(env,"dc",DC);await xhLoad(env,1);return {dc:DC,h}}
   if(a==="dc_stop"){if(DC){DC.until=Date.now();await kvSet(env,"dc",DC)}return {ok:1}}
   fail("Неизвестное действие")}
+const GAME_GIFT={min:1,max:SUP.max};
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
   if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.night){const hh=new Date(Date.now()+TZ).getUTCHours();if(hh>=2&&hh<22)fail("Ночной сундук продаётся только с 22:00 до 02:00");}if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
@@ -2197,6 +2198,11 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     return {item,stars:n,title:"⭐ Пополнение баланса",desc:"+"+n+" ⭐ на игровой баланс «Воинов Эпох»"+(b?" и ещё +"+b+" ⭐ бонусом по промокоду (x2)":"")+(bn?" и +"+bn+" ⭐ в подарок по промокоду":"")+". Тратятся на любые покупки в игре",data:{n}}}
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{n}}}   /* n обязателен: при pre_checkout сумма проверяется ещё раз */
+  if(item==="game_gift"){
+    const n=Number(p.n);
+    if(!Number.isSafeInteger(n)||n<GAME_GIFT.min||n>GAME_GIFT.max)fail("Сумма — от "+GAME_GIFT.min+" до "+GAME_GIFT.max+" ⭐");
+    return {item,stars:n,title:"🎁 Подарок игре",desc:"Добровольная поддержка «Воинов Эпох» без игровых наград. Спасибо, что помогаешь игре развиваться!",data:{n}};
+  }
   if(item==="sday"){const d=await sdayFree(env,Date.now());if(!d)fail("Все дни на 2 месяца вперёд заняты");return {item,stars:SDAY.stars,title:"🌟 Звезда дня",desc:"Твой ник и самая дорогая карточка весь день на главной у всех игроков. Ближайший свободный день: "+d.split("-").reverse().join("."),data:{}}}
   if(item==="golem"){const f=p.forever?1:0;return {item,stars:f?GOLEM.f:GOLEM.w,title:"Каменный голем",desc:"Голем в лагере "+(f?"навсегда":"на "+GOLEM.days+" дней")+": энергии в 2 раза больше и она восстанавливается в 2 раза быстрее",data:{forever:f}}}
   if(item==="fx"){const k=String(p.fx||"");if(!NFX[k])fail("Нет такого эффекта");const f=p.forever?1:0;
@@ -2234,6 +2240,15 @@ async function payRefund(env,P,msg){
   await env.DB.prepare("UPDATE payments SET status='refund',res=? WHERE id=?").bind(JSON.stringify({err:msg}),P.id).run();
   await notify(env,P.uid,"↩️ "+msg+"\n\nЗвёзды ("+P.stars+" ⭐) вернулись "+(bal?"на игровой баланс.":"на твой счёт."),"🏪 Сокровищница",PAGE+"?shop=1")}
 async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM payments WHERE id=?").bind(pid).first();if(!P||P.status!=="paid")return;
+  if(P.item==="game_gift"){
+    const res={n:P.stars};
+    const done=await env.DB.prepare("UPDATE payments SET status='done',res=? WHERE id=? AND status='paid'").bind(JSON.stringify(res),P.id).run();
+    if(done.meta.changes===1){
+      delete topCache.gameGift;
+      await notify(env,P.uid,"🎁 Спасибо за подарок игре — "+P.stars+" ⭐!","🎴 Открыть игру");
+    }
+    return;
+  }
   const d=JSON.parse(P.p||"{}"),I=SHOP[P.item];let res,msg="";
   try{
     if(I&&I.manual){res={manual:1};msg="👑 Ты купил «Карточку твоей мечты»! Это была шутка… но мы держим слово. Напиши @voinovadmin: какого героя нарисовать и какой номер поставить. Карточка будет только у тебя.";
@@ -2359,7 +2374,7 @@ async function payTick(env){
 async function payStatus(env,me,p){const P=await env.DB.prepare("SELECT id,item,status,res FROM payments WHERE id=? AND uid=?").bind(p.pid|0,me.id).first();if(!P)fail("Нет такого счёта");
   return {pid:P.id,item:P.item,status:P.status,res:P.res?JSON.parse(P.res):null}}
 /* топ донатеров месяца (без администраторов) и «Король Эпох» — первое место */
-async function donors(env){return cached("donors",30e3,async()=>(await env.DB.prepare("SELECT p.uid,SUM(p.stars) AS s,COALESCE(u.nick,u.name) AS name FROM payments p JOIN users u ON u.id=p.uid WHERE p.month=? AND p.status='done' AND COALESCE(p.charge,'')<>'bal' GROUP BY p.uid ORDER BY s DESC LIMIT 13").bind(monthOf(Date.now())).all()).results.filter(r=>!isAdmin(env,r.uid)).slice(0,10))}
+async function donors(env){return cached("donors",30e3,async()=>(await env.DB.prepare("SELECT p.uid,SUM(p.stars) AS s,COALESCE(u.nick,u.name) AS name FROM payments p JOIN users u ON u.id=p.uid WHERE p.month=? AND p.status='done' AND p.item<>'game_gift' AND COALESCE(p.charge,'')<>'bal' GROUP BY p.uid ORDER BY s DESC LIMIT 13").bind(monthOf(Date.now())).all()).results.filter(r=>!isAdmin(env,r.uid)).slice(0,10))}
 async function nickFx(env){return cached("nfx",30e3,async()=>{const fx={};
   for(const r of (await env.DB.prepare("SELECT id,fx FROM users WHERE fx_until>? AND fx IS NOT NULL").bind(Date.now()).all()).results)fx[r.id]=r.fx;
   const ttl={};for(const r of (await env.DB.prepare("SELECT id,title FROM users WHERE title IS NOT NULL AND title<>'' LIMIT 1000").all()).results)ttl[r.id]=r.title;
@@ -2375,7 +2390,11 @@ async function shopInfo(env,me){
   const duos=await cached("shopduos",10e3,async()=>{const o={};for(const h of DUO)o[h]=0;for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DUO_F).all()).results)if(o[r.h]!=null)o[r.h]=r.n;return o});
   const dia=await cached("shopdia",8e3,async()=>{const o={};for(const h in DIA)o[h]=DIA[h].run;
     for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DIA_F).all()).results)if(o[r.h]!=null)o[r.h]=Math.max(0,DIA[r.h].run-r.n);return o});
-  return {comp,ones,duos,dia,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:[],mine:0,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0}}
+  const gameGift=await cached("gameGift",30e3,async()=>{
+    const row=await env.DB.prepare("SELECT COALESCE(SUM(stars),0) AS total FROM payments WHERE item='game_gift' AND status='done' AND charge IS NOT NULL AND charge<>'' AND charge<>'bal' AND charge NOT LIKE 'sim%'").first();
+    return {...GAME_GIFT,total:row?.total||0};
+  });
+  return {comp,ones,duos,dia,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:[],mine:0,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0,gameGift}}
 async function tgApi(env,method,body){let r;try{r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)})}catch(e){return {ok:false,description:"network"}}return r.json().catch(()=>({ok:false}))}
 /* ---------- переезд на свой сервер: выгрузка базы и режим «технические работы» ----------
    Ключ выгрузки считается из токена бота, поэтому его знает только тот, у кого есть токен. */
@@ -3418,7 +3437,7 @@ const ABN={on:true,wait:40*6e4,win:3*36e5,cool:7*864e5,ttl:864e5,code:"ДОЖИ�
 function abnBon(s){const pct=s>=500?20:15;return Math.max(10,Math.min(400,Math.round(s*pct/100)))}
 let abnBusy=false,mapFixK=0;   /* mapfix: раз в 10 мин освобождаем карточки, «охраняющие» регион, которого у них уже нет */
 async function abnTick(env){if(!ABN.on||abnBusy)return;abnBusy=true;try{const now=Date.now();
-  const L=(await env.DB.prepare("SELECT p.uid,MAX(p.stars) AS s FROM payments p WHERE p.status='new' AND p.created BETWEEN ? AND ? AND p.item NOT IN ('support') AND p.stars>0 AND NOT EXISTS(SELECT 1 FROM payments q WHERE q.uid=p.uid AND q.status IN ('paid','done') AND q.created>=p.created-6e4) GROUP BY p.uid LIMIT 25").bind(now-ABN.win,now-ABN.wait).all()).results;
+  const L=(await env.DB.prepare("SELECT p.uid,MAX(p.stars) AS s FROM payments p WHERE p.status='new' AND p.created BETWEEN ? AND ? AND p.item NOT IN ('support','game_gift') AND p.stars>0 AND NOT EXISTS(SELECT 1 FROM payments q WHERE q.uid=p.uid AND q.status IN ('paid','done') AND q.created>=p.created-6e4) GROUP BY p.uid LIMIT 25").bind(now-ABN.win,now-ABN.wait).all()).results;
   for(const r of L){const k="abn:"+r.uid,last=(await kvGet(env,k))||0;if(now-last<ABN.cool)continue;await kvSet(env,k,now);
     const bmin=Math.max(25,r.s),bon=abnBon(bmin),until=now+ABN.ttl;
     await env.DB.prepare("INSERT OR REPLACE INTO promo_uses(code,uid,t,x2,x2d,bon,bon_until,bmin) VALUES(?,?,?,0,0,?,?,?)").bind(ABN.code,r.uid,now,bon,until,bmin).run();
@@ -3618,7 +3637,7 @@ async function handle(req,env){{
       if(a==="sub_reward"||a==="pvp_result"||a==="tour_prize"||a==="grant"||a==="season_prize"||a==="trader_take"||a==="trader_give"||a==="auc_win"||a==="cas_comp")fail("Неизвестное действие");
       if(a==="shop")return J({ok:true,res:await shopInfo(env,me)});
       if(a==="invoice")return J({ok:true,res:await invoice(env,me,p)});
-      if(a==="pay_bal"){if(p.item==="bal"||p.item==="support")fail("Это можно оплатить только звёздами Telegram");const I=await payItem(env,me.id,p),now=Date.now();
+      if(a==="pay_bal"){if(p.item==="bal"||p.item==="support"||p.item==="game_gift")fail("Это можно оплатить только звёздами Telegram");const I=await payItem(env,me.id,p),now=Date.now();
         const r=await env.DB.prepare("UPDATE users SET star_bal=star_bal-? WHERE id=? AND star_bal>=?").bind(I.stars,me.id,I.stars).run();
         if(r.meta.changes!==1){const u=await env.DB.prepare("SELECT star_bal FROM users WHERE id=?").bind(me.id).first();fail("На игровом балансе "+((u&&u.star_bal)||0)+" ⭐, а нужно "+I.stars+" ⭐")}
         const row=await env.DB.prepare("INSERT INTO payments(uid,item,p,stars,status,month,created,charge,paid) VALUES(?,?,?,?,'paid',?,?,'bal',?) RETURNING id").bind(me.id,I.item,JSON.stringify(I.data||{}),I.stars,monthOf(now),now,now).first();
