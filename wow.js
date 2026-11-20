@@ -900,6 +900,7 @@ function renderBirthdayCasino(){
 function drawBirthday(C){
   const box=$("chal");
   box.hidden=false;
+  box.dataset.birthday="1";
   box.classList.remove("secret","bigc","chestc","sk-myst");
   box.classList.add("story");
   const link=$("chal-link");
@@ -907,7 +908,7 @@ function drawBirthday(C){
   $("chal-go").hidden=true;
   box.querySelector(".chal-h span").textContent="🎂 ДЕНЬ РОЖДЕНИЯ";
   $("chal-left").textContent=tleft(Math.max(0,C.end-NOW()));
-  $("chal-t").textContent="«Общий пир» · сегодня до 23:59 по Минску";
+  $("chal-t").textContent="Воинам Эпох 1 месяц! «Общий пир» до 23:59 по Минску";
   $("chal-p").textContent="";
   const me=$("chal-me");
   me.innerHTML='<div class="sty"><div class="sty-s"><b>🎁</b><span>'+
@@ -935,6 +936,7 @@ function drawBirthday(C){
 {const _dc2=drawChal;drawChal=function(){
   const C=chData;
   if(C?.birthday){drawBirthday(C);renderBirthdayCasino();return}
+  const box=$("chal");if(box)delete box.dataset.birthday;
   const link=$("chal-link");if(link)link.hidden=false;
   const casino=$("birthday-casino");if(casino)casino.remove();
   if(C&&C.story){try{drawStory(C)}catch(e){console.error(e)}return}
