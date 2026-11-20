@@ -14,6 +14,8 @@ function admDraw(R){const sh=$("msheet");if(!sh)return;const U=R.U,F=R.F,n=x=>Nu
    '<div class="ad-s"><h4>⚡ Быстрые действия</h4><div class="ad-bs">'+go("stars","⭐","Звёзды игроку")+go("promo","🎟","Создать промокод")+go("ads","📈","Реклама")+go("dm","✉️","Сообщения")+go("rf","🎁","Реф-слоты")+go("vote","🗳","Голосования")+go("tut","🎓","Обучение")+go("crash","💥","Вылеты")+go("chat","💬","Чат")+'</div><button type="button" class="tu-next ad-all" id="ad-all">📊 Вся подробная статистика</button><div>'+'</div>'+
    '<small class="ad-n">Всего игроков: <b>'+n(U.n)+'</b> · пришли по приглашениям в реф-слотах: <b>'+n(R.ref)+'</b></small></div>'+
    '<button type="button" class="ghost" id="ad-x">Закрыть</button></div>';
+  if(R.recruitDelivery){const D=R.recruitDelivery,b=document.createElement("div");b.className="ad-s";const title=document.createElement("h4");title.textContent="📨 Рассылка конкурса приглашений";b.append(title);
+    for(const text of ["Канал — "+D.channel,"Чат — "+D.chat,"В бота отправлено — "+n(D.sent)+" · ожидает повтора — "+n(D.waiting)+" · недоступны — "+n(D.skipped),D.reason,...D.errors]){if(!text)continue;const p=document.createElement("p");p.className="cln";p.textContent=text;b.append(p)}sh.querySelector(".ad-g").after(b)}
   $("ad-x").onclick=closeModal;$("ad-all").onclick=admStats;$("ad-rl").onclick=()=>{hap("light");admOpen()};
   sh.querySelectorAll(".ad-b").forEach(b=>b.onclick=()=>{const k=b.dataset.k;closeModal();if(k==="rf")return openCas("rc");if(k==="vote")return voteHub();if(k==="tut")return tutOpen(true);if(k==="chat")return openChat();if(k==="promo")return admPromo();if(k==="crash")return crashOpen();menuGo(k)})}
 /* 🎟 создание промокодов — раньше жило в старой статистике */
