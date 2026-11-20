@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=77;const NEWB_MS=3*864e5;
+const SCHEMA_V=78;const NEWB_MS=3*864e5;
 const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users ADD COLUMN refs INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gift_spins INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE cards ADD COLUMN stars INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN nick TEXT","ALTER TABLE users ADD COLUMN nick_key TEXT",
     "CREATE UNIQUE INDEX IF NOT EXISTS users_nick ON users(nick_key)",
@@ -120,6 +120,8 @@ const MIGRATIONS=["ALTER TABLE users ADD COLUMN ref INTEGER","ALTER TABLE users 
  "CREATE TABLE IF NOT EXISTS clan_msg (id INTEGER PRIMARY KEY AUTOINCREMENT, clan INTEGER NOT NULL, uid INTEGER NOT NULL, name TEXT, text TEXT, t INTEGER)","CREATE INDEX IF NOT EXISTS clan_msg_c ON clan_msg(clan,id)","CREATE TABLE IF NOT EXISTS king (wk TEXT PRIMARY KEY, uid INTEGER, name TEXT, votes INTEGER DEFAULT 0, tre INTEGER DEFAULT 0, got INTEGER DEFAULT 0, since INTEGER, dec_day TEXT)","CREATE TABLE IF NOT EXISTS king_vote (wk TEXT NOT NULL, uid INTEGER NOT NULL, cand INTEGER NOT NULL, t INTEGER, PRIMARY KEY(wk,uid))","CREATE TABLE IF NOT EXISTS tt_sub (contest TEXT NOT NULL, uid INTEGER NOT NULL, url TEXT, st INTEGER DEFAULT 0, t INTEGER, PRIMARY KEY(contest,uid))","CREATE TABLE IF NOT EXISTS live_drop (code TEXT PRIMARY KEY, card INTEGER NOT NULL, name TEXT, t INTEGER, by_uid INTEGER, got_t INTEGER, sp INTEGER DEFAULT 0)","CREATE TABLE IF NOT EXISTS live_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, text TEXT, pic TEXT, kind TEXT, t INTEGER)","CREATE TABLE IF NOT EXISTS ref3_got (camp TEXT NOT NULL, uid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(camp,uid))","CREATE TABLE IF NOT EXISTS riddle_ans (rid TEXT NOT NULL, uid INTEGER NOT NULL, name TEXT, tries INTEGER DEFAULT 0, ok_t INTEGER, last TEXT, PRIMARY KEY(rid,uid))","CREATE INDEX IF NOT EXISTS riddle_ok ON riddle_ans(rid,ok_t)","CREATE TABLE IF NOT EXISTS ep_vote (vid TEXT NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER, PRIMARY KEY(vid,uid))","CREATE TABLE IF NOT EXISTS ep_vote_soc (vid TEXT NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(vid,uid))","ALTER TABLE promo ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo_uses ADD COLUMN bon_until INTEGER NOT NULL DEFAULT 0","ALTER TABLE promo ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0","ALTER TABLE map_reg ADD COLUMN owner2 INTEGER","ALTER TABLE hype ADD COLUMN big INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN hof_note INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN emp INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN glory INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS emp_war (id INTEGER PRIMARY KEY AUTOINCREMENT, att INTEGER NOT NULL, def INTEGER NOT NULL, win INTEGER NOT NULL, gl INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL)","ALTER TABLE map_reg ADD COLUMN claim2_at INTEGER","ALTER TABLE promo_uses ADD COLUMN bmin INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS tk_k (cid TEXT NOT NULL, uid INTEGER NOT NULL, k TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid,k))",
  "CREATE TABLE IF NOT EXISTS crash_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER, t INTEGER, kind TEXT, data TEXT)",
  "CREATE TABLE IF NOT EXISTS birthday_code_claims (code TEXT NOT NULL, uid INTEGER NOT NULL, token TEXT NOT NULL, t INTEGER NOT NULL, PRIMARY KEY(code,uid))",
+ "CREATE TABLE IF NOT EXISTS birthday_print_entries (event TEXT NOT NULL, slot INTEGER NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL, PRIMARY KEY(event,slot,uid))",
+ "CREATE TABLE IF NOT EXISTS birthday_print_awards (event TEXT NOT NULL, slot INTEGER NOT NULL, uid INTEGER NOT NULL, sn TEXT, t INTEGER NOT NULL, PRIMARY KEY(event,slot))",
  "CREATE TABLE IF NOT EXISTS clan_wk (clan INTEGER NOT NULL, wk TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,wk))",
  "CREATE TABLE IF NOT EXISTS clan_wk_got (clan INTEGER NOT NULL, wk TEXT NOT NULL, uid INTEGER NOT NULL, tier INTEGER NOT NULL, PRIMARY KEY(clan,wk,uid,tier))",
  "CREATE TABLE IF NOT EXISTS friends (uid INTEGER NOT NULL, fid INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,fid))",
@@ -481,25 +483,26 @@ const BIRTHDAY_REACTIONS=[
 ];
 const BIRTHDAY_POSTS=[
   {id:"launch",channel:true,at:BIRTHDAY.start,until:birthdayTime(8,20),
-    text:"🎂 ВОИНАМ ЭПОХ 1 МЕСЯЦ!\n\nСегодня с 08:00 до 23:59 по Минску празднуем «Общий пир». В игре уже ждут 15 прокруток за вход.\n\nОткрываем карты вместе: цель — 5 000 за день. Если достигнем её, с 20:00 можно забрать ещё 15 прокруток, титул «С нами с первого месяца» и две бесплатные попытки в казино. Каждая даёт 5–10 ⭐ на игровой баланс.\n\nВ 12:30 и 18:10 ищи здесь посты с двумя реакционными сюрпризами. Спасибо, что вы с нами!"},
+    text:"🎂 ВОИНАМ ЭПОХ 1 МЕСЯЦ!\n\nСегодня с 08:00 до 23:59 по Минску празднуем «Общий пир». В игре уже ждут 15 прокруток за вход.\n\n🎴 С 08:00 до 22:00 раздаём 14 карт «Праздничный брак», каждая 1 из 1. Открывай обычные карты: в конце каждого часа бот выберет одно из открытий этого часа и выдаст его владельцу праздничную карту.\n\nОткрываем карты вместе: цель — 5 000 за день. Если достигнем её, с 20:00 можно забрать ещё 15 прокруток, титул «С нами с первого месяца» и две бесплатные попытки в казино. Каждая даёт 5–10 ⭐ на игровой баланс.\n\nВ 12:30 и 18:10 ищи здесь посты с двумя реакционными сюрпризами. Спасибо, что вы с нами!"},
   {id:"chat-start",at:birthdayTime(8,20),until:birthdayTime(9,5),
-    text:"🎂 Нам сегодня 1 месяц! «Общий пир» уже в игре. Забирай 15 прокруток за вход и помогай набрать общие 5 000 открытий. Расписание сюрпризов — в @voinyepoh."},
+    text:"🎂 Нам сегодня 1 месяц! Забирай 15 прокруток за вход и помогай набрать общие 5 000 открытий. До 22:00 ещё и по одной праздничной карте за каждый час: открывай обычные карты, чтобы участвовать. Расписание — в @voinyepoh."},
   {id:"chat-evening",at:birthdayTime(19,50),until:birthdayTime(20,10),
     text:"🎂 Проверь общий счёт в игре. Если наберём 5 000 открытий, с 20:00 можно забрать общий сундук: ещё 15 прокруток, титул и две бесплатные попытки со звёздами."}
 ];
-const BIRTHDAY_DM="🎂 Нам 1 месяц! Твой подарок уже в игре — забери 15 прокруток до 23:59 по Минску.\n\nПоможешь открыть общий сундук? Нужно 5 000 открытий на всех. С 20:00, если цель достигнута, в нём ещё 15 прокруток, титул и две бесплатные попытки со звёздами.";
+const BIRTHDAY_DM="🎂 Нам 1 месяц! Забери 15 прокруток до 23:59 по Минску. До 22:00 каждое обычное открытие также участвует в розыгрыше праздничной карты своего часа.\n\nПоможешь открыть общий сундук? Нужно 5 000 открытий на всех. С 20:00, если цель достигнута, в нём ещё 15 прокруток, титул и две бесплатные попытки со звёздами.";
 const birthdayKey=id=>"birthday-media:"+BIRTHDAY.id+":"+id;
 const birthdayButton={inline_keyboard:[[{text:"⚔️ Открыть игру",url:"https://t.me/VoinyEpohBot"}]]};
 const birthdayRetry=new Map();
-async function birthdaySend(env,id,chat,text,reply){
+async function birthdaySend(env,id,chat,text,reply,options){
   const key=birthdayKey(id),now=Date.now();
   if(now<(birthdayRetry.get(id)||0))return;
   const pending=JSON.stringify({pending:true,at:now});
   const lock=await env.DB.prepare("INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)").bind(key,pending).run();
   if(lock.meta.changes!==1)return;
-  const p={chat_id:chat,text,reply_markup:birthdayButton};
+  const p=options?{chat_id:chat,question:text,options:options.map(text=>({text})),is_anonymous:true}:
+    {chat_id:chat,text,reply_markup:birthdayButton};
   if(reply)p.reply_parameters={message_id:reply,allow_sending_without_reply:true};
-  const r=await tgApi(env,"sendMessage",p);
+  const r=await tgApi(env,options?"sendPoll":"sendMessage",p);
   if(r.ok&&r.result?.message_id){
     await kvSet(env,key,{mid:r.result.message_id,chat:r.result.chat?.id,at:now});
   }else{
@@ -553,6 +556,8 @@ async function birthdayMediaTick(env){
   birthdayMediaBusy=true;
   try{
     for(const C of BIRTHDAY_POSTS)if(now>=C.at&&now<C.until)await birthdaySend(env,C.id,C.channel?CHANNEL:CHAT,C.text);
+    if(now>=birthdayTime(22,10)&&now<birthdayTime(22,40))await birthdaySend(env,"print-poll",CHANNEL,"🎂 Какая праздничная ошибка печати тебе понравилась больше?",null,
+      [0,3,10,13].map(i=>BIRTHDAY_PRINTS[i].name));
     for(const C of BIRTHDAY_REACTIONS){
       if(now>=C.at&&now<C.until)await birthdaySend(env,C.id,CHANNEL,C.text);
       const state=await kvGet(env,birthdayKey(C.id));
@@ -582,12 +587,72 @@ async function birthdayTotal(env){
   const row=await env.DB.prepare("SELECT n FROM stats WHERE day=? AND k=?").bind(BIRTHDAY.day,BIRTHDAY.id).first();
   return row?.n||0;
 }
+const birthdayPrintSlot=now=>{
+  const slot=Math.floor((now-BIRTHDAY.start)/36e5);
+  return slot>=0&&slot<BIRTHDAY_PRINTS.length?slot:-1;
+};
+async function birthdayPrintView(env,now){
+  const slot=birthdayPrintSlot(now),next=slot<0?null:BIRTHDAY_PRINTS[slot];
+  const {results}=await env.DB.prepare("SELECT a.slot,a.sn,COALESCE(u.nick,'Воин') AS nick FROM birthday_print_awards a LEFT JOIN users u ON u.id=a.uid WHERE a.event=? AND a.uid>0 ORDER BY a.slot DESC")
+    .bind(BIRTHDAY.id).all();
+  return {next:next?{h:next.h,name:next.name,end:BIRTHDAY.start+(slot+1)*36e5}:null,winners:results.map(r=>({...r,h:BIRTHDAY_PRINTS[r.slot].h,name:BIRTHDAY_PRINTS[r.slot].name}))};
+}
+function birthdayWeightedPick(rows){
+  const total=rows.reduce((n,r)=>n+r.n,0);
+  if(!total)return null;
+  const word=new Uint32Array(1),max=0x100000000,limit=max-max%total;
+  if(!Number.isSafeInteger(total)||total>=max)throw new Error("Invalid birthday entries count");
+  do{crypto.getRandomValues(word)}while(word[0]>=limit);
+  let at=word[0]%total;
+  for(const r of rows){at-=r.n;if(at<0)return r}
+  return null;
+}
+async function birthdayMintPrint(env,slot,winner){
+  const spec=BIRTHDAY_PRINTS[slot],now=Date.now();
+  for(let attempt=0;attempt<4;attempt++){
+    const ctx=await makeCtx(env,false),card=makeCard(ctx,spec.h,BIRTHDAY_PRINT_F);
+    try{
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO birthday_print_awards(event,slot,uid,sn,t) VALUES(?,?,?,?,?)")
+          .bind(BIRTHDAY.id,slot,winner.uid,card.sn,now),
+        env.DB.prepare("INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,created,part,how) VALUES(?,?,?,1,?,0,?,?,?,0,0,0,?,0,'birthday')")
+          .bind(winner.uid,card.h,card.f,card.sn,card.hue,spec.v,JSON.stringify(card.stats),now)
+      ]);
+      delete topCache.prints;delete topCache.feed;delete topCache.cards;
+      if(winner.pm)await notify(env,winner.uid,"🎂 Твоё открытие выиграло «Праздничный брак»! "+HEROES[spec.h][0]+" · "+spec.name+" · № "+fmtSn(card.sn)+". Карта уже в коллекции.","🎴 Открыть игру");
+      return;
+    }catch(e){
+      if(!/UNIQUE/i.test(String(e?.message||e)))throw e;
+      if(await env.DB.prepare("SELECT 1 FROM birthday_print_awards WHERE event=? AND slot=?").bind(BIRTHDAY.id,slot).first())return;
+    }
+  }
+  throw new Error("Birthday print mint retries exhausted");
+}
+let birthdayPrintBusy=false;
+async function birthdayPrintTick(env){
+  const now=Date.now(),closed=Math.min(BIRTHDAY_PRINTS.length,Math.floor((now-BIRTHDAY.start-15000)/36e5));
+  if(env.DEV==="1"||birthdayPrintBusy||closed<=0||now>=BIRTHDAY.end+36e5)return;
+  birthdayPrintBusy=true;
+  try{
+    const {results:done}=await env.DB.prepare("SELECT slot FROM birthday_print_awards WHERE event=?").bind(BIRTHDAY.id).all();
+    const seen=new Set(done.map(r=>r.slot));
+    for(let slot=0;slot<closed;slot++){
+      if(seen.has(slot))continue;
+      const {results}=await env.DB.prepare("SELECT e.uid,e.n,u.pm FROM birthday_print_entries e JOIN users u ON u.id=e.uid WHERE e.event=? AND e.slot=? AND u.banned=0 ORDER BY e.uid")
+        .bind(BIRTHDAY.id,slot).all();
+      const winner=birthdayWeightedPick(results);
+      if(winner)await birthdayMintPrint(env,slot,winner);
+      else await env.DB.prepare("INSERT OR IGNORE INTO birthday_print_awards(event,slot,uid,sn,t) VALUES(?,?,0,NULL,?)")
+        .bind(BIRTHDAY.id,slot,Date.now()).run();
+    }
+  }finally{birthdayPrintBusy=false;}
+}
 async function birthdayView(env,me,now){
   if(!birthdayLive(now))return null;
   const row=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();
   const m=birthdayPlayer(JSON.parse(row?.state||"{}")),total=await birthdayTotal(env);
   return {...BIRTHDAY,birthday:true,phase:"on",left:BIRTHDAY.end-now,total,
-    opened:m.opened,claimed:m.claimed,finalClaimed:!!m.finalClaimed,rolls:m.rolls,unlocked:birthdayUnlocked(now,total)};
+    opened:m.opened,claimed:m.claimed,finalClaimed:!!m.finalClaimed,rolls:m.rolls,unlocked:birthdayUnlocked(now,total),prints:await birthdayPrintView(env,now)};
 }
 function birthdayStars(){
   const count=BIRTHDAY.maxStars-BIRTHDAY.minStars+1,limit=256-256%count,bytes=new Uint8Array(1);
@@ -660,6 +725,11 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
     stm.push(env.DB.prepare(`INSERT INTO stats(day,k,n) SELECT ?,?,1 WHERE ${guard} ON CONFLICT(day,k) DO UPDATE SET n=n+1`).bind(dayOf(ctx.now),"a_"+name,me.id,nv));
     if(birthdayOpened)stm.push(env.DB.prepare(`INSERT INTO stats(day,k,n) SELECT ?,?,? WHERE ${guard} ON CONFLICT(day,k) DO UPDATE SET n=n+excluded.n`)
       .bind(BIRTHDAY.day,BIRTHDAY.id,birthdayOpened,me.id,nv));
+    const printSlot=birthdayPrintSlot(Date.now());
+    if(birthdayOpened&&printSlot>=0)stm.push(env.DB.prepare(`INSERT INTO birthday_print_entries(event,slot,uid,n)
+      SELECT ?,?,?,? WHERE ${guard} AND NOT EXISTS(SELECT 1 FROM birthday_print_awards WHERE event=? AND slot=?)
+      ON CONFLICT(event,slot,uid) DO UPDATE SET n=n+excluded.n`)
+      .bind(BIRTHDAY.id,printSlot,me.id,birthdayOpened,me.id,nv,BIRTHDAY.id,printSlot));
     if(birthdayAction&&out.res.credited){
       stm.push(env.DB.prepare(`UPDATE users SET star_bal=star_bal+? WHERE id=? AND ver=?`).bind(out.res.credited,me.id,nv));
       stm.push(env.DB.prepare(`INSERT INTO star_grants(uid,amt,note,t,by) SELECT ?,?,?,?,0 WHERE ${guard}`)
@@ -957,7 +1027,7 @@ async function pickOpponent(env,me,p,stake){
   const mine=await row("SELECT h,v FROM cards WHERE id=? AND owner=?",p.id|0,me.id);if(!mine)return null;
   let SEL="SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND c.owner<>? AND c.list_price IS NULL AND c.away=0 AND c.room_id IS NULL AND c.f<>5 AND NOT (c.f=4 AND c.sn='000010') AND c.part=0";   // «Основатель» в боях не участвует
   const args=[me.id];
-  if(stake){SEL+=" AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<COALESCE(json_extract(u.state,'$.capOld'),?)+(CASE COALESCE(json_extract(u.state,'$.castle'),0) "+CASTLE.map((x,i)=>"WHEN "+(i+1)+" THEN "+castleSlots(i+1)).join(" ")+" ELSE 0 END)+"+SLOT_STEP+"*MIN(1,COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(mine.v*.5,mine.v*2,CAP)}
+  if(stake){SEL+=" AND c.f<>? AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<COALESCE(json_extract(u.state,'$.capOld'),?)+(CASE COALESCE(json_extract(u.state,'$.castle'),0) "+CASTLE.map((x,i)=>"WHEN "+(i+1)+" THEN "+castleSlots(i+1)).join(" ")+" ELSE 0 END)+"+SLOT_STEP+"*MIN(1,COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(BIRTHDAY_PRINT_F,mine.v*.5,mine.v*2,CAP)}
   let r=null;
   if(p.rematch)r=await row(SEL+" AND c.id=?",...args,p.rematch|0);
   if(!r){if(!stake&&Math.random()<.2)return null;   // иногда всё равно бот, чтобы соперники были разными
@@ -1087,7 +1157,9 @@ async function arena(env,me,a,p){
     return {open:open.map(r=>roomView(r,me.id)),live:live.map(r=>roomView(r,me.id)),mine:mine?mine.id:null}}
   if(a==="room_create"){
     const cur=await myRoom(env,me.id);if(cur)fail("У тебя уже есть бой на арене");
-    const c=await arenaCard(env,me,p.id),mode=p.mode?1:0,priv=p.priv?1:0,ok0=(()=>{if(p.mode&&noTrade(c))fail("Эта карточка не участвует в боях на карточку: она подарена и существует в одном экземпляре")})(),code=Math.random().toString(36).slice(2,8);
+    const c=await arenaCard(env,me,p.id),mode=p.mode?1:0,priv=p.priv?1:0;
+    if(mode&&stakeProtected(c))fail("Эту карточку нельзя поставить в бою на карту");
+    const code=Math.random().toString(36).slice(2,8);
     const ins=await env.DB.prepare("INSERT INTO rooms(code,priv,mode,host,host_name,hc,phase,until,created,updated) VALUES(?,?,?,?,?,?,'open',0,?,?)").bind(code,priv,mode,me.id,await nameOf(env,me.id),JSON.stringify(c),now,now).run();
     const r=await env.DB.prepare("SELECT * FROM rooms WHERE host=? ORDER BY id DESC LIMIT 1").bind(me.id).first();
     const lock=await env.DB.prepare("UPDATE cards SET room_id=? WHERE id=? AND owner=? AND room_id IS NULL AND list_price IS NULL AND away=0").bind(r.id,c.id,me.id).run();
@@ -1101,7 +1173,7 @@ async function arena(env,me,a,p){
     if(r0.phase!=="open")fail("Этот бой уже начался или закрыт");if(r0.host===me.id)fail("Это твой бой");
     if(r0.priv&&String(p.code||"")!==r0.code)fail("Это закрытый бой: нужна ссылка от друга");
     if(await myRoom(env,me.id))fail("У тебя уже есть бой на арене");
-    const c=await arenaCard(env,me,p.id),hc=rj(r0.hc);if(r0.mode&&noTrade(c))fail("Эта карточка не участвует в боях на карточку: она подарена и существует в одном экземпляре");
+    const c=await arenaCard(env,me,p.id),hc=rj(r0.hc);if(r0.mode&&(stakeProtected(c)||stakeProtected(hc)))fail("Эту карточку нельзя поставить в бою на карту");
     if(r0.mode){if(c.v<hc.v*.5||c.v>hc.v*2)fail("В бою на карточку цены должны быть похожи: от "+fmtD(hc.v*.5)+" до "+fmtD(hc.v*2)+" 🪙");
       for(const u of [me.id,r0.host]){const n=await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=?").bind(u).first();if(n.n>=await capUid(env,u))fail(u===me.id?"У тебя полная коллекция":"У соперника полная коллекция")}}
     const lock=await env.DB.prepare("UPDATE cards SET room_id=? WHERE id=? AND owner=? AND room_id IS NULL AND list_price IS NULL AND away=0").bind(r0.id,c.id,me.id).run();
@@ -3655,7 +3727,7 @@ async function resendWinners(env){if(await cached("rsw",60e3,()=>kvGet(env,"rese
   for(const a of ADMINS)await notify(env,a,"✅ Победителям повторно отправлено сообщение с @voinovadmin: "+rows.map((r,k)=>(k+1)+". "+r.name+" (id "+r.uid+")").join(", "),"⚔️ Открыть")}
 /* ---------- маршрутизация ---------- */
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await blastTkTick(env)}catch(e){console.error("blasttk",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
