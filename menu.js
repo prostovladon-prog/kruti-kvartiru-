@@ -445,12 +445,12 @@ function flexSupport(gift){
   const {min,max}=gift||SUP;
   const heading=gift?"🎁 Копилка подарков":"❤️ Поддержать проект";
   const copy=gift
-    ?'А это ваш подарок игре. Выберите любую сумму от '+fmtN(min)+' до '+fmtN(max)+' ⭐. Это добровольная поддержка без игровых наград.'
+    ?'А это ваш подарок игре. Выберите свою сумму от '+fmtN(min)+(max?' до '+fmtN(max):'')+' ⭐. Это добровольная поддержка без игровых наград.'
     :'Игру делает один человек. Если она тебе нравится — поддержи сколько хочешь. От '+SUP.title+' ⭐ за всё время — титул '+ttlTag("patron");
   return '<div class="ghd">'+heading+'</div><div class="dnsup"><p>'+copy+'</p>'+
     (gift?'<p><b>В копилке: '+fmtN(gift.total)+' ⭐</b></p>':'')+
     '<div class="dnsr">'+[25,50,100,250,500].map(n=>'<button type="button" class="dnp" data-supn="'+n+'">'+n+' ⭐</button>').join("")+'</div>'+
-    '<div class="dnsr"><input id="dn-n" type="number" inputmode="numeric" min="'+min+'" max="'+max+'" step="1" aria-label="Сумма в звёздах Telegram" placeholder="Своя сумма"><button type="button" class="craftbtn" data-sup="'+(gift?'gift':'support')+'">'+(gift?'🎁 Подарить игре':'❤️ Поддержать')+'</button></div></div>';
+    '<div class="dnsr"><input id="dn-n" type="number" inputmode="numeric" min="'+min+'"'+(max?' max="'+max+'"':'')+' step="1" aria-label="Сумма в звёздах Telegram" placeholder="Своя сумма"><button type="button" class="craftbtn" data-sup="'+(gift?'gift':'support')+'">'+(gift?'🎁 Подарить игре':'❤️ Поддержать')+'</button></div></div>';
 }
 function flexTop(D){const own=S.titles||[],al=D.authLeft==null?TITLES.author.month:D.authLeft,nx=D.sdayNext?D.sdayNext.split("-").reverse().slice(0,2).join("."):null,me=escH(S.nick||S.name||"Ты");
   const btn=(k,st)=>own.includes(k)?'<button type="button" class="buy sm alt" disabled>✓ Уже твой</button>':'<button type="button" class="buy sm" data-ttlbuy="'+k+'">⭐ '+fmtN(st)+'</button>';
@@ -469,8 +469,8 @@ $("gold-body").addEventListener("click",e=>{const t=e.target.closest("button");i
   if(t.dataset.sup){
     const input=$("dn-n");
     if(!input)return;
-    const n=input.valueAsNumber,min=Number(input.min),max=Number(input.max);
-    if(!Number.isSafeInteger(n)||n<min||n>max){toast("Выбери целую сумму от "+fmtN(min)+" до "+fmtN(max)+" ⭐");input.focus();return}
+    const n=input.valueAsNumber,min=Number(input.min),max=input.max?Number(input.max):null;
+    if(!Number.isSafeInteger(n)||n<min||(max!==null&&n>max)){toast("Выбери целую сумму от "+fmtN(min)+(max!==null?" до "+fmtN(max):"")+" ⭐");input.focus();return}
     hap("light");
     return buyItem({item:t.dataset.sup==="gift"?"game_gift":"support",n});
   }});
