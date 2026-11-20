@@ -5544,12 +5544,24 @@ async function recruitComms(env){
 }
 
 const relicReleaseText="✨ ЗАБЫТЫЕ ЭПОХИ УЖЕ В ИГРЕ!\n\n10 совершенно новых мегаредких героев.\n\nХроностраж · Пепельный Кузнец · Судья Бездны · Нулевая Императрица · Жрица Затмения · Астромант · Обсидиановый Хан · Стеклянный Адмирал · Безликий Летописец · Звёздный Ловчий.\n\nОбщий шанс серии — 0,001% на обычное открытие, примерно 1 на 100 000. Шанс каждого героя — 0,0001%, примерно 1 на миллион. В массовом открытии участвует каждая карточка отдельно. Каждое открытие — независимый розыгрыш.\n\nСмотри всех героев в игре — Энциклопедия → Особые карты → Забытые Эпохи. Кто первым пополнит коллекцию?";
+async function relicReleasePhoto(env,kind,chat,photo){
+ const id="relic-release:"+kind,artKey="relic-image-art2:"+kind,state=await kvGet(env,artKey);
+ if(state?.done)return true;if(state?.nextTry>Date.now())return false;
+ const previous=await kvGet(env,birthdayKey("recruit:"+id));let sent=false,error="";
+ if(previous?.mid){
+  let result;try{result=await tgApi(env,"editMessageMedia",{chat_id:chat,message_id:previous.mid,media:{type:"photo",media:photo,caption:relicReleaseText},reply_markup:birthdayButton})}catch(e){result={ok:false,description:"network"}}
+  sent=result.ok||/message is not modified/i.test(result.description||"");error=result.description||"Telegram не подтвердил обновление картинки";
+  if(!sent&&result.error_code===400&&/message to edit not found|message can't be edited/i.test(error))sent=await recruitSend(env,id+":art2",chat,relicReleaseText,photo);
+  if(!sent){await kvSet(env,artKey,{nextTry:Date.now()+Math.max(30,result.parameters?.retry_after||0)*1000,error});return false}
+ }else sent=await recruitSend(env,id,chat,relicReleaseText,photo);
+ if(sent)await kvSet(env,artKey,{done:true});return sent;
+}
 async function relicReleaseTick(env){
- if(!env.BOT_TOKEN||env.DEV==="1"||await cached("relic-release",60000,()=>kvGet(env,"relic-release-20261120")))return;
- const photo="https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/assets/relics-release.jpg";
- const channel=await recruitSend(env,"relic-release:channel",env.CHANNEL||CHANNEL,relicReleaseText,photo);
- const chat=await recruitSend(env,"relic-release:chat",env.CHAT||CHAT,relicReleaseText,photo);
- if(channel&&chat)await kvSet(env,"relic-release-20261120",1);
+ if(!env.BOT_TOKEN||env.DEV==="1"||await cached("relic-release-art2",60000,()=>kvGet(env,"relic-release-20261120-art2")))return;
+ const base="https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/assets/";
+ const channel=await relicReleasePhoto(env,"channel",env.CHANNEL||CHANNEL,base+"relics-channel.jpg");
+ const chat=await relicReleasePhoto(env,"chat",env.CHAT||CHAT,base+"relics-chat.jpg");
+ if(channel&&chat)await kvSet(env,"relic-release-20261120-art2",1);
 }
 
 export default {
