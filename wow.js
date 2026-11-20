@@ -264,6 +264,7 @@ const PRZ=CASE.p.map(([p,P])=>P.g?{g:P.g,c:GR_C[GIFTS[P.g].r],p}:P.r===0?{r:0,e:
 const csTile=x=>x.e?'<div class="itc empty" style="--c:#4a4a5a"><span style="font-size:40px">💨</span><span class="rn">Пусто</span></div>':x.g?'<div class="itc" style="--c:'+x.c+'">'+giftSVG(x.g,64)+'<span>'+GIFTS[x.g].n+'</span></div>':'<div class="itc" style="--c:'+x.c+'"><span style="font-size:40px">💠</span><span class="rn">+'+fmtN(x.r)+'</span></div>';
 const rollPrz=()=>{let x=Math.random();for(const z of PRZ){if(x<z.p)return z;x-=z.p}return PRZ[0]};
 function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySelectorAll("#cs-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===csTab));const B=$("cs-body"),K=casK();
+  renderBirthdayCasino();
   const bets='<div class="cs-bets" id="cs-bets">'+[1e3,5e3,1e4,25e3,5e4].map(b=>'<button type="button" data-bet="'+b+'" aria-pressed="'+(b===csBet)+'">'+(b>=1e3?b/1e3+"K":b)+'</button>').join("")+'</div>';
   if(csTab==="case"){const prev=[];for(let i=0;i<12;i++)prev.push(PRZ[[0,3,1,0,4,2,0,5,1,3,0,6][i]]);
     B.innerHTML='<div class="cs-box"><h3>📦 КЕЙС «УДАЧА»</h3><div class="sub">Руны до 30 000, редкие подарки с тиражом, а бывает и пусто. Самый мизерный шанс — Корона Эпох</div><div class="cs-chest">'+chestSVG("legend",150)+'</div>'+
@@ -849,8 +850,96 @@ async function drawTrStats(){const b=$("st-body");if(!b||!S||!S.admin)return;let
     $("tpa").textContent=p.an;$("tpb").textContent=p.bn;document.querySelectorAll(".trpr [data-r]").forEach(e=>{const x=r.rows[+e.dataset.r],who=x.dir?"→":"←";e.textContent=x.kind==="gift"?"🎁 "+who+" "+x.a:"🔄 "+x.a+" ⇄ "+(x.b||"?")})}}
 {const _ds3=drawStats;drawStats=function(){_ds3();try{drawTrStats()}catch(e){console.error(e)}}}
 
+/* ===================== ДЕНЬ РОЖДЕНИЯ ===================== */
+let birthdayBusy=false;
+async function birthdayAction(name,roll){
+  if(birthdayBusy)return;
+  birthdayBusy=true;
+  drawChal();
+  try{
+    const r=await act(name,roll?{roll}:undefined);
+    if(!r)return;
+    if(r.event){
+      chData={...r.event,_t:NOW()};
+    }else{
+      await loadChal();
+    }
+    renderFree();
+    if(r.spins)toast("🎁 +"+fmtN(r.spins)+" прокруток"+(r.final?" · титул и две попытки в казино":""));
+    if(r.stars)toast("⭐ Выпало "+fmtN(r.stars)+" звёзд на игровой баланс");
+  }finally{
+    birthdayBusy=false;
+    drawChal();
+  }
+}
+function renderBirthdayCasino(){
+  const C=chData,body=$("cs-body");
+  if(!body)return;
+  let box=$("birthday-casino");
+  if(!C?.birthday||!C.finalClaimed||NOW()>=C.end){
+    if(box)box.remove();
+    return;
+  }
+  if(!box){
+    box=document.createElement("div");
+    box.id="birthday-casino";
+    box.className="cs-box";
+    body.before(box);
+  }
+  const left=C.attempts-C.rolls.length;
+  const key=JSON.stringify([left,C.rolls,birthdayBusy]);
+  if(box.dataset.key===key)return;
+  box.dataset.key=key;
+  box.innerHTML='<h3>🎂 Праздничные прокрутки</h3>'+
+    '<div class="sub">Бесплатно, без ставки. За каждую попытку от '+fmtN(C.minStars)+' до '+fmtN(C.maxStars)+' ⭐ на игровой баланс.</div>'+
+    (C.rolls.length?'<div class="sub" aria-live="polite">Выпало: '+C.rolls.map(n=>'+'+fmtN(n)+' ⭐').join(' · ')+'</div>':'')+
+    (left?'<button type="button" class="cs-go"'+(birthdayBusy?' disabled':'')+'>🎰 КРУТИТЬ БЕСПЛАТНО · '+fmtN(left)+'</button>':'<div class="sub">Обе попытки использованы</div>');
+  const button=box.querySelector("button");
+  if(button)button.onclick=()=>birthdayAction("birthday_spin",C.rolls.length+1);
+}
+function drawBirthday(C){
+  const box=$("chal");
+  box.hidden=false;
+  box.classList.remove("secret","bigc","chestc","sk-myst");
+  box.classList.add("story");
+  const link=$("chal-link");
+  if(link)link.hidden=true;
+  $("chal-go").hidden=true;
+  box.querySelector(".chal-h span").textContent="🎂 ДЕНЬ РОЖДЕНИЯ";
+  $("chal-left").textContent=tleft(Math.max(0,C.end-NOW()));
+  $("chal-t").textContent="«Общий пир» · сегодня до 23:59 по Минску";
+  $("chal-p").textContent="";
+  const me=$("chal-me");
+  me.innerHTML='<div class="sty"><div class="sty-s"><b>🎁</b><span>'+
+    (C.claimed?'Подарок за вход получен':fmtN(C.entrySpins)+' прокруток за вход')+
+    '</span></div>'+(C.claimed?'':'<div class="sty-f"><button type="button" class="craftbtn"'+(birthdayBusy?' disabled':'')+'>Забрать подарок</button></div>')+'</div>';
+  const claim=me.querySelector("button");
+  if(claim)claim.onclick=()=>birthdayAction("birthday_claim");
+  const progress=Math.min(100,Math.max(0,100*C.total/C.goal));
+  const left=C.attempts-C.rolls.length;
+  const finalRewards=fmtN(C.finalSpins)+' прокруток, '+fmtN(C.attempts)+' попытки в казино и титул «С нами с первого месяца»';
+  const finalButton=C.unlocked&&!C.finalClaimed?
+    '<button type="button" class="craftbtn"'+(birthdayBusy?' disabled':'')+'>🎁 Забрать общий сундук</button>':'';
+  $("chal-top").innerHTML='<div class="sty-n">🎁 Общий сундук · <b>'+fmtN(C.total)+' / '+fmtN(C.goal)+'</b></div>'+
+    '<div class="bar" role="progressbar" aria-label="Общий сундук" aria-valuenow="'+Math.min(C.total,C.goal)+'" aria-valuemax="'+C.goal+'"><i style="width:'+progress+'%"></i></div>'+
+    '<div class="sty-n">Твой вклад: '+fmtN(C.opened)+'</div>'+
+    '<div class="sty-n">'+(C.finalClaimed?'✅ Общий сундук получен':C.unlocked?'Общий сундук открыт!':'Общий сундук откроется после достижения цели, с 20:00 по Минску')+'</div>'+
+    '<div class="sty-n">'+finalRewards+'</div>'+finalButton+
+    (C.finalClaimed&&left?'<button type="button" class="craftbtn">🎰 К праздничным прокруткам</button>':'');
+  const play=$("chal-top").querySelector("button");
+  if(play)play.onclick=()=>C.finalClaimed?openCas():birthdayAction("birthday_final");
+  $("chal-rules").textContent="Засчитываются все обычные и массовые открытия карточек с 08:00. После "+fmtN(C.goal)+" общих открытий, с 20:00, можно забрать общий сундук. Внутри "+finalRewards+". Каждая попытка бесплатна и даёт "+C.minStars+"–"+C.maxStars+" ⭐ на игровой баланс.";
+}
+
 /* ===================== КОНКУРС ИСТОРИЙ ===================== */
-{const _dc2=drawChal;drawChal=function(){const C=chData;if(C&&C.story){try{drawStory(C)}catch(e){console.error(e)}return}_dc2()}}
+{const _dc2=drawChal;drawChal=function(){
+  const C=chData;
+  if(C?.birthday){drawBirthday(C);renderBirthdayCasino();return}
+  const link=$("chal-link");if(link)link.hidden=false;
+  const casino=$("birthday-casino");if(casino)casino.remove();
+  if(C&&C.story){try{drawStory(C)}catch(e){console.error(e)}return}
+  _dc2();
+}}
 function drawStory(C){const box=$("chal");if(!box)return;box.hidden=false;box.classList.add("story");const hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16),dd=t=>{const d=new Date(t+3*3600e3).toISOString();return d.slice(8,10)+"."+d.slice(5,7)};
   box.querySelector(".chal-h span").textContent=C.ch?"🎁 КОНКУРС СУНДУКОВ":C.gift?"🐉 РОЗЫГРЫШ NFT-ПОДАРКА":"📸 КОНКУРС ИСТОРИЙ";
   if(box.contains(document.activeElement)&&document.activeElement.tagName==="INPUT")return;   // не мешаем печатать
