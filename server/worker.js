@@ -1476,7 +1476,8 @@ function runAction(name,st,cards,ctx,p){const A=ACTIONS[name];if(!A)fail("Неи
 /* титулы за деньги игры: покупаются один раз навсегда, деньги сгорают. Виден рядом с ником в топах, чате и рейтинге */
 const TITLES={merchant:{n:"Купец",ic:"🪙",price:1e5},magnate:{n:"Магнат",ic:"💼",price:1e6},oligarch:{n:"Олигарх",ic:"🏦",price:1e7},tycoon:{n:"Повелитель золота",ic:"👑",price:1e8},season:{n:"Герой сезона",ic:"🎖",price:0,pass:1},
   immortal:{n:"Бессмертный",ic:"🔥",price:0,stars:300},emperor:{n:"Император",ic:"🏛",price:0,stars:700},author:{n:"Соавтор",ic:"✍️",price:0,stars:2000,month:3},
-  patron:{n:"Меценат",ic:"❤️",price:0,sup:1},vstar:{n:"Звезда Эпох",ic:"🎬",price:0,ex:1},keeper:{n:"Хранитель эпох",ic:"🗺",price:0,ex:1,how:"собери все эпохи"}};
+  patron:{n:"Меценат",ic:"❤️",price:0,sup:1},vstar:{n:"Звезда Эпох",ic:"🎬",price:0,ex:1},keeper:{n:"Хранитель эпох",ic:"🗺",price:0,ex:1,how:"собери все эпохи"},
+  firstmonth:{n:"С нами с первого месяца",ic:"🎂",price:0,ex:1,how:"подарок на день рождения игры"}};
 /* 🎨 косметика за ⭐: анимация выпадения карточки и фон профиля (видят все, кто открывает твою витрину) */
 const DFX={storm:{n:"Гроза",ic:"⚡",stars:249},fire:{n:"Пламя",ic:"🔥",stars:249},stars:{n:"Звездопад",ic:"🌠",stars:249}};
 const PBG={space:{n:"Космос",ic:"🌌",stars:199},lava:{n:"Лава",ic:"🌋",stars:199},aurora:{n:"Северное сияние",ic:"🌈",stars:199},gold:{n:"Золото",ic:"💰",stars:299}};
@@ -2000,6 +2001,59 @@ function fixIds(o,cards,seen=new Set()){if(!o||typeof o!=="object"||seen.has(o))
   if(typeof o.id==="string"&&o.id[0]==="n"&&o.sn){const c=cards.find(x=>x.sn===o.sn);if(c)o.id=c.id}
   for(const k in o)fixIds(o[k],cards,seen)}
 
+/* ---------- день рождения игры, время Минска ---------- */
+const BIRTHDAY={id:"birthday-2026-11-20",day:"2026-11-20",start:Date.UTC(2026,10,20,5),
+  evening:Date.UTC(2026,10,20,17),end:Date.UTC(2026,10,20,21),goal:5000,
+  entrySpins:15,finalSpins:15,attempts:2,minStars:5,maxStars:10};
+const birthdayLive=now=>now>=BIRTHDAY.start&&now<BIRTHDAY.end;
+const birthdayUnlocked=(now,total)=>now>=BIRTHDAY.evening&&total>=BIRTHDAY.goal;
+const birthdayActions=new Set(["birthday_claim","birthday_final","birthday_spin"]);
+function birthdayPlayer(st){
+  return st.birthday?.id===BIRTHDAY.id?st.birthday:{id:BIRTHDAY.id,opened:0,claimed:false,finalClaimed:false,rolls:[]};
+}
+async function birthdayTotal(env){
+  const row=await env.DB.prepare("SELECT n FROM stats WHERE day=? AND k=?").bind(BIRTHDAY.day,BIRTHDAY.id).first();
+  return row?.n||0;
+}
+async function birthdayView(env,me,now){
+  if(!birthdayLive(now))return null;
+  const row=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(me.id).first();
+  const m=birthdayPlayer(JSON.parse(row?.state||"{}")),total=await birthdayTotal(env);
+  return {...BIRTHDAY,birthday:true,phase:"on",left:BIRTHDAY.end-now,total,
+    opened:m.opened,claimed:m.claimed,finalClaimed:!!m.finalClaimed,rolls:m.rolls,unlocked:birthdayUnlocked(now,total)};
+}
+function birthdayStars(){
+  const count=BIRTHDAY.maxStars-BIRTHDAY.minStars+1,limit=256-256%count,bytes=new Uint8Array(1);
+  do{crypto.getRandomValues(bytes)}while(bytes[0]>=limit);
+  return BIRTHDAY.minStars+bytes[0]%count;
+}
+async function birthdayReward(env,name,st,p,now){
+  if(!birthdayLive(now))fail("Праздник сейчас не идёт");
+  const m=st.birthday=birthdayPlayer(st);
+  if(name==="birthday_claim"){
+    if(m.claimed)return {spins:0};
+    m.claimed=true;
+    st.spins+=BIRTHDAY.entrySpins;
+    return {spins:BIRTHDAY.entrySpins};
+  }
+  if(name==="birthday_final"){
+    if(m.finalClaimed)return {spins:0};
+    if(!birthdayUnlocked(now,await birthdayTotal(env)))fail("Общий сундук ещё закрыт");
+    m.finalClaimed=true;
+    st.spins+=BIRTHDAY.finalSpins;
+    st.titles=st.titles||[];
+    if(!st.titles.includes("firstmonth"))st.titles.push("firstmonth");
+    return {spins:BIRTHDAY.finalSpins,final:true};
+  }
+  if(!m.finalClaimed)fail("Сначала забери общий сундук");
+  if(!Number.isInteger(p.roll)||p.roll<1||p.roll>BIRTHDAY.attempts)fail("Нет такой попытки");
+  if(p.roll<=m.rolls.length)return {stars:m.rolls[p.roll-1]};
+  if(p.roll!==m.rolls.length+1)fail("Сначала используй предыдущую попытку");
+  const stars=birthdayStars();
+  m.rolls.push(stars);
+  return {stars,credited:stars};
+}
+
 /* ---------- обычное действие: правила считают, сервер записывает всё одной пачкой ---------- */
 async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
   for(let attempt=0;attempt<8;attempt++){
@@ -2010,7 +2064,17 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
     const gift=u.gift_spins||0;st.spins=(st.spins??0)+gift;   // прокрутки за приглашённых друзей
     if(name==="dg_hatch")ctx.dgFr=await dgFriends(env,me.id);if(name==="dsp_roll"){await xhLoad(env,1);const C=[];for(const X of DCS)if(dcOn(X.h)&&!(X.lk&&Date.now()<X.lk)&&(await dcLeft(env,0,X.h)).spin>0)C.push(X);const X=C.length?C[Math.floor(Math.random()*C.length)]:null;ctx.dayH=X?X.h:-1;ctx.dayCh=X?dcChance(X):0}
     const before=new Map(cards.map(c=>[c.id,JSON.stringify(c)]));
-    const out=runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
+    const birthdayAction=birthdayActions.has(name);
+    const out=birthdayAction?{cards,res:await birthdayReward(env,name,st,p,ctx.now)}:
+      runAction(name,st,cards.map(c=>JSON.parse(JSON.stringify(c))),ctx,p);
+    let birthdayOpened=0;
+    if(birthdayLive(ctx.now)){
+      birthdayOpened=name==="open"?1:name==="open_multi"?out.res.cards.length:0;
+      if(birthdayOpened){
+        const m=st.birthday=birthdayPlayer(st);
+        m.opened+=birthdayOpened;
+      }
+    }
     const delta=Math.round((st.cash-u.cash)*100)/100;delete st.cash;
     // новая версия случайная: проверка ниже пропустит записи, только если именно этот запрос обновил игрока
     const nv=Math.floor(Math.random()*9e15)+1,guard="(SELECT ver FROM users WHERE id=?)=?",keep=new Set();
@@ -2027,6 +2091,13 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}
         .bind(c.xp|0,c.wins|0,c.stars|0,c.v,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
     }
     stm.push(env.DB.prepare(`INSERT INTO stats(day,k,n) SELECT ?,?,1 WHERE ${guard} ON CONFLICT(day,k) DO UPDATE SET n=n+1`).bind(dayOf(ctx.now),"a_"+name,me.id,nv));
+    if(birthdayOpened)stm.push(env.DB.prepare(`INSERT INTO stats(day,k,n) SELECT ?,?,? WHERE ${guard} ON CONFLICT(day,k) DO UPDATE SET n=n+excluded.n`)
+      .bind(BIRTHDAY.day,BIRTHDAY.id,birthdayOpened,me.id,nv));
+    if(birthdayAction&&out.res.credited){
+      stm.push(env.DB.prepare(`UPDATE users SET star_bal=star_bal+? WHERE id=? AND ver=?`).bind(out.res.credited,me.id,nv));
+      stm.push(env.DB.prepare(`INSERT INTO star_grants(uid,amt,note,t,by) SELECT ?,?,?,?,0 WHERE ${guard}`)
+        .bind(me.id,out.res.credited,"День рождения · бесплатная попытка "+p.roll,ctx.now,me.id,nv));
+    }
     for(const id of before.keys())if(!keep.has(id)){
       if(id===ctx.giveAway)stm.push(env.DB.prepare(`UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(ctx.oppUid,id,me.id,me.id,nv));   // проиграл игроку: карточка уходит к нему
       else stm.push(env.DB.prepare(`DELETE FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND room_id IS NULL AND ${guard}`).bind(id,me.id,me.id,nv))}
@@ -5052,11 +5123,18 @@ async function handle(req,env){{
         if(o&&o.card&&o.owner)try{const ou=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(o.owner).first();const g=(JSON.parse((ou&&ou.state)||"{}").gsock||{})[o.card.id];if(g&&g.length)o.card.gm=g}catch(e){}   // гемы защищающейся карточки тоже работают
         const r=await doAction(env,me,"fduel",{myId:p.myId,myStat:p.myStat,oppStat:p.oppStat,key:"c"+o.card.id,opp:o.card});
         await logFight(env,me,p.myId,o,r.res);if(r.res.first)await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
-      if(a==="duel"){const stake=!!(p.mode|0);let o=null;
-        if(!stake)o=await pickOpponent(env,me,p,false);
-        else{const mu=await env.DB.prepare("SELECT stake FROM users WHERE id=?").bind(me.id).first();if(mu&&mu.stake)o=await pickOpponent(env,me,p,true)}
+      if(a==="duel"){
+        if(p.mode!=null&&p.mode!==0&&p.mode!==1&&typeof p.mode!=="boolean")fail("Неверный режим боя");
+        const stake=p.mode===1||p.mode===true;
+        if(stake){
+          const mu=await env.DB.prepare("SELECT stake FROM users WHERE id=?").bind(me.id).first();
+          if(!mu?.stake)fail("Сначала включи бои на карточку");
+        }
+        const o=await pickOpponent(env,me,p,stake);
+        // В онлайн-дуэли ставка возможна только с реальным соперником.
+        if(stake&&!o)fail("Соперник для боя на карточку не найден");
         if(o&&o.card)try{const ou=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(o.owner).first();const g=(JSON.parse((ou&&ou.state)||"{}").gsock||{})[o.card.id];if(g&&g.length)o.card.gm=g}catch(e){}
-        const r=await doAction(env,me,"duel",p,o?{oppCard:o.card,oppName:o.name,oppUid:o.owner}:null);
+        const r=await doAction(env,me,"duel",{...p,mode:stake},o?{oppCard:o.card,oppName:o.name,oppUid:o.owner}:null);
         if(o)await logFight(env,me,p.id,o,r.res,stake);await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
       if(a==="pm_on"){await env.DB.prepare("UPDATE users SET pm=1 WHERE id=?").bind(me.id).run();
         const b=await env.DB.prepare("UPDATE users SET pm_bonus=1,gift_spins=gift_spins+? WHERE id=? AND pm_bonus=0").bind(PM_BONUS,me.id).run();
@@ -5127,7 +5205,14 @@ async function handle(req,env){{
       if(a==="promo_track"){if(!isAdmin(env,me.id))fail("Нет доступа");const out={};for(const c of TRACK)out[c]=await trackSum(env,c);return J({ok:true,res:out})}
       if(a==="cas_stats"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await casStats(env)})}
       if(a==="camp_top")return J({ok:true,res:await campTop(env,me,p.per==="w"?"w":"d")});
-      if(a==="chal_get")return J({ok:true,res:await chalGet(env,me)});if(/^tt_/.test(a))return J({ok:true,res:await ttApi(env,me,a,p)});
+      if(a==="chal_get")return J({ok:true,res:await birthdayView(env,me,Date.now())||await chalGet(env,me)});
+      if(birthdayActions.has(a)){
+        if(!birthdayLive(Date.now()))fail("Праздник сейчас не идёт");
+        const r=await doAction(env,me,a,p);
+        r.res.event=await birthdayView(env,me,Date.now());
+        return J({ok:true,...r});
+      }
+      if(/^tt_/.test(a))return J({ok:true,res:await ttApi(env,me,a,p)});
       if(a==="story_join")return J({ok:true,res:await storyJoin(env,me,p)});
       if(/^story_(res|ok|no)$/.test(a))return J({ok:true,res:await storyAdmin(env,me,a,p)});
       if(a==="chal_set"){if(!isAdmin(env,me.id))fail("Нет доступа");await kvSet(env,"chal",p.cfg||null);delete topCache.chalcfg;delete topCache.chalb;return J({ok:true,res:{}})}
