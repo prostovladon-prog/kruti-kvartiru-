@@ -2117,7 +2117,7 @@ async function dcApi(env,me,a,p){await xhLoad(env,1);
     DC={h,at,until:p.now?now+4*36e5:at+4*36e5};await kvSet(env,"dc",DC);await xhLoad(env,1);return {dc:DC,h}}
   if(a==="dc_stop"){if(DC){DC.until=Date.now();await kvSet(env,"dc",DC)}return {ok:1}}
   fail("Неизвестное действие")}
-const GAME_GIFT={min:1,max:SUP.max};
+const GAME_GIFT={min:1};
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
   if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.night){const hh=new Date(Date.now()+TZ).getUTCHours();if(hh>=2&&hh<22)fail("Ночной сундук продаётся только с 22:00 до 02:00");}if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
@@ -2200,7 +2200,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{n}}}   /* n обязателен: при pre_checkout сумма проверяется ещё раз */
   if(item==="game_gift"){
     const n=Number(p.n);
-    if(!Number.isSafeInteger(n)||n<GAME_GIFT.min||n>GAME_GIFT.max)fail("Сумма — от "+GAME_GIFT.min+" до "+GAME_GIFT.max+" ⭐");
+    if(!Number.isSafeInteger(n)||n<GAME_GIFT.min)fail("Введи целую сумму от "+GAME_GIFT.min+" ⭐");
     return {item,stars:n,title:"🎁 Подарок игре",desc:"Добровольная поддержка «Воинов Эпох» без игровых наград. Спасибо, что помогаешь игре развиваться!",data:{n}};
   }
   if(item==="sday"){const d=await sdayFree(env,Date.now());if(!d)fail("Все дни на 2 месяца вперёд заняты");return {item,stars:SDAY.stars,title:"🌟 Звезда дня",desc:"Твой ник и самая дорогая карточка весь день на главной у всех игроков. Ближайший свободный день: "+d.split("-").reverse().join("."),data:{}}}
@@ -2219,7 +2219,9 @@ async function invoice(env,me,p){const I=await payItem(env,me.id,p),now=Date.now
   const row=await env.DB.prepare("INSERT INTO payments(uid,item,p,stars,status,month,created) VALUES(?,?,?,?,'new',?,?) RETURNING id").bind(me.id,I.item,JSON.stringify(I.data),I.stars,monthOf(now),now).first();
   const pid=row.id;if(env.PAY_SIM==="1")return {pid,sim:1,stars:I.stars};
   const r=await tgApi(env,"createInvoiceLink",{title:I.title.slice(0,32),description:I.desc.slice(0,255),payload:"p"+pid,currency:"XTR",prices:[{label:I.title.slice(0,32),amount:I.stars}]});
-  if(!r||!r.ok){console.error("invoice",r);fail("Telegram не создал счёт. Попробуй через минуту")}
+  if(!r||!r.ok){console.error("invoice",r);
+    if(I.item==="game_gift"&&/CURRENCY_TOTAL_AMOUNT_INVALID|STARS_INVOICE_INVALID|price.*(?:too big|invalid)|amount.*(?:too big|invalid)/i.test(r?.description||""))fail("Telegram не принял эту сумму. Попробуй ввести меньшую");
+    fail("Telegram не создал счёт. Попробуй через минуту")}
   return {pid,link:r.result,stars:I.stars}}
 async function preCheckout(env,q){let err="";
   try{const m=/^p(\d+)$/.exec(q.invoice_payload||""),P=m?await env.DB.prepare("SELECT * FROM payments WHERE id=?").bind(+m[1]).first():null;
