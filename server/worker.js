@@ -2052,16 +2052,19 @@ const BIRTHDAY_DM="🎂 Нам 1 месяц! Забери 15 прокруток 
 const birthdayKey=id=>"birthday-media:"+BIRTHDAY.id+":"+id;
 const birthdayButton={inline_keyboard:[[{text:"⚔️ Открыть игру",url:"https://t.me/VoinyEpohBot"}]]};
 const birthdayRetry=new Map();
+const birthdayPhoto=id=>({launch:"launch","chat-start":"chat",spins:"spins",stars:"stars","chat-evening":"evening","poll-cover":"poll"}[id]||(id.startsWith("dm:")?"dm":null));
 async function birthdaySend(env,id,chat,text,reply,options){
   const key=birthdayKey(id),now=Date.now();
   if(now<(birthdayRetry.get(id)||0))return;
   const pending=JSON.stringify({pending:true,at:now});
   const lock=await env.DB.prepare("INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)").bind(key,pending).run();
   if(lock.meta.changes!==1)return;
+  const photo=options?null:birthdayPhoto(id);
   const p=options?{chat_id:chat,question:text,options:options.map(text=>({text})),is_anonymous:true}:
+    photo?{chat_id:chat,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/assets/birthday-posts/"+photo+".jpg",caption:text,reply_markup:birthdayButton}:
     {chat_id:chat,text,reply_markup:birthdayButton};
   if(reply)p.reply_parameters={message_id:reply,allow_sending_without_reply:true};
-  const r=await tgApi(env,options?"sendPoll":"sendMessage",p);
+  const r=await tgApi(env,options?"sendPoll":photo?"sendPhoto":"sendMessage",p);
   if(r.ok&&r.result?.message_id){
     await kvSet(env,key,{mid:r.result.message_id,chat:r.result.chat?.id,at:now});
   }else{
@@ -2115,8 +2118,11 @@ async function birthdayMediaTick(env){
   birthdayMediaBusy=true;
   try{
     for(const C of BIRTHDAY_POSTS)if(now>=C.at&&now<C.until)await birthdaySend(env,C.id,C.channel?CHANNEL:CHAT,C.text);
-    if(now>=birthdayTime(22,10)&&now<birthdayTime(22,40))await birthdaySend(env,"print-poll",CHANNEL,"🎂 Какая праздничная ошибка печати тебе понравилась больше?",null,
+    if(now>=birthdayTime(22,10)&&now<birthdayTime(22,40)){
+      await birthdaySend(env,"poll-cover",CHANNEL,"🎴 Выбираем любимый праздничный брак! Голосование ниже.");
+      await birthdaySend(env,"print-poll",CHANNEL,"🎂 Какая праздничная ошибка печати тебе понравилась больше?",null,
       [0,3,10,13].map(i=>BIRTHDAY_PRINTS[i].name));
+    }
     for(const C of BIRTHDAY_REACTIONS){
       if(now>=C.at&&now<C.until)await birthdaySend(env,C.id,CHANNEL,C.text);
       const state=await kvGet(env,birthdayKey(C.id));
@@ -2131,7 +2137,7 @@ async function birthdayMediaTick(env){
       if(!st.done){
         const {results}=await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 15").bind(st.after).all();
         for(const u of results){
-          await notify(env,u.id,BIRTHDAY_DM,"🎁 Забрать подарок");
+          await birthdaySend(env,"dm:"+u.id,u.id,BIRTHDAY_DM);
           st.after=u.id;await kvSet(env,key,st);
         }
         if(results.length<15){st.done=true;await kvSet(env,key,st)}
