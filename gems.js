@@ -345,16 +345,29 @@ setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();con
    if(n<=per&&!$("pg-"+box.id))return;try{pagerApply(box.id,"*",per,"карты")}catch(e){}})};
  new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
 
-/* 🎠 шторка на «Крутить»: Билетная гонка + Лотерея в одной карусели — листается свайпом, сама переключается, по нажатию открывается выбранное */
-function evCar(){const sp=$("sec-spin");if(!sp)return;const bars=["tk-bar","lot-bar","vhstrip"].map(id=>$(id)).filter(Boolean);let C=$("ev-car");
+/* 🎠 События над карточкой: свайп и автоматическое переключение */
+const EVENT_BARS=["tk-bar","lot-bar","vhstrip","game-gift-strip"];
+function gameGiftStrip(sp){
+  let b=$("game-gift-strip");
+  if(!S||!ONLINE||!S.gameGiftOn){if(b)b.remove();return}
+  if(b)return;
+  b=document.createElement("button");b.type="button";b.id="game-gift-strip";b.className="r3strip vtstrip vhstrip";
+  b.innerHTML='<i>🎁</i><span><b>Копилка подарков</b></span><em>▶</em>';
+  b.onclick=async()=>{
+    hap("light");goldTab="flex";setTab("gold");
+    await loadGold();
+    if(goldTab==="flex"&&!$("sec-gold")?.hidden)$("dn-n")?.closest(".dnsup")?.scrollIntoView({block:"center"});
+  };
+  sp.insertBefore(b,$("stage"));
+}
+function evCar(){const sp=$("sec-spin");if(!sp)return;gameGiftStrip(sp);const bars=EVENT_BARS.map(id=>$(id)).filter(Boolean);let C=$("ev-car");
  if(!bars.length){if(C)C.remove();return}
  if(!C){C=document.createElement("div");C.id="ev-car";C.className="ev-car";C.innerHTML='<div class="ev-tr"></div><div class="ev-dots"></div>';const v=$("vhstrip"),hy=$("hype");if(v&&v.parentNode===sp)v.before(C);else if(hy&&hy.parentNode===sp)hy.after(C);else bars[0].before(C);
   const tr=C.firstChild;tr.addEventListener("scroll",()=>{const i=Math.round(tr.scrollLeft/Math.max(1,tr.clientWidth));C.querySelectorAll(".ev-dots i").forEach((d,j)=>d.classList.toggle("on",j===i))},{passive:true});
   ["pointerdown","touchstart"].forEach(ev=>tr.addEventListener(ev,()=>{C._hold=Date.now()},{passive:true}));
-  setInterval(()=>{if(document.hidden||$("sec-spin").hidden||Date.now()-(C._hold||0)<8000)return;const n=tr.children.length;if(n<2)return;const i=Math.round(tr.scrollLeft/tr.clientWidth);tr.scrollTo({left:((i+1)%n)*tr.clientWidth,behavior:"smooth"})},4500)}
+  const timer=setInterval(()=>{if(!C.isConnected){clearInterval(timer);return}if(document.hidden||$("sec-spin").hidden||Date.now()-(C._hold||0)<8000)return;const n=tr.children.length;if(n<2||!tr.clientWidth)return;const i=Math.round(tr.scrollLeft/tr.clientWidth);tr.scrollTo({left:((i+1)%n)*tr.clientWidth,behavior:reduce?"auto":"smooth"})},4500)}
  {const hy=$("hype");if(hy&&hy.parentNode===sp&&C.previousElementSibling!==hy)hy.after(C)}
- const tr=C.firstChild;["tk-bar","lot-bar","vhstrip"].forEach(id=>{const b=$(id);if(b&&(b.parentNode!==tr||tr.lastElementChild!==b&&false))tr.appendChild(b)});
- {const ord=["tk-bar","lot-bar","vhstrip"].map(id=>$(id)).filter(b=>b&&b.parentNode===tr);ord.forEach((b,i)=>{if(tr.children[i]!==b)tr.insertBefore(b,tr.children[i]||null)})}
+ const tr=C.firstChild;bars.forEach((b,i)=>{if(tr.children[i]!==b)tr.insertBefore(b,tr.children[i]||null)});
  const n=tr.children.length,D=C.lastChild;if(D.children.length!==n)D.innerHTML=n>1?[...Array(n)].map((_,i)=>'<i class="'+(i?"":"on")+'"></i>').join(""):""}
 {const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("tkBar");w("lotBar")}
 
