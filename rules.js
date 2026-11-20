@@ -176,12 +176,24 @@ const HEROES=[
  ["Ра","Мифы Египта",4,"Бог солнца. Каждый день плывёт по небу в золотой ладье, а ночью сражается с тьмой.",{base:1,helm:"nemes",gold:1,weapon:"ankh",armor:"linen",cape:"#d4a017",x:["aura","star"],glow:"#ffcc33",hue:40,skin:2,p:[9,8,7,8,9]}],
  ["Афина","Мифы Греции",4,"Богиня мудрости и честной войны. Побеждает умом, а не силой.",{base:1,female:1,hair:"long",hairc:"#3a2a1a",helm:"corinth",gold:1,weapon:"spear",shield:"round",shc:"#d4a017",armor:"lorica",cape:"#2a4fb0",x:["aura"],glow:"#b0d8ff",hue:215,skin:0,p:[9,9,7,8,8]}],
  ["Сусаноо","Мифы Японии",4,"Бог бурь и моря. Одолел восьмиглавого змея и нашёл в его хвосте волшебный меч.",{base:1,helm:"kabuto",gold:1,weapon:"katana",armor:"lam",cape:"#1a3a6a",beard:"#1a1008",x:["aura","waves"],glow:"#5ad8ff",fierce:1,hue:200,skin:1,p:[10,7,8,6,8]}],
+
+ /* Мегаредкая серия «Забытые Эпохи». Индексы прежних героев сохранены. */
+ ["Хроностраж","Забытые Эпохи",4,"Охраняет часы, отсчитывающие время до рождения первой империи.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"chrono","hue":195,"p":[8,9,8,8,9]}],
+ ["Пепельный Кузнец","Забытые Эпохи",4,"Куёт доспехи на наковальне из остывшего солнечного ядра.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"smith","hue":18,"p":[10,9,5,9,8]}],
+ ["Судья Бездны","Забытые Эпохи",4,"Его весы взвешивают клятвы исчезнувших царей.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"judge","hue":270,"p":[8,9,7,8,10]}],
+ ["Нулевая Императрица","Забытые Эпохи",4,"Правила империей, стёртой со всех карт времени.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"empress","hue":165,"p":[8,8,8,9,9]}],
+ ["Жрица Затмения","Забытые Эпохи",4,"Хранит последний луч солнца в короне из чёрного золота.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"eclipse","hue":300,"p":[9,7,8,8,10]}],
+ ["Астромант","Забытые Эпохи",4,"Читает движения армий по созвездиям, которых ещё нет на небе.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"astro","hue":225,"p":[9,7,9,7,10]}],
+ ["Обсидиановый Хан","Забытые Эпохи",4,"Его чёрное войско выходит из вулканического стекла.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"khan","hue":350,"p":[10,9,7,8,8]}],
+ ["Стеклянный Адмирал","Забытые Эпохи",4,"Ведёт прозрачный флот через море застывших штормов.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"admiral","hue":185,"p":[8,8,9,8,9]}],
+ ["Безликий Летописец","Забытые Эпохи",4,"Записывает имена тех, кто изменит следующую эпоху.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"scribe","hue":40,"p":[7,8,8,9,10]}],
+ ["Звёздный Ловчий","Забытые Эпохи",4,"Натягивает тетиву, когда на землю падает чужая звезда.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"hunter","hue":255,"p":[10,6,10,7,9]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
 const isBase=h=>h<NBASE||!!(HEROES[h]&&HEROES[h][4].base), BASE=HEROES.map((H,i)=>i).filter(isBase), baseNo=h=>BASE.indexOf(h)+1;
 /* альбом = все воины, которые выпадают в прокрутах: обычные + карты драконов */
-const inAlbum=h=>isBase(h)||!!(HEROES[h]&&HEROES[h][4].dgc), ALBUM=HEROES.map((H,i)=>i).filter(inAlbum), NHEROES=ALBUM.length;
+const inAlbum=h=>isBase(h)||!!(HEROES[h]&&(HEROES[h][4].dgc||HEROES[h][4].relic)), ALBUM=HEROES.map((H,i)=>i).filter(inAlbum), NHEROES=ALBUM.length;
 const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h]&&HEROES[h][4].duo), DUO_F=7, DUO_RUN=2;
 const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
@@ -251,6 +263,9 @@ const stakeProtected=c=>!!birthdayPrint(c)||noTrade(c);
 const finCap=(ctx,f,h)=>FIN[f].cap&&(!(ctx.issuedFin&&ctx.issuedFin(f)<FIN[f].cap)||ctx.issuedOf(h,f)>=FIN[f].run)?4:f;   // кончился общий тираж — обычная «Ошибка печати»
 const DIA_P={spin:.0005,legend:.02,empire:.03,mythic:.05};
 const DIA_F=8,DIA={"59": {"n": "Двойная печать", "c": "dbl", "x": 50, "y": 30, "run": 10}, "64": {"n": "Золотой залив", "c": "gold", "x": 50, "y": 22, "run": 10}, "63": {"n": "Перевёртыш", "c": "flip", "x": 30, "y": 70, "run": 10}, "65": {"n": "Алмазный брак", "c": "crys", "x": 62, "y": 38, "run": 5}, "61": {"n": "Негатив", "c": "neg", "x": 48, "y": 24, "run": 15}, "62": {"n": "Глитч", "c": "glit", "x": 70, "y": 40, "run": 15}, "60": {"n": "Ночная смена", "c": "night", "x": 52, "y": 32, "run": 15}, "29": {"n": "Тень", "c": "shadow", "x": 44, "y": 30, "run": 20}, "28": {"n": "Перегрев", "c": "burn", "x": 36, "y": 30, "run": 20}, "25": {"n": "Кровавая печать", "c": "blood", "x": 50, "y": 26, "run": 20}, "26": {"n": "Сдвиг цвета", "c": "rgb", "x": 58, "y": 46, "run": 25}, "27": {"n": "Зеркало", "c": "mirror", "x": 50, "y": 52, "run": 25}, "36": {"n": "Радужная плёнка", "c": "rain", "x": 40, "y": 44, "run": 20}, "40": {"n": "Капля чернил", "c": "ink", "x": 64, "y": 58, "run": 20}, "58": {"n": "Без краски", "c": "sketch", "x": 52, "y": 34, "run": 25}, "57": {"n": "Растр", "c": "pix", "x": 38, "y": 40, "run": 25}, "52": {"n": "Лишний слой", "c": "ghost", "x": 60, "y": 28, "run": 30}, "20": {"n": "Порез ножа", "c": "cut", "x": 45, "y": 36, "run": 30}, "18": {"n": "Водяной знак", "c": "water", "x": 55, "y": 30, "run": 30}, "19": {"n": "Съехавший слой", "c": "mosaic", "x": 50, "y": 50, "run": 30}, "30": {"n": "Неон", "c": "neon", "x": 50, "y": 28, "run": 10}, "31": {"n": "Космос", "c": "cosmos", "x": 60, "y": 22, "run": 10}, "38": {"n": "Ледяная печать", "c": "ice", "x": 46, "y": 30, "run": 10}, "39": {"n": "Огненный край", "c": "fire", "x": 55, "y": 34, "run": 10}, "56": {"n": "Засвет", "c": "flare", "x": 48, "y": 26, "run": 10}, "55": {"n": "Старая плёнка", "c": "sepia", "x": 52, "y": 24, "run": 20}, "53": {"n": "Ржавчина", "c": "rust", "x": 40, "y": 34, "run": 20}, "49": {"n": "Тепловизор", "c": "thermo", "x": 56, "y": 30, "run": 20}, "50": {"n": "Контур мелом", "c": "outline", "x": 50, "y": 40, "run": 20}, "51": {"n": "Перекос", "c": "skew", "x": 44, "y": 30, "run": 20}, "54": {"n": "Брызги краски", "c": "splash", "x": 58, "y": 28, "run": 20}, "24": {"n": "Половина без краски", "c": "half", "x": 46, "y": 26, "run": 25}, "23": {"n": "Небо вниз", "c": "bgflip", "x": 52, "y": 22, "run": 25}, "22": {"n": "Царапины", "c": "scratch", "x": 38, "y": 36, "run": 25}, "21": {"n": "Призрак", "c": "phantom", "x": 50, "y": 30, "run": 25}, "11": {"n": "Радиация", "c": "rad", "x": 54, "y": 30, "run": 30}, "12": {"n": "Растяжение", "c": "stretch", "x": 50, "y": 20, "run": 30}, "13": {"n": "Сползший герой", "c": "drop", "x": 48, "y": 62, "run": 30}, "48": {"n": "Пустой фон", "c": "nobg", "x": 50, "y": 28, "run": 30}, "17": {"n": "Мини-герой", "c": "tiny", "x": 50, "y": 50, "run": 30}, "76": {"n": "Алмазный дождь", "c": "gemrain", "x": 50, "y": 22, "run": 10}, "80": {"n": "Тиснение", "c": "emboss", "x": 48, "y": 26, "run": 10}, "81": {"n": "Затмение", "c": "eclipse", "x": 44, "y": 30, "run": 10}, "82": {"n": "Северное сияние", "c": "aurora", "x": 52, "y": 28, "run": 10}, "85": {"n": "Золотая пыль", "c": "dust", "x": 50, "y": 24, "run": 10}, "77": {"n": "Витраж", "c": "glass", "x": 50, "y": 30, "run": 20}, "79": {"n": "Кислота", "c": "acid", "x": 46, "y": 26, "run": 20}, "83": {"n": "VHS", "c": "vhs", "x": 56, "y": 22, "run": 20}, "84": {"n": "Комикс", "c": "comic", "x": 42, "y": 28, "run": 20}, "78": {"n": "Синька", "c": "blueprint", "x": 50, "y": 30, "run": 25}, "86": {"n": "Опечатка", "c": "typo", "x": 55, "y": 30, "run": 25}};
+const RELICS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].relic),RELIC_P=.00001,RELIC_F=FIN.length;
+FIN.push({k:"Мегаредкая",cls:"relic",w:0,m:2000,run:Infinity,col:"#7dfcff",excl:1});
+function rollRelic(ctx){return makeCard(ctx,RELICS[Math.floor(Math.random()*RELICS.length)],RELIC_F)}
 const isDia=h=>!!DIA[h], finRun=c=>c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
@@ -572,6 +587,8 @@ function priceOf(h,f,no,sn,top,part){const [a,b]=HT[HEROES[h][2]].b;let v=(a+Mat
   if(isComp(h)){v*=[5,.3,1.5][part|0];if(!part&&f===0&&no===1)v*=3}
   if(FIN[f].run!==Infinity&&no===1)v*=3;const cl=classify(sn);if(cl)v*=cl.m;if(top)v*=2;return Math.round(v*100)/100}
 function makeCard(ctx,h,f,preset){
+  if(HEROES[h][4].relic&&f!==RELIC_F)fail("Герои Забытых Эпох бывают только мегаредкими");
+  if(f===RELIC_F&&!HEROES[h][4].relic)fail("Эта отделка принадлежит Забытым Эпохам");
   if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&!(preset&&preset.force)&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
   const no=ctx.nextNo(h,f),sn=genNumber(ctx,HEROES[h][4].sale?0:f),B=cardBody(h,f,preset);
   return {id:ctx.newId(),h,f,no,sn,hue:B.hue,stats:B.stats,v:priceOf(h,f,no,sn,B.top),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0};
@@ -639,6 +656,7 @@ SHOP.lott={n:"Билет лотереи",stars:29,lott:1,d:["🎟 билет б�
 const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale)fail("Такой карточки нет");const W=HEROES[h][4];
+  if(W.relic)fail("Забытые Эпохи выпадают только из обычных прокруток");
   if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
   if(W.one){if(f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");return rollOne(ctx,h)}
   if(W.duo){if(f!==DUO_F)fail("Близнецы бывают только с отделкой «Близнец»");return rollDuo(ctx,h)}
@@ -1066,7 +1084,8 @@ const ACTIONS={
     const g8=!st.g8&&(st.nOp||0)===7;if(g8)st.g8=1;   // новичку: 8-е открытие — гарантированно эпик или выше (удержание)
     const epic=g8||(st.guar||0)>0||(st.pity||0)>=PITY-1;let c=null;
     const rr=ctx.noRare?1:Math.random();   // noRare — только для автотестов
-    if(!ctx.noRare&&Math.random()<THOR_P)try{c=rollOne(ctx,THOR)}catch(e){}   // Тор: один шанс на миллион
+    if(!ctx.noRare&&Math.random()<RELIC_P)c=rollRelic(ctx);
+    if(!c&&!ctx.noRare&&Math.random()<THOR_P)try{c=rollOne(ctx,THOR)}catch(e){}   // Тор: один шанс на миллион
     if(c){}else if(rr<SPIN_P.one)try{c=rollOne(ctx)}catch(e){}   // легенда 1 из 1: один шанс на сто тысяч
     else if(rr<SPIN_P.one+SPIN_P.don)c=rollTier(ctx,-1,DON);   // богатырь
     else if(rr<SPIN_P.one+SPIN_P.don+SPIN_P.duo)c=rollDuo(ctx);   // Близнец: 2 на весь мир

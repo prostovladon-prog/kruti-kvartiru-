@@ -791,11 +791,15 @@ function clInviteSheet(){wSheet('<h3 style="margin:0 0 6px">📩 Позвать 
 function clMemberSheet(C,m){const meBoss=C.owner===S.uid,meDep=C.deputy===S.uid,canKick=m.uid!==C.owner&&(meBoss||(meDep&&m.uid!==C.deputy));
   wSheet('<h3 style="margin:0 0 2px"><span id="clm-n"></span></h3><p class="cln">'+(m.uid===C.owner?"👑 Глава клана":m.uid===C.deputy?"⭐ Правая рука":"Участник")+' · урон за неделю '+fmtN(m.dmg)+'</p>'+
    '<div class="clacts"><button type="button" class="ghost" data-a="gift">🎁 Подарить карточку</button><button type="button" class="ghost" data-a="swap">🔄 Предложить обмен</button>'+
-   (meBoss?'<button type="button" class="ghost" data-a="reward">🎖 Наградить монетами</button><button type="button" class="ghost" data-a="dep">'+(m.uid===C.deputy?"⭐ Снять с правой руки":"⭐ Сделать правой рукой")+'</button>':"")+
+   (meBoss?'<button type="button" class="ghost" data-a="transfer">👑 Передать главенство</button><button type="button" class="ghost" data-a="transfer-leave">👑 Передать и выйти</button><button type="button" class="ghost" data-a="reward">🎖 Наградить монетами</button><button type="button" class="ghost" data-a="dep">'+(m.uid===C.deputy?"⭐ Снять с правой руки":"⭐ Сделать правой рукой")+'</button>':"")+
    (canKick?'<button type="button" class="ghost bad" data-a="kick">🚫 Исключить из клана</button>':"")+'</div>',
    btn=>{const a=btn.dataset.a;if(!a)return;
      if(a==="gift"){trPickMine("gift",{uid:m.uid,name:m.name});return}
      if(a==="swap"){trTheirCards({uid:m.uid});return}
+     if(a==="transfer"||a==="transfer-leave"){
+       const leave=a==="transfer-leave";if(!confirm("Передать клан игроку «"+m.name+"»? "+(leave?"Ты выйдешь из клана, а он станет главой.":"Он станет главой, ты останешься участником.")))return false;
+       (async()=>{const r=await act("clan_transfer",{uid:m.uid,leave});if(r){toast("👑 "+m.name+" теперь глава"+(r.left?". Ты вышел из клана":""));clData=null;renderAll();loadClan()}})();return;
+     }
      if(a==="reward"){clRewardSheet(m);return}
      if(a==="dep"){(async()=>{const r=await act("clan_deputy",{uid:m.uid===C.deputy?0:m.uid});if(r){toast(r.deputy?"⭐ "+m.name+" — правая рука":"Правая рука снята");loadClan()}})();return}
      if(a==="kick"){if(NOW()-(clMemberSheet.k||0)>4000||clMemberSheet.u!==m.uid){clMemberSheet.k=NOW();clMemberSheet.u=m.uid;toast("Нажми ещё раз, чтобы исключить "+m.name);return false}
