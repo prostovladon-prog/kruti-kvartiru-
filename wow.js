@@ -921,15 +921,20 @@ function drawBirthday(C){
   const finalRewards=fmtN(C.finalSpins)+' прокруток, '+fmtN(C.attempts)+' попытки в казино и титул «С нами с первого месяца»';
   const finalButton=C.unlocked&&!C.finalClaimed?
     '<button type="button" class="craftbtn"'+(birthdayBusy?' disabled':'')+'>🎁 Забрать общий сундук</button>':'';
+  const P=C.prints,next=P?.next,results=P?.winners||[],hm=t=>new Date(t+3*36e5).toISOString().slice(11,16);
+  const prints=P?'<div class="sty-n">🎴 Праздничный брак · '+fmtN(results.length)+' из 14 выдано</div>'+
+    (next?'<div class="sty-n">До '+hm(next.end)+': '+escH(HEROES[next.h][0])+' · '+escH(next.name)+' · 1 из 1</div>':'')+
+    (results.length?'<details class="chal-r"><summary>Кто выбил праздничные карты</summary><div>'+
+      results.map(r=>escH(r.nick)+' · '+escH(HEROES[r.h][0])+' · '+escH(r.name)+' · № '+escH(fmtSn(r.sn))).join('<br>')+'</div></details>':''):'';
   $("chal-top").innerHTML='<div class="sty-n">🎁 Общий сундук · <b>'+fmtN(C.total)+' / '+fmtN(C.goal)+'</b></div>'+
     '<div class="bar" role="progressbar" aria-label="Общий сундук" aria-valuenow="'+Math.min(C.total,C.goal)+'" aria-valuemax="'+C.goal+'"><i style="width:'+progress+'%"></i></div>'+
     '<div class="sty-n">Твой вклад: '+fmtN(C.opened)+'</div>'+
     '<div class="sty-n">'+(C.finalClaimed?'✅ Общий сундук получен':C.unlocked?'Общий сундук открыт!':'Общий сундук откроется после достижения цели, с 20:00 по Минску')+'</div>'+
     '<div class="sty-n">'+finalRewards+'</div>'+finalButton+
-    (C.finalClaimed&&left?'<button type="button" class="craftbtn">🎰 К праздничным прокруткам</button>':'');
+    (C.finalClaimed&&left?'<button type="button" class="craftbtn">🎰 К праздничным прокруткам</button>':'')+prints;
   const play=$("chal-top").querySelector("button");
   if(play)play.onclick=()=>C.finalClaimed?openCas():birthdayAction("birthday_final");
-  $("chal-rules").textContent="Засчитываются все обычные и массовые открытия карточек с 08:00. После "+fmtN(C.goal)+" общих открытий, с 20:00, можно забрать общий сундук. Внутри "+finalRewards+". Каждая попытка бесплатна и даёт "+C.minStars+"–"+C.maxStars+" ⭐ на игровой баланс.";
+  $("chal-rules").textContent="Засчитываются все обычные и массовые открытия карточек с 08:00. До 22:00 каждое открытие участвует в розыгрыше карты 1 из 1 в своём часу. После "+fmtN(C.goal)+" общих открытий, с 20:00, можно забрать общий сундук. Внутри "+finalRewards+". Каждая попытка бесплатна и даёт "+C.minStars+"–"+C.maxStars+" ⭐ на игровой баланс.";
 }
 
 /* ===================== КОНКУРС ИСТОРИЙ ===================== */
