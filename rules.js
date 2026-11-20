@@ -188,6 +188,22 @@ const HEROES=[
  ["Стеклянный Адмирал","Забытые Эпохи",4,"Ведёт прозрачный флот через море застывших штормов.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"admiral","hue":185,"p":[8,8,9,8,9]}],
  ["Безликий Летописец","Забытые Эпохи",4,"Записывает имена тех, кто изменит следующую эпоху.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"scribe","hue":40,"p":[7,8,8,9,10]}],
  ["Звёздный Ловчий","Забытые Эпохи",4,"Натягивает тетиву, когда на землю падает чужая звезда.",{"rl":"Мегаредкий","rc":"#7dfcff","relic":"hunter","hue":255,"p":[10,6,10,7,9]}],
+ /* Стражи Разлома: новые составные воины. Только половинки из обычных открытий. */
+ ["Солнечный Грифон","Золотые вершины",4,"Орел и лев в одном страже. Его крылья закрывают рассвет.",{"comp":1,"rift":1,"hue":40,"p":[8,6,7,6,7]}],
+ ["Ледяной Василиск","Ледяная бездна",4,"Один взгляд превращает следы на снегу в ледяные клинки.",{"comp":1,"rift":2,"hue":195,"p":[7,7,5,7,8]}],
+ ["Титан Чёрной Кузни","Забытые кузни",4,"В его груди горит горн, в котором ковали оружие титанов.",{"comp":1,"rift":3,"hue":15,"p":[9,8,3,8,6]}],
+ ["Астральная Мантикора","Звёздная пустошь",4,"Львиная грива скрывает звёзды, а хвост жалит сквозь доспех.",{"comp":1,"rift":4,"hue":280,"p":[8,5,8,6,7]}],
+ ["Лунный Кицунэ","Лунный лес",4,"Девять хвостов помнят девять путей между эпохами.",{"comp":1,"rift":5,"hue":265,"p":[6,5,9,6,8]}],
+ ["Скарабей Фараона","Пески вечности",4,"Несёт древнее солнце на панцире и не знает слова «назад».",{"comp":1,"rift":6,"hue":45,"p":[7,9,4,8,6]}],
+ ["Песчаный Сфинкс","Затерянный оазис",4,"Пропускает только тех, кто ответит на вопрос забытого царя.",{"comp":1,"rift":7,"hue":35,"p":[7,7,5,7,8]}],
+ ["Громовой Рух","Грозовые острова",4,"Одним взмахом крыльев собирает бурю над целой армией.",{"comp":1,"rift":8,"hue":210,"p":[8,5,8,6,7]}],
+ ["Ониксовый Единорог","Чёрные рощи",4,"Его рог рассеивает чары, а копыта не оставляют следов.",{"comp":1,"rift":9,"hue":285,"p":[7,7,8,5,7]}],
+ ["Страж Бездонных Врат","Сумерки океана",4,"Свет над его головой — последнее, что видят заблудшие корабли.",{"comp":1,"rift":10,"hue":175,"p":[8,7,4,9,6]}],
+ ["Древний Энт","Первый лес",4,"Проснулся вместе с лесом. На плечах всё ещё растут города птиц.",{"comp":1,"rift":11,"hue":115,"p":[7,9,3,9,6]}],
+ ["Коралловая Горгона","Утонувшие храмы",4,"Змеи в её короне шепчут имена исчезнувших морей.",{"comp":1,"rift":12,"hue":160,"p":[7,6,7,6,8]}],
+ ["Часовой Голем","Башня без времени",4,"Каждый удар его сердца отмеряет новую эпоху.",{"comp":1,"rift":13,"hue":35,"p":[8,8,5,7,6]}],
+ ["Небесный Кирин","Нефритовые облака",4,"Между рогами горит пламя, которое никогда не обжигает своих.",{"comp":1,"rift":14,"hue":145,"p":[7,6,8,6,7]}],
+ ["Рогатый Йотун","Край вечной ночи",4,"Ледяной великан держит на плечах обломки древней крепости.",{"comp":1,"rift":15,"hue":205,"p":[9,8,3,8,6]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -207,6 +223,8 @@ const YAGA=HEROES.findIndex(H=>H[0]==="Баба Яга"),KOLO=HEROES.findIndex(H
 const HELPERS=[{n:"Zz_ruslan4ik_zZ",t:"🐈 Кот в сапогах — карточка мечты · 💎 VIP Алмаз навсегда"}];
 /* половинки: part 1 — левая (частая), part 2 — правая (в 5 раз реже, 300 на воина на весь мир).
    Целая карточка забирает номер тиража правой половинки (17/300). «Ошибка печати»: одна левая и одна правая на воина */
+const RIFT=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].rift), RIFT_P={drop:.0005,right:.1,run:50,price:400};
+const compRun=h=>HEROES[h]&&HEROES[h][4].rift?RIFT_P.run:300;
 const HALF_RUN=300, HALF_P={drop:.0035,right:.15,err:.004}, PART_K=["","Левая ½","Правая ½"];
 const notHalf=(c,m)=>{if(c.part)fail(m||"Половинка не может это делать. Собери из двух половинок целого воина в Сокровищнице");return c};
 const FIN=[
@@ -584,9 +602,10 @@ function cardBody(h,f,preset){
   return {stats,hue,top:stats.reduce((a,b)=>a+b,0)>=(base+90)*5*1.12};
 }
 function priceOf(h,f,no,sn,top,part){const [a,b]=HT[HEROES[h][2]].b;let v=(a+Math.random()*(b-a))*FIN[f].m;
-  if(isComp(h)){v*=[5,.3,1.5][part|0];if(!part&&f===0&&no===1)v*=3}
+  if(isComp(h)){if(HEROES[h][4].rift)v*=RIFT_P.price;v*=[5,.3,1.5][part|0];if(!part&&f===0&&no===1)v*=3}
   if(FIN[f].run!==Infinity&&no===1)v*=3;const cl=classify(sn);if(cl)v*=cl.m;if(top)v*=2;return Math.round(v*100)/100}
 function makeCard(ctx,h,f,preset){
+  if(HEROES[h][4].rift)fail("Стражи Разлома собираются только из двух половинок");
   if(HEROES[h][4].relic&&f!==RELIC_F)fail("Герои Забытых Эпох бывают только мегаредкими");
   if(f===RELIC_F&&!HEROES[h][4].relic)fail("Эта отделка принадлежит Забытым Эпохам");
   if(FIN[f].run!==Infinity&&!HEROES[h][4].sale&&!(preset&&preset.force)&&ctx.issuedOf(h,f)>=FIN[f].run)fail("Тираж этой отделки закончился");
@@ -601,8 +620,8 @@ function makeHalf(ctx,h,part,f){
   if(!no)fail("Правые половинки воина «"+HEROES[h][0]+"» закончились");
   const sn=genNumber(ctx,f),B=cardBody(h,f);
   return {id:ctx.newId(),h,f,no,sn,part,hue:B.hue,stats:B.stats,v:priceOf(h,f,no,sn,B.top,part),xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0}}
-function rollHalf(ctx,rightP){let part=Math.random()<rightP?2:1,pool=COMP;
-  if(part===2){pool=COMP.filter(h=>ctx.compLeft(h)>0);if(!pool.length){part=1;pool=COMP}}
+function rollHalf(ctx,rightP,candidates){const all=candidates||COMP.filter(h=>!HEROES[h][4].rift);let part=Math.random()<rightP?2:1,pool=all;
+  if(part===2){pool=all.filter(h=>ctx.compLeft(h)>0);if(!pool.length){part=1;pool=all}}
   const h=pool[Math.floor(Math.random()*pool.length)],f=Math.random()<HALF_P.err&&!ctx.compErr(h,part)?4:0;
   return makeHalf(ctx,h,part,f)}
 /* воин нужной редкости (только обычные 32), отделка выпадает как обычно */
@@ -657,6 +676,7 @@ const CHESTS=["newbie","small","luckbox","promo","royal","warrior","general","le
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
 function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale)fail("Такой карточки нет");const W=HEROES[h][4];
   if(W.relic)fail("Забытые Эпохи выпадают только из обычных прокруток");
+  if(W.rift)fail("Стражи Разлома собираются только из двух половинок");
   if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
   if(W.one){if(f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");return rollOne(ctx,h)}
   if(W.duo){if(f!==DUO_F)fail("Близнецы бывают только с отделкой «Близнец»");return rollDuo(ctx,h)}
@@ -1090,6 +1110,7 @@ const ACTIONS={
     else if(rr<SPIN_P.one+SPIN_P.don)c=rollTier(ctx,-1,DON);   // богатырь
     else if(rr<SPIN_P.one+SPIN_P.don+SPIN_P.duo)c=rollDuo(ctx);   // Близнец: 2 на весь мир
     if(!c&&!ctx.noRare&&Math.random()<DIA_P.spin)c=rollDia(ctx);   // 💎 Алмазная серия: 1 на 2000 прокруток
+    if(!c&&!epic&&(st.lpity||0)<LPITY-1&&(st.fpity||0)<LUCK.pity-1&&!((st.nOp||0)===14&&!st.o15)&&!(st.wel===0&&(st.nOp||0)===1)&&!ctx.noRare&&Math.random()<RIFT_P.drop)try{c=rollHalf(ctx,RIFT_P.right,RIFT)}catch(e){}
     if(!c&&!epic&&!ctx.noRare&&Math.random()<HALF_P.drop)try{c=rollHalf(ctx,HALF_P.right)}catch(e){}   // редко вместо карточки выпадает половинка составного воина
     st.nOp=(st.nOp||0)+1;let wel=0;
     if(st.wel===0&&st.nOp>=2&&!c){wel=1;st.wel=1;const pl=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===3),h=pl[Math.floor(Math.random()*pl.length)];c=makeCard(ctx,h,ctx.issuedOf(h,1)<FIN[1].run?1:0)}   // подарок новичку: на 2-й прокрутке легендарный воин с блеском
@@ -1574,4 +1595,4 @@ Object.assign(ACTIONS,{
     if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
   mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
   mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
-if(typeof module!=="undefined")module.exports={DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
