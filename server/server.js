@@ -2367,7 +2367,7 @@ const BOT_TEXT={
   name:"Воины Эпох",
   short:"Крути карточки воинов всех эпох: редкие номера, золото и ошибки печати. Бои, рынок и топ мира ⚔️",
   desc:"⚔️ ВОИНЫ ЭПОХ: коллекционная игра с карточками воинов\n\n🎴 Бесплатные прокрутки каждые 4 часа: от ополченца до Сёгуна и Мерлина\n💎 Каждая карточка одна в своём роде: свой номер, тираж и отделка. Ошибка печати одна на всю игру\n🔥 Закаляй воинов до ★5\n⚔️ Бои с друзьями, босс недели, рынок между игроками\n🏆 Поднимайся в топ мира\n\nЖми «Начать» 👇",
-  cmds:[{command:"start",description:"Играть"},{command:"help",description:"Как играть"},{command:"invite",description:"Пригласить друга (+10 прокруток)"}]};
+  cmds:[{command:"start",description:"Играть"},{command:"help",description:"Как играть"},{command:"invite",description:"Пригласить друга (+10 прокруток)"},{command:"paysupport",description:"Поддержка платежей и возвраты"},{command:"terms",description:"Условия игры и покупок"}]};
 /* ---------- Сокровищница: оплата звёздами Telegram (XTR) ----------
    1) игра просит счёт (invoice) → строка в payments со статусом new; 2) Telegram спрашивает pre_checkout_query — проверяем ещё раз;
    3) приходит successful_payment → статус paid → выдаём покупку (done). Выдача идемпотентна: номер платежа запоминается у игрока.
@@ -2788,6 +2788,7 @@ async function onUpdate(env,upd){
   if(cmd==="/stop"){try{await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(m.from.id).run()}catch(e){}
     return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"🔕 Уведомления выключены. Чтобы включить их снова, напиши /start"})}
   if(cmd==="/terms")return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"📜 Пользовательское соглашение и политика конфиденциальности: "+PAGE+"terms.html"});
+  if(/^\/paysupport(?:@[A-Za-z0-9_]+)?$/i.test(cmd))return tgApi(env,"sendMessage",{chat_id:m.chat.id,text:"⭐ Поддержка платежей и возвраты\n\nЕсли покупка не выдана или возникла другая проблема с оплатой, напиши @voinovadmin. Укажи свой игровой ID: "+m.from.id+", дату, название покупки и идентификатор операции из Telegram → Настройки → Мои звёзды. Не присылай пароли, коды входа и данные банковской карты.\n\nМы проверим оплату и выдачу; при обоснованном возврате Telegram Stars возвращаются через Telegram. Игровой баланс — внутренняя валюта игры, он не является личным балансом Telegram Stars.\n\nУсловия: "+PAGE+"terms.html",reply_markup:{inline_keyboard:[[{text:"Поддержка платежей",url:"https://t.me/voinovadmin"}]]}});
   try{await env.DB.prepare("UPDATE users SET pm=1 WHERE id=?").bind(m.from.id).run()}catch(e){}   // написал боту: можно присылать напоминания
   if(cmd==="/invite"){
     const link="https://t.me/"+(env.BOT_USERNAME||"VoinyEpohBot")+"?startapp=r_"+m.from.id;
