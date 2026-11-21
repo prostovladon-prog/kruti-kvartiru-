@@ -264,7 +264,7 @@ const PRZ=CASE.p.map(([p,P])=>P.g?{g:P.g,c:GR_C[GIFTS[P.g].r],p}:P.r===0?{r:0,e:
 const csTile=x=>x.e?'<div class="itc empty" style="--c:#4a4a5a"><span style="font-size:40px">💨</span><span class="rn">Пусто</span></div>':x.g?'<div class="itc" style="--c:'+x.c+'">'+giftSVG(x.g,64)+'<span>'+GIFTS[x.g].n+'</span></div>':'<div class="itc" style="--c:'+x.c+'"><span style="font-size:40px">💠</span><span class="rn">+'+fmtN(x.r)+'</span></div>';
 const rollPrz=()=>{let x=Math.random();for(const z of PRZ){if(x<z.p)return z;x-=z.p}return PRZ[0]};
 function renderCas(){if(!S||$("sec-cas").hidden)return;csBal();document.querySelectorAll("#cs-seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===csTab));const B=$("cs-body"),K=casK();
-  renderBirthdayCasino();
+  renderBirthdayCasino();renderComebackCasino();
   const bets='<div class="cs-bets" id="cs-bets">'+[1e3,5e3,1e4,25e3,5e4].map(b=>'<button type="button" data-bet="'+b+'" aria-pressed="'+(b===csBet)+'">'+(b>=1e3?b/1e3+"K":b)+'</button>').join("")+'</div>';
   if(csTab==="case"){const prev=[];for(let i=0;i<12;i++)prev.push(PRZ[[0,3,1,0,4,2,0,5,1,3,0,6][i]]);
     B.innerHTML='<div class="cs-box"><h3>📦 КЕЙС «УДАЧА»</h3><div class="sub">Руны до 30 000, редкие подарки с тиражом, а бывает и пусто. Самый мизерный шанс — Корона Эпох</div><div class="cs-chest">'+chestSVG("legend",150)+'</div>'+
@@ -1204,3 +1204,25 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   const tgi=$("st-tg");let v=tgi?tgi.value:"";if(!v){try{v=tg.initDataUnsafe.user.username||""}catch(_){}}
   const r=await act("story_join",{tg:v,ig:$("st-ig")?$("st-ig").value:""});if(r){try{sfx.fanfare();burst(2);hapN("success")}catch(_){}toast("✅ Ты участвуешь! Не убирай @VoinyEpohBot до итогов");await loadChal()}},true);
 setInterval(()=>{const i=$("st-tg");if(i&&!i.value&&!i.dataset.af){i.dataset.af=1;try{const u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.username;if(u)i.value="@"+u}catch(e){}}},800);
+
+/* Бонусные попытки после компенсационного промокода. */
+let comebackBusy=false;
+function renderComebackCasino(){
+ const body=$("cs-body");if(!body)return;
+ let box=$("comeback-casino");const m=S&&S.comeback;
+ if(!m||m.id!=="comeback-20261121"||(m.rolls.length>=2&&NOW()>m.claimedAt+7*864e5)){
+  if(box)box.remove();return;
+ }
+ if(!box){box=document.createElement("div");box.id="comeback-casino";box.className="cs-box";body.before(box)}
+ const left=Math.max(0,2-m.rolls.length);
+ box.innerHTML='<h3>🎁 Бонусные спины</h3>'+
+  '<div class="sub">Подарок за возвращение в игру. Бесплатно, без ставки и пополнения. Выигрыш зачисляется звёздами на игровой баланс.</div>'+
+  '<div class="sub" style="font-size:32px;text-align:center;padding:12px" aria-hidden="true">⭐ 🎰 ⭐</div>'+
+  (m.rolls.length?'<div class="sub" aria-live="polite">Выпало: '+m.rolls.map(n=>'+'+fmtN(n)+' ⭐').join(' · ')+'</div>':'')+
+  (left?'<button type="button" class="cs-go"'+(comebackBusy?' disabled':'')+'>🎰 КРУТИТЬ БЕСПЛАТНО · '+left+'</button>':'<div class="sub">✅ Обе бонусные попытки использованы</div>');
+ const button=box.querySelector("button");if(button)button.onclick=async()=>{
+  if(comebackBusy)return;comebackBusy=true;renderComebackCasino();
+  try{const r=await act("comeback_spin",{roll:m.rolls.length+1});if(r){sfx.fanfare();burst(3);hapN("success");toast("⭐ +"+fmtN(r.stars)+" на игровой баланс");renderAll()}}
+  finally{comebackBusy=false;renderComebackCasino()}
+ };
+}
