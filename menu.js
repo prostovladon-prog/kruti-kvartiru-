@@ -465,9 +465,9 @@ $("gold-body").addEventListener("click",e=>{const t=e.target.closest("button");i
   }});
 function flexDone(k){const T=TITLES[k],m=$("modal"),sh=$("msheet");m.hidden=false;sfx.fanfare();burst(4);hapN("success");
   sh.innerHTML='<div class="box nickbox grant dndone"><h3>'+(k==="author"?"✍️ Ты — Соавтор игры!":T.ic+" Титул «"+T.n+"» твой!")+'</h3><div class="dnprev big">'+ttlTag(k)+' <b>'+escH(S.nick||S.name||"")+'</b></div>'+
-    (k==="author"?'<p>Теперь самое интересное: напиши свою идею в @voinovadmin. Новый воин, событие, режим — расскажи, что хочешь увидеть в игре.</p><button type="button" class="craftbtn" id="dn-idea">💡 Написать идею</button>':'<p>Его уже видят все рядом с твоим ником. Сменить титул можно в профиле → «Титулы».</p>')+
+    (k==="author"?'<p>Теперь самое интересное: напиши свою идею в @voinyepohbotadmn. Новый воин, событие, режим — расскажи, что хочешь увидеть в игре.</p><button type="button" class="craftbtn" id="dn-idea">💡 Написать идею</button>':'<p>Его уже видят все рядом с твоим ником. Сменить титул можно в профиле → «Титулы».</p>')+
     '<button type="button" class="ghost" id="dn-ok">Отлично</button></div>';
-  const i=$("dn-idea");if(i)i.onclick=()=>{try{tg.openTelegramLink("https://t.me/voinovadmin")}catch(e){open("https://t.me/voinovadmin")}};$("dn-ok").onclick=()=>{closeModal();renderAll()}}
+  const i=$("dn-idea");if(i)i.onclick=()=>{try{tg.openTelegramLink("https://t.me/voinyepohbotadmn")}catch(e){open("https://t.me/voinyepohbotadmn")}};$("dn-ok").onclick=()=>{closeModal();renderAll()}}
 function flexDay(d){const t=d===today(NOW());sfx.fanfare();burst(3);hapN("success");toast("🌟 Ты — Звезда дня "+(t?"прямо сейчас! Тебя видят все на главной":d.split("-").reverse().join(".")+"! В этот день тебя увидят все"))}
 {const _ps=payShow;payShow=function(r){
   if(r?.status==="done"&&r.item==="game_gift"){

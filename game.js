@@ -1527,7 +1527,7 @@ function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if
   box.querySelector(".chal-h span").textContent=C.secret?"🤫 СЕКРЕТНЫЙ ПРИЗ":C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";box.classList.toggle("secret",!!C.secret);
   if(C.lot)return drawLot(C,left,hm);
   $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
-  $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinovadmin, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
+  $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinyepohbotadmn, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
   $("chal-p").innerHTML=C.prizes.map((p,k)=>`<div>${["🥇","🥈","🥉"][k]}<b>${p}</b>подарок</div>`).join("");
   const M=C.me;$("chal-me").innerHTML="";const mb=document.createElement("div");
   mb.textContent=C.phase==="soon"?"Подготовь список друзей — счёт начнётся в "+hm(C.start):M.place?"Ты на "+M.place+" месте · "+M.n+" "+plural(M.n,"друг","друга","друзей"):"У тебя пока 0 — пригласи первого друга!";
@@ -1538,7 +1538,7 @@ function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if
   for(const r of C.top){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";
     d.children[0].textContent=r.place<=3?["🥇","🥈","🥉"][r.place-1]:r.place;d.children[1].textContent=(r.vip?"👑 ":"")+r.name;d.children[2].textContent=r.n;T.append(d)}
   $("chal-go").hidden=C.phase!=="on";
-  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Если твой друг пригласит своего друга, он засчитывается и другу, и тебе. При равном счёте выше тот, кто набрал его раньше. Время — минское. Призы выдаёт @voinovadmin: подарок Telegram или звёзды на ту же сумму. Накрутка ботами и пустыми аккаунтами = снятие с челленджа."}
+  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Если твой друг пригласит своего друга, он засчитывается и другу, и тебе. При равном счёте выше тот, кто набрал его раньше. Время — минское. Призы выдаёт @voinyepohbotadmn: подарок Telegram или звёзды на ту же сумму. Накрутка ботами и пустыми аккаунтами = снятие с челленджа."}
 $("chal-go").onclick=()=>$("ref-go").click();
 /* розыгрыш: от C.min друзей ты участник, каждый друг — билет, победитель один */
 function drawLot(C,left,hm){const M=C.me,inn=M.n>=C.min,T=C.tickets||0;
@@ -1553,7 +1553,7 @@ function drawLot(C,left,hm){const M=C.me,inn=M.n>=C.min,T=C.tickets||0;
   if(C.phase!=="soon"){if(!P.length)Tb.innerHTML='<div class="empty">Пока никто не набрал '+C.min+' друзей — стань первым участником!</div>';
     for(const r of P){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent="🎟";d.children[1].textContent=(r.vip?"👑 ":"")+r.name;d.children[2].textContent=r.n+" · "+(T?Math.round(r.n/T*100):0)+"%";Tb.append(d)}}
   $("chal-go").hidden=C.phase!=="on";
-  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Друг твоего друга тоже засчитывается тебе. От "+C.min+" друзей ты участник, каждый друг — 1 билет. В "+hm(C.end)+" бот случайно выбирает победителя: чем больше билетов, тем выше шанс. Время — минское. Приз выдаёт @voinovadmin: подарок Telegram на "+C.prizes[0]+" или звёзды."}
+  $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Друг твоего друга тоже засчитывается тебе. От "+C.min+" друзей ты участник, каждый друг — 1 билет. В "+hm(C.end)+" бот случайно выбирает победителя: чем больше билетов, тем выше шанс. Время — минское. Приз выдаёт @voinyepohbotadmn: подарок Telegram на "+C.prizes[0]+" или звёзды."}
 setInterval(()=>{if(chData&&!$("chal").hidden){const l=Math.max(0,chData.left-(NOW()-chData._t));if(l<=0&&chData.phase!=="done"&&NOW()-chAt>5000)loadChal();else if(chData.phase!=="done")$("chal-left").textContent=(chData.phase==="soon"?"через ":"")+tleft(l)}},1000);
 setInterval(loadChal,30000);setTimeout(loadChal,1500);
 /* ---------- самые редкие воины на главной ---------- */
@@ -2548,8 +2548,8 @@ async function payWait(pid){for(let i=0;i<15;i++){const r=await act("pay_status"
   toast("Оплата получена, покупка появится через минуту. Мы пришлём сообщение в бот")}
 function payShow(r){renderAll();loadGold();if(r.status==="refund"){toast("↩️ "+((r.res&&r.res.err)||"Не получилось")+". Звёзды вернулись");return}
   const R=r.res||{},I=SHOP[r.item];sfx.coin();hapN("success");
-  if(I&&I.manual){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;sh.innerHTML='<div class="box nickbox"><h3>👑 Ого! Ты правда купил!</h3><p>Это была шутка… но мы держим слово. Напиши <b>@voinovadmin</b>: какого героя нарисовать и какой номер поставить. Карточка будет только у тебя.</p><button type="button" class="craftbtn" id="cu-ok">Написать @voinovadmin</button></div>';
-    $("cu-ok").onclick=()=>{closeModal();try{tg.openTelegramLink("https://t.me/voinovadmin")}catch(e){open("https://t.me/voinovadmin")}};return}
+  if(I&&I.manual){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;sh.innerHTML='<div class="box nickbox"><h3>👑 Ого! Ты правда купил!</h3><p>Это была шутка… но мы держим слово. Напиши <b>@voinyepohbotadmn</b>: какого героя нарисовать и какой номер поставить. Карточка будет только у тебя.</p><button type="button" class="craftbtn" id="cu-ok">Написать @voinyepohbotadmn</button></div>';
+    $("cu-ok").onclick=()=>{closeModal();try{tg.openTelegramLink("https://t.me/voinyepohbotadmn")}catch(e){open("https://t.me/voinyepohbotadmn")}};return}
   if(I)return showGrant(R,I.any?"🎁 Карточка твоя!":"🎁 "+I.n+" открыт!");
   if(r.item==="num"){toast("✍️ Готово! Новый номер "+fmtSn(R.sn));const c=S.cards.find(x=>x.id===R.card);if(c)openCardView(c,{mine:true});return}
   if(r.item==="fx"){toast("✨ Ник «"+NFX[R.fx]+"» включён!");goldTab="flex";renderGold()}
@@ -2757,7 +2757,7 @@ function drawTour(){const T=trData,box=$("tr-box");if(!T||!box)return;const left
 setInterval(()=>{if(arVisible()&&!arRoom&&!document.hidden)loadTour()},5000);
 
 /* ---------- помощь и сообщение о баге ---------- */
-const SUPPORT="voinovadmin";
+const SUPPORT="voinyepohbotadmn";
 function openSupport(kind){const id=S&&S.uid?S.uid:"—",info="ID: "+id+(S&&S.nick?" ("+S.nick+")":"")+(kind==="bug"?"\nБаг: ":"\nВопрос: ");
   try{navigator.clipboard&&navigator.clipboard.writeText(info)}catch(e){}
   toast("Твой ID скопирован — вставь его в сообщение");const u="https://t.me/"+SUPPORT;
