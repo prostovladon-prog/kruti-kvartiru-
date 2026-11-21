@@ -4344,21 +4344,29 @@ async function setup(env,origin){const out={};
 /* 🛡 модерация @voinyepohchat нашим ботом: мат, чужие ссылки и пересылки — удалить + предупреждение; 3 за сутки — мут 24 ч; флуд — мут 10 мин */
 const MOD_BAD=/(^|[^а-яёa-z])(на|по|за|от|вы|при|про|у|о|до|раз|пере|съ|въ|долбо|хит(ро)?|недо)?(ху[йяеёию]|пизд|бля[дт ь]|бля$|[её]б[аеиуо]?[нлтшрк]|[её]бну|[её]б$|сук[аио]|суч[кь]|муда[кч]|мудил|пид[оае]р|залуп|гандон|шлюх|дроч)/i,
   MOD_OK=/(t\.me|telegram\.me)\/(voinyepoh(bot|chat)?|VoinyEpohBot)\b|77-221-147-102\.sslip\.io|prostovladon-prog\.github\.io/i;
-const modW=new Map(),modF=new Map();let modAd=null,modAdT=0;
+const modW=new Map(),modF=new Map(),modSeen=new Map();let modAd=null,modAdT=0;
 async function modAdmins(env,chat){if(modAd&&Date.now()-modAdT<6e5)return modAd;const r=await tgApi(env,"getChatAdministrators",{chat_id:chat});modAd=new Set((r.result||[]).map(x=>x.user&&x.user.id));modAdT=Date.now();return modAd}
 async function modChat(env,m){const chat=m.chat.id,u=m.from;if(!u||u.is_bot&&u.username!=="GroupAnonymousBot"||m.sender_chat||m.is_automatic_forward||ADMINS.includes(u.id))return;
+  // Telegram redelivers queued updates after outages: never punish old messages.
+  const now=Date.now(),sent=Number(m.date)*1000;
+  if(!Number.isFinite(sent)||sent<=0||now-sent>120000||sent-now>30000)return;
+  const msgKey=chat+":"+m.message_id,key=chat+":"+u.id;
+  for(const [k,t] of modSeen)if(now-t>120000)modSeen.delete(k);
+  if(modSeen.has(msgKey))return;
+  modSeen.set(msgKey,now);
+  if(modSeen.size>10000)modSeen.delete(modSeen.keys().next().value);
   if((await modAdmins(env,chat)).has(u.id))return;
-  const now=Date.now(),nm=(u.first_name||"игрок").slice(0,24),mute=async(sec,why)=>{await tgApi(env,"restrictChatMember",{chat_id:chat,user_id:u.id,permissions:{can_send_messages:false},until_date:Math.floor(now/1e3)+sec});
+  const nm=(u.first_name||"игрок").slice(0,24),mute=async(sec,why)=>{await tgApi(env,"restrictChatMember",{chat_id:chat,user_id:u.id,permissions:{can_send_messages:false},until_date:Math.floor(now/1e3)+sec});
     const r=await tgApi(env,"sendMessage",{chat_id:chat,text:"🔇 "+nm+" — мут на "+(sec>=86400?"сутки":Math.round(sec/60)+" мин")+": "+why});if(r.ok)setTimeout(()=>tgApi(env,"deleteMessage",{chat_id:chat,message_id:r.result.message_id}).catch(()=>{}),60e3)};
   // флуд: больше 6 сообщений за 8 секунд
-  const F=(modF.get(u.id)||[]).filter(t=>now-t<8e3);F.push(now);modF.set(u.id,F);if(F.length>6){modF.delete(u.id);return mute(600,"флуд")}
+  const F=(modF.get(key)||[]).filter(t=>Math.abs(sent-t)<8e3);F.push(sent);modF.set(key,F);if(F.length>6){modF.delete(key);return mute(600,"флуд")}
   const text=String(m.text||m.caption||""),ents=[...(m.entities||[]),...(m.caption_entities||[])];
   const links=ents.filter(e=>e.type==="url"||e.type==="text_link").map(e=>e.type==="text_link"?e.url:text.substr(e.offset,e.length));
   const fwd=m.forward_origin&&(m.forward_origin.type==="channel"||m.forward_origin.type==="chat")&&!/^voinyepoh/i.test((m.forward_origin.chat||m.forward_origin.sender_chat||{}).username||"");
   const why=MOD_BAD.test(text.replace(/ё/gi,"е").toLowerCase().replace(/[^а-яa-z0-9\s]/g," "))||MOD_BAD.test(text.toLowerCase())?"мат":links.some(l=>!MOD_OK.test(l))||/(^|\s)@\w{4,}bot\b/i.test(text)&&!/@VoinyEpohBot/i.test(text)?"чужие ссылки и реклама":fwd?"пересылка из чужих каналов":"";
   if(!why)return;await tgApi(env,"deleteMessage",{chat_id:chat,message_id:m.message_id});
-  const W=(modW.get(u.id)||[]).filter(t=>now-t<864e5);W.push(now);modW.set(u.id,W);
-  if(W.length>=3){modW.delete(u.id);return mute(86400,"3 предупреждения")}
+  const W=(modW.get(key)||[]).filter(t=>now-t<864e5);W.push(sent);modW.set(key,W);
+  if(W.length>=3){modW.delete(key);return mute(86400,"3 предупреждения")}
   const r=await tgApi(env,"sendMessage",{chat_id:chat,text:"⚠️ "+nm+", тут нельзя: "+why+". Предупреждение "+W.length+"/3 — на третьем мут на сутки"});
   if(r.ok)setTimeout(()=>tgApi(env,"deleteMessage",{chat_id:chat,message_id:r.result.message_id}).catch(()=>{}),30e3)}
 async function onUpdate(env,upd){
