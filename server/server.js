@@ -29,7 +29,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=81;const NEWB_MS=3*864e5;
+const SCHEMA_V=82;const NEWB_MS=3*864e5;
 const MIGRATIONS=[
  "CREATE TABLE IF NOT EXISTS recruit_entries (event TEXT NOT NULL,uid INTEGER NOT NULL,inviter INTEGER NOT NULL,opened_at INTEGER NOT NULL,checked_at INTEGER NOT NULL DEFAULT 0,qualified_at INTEGER NOT NULL DEFAULT 0,qualified INTEGER NOT NULL DEFAULT 0,reason TEXT NOT NULL DEFAULT 'pending',retry_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,uid))",
  "CREATE TABLE IF NOT EXISTS recruit_awards (event TEXT NOT NULL,place INTEGER NOT NULL,uid INTEGER NOT NULL,n INTEGER NOT NULL,spins INTEGER NOT NULL,paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,place),UNIQUE(event,uid))",
@@ -105,6 +105,12 @@ const MIGRATIONS=[
     "CREATE TABLE IF NOT EXISTS vc_part (uid INTEGER PRIMARY KEY, acc TEXT NOT NULL, vids TEXT, t INTEGER NOT NULL, upd INTEGER)",
     "CREATE TABLE IF NOT EXISTS ft_vote (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, ch TEXT NOT NULL, t INTEGER NOT NULL, hit INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(tid,fid,uid))","CREATE TABLE IF NOT EXISTS ft_soc (tid TEXT NOT NULL, fid INTEGER NOT NULL, uid INTEGER NOT NULL, open_t INTEGER, got_t INTEGER, PRIMARY KEY(tid,fid,uid))",
     "CREATE TABLE IF NOT EXISTS tk (cid TEXT NOT NULL, uid INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, lp INTEGER NOT NULL DEFAULT 0, t INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(cid,uid))",
+    "CREATE TABLE IF NOT EXISTS tk_events(cid TEXT NOT NULL,uid INTEGER NOT NULL,ev TEXT NOT NULL,g TEXT NOT NULL,n INTEGER NOT NULL,t INTEGER NOT NULL,token TEXT NOT NULL,opponent INTEGER,PRIMARY KEY(cid,uid,ev))",
+    "CREATE INDEX IF NOT EXISTS tk_events_group ON tk_events(cid,uid,g,t)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS tk_events_friend ON tk_events(cid,ev) WHERE g='ref'",
+    "CREATE TABLE IF NOT EXISTS tk_inputs(cid TEXT NOT NULL,match INTEGER NOT NULL,uid INTEGER NOT NULL,PRIMARY KEY(cid,match,uid))",
+    "CREATE TABLE IF NOT EXISTS tk_awards(cid TEXT NOT NULL,place INTEGER NOT NULL,uid INTEGER NOT NULL,n INTEGER NOT NULL,stars INTEGER NOT NULL,chest TEXT NOT NULL,stars_paid INTEGER NOT NULL DEFAULT 0,chest_paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(cid,place),UNIQUE(cid,uid))",
+
     "CREATE TABLE IF NOT EXISTS hype (id INTEGER PRIMARY KEY AUTOINCREMENT, t INTEGER NOT NULL, uid INTEGER NOT NULL, txt TEXT NOT NULL)",
     "CREATE TABLE IF NOT EXISTS clan_hits (clan INTEGER NOT NULL, week TEXT NOT NULL, uid INTEGER NOT NULL, dmg INTEGER NOT NULL DEFAULT 0, day TEXT, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,week,uid))","ALTER TABLE users ADD COLUMN cb_claim INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN cb_note INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS cas_log (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, g TEXT NOT NULL, bet INTEGER NOT NULL DEFAULT 0, win INTEGER NOT NULL DEFAULT 0, gift TEXT, gno INTEGER, m REAL, at INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS cas_log_at ON cas_log(at)","ALTER TABLE users ADD COLUMN terms_at INTEGER NOT NULL DEFAULT 0","ALTER TABLE users ADD COLUMN gv INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS rm_b ON rm(b, phase)","CREATE INDEX IF NOT EXISTS rm_ph ON rm(phase, until)","CREATE TABLE IF NOT EXISTS user_days (uid INTEGER NOT NULL, d INTEGER NOT NULL, PRIMARY KEY(uid,d)) WITHOUT ROWID","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER) FROM users WHERE created>0","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((created+10800000)/86400000 AS INTEGER)+1 FROM users WHERE created>0 AND d1=1","INSERT OR IGNORE INTO user_days(uid,d) SELECT id,CAST((seen+10800000)/86400000 AS INTEGER) FROM users WHERE seen>0","ALTER TABLE users ADD COLUMN star_bal INTEGER NOT NULL DEFAULT 0","ALTER TABLE clans ADD COLUMN deputy INTEGER NOT NULL DEFAULT 0","CREATE TABLE IF NOT EXISTS clan_inv (clan INTEGER NOT NULL, uid INTEGER NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(clan,uid))","CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, ac INTEGER NOT NULL, bc INTEGER, status TEXT NOT NULL DEFAULT 'new', t INTEGER, done INTEGER)","CREATE INDEX IF NOT EXISTS trades_b ON trades(b,status)","CREATE INDEX IF NOT EXISTS trades_a ON trades(a,status)","ALTER TABLE trades ADD COLUMN av REAL","ALTER TABLE trades ADD COLUMN bv REAL","CREATE TABLE IF NOT EXISTS story_entries (contest TEXT NOT NULL, uid INTEGER NOT NULL, tg TEXT, ig TEXT, t INTEGER, PRIMARY KEY(contest,uid))","ALTER TABLE users ADD COLUMN dg_pow INTEGER NOT NULL DEFAULT 0","CREATE INDEX IF NOT EXISTS users_dgpow ON users(dg_pow)","CREATE INDEX IF NOT EXISTS users_ref ON users(ref)",
  "CREATE TABLE IF NOT EXISTS ad_links (code TEXT PRIMARY KEY, name TEXT, created INTEGER, hidden INTEGER NOT NULL DEFAULT 0)","CREATE TABLE IF NOT EXISTS ad_clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, t INTEGER, ip TEXT)","CREATE INDEX IF NOT EXISTS ad_clicks_c ON ad_clicks(code,t)",
@@ -726,6 +732,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
     const take=ctx.takeCard?env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(me.id,ctx.takeCard,ctx.oppUid):null;
     const own=take?" AND (SELECT owner FROM cards WHERE id="+Math.floor(+ctx.takeCard)+")="+Math.floor(+me.id):"";   // id в Telegram больше 32 бит: без |0
     const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=?,dg_exp=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,st.dg&&st.dg.exp?st.dg.exp.end:0,me.id,u.ver)];
+    const tk= tkProof(name,p,out.res,st,ctx);if(tk)stm.push(...tkAwardSql(env,me.id,tk.a,tk.n,"state:"+nv,ctx.now,nv));
     if((name==="open"||name==="open_multi")&&st.nOp>=15&&u.ref&&u.ref!==me.id){
       const C=await recruitCfg(env);if(ctx.now>=C.start&&ctx.now<C.end&&u.created>=C.start&&u.created<C.end){
         const exists=await env.DB.prepare("SELECT 1 FROM recruit_entries WHERE event=? AND uid=?").bind(RECRUIT.id,me.id).first();
@@ -767,6 +774,8 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
     if(take&&rs[0].meta.changes!==1)fail("Соперник только что убрал эту карточку. Бой отменён, попробуй ещё раз");
     if(rs[take?1:0].meta.changes!==1){if(take)await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=?").bind(ctx.oppUid,ctx.takeCard,me.id).run();continue}
     if(out.cards.some(c=>typeof c.id==="string"&&(c.f>0||HEROES[c.h][2]>=3))||before.size!==keep.size)delete topCache.prints;   // тираж изменился
+    if(tk)delete TKC.v;
+    if((name==="open"||name==="open_multi")&&st.nOp>=15)try{await tkFriend(env,me.id,me.dev?{known:true,channel:true,chat:true}:null)}catch(e){console.error("tk friend",e&&e.message)}
     const S=await stateFor(env,me);fixIds(out.res,S.cards);out.res.events=ctx.events;return {S,res:out.res};
   }
   throw new GameError("Сервер занят, попробуй ещё раз");
@@ -1245,8 +1254,7 @@ async function rkAdvance(env,m){
     if(!patch)break;if(await rkSave(env,m,patch)&&patch.phase==="pick"&&m.ghost)await rkGhostPick(env,m.id);m=await env.DB.prepare("SELECT * FROM rm WHERE id=?").bind(m.id).first()}
   if(m&&(m.phase==="end"||m.phase==="done")&&!m.applied)await rkFinish(env,m);
   return m}
-async function rkFinish(env,m){const t=await env.DB.prepare("UPDATE rm SET applied=1 WHERE id=? AND applied=0").bind(m.id).run();if(t.meta.changes!==1)return;
-  try{await tkAct(env,m.a,"rk",TK.act.rk);if(!m.ghost&&m.b)await tkAct(env,m.b,"rk",TK.act.rk)}catch(e){console.error("tk rk",e)}
+async function rkFinish(env,m){await tkRankAwards(env,m);const t=await env.DB.prepare("UPDATE rm SET applied=1 WHERE id=? AND applied=0").bind(m.id).run();if(t.meta.changes!==1)return;
   await env.DB.prepare("UPDATE cards SET room_id=NULL WHERE room_id=?").bind(-m.id).run();
   const S=rj(m.st,{}),ac=rj(m.ac,{}),bc=rj(m.bc,{}),res={};
   for(const side of m.ghost?["a"]:["a","b"]){const uid=m[side],u=await rkUser(env,uid),won=S.win===side,draw=S.win==="d",wc=side==="a"?m.wa:m.wb,under=S[side].under;
@@ -1294,7 +1302,8 @@ async function rkApi(env,me,a,p){const now=Date.now();
   if(a==="rk_get"){const m=await rkAdvance(env,m0);return rkView(m,me.id)}
   if(a==="rk_act"){const act=String(p.act||"");if(!RK_ACTS[act])fail("Неверное действие");let m=await rkAdvance(env,m0);const side=m.a===me.id?"a":(!m.ghost&&m.b===me.id)?"b":null;
     if(!side)fail("Это не твой бой");if(m.phase!=="pick")fail("Подожди следующего хода");if(m["p"+side])fail("Ты уже выбрал");
-    await env.DB.prepare(`UPDATE rm SET p${side}=?,ver=ver+1 WHERE id=? AND p${side} IS NULL AND phase='pick'`).bind(act,m.id).run();
+    const chosen=await env.DB.prepare(`UPDATE rm SET p${side}=?,ver=ver+1 WHERE id=? AND p${side} IS NULL AND phase='pick'`).bind(act,m.id).run();
+    if(chosen.meta.changes===1&&tkLive(now)&&m.created>=TK.start)await env.DB.prepare("INSERT OR IGNORE INTO tk_inputs(cid,match,uid) VALUES(?,?,?)").bind(TK.id,m.id,me.id).run();
     m=await rkAdvance(env,await env.DB.prepare("SELECT * FROM rm WHERE id=?").bind(m.id).first());return rkView(m,me.id)}
   fail("Неизвестное действие")}
 /* конец сезона (1-го числа): награда по лиге, рейтинг сжимается до 40%. Порциями по 25 игроков */
@@ -2089,43 +2098,99 @@ async function mapDgAttack(env,me,rid,st,p,now){const myD=st.dg;if(!myD||!(dgPow
 /* 🤝 Земли союзов: крепости берут и держат только вдвоём. Сила пары = лучшая боевая карта каждого (сумма 5 характеристик). Доход — пополам */
 /* ID в Telegram бывают больше 2^31 — «|0» их обрезает. Только так: */
 const uidOf=x=>{const n=Math.floor(Number(x));return Number.isSafeInteger(n)&&n>0?n:0};
-/* 🎟 БИЛЕТНАЯ ГОНКА: билеты за время в игре (1 в минуту, если игрок что-то делал) и за действия. Кто больше соберёт за окно конкурса — тот и победил (3 места) */
-/* 15.11: билеты ТОЛЬКО за действия (минуты убраны). Абуз 08.11: rk_find/al_find давали билеты за поиск, который тут же отменяли — убраны;
-   рейтинговый бой даёт билеты только когда бой ДОИГРАН (rkFinish). На каждую группу действий — потолок за конкурс, чтобы не фармили спамом */
-const TK={id:"tk1115",start:Date.UTC(2026,10,15,5,0),end:Date.UTC(2026,10,15,19,0),min:0,
-  act:{open:1,open_multi:"n",duel:2,fduel:2,conq_fight:2,dga_fight:2,war_attack:3,map_attack:2,roc_bet:1,cas_slot:1,cas_mn_go:1,cas_hl_go:1,cas_case:1,emp_trib:5,hof_claim:2,luck_buy:3,rk:3},
-  grp:{duel:"fight",fduel:"fight",conq_fight:"fight",dga_fight:"fight",roc_bet:"cas",cas_slot:"cas",cas_mn_go:"cas",cas_hl_go:"cas",cas_case:"cas",war_attack:"war",map_attack:"map",hof_claim:"hof",rk:"rk"},
-  cap:{fight:200,cas:120,war:60,map:60,hof:6,rk:120},capN:{fight:"⚔️ Бои и арена",cas:"🎰 Казино",war:"🏰 Война армий",map:"🗺 Атаки на карте",hof:"🏛 Зал славы",rk:"🏆 Рейтинг"},
-  prizes:[{stars:300,gift:["crown","egg","feather"],n:"300 ⭐ + 👑 Корона Эпох"},{stars:200,gift:["feather","ring","hourglass"],n:"200 ⭐ + 🪶 Перо феникса"},{stars:100,gift:["dragon","horn","lamp"],n:"100 ⭐ + 🐉 Дракончик"}]};
-const TKREQ=new WeakMap(),tkLive=t=>!!TK.force||t>=TK.start&&t<TK.end;
-async function tkAdd(env,uid,n,ping){const now=Date.now();if(!tkLive(now)||!(n>0))return;
-  await env.DB.prepare("INSERT INTO tk(cid,uid,n,lp,t) VALUES(?,?,?,?,?) ON CONFLICT(cid,uid) DO UPDATE SET n=n+excluded.n,t=excluded.t"+(ping?",lp=excluded.lp":"")).bind(TK.id,uid,n,ping?now:0,now).run();delete TKC.v}
-async function tkCap(env,uid,a,n){const g=TK.grp&&TK.grp[a],cap=g&&TK.cap[g];if(!cap)return n;
-  const r=await env.DB.prepare("SELECT n FROM tk_k WHERE cid=? AND uid=? AND k=?").bind(TK.id,uid,g).first(),have=r?r.n:0;n=Math.max(0,Math.min(n,cap-have));
-  if(n)await env.DB.prepare("INSERT INTO tk_k(cid,uid,k,n) VALUES(?,?,?,?) ON CONFLICT(cid,uid,k) DO UPDATE SET n=n+excluded.n").bind(TK.id,uid,g,n).run();return n}
-async function tkAct(env,uid,a,n){if(!tkLive(Date.now()))return;n=await tkCap(env,uid,a,n);if(n)await tkAdd(env,uid,n)}
-async function tkAfter(req,env,resp){const x=TKREQ.get(req)||CLREQ.get(req);if(!x||resp.status!==200)return;const j=await resp.clone().json();if(!j||!j.ok)return;
-  if(TKREQ.get(req))await tkAct(env,x.uid,x.a,x.n);
-  const c=CLREQ.get(req);if(c){const u=await env.DB.prepare("SELECT clan FROM users WHERE id=?").bind(c.uid).first();if(u&&u.clan){await env.DB.prepare("INSERT INTO clan_wk(clan,wk,n) VALUES(?,?,?) ON CONFLICT(clan,wk) DO UPDATE SET n=n+excluded.n").bind(u.clan,mskWeek(Date.now()),c.n).run();
-    const W=cwWin(Date.now());if(W.on)await env.DB.prepare("INSERT INTO clan_ww(clan,wk,n) VALUES(?,?,?) ON CONFLICT(clan,wk) DO UPDATE SET n=n+excluded.n").bind(u.clan,W.wk,c.n).run()}}}
+/* 🎟 Воскресная гонка активности: покупки не начисляют билеты. */
+const TK={id:"tk20261122",start:Date.UTC(2026,10,22,5),end:Date.UTC(2026,10,22,19),min:0,
+ act:{duel:2,rk:3,conq_fight:2,dga_fight:2,streak:5,camp_tap:1,dg_tap:1,dg_play:5,dg_morning:3,dg_nest:5,dg_exp_end:5,exp_claim:3,ref:10},
+ grp:{duel:"fight",rk:"rk",conq_fight:"conq",dga_fight:"dga",streak:"login",camp_tap:"camp",dg_tap:"pet",dg_play:"play",dg_morning:"morning",dg_nest:"nest",dg_exp_end:"dgexp",exp_claim:"exp",ref:"ref"},
+ cap:{fight:120,rk:RK_DAY*3,conq:10,dga:14,login:5,camp:3000,pet:200,play:25,morning:3,nest:5,dgexp:15,exp:9,ref:100},
+ unit:{camp:100,pet:20},cooldown:{fight:20000},sameOpponent:5,
+ capN:{fight:"⚔️ Обычные бои",rk:"🏆 Рейтинг",conq:"🔥 Покорение: первые 5 попыток дня",dga:"🐉 Арена: первые 7 боёв дня",login:"📅 Ежедневный подарок",camp:"🏕 Тапы в лагере",pet:"🖐 Погладить дракона",play:"🎾 Игры с драконом",morning:"☀️ Доброе утро",nest:"🪺 Гнездо",dgexp:"🐉 Походы дракона",exp:"🧭 Походы воинов",ref:"👥 Подтверждённые друзья"},
+ how:[["⚔️","Обычный бой без ставки","+2 за бой, не чаще раза в 20 сек; максимум 120"],["🏆","Доигранный рейтинговый бой","+3 за победу или поражение; сделай хотя бы один ход. С одним соперником — до 5 боёв, максимум 60"],["🔥","Покорение","+2 за каждую из первых 5 попыток дня, максимум 10"],["🐉","Арена драконов","+2 за каждый из первых 7 боёв дня, максимум 14"],["📅","Забрать ежедневный подарок","+5 один раз"],["🏕","Тапы в лагере","+1 за 100 принятых сервером тапов; максимум 30"],["🖐","Погладить дракона","+1 за 20 поглаживаний; максимум 10"],["🎾","Поиграть с драконом","+5 за игру хотя бы с одним попаданием; до 5 игр, максимум 25"],["☀️","Доброе утро дракону","+3 один раз, до 12:00"],["🪺","Собрать гнездо","+5 один раз"],["🐉","Завершить поход дракона","+5; до 3 походов, максимум 15"],["🧭","Завершить поход воина","+3; до 3 походов, максимум 9"],["👥","Пригласить нового друга","+10: друг впервые приходит по твоей ссылке 22 ноября с 08:00 до 22:00, делает 15 открытий и вступает в канал и чат. До 10 друзей, максимум 100"]],
+ prizes:[{stars:300,chest:"mythic",n:"Мифический сундук + 300 ⭐"},{stars:200,chest:"empire",n:"Сундук Империи + 200 ⭐"},{stars:100,chest:"legend",n:"Легендарный сундук + 100 ⭐"}]};
+const tkLive=t=>t>=TK.start&&t<TK.end,TKC={};
+function tkProof(a,p,r,st,ctx){
+ if(!tkLive(ctx.now)||ctx.test||!r||r.dup)return null;
+ if(a==="duel"&&p.mode)return null;
+ if(a==="conq_fight"&&(!(st.conq?.t>0)||st.conq.t>CONQ.torch))return null;
+ if(a==="dga_apply"){if(!ctx.dga||ctx.dga.check||!(st.dgA?.n>0)||st.dgA.n>DGA.day)return null;a="dga_fight";}
+ if(!TK.act[a]||a==="rk"||a==="ref"||a==="dga_fight"&&!ctx.dga)return null;
+ if(a==="dg_play"&&!(r.hits>0))return null;
+ let n=a==="camp_tap"||a==="dg_tap"?Math.max(0,Math.floor(+r.n||0)):TK.act[a];
+ return n>0?{a,n}:null;
+}
+function tkAwardSql(env,uid,a,n,ev,at=Date.now(),version=null,opponent=null){
+ const g=TK.grp[a],cap=TK.cap[g],unit=TK.unit[g]||1;
+ if(!tkLive(at)||!g||!(n>0)||!ev)return [];n=Math.floor(Math.min(n,cap));
+ const token=crypto.randomUUID(),key="tkfreeze:"+TK.id,guard=version==null?"":" AND u.ver="+Math.floor(version);
+ const allowed=Math.floor(TK.cooldown[g]||0),pair=g==="rk"&&opponent!=null?TK.sameOpponent:1000000;
+ const from=`FROM tk_events e LEFT JOIN tk_k k ON k.cid=e.cid AND k.uid=e.uid AND k.k=e.g WHERE e.cid=? AND e.uid=? AND e.ev=? AND e.token=?`;
+ return [env.DB.prepare(`INSERT OR IGNORE INTO tk_events(cid,uid,ev,g,n,t,token,opponent)
+  SELECT ?,?,?,?,MIN(?,MAX(0,?-COALESCE((SELECT n FROM tk_k WHERE cid=? AND uid=? AND k=?),0))),?,?,?
+  WHERE EXISTS(SELECT 1 FROM users u WHERE u.id=? AND u.banned=0${guard})
+  AND NOT EXISTS(SELECT 1 FROM kv WHERE k=?)
+  AND COALESCE((SELECT n FROM tk_k WHERE cid=? AND uid=? AND k=?),0)<?
+  AND NOT EXISTS(SELECT 1 FROM tk_events WHERE cid=? AND uid=? AND g=? AND t>?)
+  AND (SELECT COUNT(*) FROM tk_events WHERE cid=? AND uid=? AND g=? AND opponent=?)<?`)
+  .bind(TK.id,uid,ev,g,n,cap,TK.id,uid,g,at,token,opponent,uid,key,TK.id,uid,g,cap,TK.id,uid,g,at-allowed,TK.id,uid,g,opponent,pair),
+ env.DB.prepare(`INSERT INTO tk(cid,uid,n,lp,t)
+  SELECT e.cid,e.uid,CAST((COALESCE(k.n,0)+e.n)/? AS INTEGER)-CAST(COALESCE(k.n,0)/? AS INTEGER),0,e.t ${from}
+  AND CAST((COALESCE(k.n,0)+e.n)/? AS INTEGER)>CAST(COALESCE(k.n,0)/? AS INTEGER)
+  ON CONFLICT(cid,uid) DO UPDATE SET n=n+excluded.n,t=excluded.t`)
+  .bind(unit,unit,TK.id,uid,ev,token,unit,unit),
+ env.DB.prepare(`INSERT INTO tk_k(cid,uid,k,n) SELECT cid,uid,g,n FROM tk_events WHERE cid=? AND uid=? AND ev=? AND token=?
+  ON CONFLICT(cid,uid,k) DO UPDATE SET n=n+excluded.n`).bind(TK.id,uid,ev,token)];
+}
+async function tkAct(env,uid,a,n,ev,at=Date.now(),opponent=null){const q=tkAwardSql(env,uid,a,n,ev,at,null,opponent);if(q.length){await env.DB.batch(q);delete TKC.v;}}
+async function tkRankAwards(env,m){
+ if(!tkLive(Date.now())||m.created<TK.start||m.created>=TK.end||!rj(m.st,{}).done)return;
+ for(const uid of m.ghost?[m.a]:[m.a,m.b]){
+  if(!await env.DB.prepare("SELECT 1 FROM tk_inputs WHERE cid=? AND match=? AND uid=?").bind(TK.id,m.id,uid).first())continue;
+  await tkAct(env,uid,"rk",TK.act.rk,"rk:"+m.id,Date.now(),uid===m.a?m.b:m.a);
+ }
+}
+async function tkFriend(env,uid,known=null){
+ const now=Date.now();if(!tkLive(now))return;
+ const u=await env.DB.prepare("SELECT id,ref,created,state,banned FROM users WHERE id=?").bind(uid).first();
+ if(!u||u.banned||!u.ref||u.ref===uid||u.created<TK.start||u.created>=TK.end||(rj(u.state,{}).nOp||0)<15)return;
+ if(await env.DB.prepare("SELECT 1 FROM tk_events WHERE cid=? AND ev=?").bind(TK.id,"ref:"+uid).first())return;
+ const count=await env.DB.prepare("SELECT n FROM tk_k WHERE cid=? AND uid=? AND k='ref'").bind(TK.id,u.ref).first();if((count?.n||0)>=TK.cap.ref)return;
+ const proof=known||await communityMembership(env,uid);if(!proof.known||!proof.channel||!proof.chat)return;
+ await tkAct(env,u.ref,"ref",TK.act.ref,"ref:"+uid,Date.now(),uid);
+}
 const CLREQ=new WeakMap();
-const TKC={};
-async function tkTop(env){const now=Date.now();if(TKC.v&&now-TKC.t<5e3)return TKC.v;TKC.v=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name) AS name,json_extract(u.state,'$.ava') AS ava FROM tk t LEFT JOIN users u ON u.id=t.uid WHERE t.cid=? ORDER BY t.n DESC,t.t ASC LIMIT 20").bind(TK.id).all()).results;TKC.t=now;return TKC.v}
-async function tkPing(env,me,p){const now=Date.now();let my=await env.DB.prepare("SELECT n,lp FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first();let got=0;
-  if(p.act&&tkLive(now)&&(!my||now-(my.lp||0)>=55e3)){await tkAdd(env,me.id,TK.min,1);got=TK.min;my=await env.DB.prepare("SELECT n,lp FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first()}
-  const n=my?my.n:0,rank=n?((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk WHERE cid=? AND n>?").bind(TK.id,n).first()).c+1):0,cnt=((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk WHERE cid=?").bind(TK.id).first())||{}).c||0;
-  const fin=await kvGet(env,"tkfin:"+TK.id);return {id:TK.id,start:TK.start,end:TK.end,now,n,rank,cnt,got,top:(await tkTop(env)).map(x=>({uid:x.uid,n:x.n,name:x.name||"Игрок",ava:x.ava==null?null:+x.ava,me:x.uid===me.id?1:0})),prizes:TK.prizes.map(x=>x.n),act:TK.act,fin:fin||null,
-    caps:await (async()=>{const R=(await env.DB.prepare("SELECT k,n FROM tk_k WHERE cid=? AND uid=?").bind(TK.id,me.id).all()).results,M={};R.forEach(r=>M[r.k]=r.n);return Object.keys(TK.cap).map(k=>({k,n:TK.capN[k],have:M[k]||0,cap:TK.cap[k]}))})()}}
-async function tkFinish(env){const now=env.TK_FIN?TK.end+1:Date.now();if(now<TK.end||now>TK.end+3*864e5)return;const k="tkfin:"+TK.id;if(await kvGet(env,k))return;
-  const top=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name) AS name FROM tk t LEFT JOIN users u ON u.id=t.uid WHERE t.cid=? ORDER BY t.n DESC,t.t ASC LIMIT 3").bind(TK.id).all()).results;
-  await kvSet(env,k,{w:top.map((x,i)=>({name:x.name||"Игрок",n:x.n,prize:TK.prizes[i].n})),t:now});
-  for(let i=0;i<top.length;i++){const x=top[i],P=TK.prizes[i];
-    try{await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(P.stars,x.uid).run()}catch(e){console.error("tk stars",e)}
-    try{for(const g of P.gift){if(await giftMint(env,x.uid,g,"prize"))break}}catch(e){console.error("tk gift",e)}
-    try{await notify(env,x.uid,"🏆 Ты занял "+(i+1)+" место в Билетной гонке с "+x.n+" билетами!\n\nТвой приз — "+P.n+" — уже в игре. Поздравляем, воин! 🎉","🎁 Открыть",PAGE)}catch(e){}
-    try{await hypeAdd(env,x.uid,"🏆 "+(i+1)+" место в Билетной гонке · "+P.n,1)}catch(e){}}
-  try{const M=["🥇","🥈","🥉"];await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"🏁 БИЛЕТНАЯ ГОНКА ЗАВЕРШЕНА!\n\nПобедители:\n"+top.map((x,i)=>M[i]+" "+(x.name||"Игрок")+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nПризы уже в игре. Спасибо всем, кто играл! Новые конкурсы — скоро 🔥\n👉 @VoinyEpohBot",reply_markup:{inline_keyboard:[[{text:"⚔️ Играть",url:"https://t.me/VoinyEpohBot"}]]}})}catch(e){console.error("tk chan",e)}
-  for(const a of ADMINS)try{await notify(env,a,"🎟 Билетная гонка завершена!\n\n"+top.map((x,i)=>(i+1)+". "+(x.name||"Игрок")+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nПризы выданы автоматически.","⚔️ Открыть")}catch(e){}}
+async function tkAfter(req,env,resp){const c=CLREQ.get(req);if(!c||resp.status!==200)return;const j=await resp.clone().json();if(!j?.ok)return;
+ const u=await env.DB.prepare("SELECT clan FROM users WHERE id=?").bind(c.uid).first();if(u?.clan){await env.DB.prepare("INSERT INTO clan_wk(clan,wk,n) VALUES(?,?,?) ON CONFLICT(clan,wk) DO UPDATE SET n=n+excluded.n").bind(u.clan,mskWeek(Date.now()),c.n).run();
+ const W=cwWin(Date.now());if(W.on)await env.DB.prepare("INSERT INTO clan_ww(clan,wk,n) VALUES(?,?,?) ON CONFLICT(clan,wk) DO UPDATE SET n=n+excluded.n").bind(u.clan,W.wk,c.n).run();}}
+async function tkTop(env){const now=Date.now();if(TKC.v&&now-TKC.t<5000)return TKC.v;TKC.v=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name) AS name,json_extract(u.state,'$.ava') AS ava FROM tk t JOIN users u ON u.id=t.uid WHERE t.cid=? AND t.n>0 AND u.banned=0 ORDER BY t.n DESC,t.t ASC,t.uid ASC LIMIT 20").bind(TK.id).all()).results;TKC.t=now;return TKC.v;}
+async function tkPing(env,me,p){const now=Date.now(),my=await env.DB.prepare("SELECT n,t FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first(),n=my?.n||0;
+ const rank=n?1+((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk t JOIN users u ON u.id=t.uid WHERE t.cid=? AND u.banned=0 AND (t.n>? OR (t.n=? AND (t.t<? OR (t.t=? AND t.uid<?))))").bind(TK.id,n,n,my.t,my.t,me.id).first())?.c||0):0;
+ const cnt=(await env.DB.prepare("SELECT COUNT(*) AS c FROM tk t JOIN users u ON u.id=t.uid WHERE t.cid=? AND t.n>0 AND u.banned=0").bind(TK.id).first())?.c||0;
+ const rows=(await env.DB.prepare("SELECT k,n FROM tk_k WHERE cid=? AND uid=?").bind(TK.id,me.id).all()).results,M=Object.fromEntries(rows.map(x=>[x.k,x.n]));
+ return {id:TK.id,start:TK.start,end:TK.end,now,n,rank,cnt,got:0,top:(await tkTop(env)).map(x=>({...x,name:x.name||"Игрок",me:x.uid===me.id?1:0})),prizes:TK.prizes.map(x=>x.n),act:TK.act,how:TK.how,
+  fin:await kvGet(env,"tkfin:"+TK.id)||null,caps:Object.keys(TK.cap).map(k=>({k,n:TK.capN[k],have:Math.floor((M[k]||0)/(TK.unit[k]||1)),cap:TK.cap[k]/(TK.unit[k]||1)}))};}
+let tkFinBusy=false;
+async function tkFinish(env){if(Date.now()<TK.end||tkFinBusy)return;tkFinBusy=true;
+ try{
+  const key="tkfin:"+TK.id;if(await kvGet(env,key))return;
+  let frozen=await kvGet(env,"tkfreeze:"+TK.id);
+  if(!frozen){const top=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name,'Игрок') AS name FROM tk t JOIN users u ON u.id=t.uid WHERE t.cid=? AND t.n>0 AND u.banned=0 ORDER BY t.n DESC,t.t ASC,t.uid ASC LIMIT 3").bind(TK.id).all()).results;
+   await env.DB.prepare("INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)").bind("tkfreeze:"+TK.id,JSON.stringify({top,t:Date.now()})).run();frozen=await kvGet(env,"tkfreeze:"+TK.id);}
+  const top=frozen.top;
+  for(let i=0;i<top.length;i++){const x=top[i],P=TK.prizes[i];await env.DB.prepare("INSERT OR IGNORE INTO tk_awards(cid,place,uid,n,stars,chest) VALUES(?,?,?,?,?,?)").bind(TK.id,i+1,x.uid,x.n,P.stars,P.chest).run();}
+  // Stars, their audit entry and the receipt commit in the same transaction.
+  await env.DB.batch([
+   env.DB.prepare("UPDATE users SET star_bal=star_bal+(SELECT SUM(a.stars) FROM tk_awards a WHERE a.cid=? AND a.uid=users.id AND a.stars_paid=0) WHERE id IN(SELECT uid FROM tk_awards WHERE cid=? AND stars_paid=0)").bind(TK.id,TK.id),
+   env.DB.prepare("INSERT INTO star_grants(uid,amt,note,t,by) SELECT uid,stars,?, ?,0 FROM tk_awards WHERE cid=? AND stars_paid=0").bind("Билетная гонка "+TK.id,Date.now(),TK.id),
+   env.DB.prepare("UPDATE tk_awards SET stars_paid=1 WHERE cid=? AND stars_paid=0").bind(TK.id)]);
+  for(const x of (await env.DB.prepare("SELECT * FROM tk_awards WHERE cid=? AND chest_paid=0 ORDER BY place").bind(TK.id).all()).results){
+   await doAction(env,{id:x.uid,name:top.find(w=>w.uid===x.uid)?.name||"Игрок"},"prize_add",{item:x.chest,pid:"tk:"+TK.id+":"+x.place,src:"Билетная гонка · "+x.place+" место"},{grant:true});
+   await env.DB.prepare("UPDATE tk_awards SET chest_paid=1 WHERE cid=? AND place=?").bind(TK.id,x.place).run();
+  }
+  const pending=(await env.DB.prepare("SELECT COUNT(*) AS n FROM tk_awards WHERE cid=? AND (stars_paid=0 OR chest_paid=0)").bind(TK.id).first())?.n||0;
+  if(pending)return;
+  await kvSet(env,key,{w:top.map((x,i)=>({name:x.name,n:x.n,prize:TK.prizes[i].n})),t:Date.now()});
+ }finally{tkFinBusy=false;}}
+
 /* 🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ (каждый день 08:00–22:00 по Минску): билет 29 ⭐, до 15 на игрока в день.
    Банк = все звёзды за билеты дня — целиком одному случайному билету (шанс = доля твоих билетов). Всем остальным — сундуки на сумму их билетов */
 const FAN_SIZES=["XS","S","M","L","XL","XXL","3XL"];
@@ -3923,6 +3988,7 @@ async function communityMembership(env,uid){
 async function communityCheck(env,me){
  const proof=me.dev?{channel:true,chat:true,known:true,channelKnown:true,chatKnown:true}:await communityMembership(env,me.id);
  const result=await doAction(env,me,"community_reward",{},{communityProof:proof});
+ try{await tkFriend(env,me.id,proof)}catch(e){console.error("tk friend check",e&&e.message)}
  return {...proof,reward:result.res.reward,error:proof.known?"":"Telegram пока не подтвердил проверку. Нажми ещё раз через несколько секунд."};
 }
 async function recruitRanks(env){return (await env.DB.prepare(`SELECT e.inviter AS uid,COALESCE(i.nick,i.name,'Воин') AS name,COUNT(*) AS n,MAX(e.qualified_at) AS reached
@@ -4087,7 +4153,7 @@ async function handle(req,env){{
     const a=String(body.a||""),p=body.p||{};
     if(env.TK_FORCE)TK.force=1;
     if(a==="open"||a==="open_multi")CLREQ.set(req,{uid:me.id,n:a==="open"?1:Math.max(1,Math.min(50,+p.n||1))});
-    if(a!=="rk"&&TK.act[a]&&tkLive(Date.now()))TKREQ.set(req,{uid:me.id,a,n:TK.act[a]==="n"?Math.max(1,Math.min(50,+p.n||1)):TK.act[a]});
+
     if(a==="tk_ping")return J({ok:true,res:await tkPing(env,me,p)});
     if(a==="lot_get")return J({ok:true,res:await lotGet(env,me)});
     if(/^fol_(info|claim|feed|top)$/.test(a))try{return J({ok:true,res:await folApi(env,me,a,p),S:a==="fol_claim"?await stateFor(env,me):undefined})}catch(e){if(e instanceof GameError)return J({ok:false,err:e.message});throw e}
