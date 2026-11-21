@@ -441,17 +441,6 @@ function nmDraw(){let el=$("nmbox");if(!S||!ONLINE||!$("open")){if(el)el.remove(
   return r}}
 /* ---------- ⭐ донаты для понта: Соавтор, звёздные титулы, Звезда дня, поддержка проекта ---------- */
 const ttlTag=k=>'<span class="ttlb'+(TITLES[k].stars||TITLES[k].sup?" ttls":"")+(k==="author"?" ttla":"")+'">'+TITLES[k].ic+" "+TITLES[k].n+'</span>';
-function flexSupport(gift){
-  const {min,max}=gift||SUP;
-  const heading=gift?"🎁 Копилка подарков":"❤️ Поддержать проект";
-  const copy=gift
-    ?'А это ваш подарок игре. Выберите свою сумму от '+fmtN(min)+(max?' до '+fmtN(max):'')+' ⭐. Это добровольная поддержка без игровых наград.'
-    :'Игру делает один человек. Если она тебе нравится — поддержи сколько хочешь. От '+SUP.title+' ⭐ за всё время — титул '+ttlTag("patron");
-  return '<div class="ghd">'+heading+'</div><div class="dnsup"><p>'+copy+'</p>'+
-    (gift?'<p><b>В копилке: '+fmtN(gift.total)+' ⭐</b></p>':'')+
-    '<div class="dnsr">'+[25,50,100,250,500].map(n=>'<button type="button" class="dnp" data-supn="'+n+'">'+n+' ⭐</button>').join("")+'</div>'+
-    '<div class="dnsr"><input id="dn-n" type="number" inputmode="numeric" min="'+min+'"'+(max?' max="'+max+'"':'')+' step="1" aria-label="Сумма в звёздах Telegram" placeholder="Своя сумма"><button type="button" class="craftbtn" data-sup="'+(gift?'gift':'support')+'">'+(gift?'🎁 Подарить игре':'❤️ Поддержать')+'</button></div></div>';
-}
 function flexTop(D){const own=S.titles||[],al=D.authLeft==null?TITLES.author.month:D.authLeft,nx=D.sdayNext?D.sdayNext.split("-").reverse().slice(0,2).join("."):null,me=escH(S.nick||S.name||"Ты");
   const btn=(k,st)=>own.includes(k)?'<button type="button" class="buy sm alt" disabled>✓ Уже твой</button>':'<button type="button" class="buy sm" data-ttlbuy="'+k+'">⭐ '+fmtN(st)+'</button>';
   return '<div class="dnhero"><b>⭐ Донат и понт</b><span>Всё здесь — только для красоты и славы. На силу и шансы не влияет</span></div>'+
@@ -462,7 +451,7 @@ function flexTop(D){const own=S.titles||[],al=D.authLeft==null?TITLES.author.mon
   '<div class="ghd">🎖 Титулы навсегда</div><p class="gnote">Видны рядом с ником в топах, чате, на арене и в витрине.</p><div class="dnttl">'+
    ["immortal","emperor"].map(k=>'<div class="dntc">'+ttlTag(k)+'<small>'+me+'</small>'+btn(k,TITLES[k].stars)+'</div>').join("")+'</div>'+
   '<div class="ghd">🌟 Звезда дня</div><div class="dnday"><div><b>Твой ник и лучшая карточка весь день на главной у всех игроков</b><small>'+(nx?"Ближайший свободный день: "+nx:"Все дни заняты")+' · один игрок в день</small></div><button type="button" class="buy sm" data-buy="sday"'+(nx?"":" disabled")+'>⭐ '+SDAY.stars+'</button></div>'+
-  flexSupport(D.gameGift)}
+  ""}
 $("gold-body").addEventListener("click",e=>{const t=e.target.closest("button");if(!t||t.disabled)return;
   if(t.dataset.ttlbuy){hap("light");return buyItem({item:"title",k:t.dataset.ttlbuy})}
   if(t.dataset.supn){hap("light");const i=$("dn-n");if(i)i.value=t.dataset.supn;document.querySelectorAll(".dnp").forEach(x=>x.classList.toggle("on",x===t));return}
@@ -485,7 +474,7 @@ function flexDay(d){const t=d===today(NOW());sfx.fanfare();burst(3);hapN("succes
     loadGold();hapN("success");
     const m=$("modal"),sh=$("msheet");
     m.hidden=false;
-    sh.innerHTML='<div class="box nickbox grant dndone"><h3>🎁 Спасибо за подарок игре!</h3><p>В копилку добавлено '+fmtN(r.res?.n||0)+' ⭐.</p><button type="button" class="craftbtn" id="dn-ok">Готово</button></div>';
+    sh.innerHTML='<div class="box nickbox grant dndone"><h3>🎁 Спасибо за подарок игре!</h3><p>Получен платёж: '+fmtN(r.res?.n||0)+' ⭐.</p><button type="button" class="craftbtn" id="dn-ok">Готово</button></div>';
     $("dn-ok").onclick=closeModal;
     return;
   }

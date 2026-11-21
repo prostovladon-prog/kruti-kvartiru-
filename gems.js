@@ -113,8 +113,8 @@ window.FAVE=false;
 function topupOpen(){$("modal").hidden=false;const sh=$("msheet");
   sh.innerHTML='<div class="gemw"><div class="gem-h"><b>💳 Пополнить</b><button type="button" class="ghost" id="tp-x">✕</button></div><p class="gem-p">Звёзды покупаются прямо в Telegram — в Сокровищнице выбери набор или впиши свою сумму.</p>'+
    '<button type="button" class="gem-go" id="tp-go">⭐ Открыть Сокровищницу<small>наборы, сундуки и своя сумма звёзд</small></button>'+
-   '<button type="button" class="gem-go dsp" id="tp-help">🆘 Не проходит оплата?<small>Напиши админу — поможем пополнить вручную. Укажи свой ID: '+(S&&S.uid||"—")+'</small></button></div>';
-  $("tp-x").onclick=closeModal;$("tp-go").onclick=()=>{closeModal();openGold()};$("tp-help").onclick=()=>{closeModal();openSupport("pay")}}
+   '</div>';
+  $("tp-x").onclick=closeModal;$("tp-go").onclick=()=>{closeModal();openGold()}}
 /* ===== Война кланов за земли (гекс-карта) ===== */
 let CWD=null,CWsel=-1;
 const cwCol=id=>id?"hsl("+(id*67%360)+" 70% 50%)":"#2a3050";
@@ -346,20 +346,8 @@ setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();con
  new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
 
 /* 🎠 События над карточкой: свайп и автоматическое переключение */
-const EVENT_BARS=["tk-bar","lot-bar","vhstrip","game-gift-strip"];
-function gameGiftStrip(sp){
-  let b=$("game-gift-strip");
-  if(!S||!ONLINE||!S.gameGiftOn){if(b)b.remove();return}
-  if(b)return;
-  b=document.createElement("button");b.type="button";b.id="game-gift-strip";b.className="r3strip vtstrip vhstrip";
-  b.innerHTML='<i>🎁</i><span><b>Копилка подарков</b></span><em>▶</em>';
-  b.onclick=async()=>{
-    hap("light");goldTab="flex";setTab("gold");
-    await loadGold();
-    if(goldTab==="flex"&&!$("sec-gold")?.hidden)$("dn-n")?.closest(".dnsup")?.scrollIntoView({block:"center"});
-  };
-  sp.insertBefore(b,$("stage"));
-}
+const EVENT_BARS=["tk-bar","lot-bar","vhstrip"];
+function gameGiftStrip(sp){$("game-gift-strip")?.remove();}
 function evCar(){const sp=$("sec-spin");if(!sp)return;gameGiftStrip(sp);const bars=EVENT_BARS.map(id=>$(id)).filter(Boolean);let C=$("ev-car");
  if(!bars.length){if(C)C.remove();return}
  if(!C){C=document.createElement("div");C.id="ev-car";C.className="ev-car";C.innerHTML='<div class="ev-tr"></div><div class="ev-dots"></div>';const v=$("vhstrip"),hy=$("hype");if(v&&v.parentNode===sp)v.before(C);else if(hy&&hy.parentNode===sp)hy.after(C);else bars[0].before(C);

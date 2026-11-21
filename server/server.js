@@ -446,7 +446,7 @@ async function stateFor(env,me){
   try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
   S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
-  Object.assign(S,await nickFx(env));S.shopOn=1;S.gameGiftOn=1;try{S.sday=await sdayNow(env)}catch(e){S.sday=null}   // переливающиеся ники и «Король Эпох» месяца
+  Object.assign(S,await nickFx(env));S.shopOn=1;S.gameGiftOn=0;try{S.sday=await sdayNow(env)}catch(e){S.sday=null}   // переливающиеся ники и «Король Эпох» месяца
   if(u.founder&&!u.founder_seen){await env.DB.prepare("UPDATE users SET founder_seen=1 WHERE id=?").bind(me.id).run();delete topCache.founders}
   // кто нападал на мои карточки за 3 дня: для уведомлений и реванша
   S.fights=(await env.DB.prepare("SELECT id,att_name,att_card,att_h,def_h,w,l,t,seen,stake,took FROM fights WHERE def=? AND t>? ORDER BY id DESC LIMIT 6").bind(me.id,Date.now()-3*864e5).all()).results;
@@ -469,7 +469,7 @@ async function stateFor(env,me){
   if(Math.abs((u.worth||0)-worth)>.004||(u.album||0)!==album||(u.wins||0)!==wins||(u.emp||0)!==emp){
     await env.DB.prepare("UPDATE users SET worth=?,album=?,wins=?,emp=? WHERE id=?").bind(worth,album,wins,emp,me.id).run();
     const r0=empRank(u.emp||0),r1=empRank(emp);if(r1>r0&&r1>=3&&(u.emp||0)>0)try{await hypeAdd(env,me.id,EMP.R[r1].ic+" поднял Империю до ранга «"+EMP.R[r1].n+"»!",r1>=4)}catch(e){}}
-  S.quiz=await birthdayQuizSummary(env,me.id);
+  S.quiz=null;
   S.community={required:!(S.subGot2&&S.chatGot),channel:!!S.subGot2,chat:!!S.chatGot};
   S.recruit=await recruitSummary(env,me.id);
   return S;
@@ -2519,6 +2519,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
   if(item==="support"){const n=Math.floor(+p.n||0);if(!(n>=SUP.min&&n<=SUP.max))fail("Сумма — от "+SUP.min+" до "+SUP.max+" ⭐");
     return {item,stars:n,title:"❤️ Поддержка проекта",desc:"Спасибо, что поддерживаешь «Воинов Эпох»! Звёзды идут на развитие игры: новых воинов, события и сервер. От "+SUP.title+" ⭐ — титул «Меценат» ❤️",data:{n}}}   /* n обязателен: при pre_checkout сумма проверяется ещё раз */
   if(item==="game_gift"){
+    if(!except)fail("Копилка подарков закрыта");
     const n=Number(p.n);
     if(!Number.isSafeInteger(n)||n<GAME_GIFT.min)fail("Введи целую сумму от "+GAME_GIFT.min+" ⭐");
     return {item,stars:n,title:"🎁 Подарок игре",desc:"Добровольная поддержка «Воинов Эпох» без игровых наград. Спасибо, что помогаешь игре развиваться!",data:{n}};
@@ -2712,10 +2713,7 @@ async function shopInfo(env,me){
   const duos=await cached("shopduos",10e3,async()=>{const o={};for(const h of DUO)o[h]=0;for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DUO_F).all()).results)if(o[r.h]!=null)o[r.h]=r.n;return o});
   const dia=await cached("shopdia",8e3,async()=>{const o={};for(const h in DIA)o[h]=DIA[h].run;
     for(const r of (await env.DB.prepare("SELECT h,COUNT(*) AS n FROM cards WHERE f=? GROUP BY h").bind(DIA_F).all()).results)if(o[r.h]!=null)o[r.h]=Math.max(0,DIA[r.h].run-r.n);return o});
-  const gameGift=await cached("gameGift",30e3,async()=>{
-    const row=await env.DB.prepare("SELECT COALESCE(SUM(stars),0) AS total FROM payments WHERE item='game_gift' AND status='done' AND charge IS NOT NULL AND charge<>'' AND charge<>'bal' AND charge NOT LIKE 'sim%'").first();
-    return {...GAME_GIFT,total:row?.total||0};
-  });
+  const gameGift=null;
   return {comp,ones,duos,dia,gleft:await giftLeft(env),mythLeft:await mythLeft(env),donors:[],mine:0,authLeft:await titleLeft(env,"author"),sdayNext:await sdayFree(env,Date.now()),fx:u.fx_until>Date.now()?u.fx:null,fxUntil:u.fx_until||0,gameGift}}
 async function tgApi(env,method,body){let r;try{r=await fetch("https://api.telegram.org/bot"+env.BOT_TOKEN+"/"+method,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)})}catch(e){return {ok:false,description:"network"}}return r.json().catch(()=>({ok:false}))}
 /* ---------- переезд на свой сервер: выгрузка базы и режим «технические работы» ----------
@@ -3790,7 +3788,7 @@ async function abnTick(env){if(!ABN.on||abnBusy)return;abnBusy=true;try{const no
   for(const r of L){const k="abn:"+r.uid,last=(await kvGet(env,k))||0;if(now-last<ABN.cool)continue;await kvSet(env,k,now);
     const bmin=Math.max(25,r.s),bon=abnBon(bmin),until=now+ABN.ttl;
     await env.DB.prepare("INSERT OR REPLACE INTO promo_uses(code,uid,t,x2,x2d,bon,bon_until,bmin) VALUES(?,?,?,0,0,?,?,?)").bind(ABN.code,r.uid,now,bon,until,bmin).run();
-    await notify(env,r.uid,"🛒 Мы заметили — ты не дооформил заказ.\n\nНичего страшного! Держи личный бонус: пополни баланс от "+bmin+" ⭐ в течение 24 часов — и получи ещё +"+bon+" ⭐ СВЕРХУ 🎁\n\nБонус уже привязан к тебе, промокод не нужен. С баланса можно купить любой сундук: при оплате выбирай «Оплатить с баланса».\n\n🌍 Не проходит оплата из-за страны или санкций? Напиши @voinovadmin — поможем.","⭐ Пополнить с бонусом",PAGE+"?shop=flex")}
+    await notify(env,r.uid,"🛒 Мы заметили — ты не дооформил заказ.\n\nНичего страшного! Держи личный бонус: пополни баланс от "+bmin+" ⭐ в течение 24 часов — и получи ещё +"+bon+" ⭐ СВЕРХУ 🎁\n\nБонус уже привязан к тебе, промокод не нужен. С баланса можно купить любой сундук: при оплате выбирай «Оплатить с баланса».","⭐ Пополнить с бонусом",PAGE+"?shop=flex")}
   }finally{abnBusy=false}}
 /* 18.11: правила конкурса упрощены (только @VoinyEpohBot в нике или «О себе», без истории и Instagram) и продлён до 19.11 22:00 — пост в канал, бот и чат сразу после выкатки */
 const ST3X={id:"st3x_1811",on:true,at:Date.UTC(2026,10,18,12,0),until:Date.UTC(2026,10,19,18,0),photo:"assets/post-st3x.jpg",btn:"📸 Участвовать",link:"?chal=1",
@@ -4251,7 +4249,7 @@ async function handle(req,env){{
         const rows=(await env.DB.prepare("SELECT id,nick FROM users WHERE created>=? AND created<? ORDER BY created").bind(d0,d0+D).all()).results,best=[];
         for(const r of rows){if(!r.nick)continue;const c=await env.DB.prepare("SELECT h,f,v FROM cards WHERE owner=? ORDER BY v DESC LIMIT 1").bind(r.id).first();best.push({nick:r.nick,hero:c?HEROES[c.h][0]:"",tier:c?HT[HEROES[c.h][2]].k:"",fin:c&&c.f?FIN[c.f].k:"",v:c?Math.round(c.v):0})}
         return J({ok:true,res:{day:new Date(d0+3*3600e3).toISOString().slice(0,10),total:rows.length,nicks:best.map(b=>b.nick),best}})}
-      if(/^quiz_/.test(a))return J({ok:true,res:await birthdayQuizApi(env,me,a,p)});
+      if(/^quiz_/.test(a))fail("Викторина удалена из игры");
       if(/^tr_/.test(a)){const res=await tradeApi(env,me,a,p);return J({ok:true,res,S:a==="tr_list"||a==="tr_cards"?undefined:await stateFor(env,me)})}
       if(/^clan_/.test(a)){const res=await clanApi(env,me,a,p);return J({ok:true,res,S:a==="clan_info"?undefined:await stateFor(env,me)})}
       if(/^live_/.test(a))return J({ok:true,res:await liveApi(env,me,a,p)});if(/^ref3_/.test(a))return J({ok:true,res:await ref3Api(env,me,a,p)});if(/^rs_/.test(a))return J({ok:true,res:await rsApi(env,me,a,p)});if(a==="adm_dash"){if(!isAdmin(env,me.id))fail("Нет доступа");return J({ok:true,res:await admDash(env)})}if(/^rf_/.test(a))return J({ok:true,res:await rfApi(env,me,a,p)});if(a==="cat_info")return J({ok:true,res:await catInfo(env)});if(/^vc_/.test(a))return J({ok:true,res:await vcApi(env,me,a,p)});if(/^ft_/.test(a))return J({ok:true,res:await ftApi(env,me,a,p)});if(/^vt_/.test(a)){const res=await voteApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(/^rd_/.test(a)){const res=await riddleApi(env,me,a,p);return J({ok:true,res,S:res&&res.hit?await stateFor(env,me):undefined})}if(a==="comeback_spin"){const r=await doAction(env,me,a,p);return J({ok:true,...r})}if(a==="promo_use"||a==="promo_x2"||/^pcode_/.test(a)){const res=await promoApi(env,me,a,p);return J({ok:true,res,S:a==="promo_use"?await stateFor(env,me):undefined})}
