@@ -225,12 +225,44 @@ const HEROES=[
  ["Вольга Святославич","Былины Руси",4,"Богатырь-оборотень знает язык зверей и птиц.",{"base":1,"myth26":1,"helm":"shishak","weapon":"spear","armor":"mail","cape":"#51408e","hair":"long","hairc":"#3b2a1d","glow":"#a98cda","hue":265,"p":[9,7,8,8,8]}],
  ["Микула Селянинович","Былины Руси",4,"Богатырь-пахарь: его силу питает сама родная земля.",{"base":1,"myth26":1,"hair":"long","hairc":"#80522d","beard":"#80522d","weapon":"club","armor":"cloth","cape":"#987343","hue":35,"p":[7,8,6,9,8]}],
  ["Нинурта","Мифы Месопотамии",4,"Бог-воин побеждает чудовищ и охраняет плодородные земли.",{"base":1,"myth26":1,"helm":"suncrown","weapon":"club","armor":"scale","gold":1,"beardL":"#30231b","cape":"#307a7b","skin":2,"hue":180,"p":[8,9,7,7,8]}],
+ /* Тридцать воинов преданий: родные портреты, отделки и баланс редкости. */
+ ["Анат","Предания Угарита",1,"Воительница, связанная с войной и охотой.",{"helm":"tiara","armor":"scale","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"spear","hue":350,"p":[5,3,4,3,3],"cape":"#7c2944","female":1,"hair":"long","hairc":"#302016"}],
+ ["Митра","Предания Персии",2,"Хранитель договоров и верности данному слову.",{"helm":"tiara","armor":"scale","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"sword","hue":40,"p":[4,6,3,6,4],"cape":"#2a667b"}],
+ ["Веретрагна","Предания Персии",2,"Покровитель победы вступает в бой под золотым знаменем.",{"helm":"tiara","armor":"scale","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"banner","hue":20,"p":[4,3,6,4,6],"cape":"#506537"}],
+ ["Гуань Юй","Предания Китая",2,"Воинская верность и честь для него дороже победы.",{"helm":"diadem","armor":"lam","hair":"long","hairc":"#24201c","skin":1,"base":1,"exp30":1,"weapon":"halberd","hue":145,"p":[5,5,3,5,5],"cape":"#287148","beard":"#49301e","beardL":"#20201b"}],
+ ["Чи Ю","Предания Китая",2,"Грозный предводитель из древних китайских преданий.",{"helm":"diadem","armor":"lam","hair":"long","hairc":"#24201c","skin":1,"base":1,"exp30":1,"weapon":"axe","hue":355,"p":[3,4,5,5,6],"cape":"#ab6032"}],
+ ["Нэчжа","Предания Китая",2,"Юный воин-защитник не отступает перед опасностью.",{"helm":"diadem","armor":"lam","hair":"long","hairc":"#24201c","skin":1,"base":1,"exp30":1,"weapon":"spear","hue":335,"p":[6,4,5,4,4],"cape":"#7c2944"}],
+ ["Эрлан Шэнь","Предания Китая",2,"Божественный воин стоит на страже порядка.",{"helm":"diadem","armor":"lam","hair":"long","hairc":"#24201c","skin":1,"base":1,"exp30":1,"weapon":"trident","hue":215,"p":[4,6,3,6,4],"cape":"#2a667b","beard":"#49301e"}],
+ ["Хатиман","Предания Японии",3,"Покровитель воинов охраняет знамёна самураев.",{"helm":"kabuto","armor":"lam","skin":1,"base":1,"exp30":1,"weapon":"bow","hue":225,"p":[5,4,7,5,7],"cape":"#506537","glow":"#88d8f5","x":["aura"]}],
+ ["Такэмикадзути","Предания Японии",3,"Бог меча встречает грозу с обнажённым клинком.",{"helm":"kabuto","armor":"lam","skin":1,"base":1,"exp30":1,"weapon":"katana","hue":200,"p":[6,6,4,6,6],"cape":"#74509a","glow":"#bf9aea","x":["aura"]}],
+ ["Фуцуномикото","Предания Японии",2,"Воин из древних преданий об усмирении земель.",{"helm":"kabuto","armor":"lam","skin":1,"base":1,"exp30":1,"weapon":"katana","hue":275,"p":[3,4,5,5,6],"cape":"#ab6032","beard":"#49301e"}],
+ ["Бэнкэй","Предания Японии",1,"Воин-монах хранит верность своему спутнику.",{"helm":"hood","armor":"cloth","skin":1,"base":1,"exp30":1,"weapon":"halberd","hue":25,"p":[5,3,4,3,3],"cape":"#7c2944"}],
+ ["Минамото-но Ёсицунэ","Предания Японии",1,"Искусный полководец выбирает точный момент для атаки.",{"helm":"kabuto","armor":"lam","skin":1,"base":1,"exp30":1,"weapon":"katana","hue":350,"p":[3,5,2,5,3],"cape":"#2a667b"}],
+ ["Уицилопочтли","Предания ацтеков",3,"Воинственный солнечный покровитель ацтеков.",{"helm":"suncrown","armor":"pelt","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"spear","hue":190,"p":[5,4,7,5,7],"cape":"#506537","beard":"#49301e","glow":"#ffd36b","x":["aura"]}],
+ ["Тескатлипока","Предания ацтеков",3,"Таинственный владыка ночи скрывается в тени.",{"helm":"suncrown","armor":"pelt","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"khopesh","hue":270,"p":[6,6,4,6,6],"cape":"#74509a","glow":"#88d8f5","x":["aura"]}],
+ ["Шипе Тотек","Предания ацтеков",3,"Обновление мира приходит вслед за испытаниями.",{"helm":"suncrown","armor":"pelt","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"sword","hue":15,"p":[4,5,6,6,7],"cape":"#ab6032","glow":"#bf9aea","x":["aura"]}],
+ ["Камаштли","Предания ацтеков",1,"Покровитель охоты уверенно держит свой лук.",{"helm":"suncrown","armor":"pelt","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"bow","hue":110,"p":[5,3,4,3,3],"cape":"#7c2944","beard":"#49301e"}],
+ ["Нуада","Предания Ирландии",2,"Воинственный король Туата Де Дананн.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"sword","hue":195,"p":[4,6,3,6,4],"cape":"#2a667b"}],
+ ["Луг","Предания Ирландии",2,"Мастер многих искусств и искусный воин.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"spear","hue":45,"p":[4,3,6,4,6],"cape":"#506537"}],
+ ["Морриган","Предания Ирландии",3,"Загадочная богиня войны и судьбы.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"staff","hue":280,"p":[6,6,4,6,6],"cape":"#74509a","female":1,"hair":"long","hairc":"#302016","glow":"#ffd36b","x":["aura"]}],
+ ["Бадб","Предания Ирландии",1,"Её имя связано с войной и образом вороны.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"spear","hue":240,"p":[2,3,4,4,5],"cape":"#ab6032","female":1,"hair":"long","hairc":"#302016"}],
+ ["Маха","Предания Ирландии",1,"Воительница, связанная с королевской властью.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"sword","hue":345,"p":[5,3,4,3,3],"cape":"#7c2944","female":1,"hair":"long","hairc":"#302016"}],
+ ["Перкунас","Предания Балтики",3,"Громовой покровитель поднимает оружие навстречу буре.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"axe","hue":205,"p":[5,7,4,7,5],"cape":"#2a667b","beard":"#49301e","glow":"#ffd36b","x":["aura"]}],
+ ["Укко","Предания Финляндии",3,"Владыка грома стоит под грозовым небом.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"club","hue":210,"p":[5,4,7,5,7],"cape":"#506537","glow":"#88d8f5","x":["aura"]}],
+ ["Вяйнямёйнен","Предания Финляндии",1,"Мудрый герой и певец древних преданий.",{"helm":"wizard","armor":"cloth","skin":0,"base":1,"exp30":1,"weapon":"staff","hue":180,"p":[4,4,2,4,4],"cape":"#74509a","beardL":"#dadfe2"}],
+ ["Ильмаринен","Предания Финляндии",1,"Легендарный кузнец знает силу железа.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"club","hue":30,"p":[2,3,4,4,5],"cape":"#ab6032","beard":"#49301e"}],
+ ["Лемминкяйнен","Предания Финляндии",1,"Отважный герой отправляется навстречу приключениям.",{"helm":"viking","armor":"mail","skin":0,"base":1,"exp30":1,"weapon":"sword","hue":130,"p":[5,3,4,3,3],"cape":"#7c2944"}],
+ ["Ваагн","Предания Армении",3,"Огненный воин встречает опасность без страха.",{"helm":"tiara","armor":"scale","bronze":1,"skin":2,"base":1,"exp30":1,"weapon":"spear","hue":15,"p":[5,7,4,7,5],"cape":"#2a667b","glow":"#bf9aea","x":["aura"]}],
+ ["Шанго","Предания йоруба",3,"Громовой покровитель держит боевой топор.",{"helm":"band","armor":"pelt","skin":3,"base":1,"exp30":1,"weapon":"axe","hue":350,"p":[5,4,7,5,7],"cape":"#506537","beard":"#49301e","glow":"#ffd36b","x":["aura"]}],
+ ["Огун","Предания йоруба",1,"Покровитель железа, труда и воинского ремесла.",{"helm":"band","armor":"pelt","skin":3,"base":1,"exp30":1,"weapon":"sword","hue":140,"p":[4,4,2,4,4],"cape":"#74509a"}],
+ ["Гу","Предания Дагомеи",2,"Воинственный покровитель железа.",{"helm":"band","armor":"pelt","skin":3,"base":1,"exp30":1,"weapon":"spear","hue":195,"p":[3,4,5,5,6],"cape":"#ab6032"}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
 const isBase=h=>h<NBASE||!!(HEROES[h]&&HEROES[h][4].base), BASE=HEROES.map((H,i)=>i).filter(isBase), baseNo=h=>BASE.indexOf(h)+1;
 /* альбом = все воины, которые выпадают в прокрутах: обычные + карты драконов */
 const inAlbum=h=>isBase(h)||!!(HEROES[h]&&(HEROES[h][4].dgc||HEROES[h][4].relic)), ALBUM=HEROES.map((H,i)=>i).filter(inAlbum), NHEROES=ALBUM.length;
+const SERIES_WEIGHT=HT.map((_,tier)=>{const all=HEROES.filter((H,i)=>(isBase(i)||H[4].dgc)&&H[2]===tier),w=H=>H[4].dgc?.5:1;const sum=all.reduce((n,H)=>n+w(H),0);return sum?all.filter(H=>!H[4].exp30).reduce((n,H)=>n+w(H),0)/sum:1});
 const MYTH_WEIGHT=(()=>{const all=HEROES.filter((H,i)=>(isBase(i)||H[4].dgc)&&H[2]===4),w=H=>H[4].dgc?.5:1;return all.filter(H=>!H[4].myth26).reduce((n,H)=>n+w(H),0)/all.reduce((n,H)=>n+w(H),0)})();
 const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h]&&HEROES[h][4].duo), DUO_F=7, DUO_RUN=2;
 const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
@@ -816,7 +848,7 @@ function hofCard(v){let r=0,lo=0;v=v||0;for(const [hi,p] of HOF.tiers){if(v<=lo)
 function hofRate(st,cards){const ids=new Set(st.hof||[]);let v=0;for(const c of cards)if(ids.has(c.id))v+=hofCard(c.v);return v*(1+Math.min(HOF.collMax,hofColl(cards)*HOF.coll))*(1+EMP.inc*empRank(empPower(st,cards)))}
 function rollCard(ctx,epic){
   const mt=epic===3?3:epic?2:0,pool=HEROES.map((H,i)=>i).filter(i=>(isBase(i)||HEROES[i][4].dgc)&&HEROES[i][2]>=mt);   // драконы-карточки тоже выпадают в обычных прокрутах
-  const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]*(HEROES[i][4].dgc?.5:1)*(HEROES[i][2]===4?MYTH_WEIGHT:1)))];
+  const h=pool[pick(pool.map(i=>(ctx.luck?HW_LUCK:HW)[HEROES[i][2]]*(HEROES[i][4].dgc?.5:1)*(HEROES[i][2]===4?MYTH_WEIGHT:1)*SERIES_WEIGHT[HEROES[i][2]]))];
   let f=pick(ctx.luck?FW_LUCK:FIN.map((x,i)=>ctx.fBoost&&(i===2||i===3)?x.w*LUCK.boost:x.w));if(FIN[f].dia)f=0;f=finCap(ctx,f,h);if(ctx.fForce&&f<2)f=2;while(f>0&&ctx.issuedOf(h,f)>=FIN[f].run)f--;
   return makeCard(ctx,h,f);
 }
