@@ -2548,7 +2548,9 @@ async function cwGet(env,me){const now=Date.now(),W=cwWin(now),u=await env.DB.pr
   const top=(await env.DB.prepare("SELECT w.clan AS id,w.n,c.name FROM clan_ww w JOIN clans c ON c.id=w.clan WHERE w.wk=? ORDER BY w.n DESC LIMIT 10").bind(W.wk).all()).results;
   let my=null;if(u.clan){const r=await env.DB.prepare("SELECT n FROM clan_ww WHERE clan=? AND wk=?").bind(u.clan,W.wk).first();const n=r?r.n:0;const pl=((await env.DB.prepare("SELECT COUNT(*) AS c FROM clan_ww WHERE wk=? AND n>?").bind(W.wk,n).first())||{}).c+1;my={n,place:pl}}
   return {on:W.on?1:0,start:W.start,end:W.end,top,my,prize:CWW.prize.map(x=>x[1]),res:await kvGet(env,"cw_res:"+W.wk)}}
-let cwwBusy=0;async function cwwTick(env){const now=Date.now(),W=cwWin(now);if(now<W.end||now>W.end+20*36e5||cwwBusy)return;const k="cw_res:"+W.wk;if(await kvGet(env,k))return;cwwBusy=1;try{
+let cwwBusy=0;async function cwwTick(env){const now=Date.now(),W=cwWin(now);if(now<W.end||now>W.end+20*36e5||cwwBusy)return;const k="cw_res:"+W.wk;cwwBusy=1;try{
+  const previous=await kvGet(env,k);
+  if(previous){await cwwRecoverNovember22(env,W,previous);return}
   const top=(await env.DB.prepare("SELECT w.clan AS id,w.n,c.name FROM clan_ww w JOIN clans c ON c.id=w.clan WHERE w.wk=? AND w.n>0 ORDER BY w.n DESC LIMIT 3").bind(W.wk).all()).results;
   await kvSet(env,k,{top,t:now});
   for(let i=0;i<top.length;i++){const C=top[i],P=CWW.prize[i];const mem=await clanMembers(env,C.id);
@@ -2557,6 +2559,27 @@ let cwwBusy=0;async function cwwTick(env){const now=Date.now(),W=cwWin(now);if(n
       try{await notify(env,m.id,["🥇","🥈","🥉"][i]+" Твой клан «"+C.name+"» занял "+(i+1)+" место в войне кланов выходных!\n\n🎁 "+P[1]+" уже открыт у тебя в игре. Спасибо за вклад!","🎁 Открыть игру")}catch(e){}}}
   if(top.length)try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"⚔️ ИТОГИ ВОЙНЫ КЛАНОВ ВЫХОДНЫХ!\n\n"+top.map((c,i)=>["🥇","🥈","🥉"][i]+" «"+c.name+"» — "+c.n+" карточек").join("\n")+"\n\nКаждый участник кланов-призёров уже получил сундук 🎁 В следующие выходные — новая война!\n\n👉 @VoinyEpohBot"})}catch(e){}
  }finally{cwwBusy=0}}
+// The original run recorded trophies even if an individual chest grant failed.
+async function cwwRecoverNovember22(env,W,result){
+  if(W.wk!=="2026-11-16"||result.top?.length!==3||
+    result.top.map(c=>c.n).join(",")!=="5479,2354,1667")return;
+  const key="cw_recovered:"+W.wk;
+  if(await kvGet(env,key))return;
+  let granted=0;
+  for(let i=0;i<result.top.length;i++){
+    const clan=result.top[i];
+    const label=(i+1)+" место в войне кланов ("+clan.name+")";
+    const players=(await env.DB.prepare(
+      "SELECT u.id,COALESCE(u.nick,u.name,'Игрок') AS name FROM trophies t JOIN users u ON u.id=t.uid WHERE t.k=? AND t.txt=?"
+    ).bind("cw:"+W.wk,label).all()).results;
+    if(!players.length)throw new Error("No recorded recipients for clan "+clan.id);
+    for(const player of players){
+      const {res}=await doAction(env,player,"grant",{item:CWW.prize[i][0],pid:"cw:"+W.wk+":"+player.id},{grant:true});
+      if(!res.dup)granted++;
+    }
+  }
+  await kvSet(env,key,{t:Date.now(),granted});
+}
 /* 👥 подписчики = кто добавил игрока в друзья. Живой подписчик — открыл от FOL.live карточек (против твинков) */
 const FOL={live:10,tiers:[{n:10,ic:"📣",t:"Значок 📣 у ника + 10 прокруток",sp:10},{n:50,ic:"⭐",t:"Рамка «Звезда эпохи» + Королевский сундук",chest:"royal",frame:1},{n:100,ic:"🏅",t:"Титул «Легенда сообщества» + Легендарный сундук",chest:"legend",title:"Легенда сообщества"},{n:500,ic:"👑",t:"Титул «Икона эпох» + VIP Золото на 30 дней",vip:30,title:"Икона эпох"}]};
 async function folCount(env,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM friends f JOIN users u ON u.id=f.uid WHERE f.fid=? AND COALESCE(json_extract(u.state,'$.nOp'),0)>=?").bind(uid,FOL.live).first())||{}).n|0}
@@ -2940,8 +2963,7 @@ function rkView(m,uid){const side=m.a===uid?"a":(!m.ghost&&m.b===uid)?"b":null,o
     last:S.log.length?S.log[S.log.length-1]:null,win:m.phase==="done"||m.phase==="end"?S.win:null,res:res&&side?res[side]:null}}
 async function rkMatchSearch(env,me,q,wide){const now=Date.now();
   const rows=(await env.DB.prepare("SELECT * FROM rq WHERE uid<>? AND t>? AND wc BETWEEN ? AND ? ORDER BY ABS(wc-?),ABS(rating-?),t LIMIT 5").bind(me.id,now-RK_LIVE_Q,wide?q.wc-1:q.wc,wide?q.wc+1:q.wc,q.wc,q.rating).all()).results;
-  for(const o of rows){const day=dayOf(now);   // с одним соперником не больше 3 боёв в день
-    const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM rm WHERE ghost=0 AND created>? AND ((a=? AND b=?) OR (a=? AND b=?))").bind(now-864e5,me.id,o.uid,o.uid,me.id).first())||{}).n||0;if(n>=3)continue;
+  for(const o of rows){
     const del=await env.DB.prepare("DELETE FROM rq WHERE uid=? AND t=?").bind(o.uid,o.t).run();if(del.meta.changes!==1)continue;
     let oc;try{oc=await rkCardOf(env,o.uid,o.card)}catch(e){continue}
     const ou=await rkUser(env,o.uid),mu=await rkUser(env,me.id),mc=await rkCardOf(env,me.id,q.card);
@@ -2958,9 +2980,9 @@ async function rkApi(env,me,a,p){const now=Date.now();
     const rank=rating>0?(((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE rating>? AND rk_season=?").bind(rating,seasonOf(now)).first())||{}).n||0)+1:0;
     const act=await rkActive(env,me.id),q=await env.DB.prepare("SELECT * FROM rq WHERE uid=?").bind(me.id).first();
     const d=new Date(now+TZ),next=Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,1)-TZ;
-    return {rating,lg:league(rating),streak:u.rk_streak||0,dayn:u.dayn,dayMax:RK_DAY,rank,seasonLeft:next-now,season:seasonOf(now),top:top.map(r=>({uid:r.id,name:r.name,rating:r.rating,lg:league(r.rating)})),
+    return {rating,lg:league(rating),streak:u.rk_streak||0,dayn:u.dayn,dayMax:null,rank,seasonLeft:next-now,season:seasonOf(now),top:top.map(r=>({uid:r.id,name:r.name,rating:r.rating,lg:league(r.rating)})),
       active:act?act.id:null,queued:q?{card:q.card,wc:q.wc,since:q.t}:null,fat:st.fat||{}}}
-  if(a==="rk_find"){if(await rkActive(env,me.id))fail("У тебя уже идёт рейтинговый бой");const u=await rkUser(env,me.id);if(u.dayn>=RK_DAY)fail("На сегодня рейтинговые бои закончились ("+RK_DAY+" в день). Завтра новые!");
+  if(a==="rk_find"){if(await rkActive(env,me.id))fail("У тебя уже идёт рейтинговый бой");const u=await rkUser(env,me.id);
     const c=await rkCardOf(env,me.id,p.id),q={uid:me.id,card:c.id,wc:wclass(c.h),rating:u.rating,t:now};
     await env.DB.prepare("INSERT INTO rq(uid,card,wc,rating,t) VALUES(?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET card=excluded.card,wc=excluded.wc,rating=excluded.rating,t=excluded.t").bind(q.uid,q.card,q.wc,q.rating,q.t).run();
     const id=await rkMatchSearch(env,me,q,false);return {match:id||null,queued:id?null:{card:c.id,wc:q.wc,since:now}}}
@@ -3713,7 +3735,7 @@ const uidOf=x=>{const n=Math.floor(Number(x));return Number.isSafeInteger(n)&&n>
 const TK={id:"tk20261122",start:Date.UTC(2026,10,22,5),end:Date.UTC(2026,10,22,19),min:0,
  act:{duel:2,rk:3,conq_fight:2,dga_fight:2,streak:5,camp_tap:1,dg_tap:1,dg_play:5,dg_morning:3,dg_nest:5,dg_exp_end:5,exp_claim:3,ref:10},
  grp:{duel:"fight",rk:"rk",conq_fight:"conq",dga_fight:"dga",streak:"login",camp_tap:"camp",dg_tap:"pet",dg_play:"play",dg_morning:"morning",dg_nest:"nest",dg_exp_end:"dgexp",exp_claim:"exp",ref:"ref"},
- cap:{fight:120,rk:RK_DAY*3,conq:10,dga:14,login:5,camp:3000,pet:200,play:25,morning:3,nest:5,dgexp:15,exp:9,ref:100},
+ cap:{fight:120,rk:60,conq:10,dga:14,login:5,camp:3000,pet:200,play:25,morning:3,nest:5,dgexp:15,exp:9,ref:100},
  unit:{camp:100,pet:20},cooldown:{fight:20000},sameOpponent:5,
  capN:{fight:"⚔️ Обычные бои",rk:"🏆 Рейтинг",conq:"🔥 Покорение: первые 5 попыток дня",dga:"🐉 Арена: первые 7 боёв дня",login:"📅 Ежедневный подарок",camp:"🏕 Тапы в лагере",pet:"🖐 Погладить дракона",play:"🎾 Игры с драконом",morning:"☀️ Доброе утро",nest:"🪺 Гнездо",dgexp:"🐉 Походы дракона",exp:"🧭 Походы воинов",ref:"👥 Подтверждённые друзья"},
  how:[["⚔️","Обычный бой без ставки","+2 за бой, не чаще раза в 20 сек; максимум 120"],["🏆","Доигранный рейтинговый бой","+3 за победу или поражение; сделай хотя бы один ход. С одним соперником — до 5 боёв, максимум 60"],["🔥","Покорение","+2 за каждую из первых 5 попыток дня, максимум 10"],["🐉","Арена драконов","+2 за каждый из первых 7 боёв дня, максимум 14"],["📅","Забрать ежедневный подарок","+5 один раз"],["🏕","Тапы в лагере","+1 за 100 принятых сервером тапов; максимум 30"],["🖐","Погладить дракона","+1 за 20 поглаживаний; максимум 10"],["🎾","Поиграть с драконом","+5 за игру хотя бы с одним попаданием; до 5 игр, максимум 25"],["☀️","Доброе утро дракону","+3 один раз, до 12:00"],["🪺","Собрать гнездо","+5 один раз"],["🐉","Завершить поход дракона","+5; до 3 походов, максимум 15"],["🧭","Завершить поход воина","+3; до 3 походов, максимум 9"],["👥","Пригласить нового друга","+10: друг впервые приходит по твоей ссылке 22 ноября с 08:00 до 22:00, делает 15 открытий и вступает в канал и чат. До 10 друзей, максимум 100"]],
