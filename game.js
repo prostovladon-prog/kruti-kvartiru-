@@ -1056,7 +1056,7 @@ function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=tierOf(c.h),F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"")+(H[4].rl?" mega":"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
-  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=H[0]===SON_SHOGUN.name?"🔥 1 ИЗ 1":H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
+  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=H[0]===SON_SHOGUN.name?"🔥 "+c.no+" ИЗ 2":H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");

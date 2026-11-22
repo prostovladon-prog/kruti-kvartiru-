@@ -778,11 +778,12 @@ const DUEL_MIN=[60,130,260,500,1000];function duelBase(me,opp){return Math.min(M
 /* редкая карта (легенда, миф или любая отделка кроме обычной) — 10 000 монет за победу */
 const DUEL_RARE=10000,duelRare=c=>((HEROES[c.h]||[])[2]|0)>=3||(c.f|0)>0;function duelPay(me,opp){return duelRare(me)?DUEL_RARE:Math.round(duelBase(me,opp)*.3+5)}
 function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(c.h,c.f,c.no,c.sn,0)||1;c.sn=sn;if(ctx.takeSn)ctx.takeSn(sn);c.v=Math.round(c.v*(priceOf(c.h,c.f,c.no,sn,0)/v0)*100)/100}}catch(e){}}
-const SON_SHOGUN={name:"Сын сёгуна",sn:"111112",value:1311111,stats:[544,526,580,526,562]};
+const SON_SHOGUN={name:"Сын сёгуна",snBuy:"111112",snSpin:["111113","111114","111115","111116","111117","111118","111119"],value:1311111,stats:[544,526,580,526,562]};
 function dayCardMake(ctx,h,how){const son=HEROES[h][0]===SON_SHOGUN.name,preset=son?{stats:SON_SHOGUN.stats}:null;
-  if(son&&!ctx.snFree(SON_SHOGUN.sn))fail("Уникальный номер карты дня уже занят");
-  const c=makeCard(ctx,h,4,preset);c.how=how;dcSn(ctx,c,son?SON_SHOGUN.sn:HEROES[h][4][how==="dspin"?"sn2":"sn"]);
-  if(son){if(c.sn!==SON_SHOGUN.sn)fail("Уникальный номер карты дня уже занят");c.v=SON_SHOGUN.value}return c}
+  const sn=son?(how==="dspin"?SON_SHOGUN.snSpin.find(n=>ctx.snFree(n)):SON_SHOGUN.snBuy):HEROES[h][4][how==="dspin"?"sn2":"sn"];
+  if(son&&(!sn||!ctx.snFree(sn)))fail("Уникальный номер карты дня уже занят");
+  const c=makeCard(ctx,h,4,preset);c.how=how;dcSn(ctx,c,sn);
+  if(son){if(c.sn!==sn)fail("Уникальный номер карты дня уже занят");c.v=SON_SHOGUN.value}return c}
 function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4].day||!x)continue;H[0]=String(x.n||"Карта дня").slice(0,40);H[1]=String(x.e||"Карта дня").slice(0,40);H[3]=String(x.d||"").slice(0,200);
   const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x","p","sn","sn2"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
 SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
@@ -2436,8 +2437,8 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
       if(id===ctx.giveAway)stm.push(env.DB.prepare(`UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(ctx.oppUid,id,me.id,me.id,nv));   // проиграл игроку: карточка уходит к нему
       else stm.push(env.DB.prepare(`DELETE FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND room_id IS NULL AND ${guard}`).bind(id,me.id,me.id,nv))}
     stm.push(...ins);
-    for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&dcOf(c.h)?.one)
-      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h,JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
+    for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&(dcOf(c.h)?.one||HEROES[c.h][0]===SON_SHOGUN.name))
+      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(HEROES[c.h][0]===SON_SHOGUN.name?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
     if(take)stm.unshift(take);
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
     if(take&&rs[0].meta.changes!==1)fail("Соперник только что убрал эту карточку. Бой отменён, попробуй ещё раз");
@@ -4025,7 +4026,7 @@ const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бес
   "2026-11-18":[{n:"Один",e:"Асгард",d:"Всеотец богов. Отдал глаз за мудрость, а вороны Хугин и Мунин каждое утро приносят ему вести со всего мира. Копьё Гунгнир никогда не промахивается.",o:{p:[9,8,8,8,9],sn:"171117",sn2:"111000"},from:15,to:20.5,stars:3200,ch:.0004,lock:3,one:1},
   {n:"Банда",e:"Сказки и легенды",d:"Баба Яга, Кощей и Дракула снова вместе. Яга кружит в ступе, Кощей крутит свою иглу, а Дракула так и норовит кого-нибудь укусить.",o:{p:[7,7,7,7,7],sn:"373737",sn2:"474747"},from:15,to:20.5,stars:2500,ch:.0006,lock:3},
   {n:"Локи",e:"Асгард",d:"Бог обмана. Огонь вместо волос, змей Ёрмунганд на плечах и маска лиса в руке. Моргнёшь — и рядом уже двое Локи. Какой из них настоящий?",o:{p:[8,8,8,8,8],sn:"181118",sn2:"666000"},from:15,to:20.5,stars:2500,ch:.0004,lock:3,one:1}],
-  "2026-11-22":[{n:"Сын сёгуна",e:"Япония",d:"Наследник сёгуна. Его первый взмах катаны решает судьбу поединка.",o:{p:[8,7,10,7,9],sn:"111112",sn2:"111112"},from:18,to:22,stars:3311,ch:DSP.ch,one:1,guarantee:1}]};
+  "2026-11-22":[{n:"Сын сёгуна",e:"Япония",d:"Наследник сёгуна. Его первый взмах катаны решает судьбу поединка.",o:{p:[8,7,10,7,9],sn:"111112",sn2:"111113"},from:18,to:22,stars:3311,ch:DSP.ch,guarantee:1}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd)+(P.from!=null?P.from:16)*36e5,until=Date.UTC(y,m-1,dd)+(P.to!=null?P.to:20)*36e5;
@@ -4033,6 +4034,12 @@ async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.
   xhApply(XH)}
 const dcOf=h=>DCS.find(x=>x.h===h)||null,dcOn=h=>{const X=h!=null?dcOf(h):DC;return !!(X&&Date.now()>=X.at&&Date.now()<X.until)};
 async function dcLeft(env,except,h){const X=h!=null?dcOf(h):DC;if(!X)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND COALESCE(json_extract(p,'$.h'),?)=? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(X.at-36e5,except||0,DCS[0]?DCS[0].h:X.h,X.h,Date.now()-PAY_HOLD).first())||{}).n||0;
+  const son=HEROES[X.h][0]===SON_SHOGUN.name;
+  if(son){const old=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind("dc:claimed:"+X.h).first();let oldHow="";try{oldHow=JSON.parse(old?.v||"{}").how||""}catch(e){}
+    const buy=oldHow==="dbuy"||!!(await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h+":dbuy").first());
+    const spin=oldHow==="dspin"||!!(await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h+":dspin").first());
+    const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;
+    return {buy:X.so?0:Math.max(0,1-sold-(buy?1:0)),spin:X.ns?0:Math.max(0,1-sp-(spin?1:0))}}
   if(X.one&&await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h).first())return {buy:0,spin:0};
   const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;if(X.one){const t=sold+sp;return {buy:X.so?0:Math.max(0,1-t),spin:X.ns?0:Math.max(0,1-t)}}return {buy:X.so?0:Math.max(0,1-sold),spin:X.ns?0:Math.max(0,1-sp)}}
 /* шанс Особого прокрута: у карты «только из прокрута» он растёт к концу, чтобы до полуночи её точно кто-то выбил */
@@ -5746,11 +5753,18 @@ async function relicReleaseTick(env){
  const chat=await relicReleasePhoto(env,"chat",env.CHAT||CHAT,base+"relics-chat.jpg");
  if(channel&&chat)await kvSet(env,"relic-release-20261120-art2",1);
 }
-const SON_RELEASE_TEXT="⚔️ КАРТА ДНЯ: СЫН СЁГУНА!\n\nСегодня до 01:00 по Минску в игре доступна новая анимированная «Ошибка печати». Взмах катаны, лепестки сакуры и всего 1 экземпляр на всю игру.\n\n🎴 Оценка карты — 1 311 111 🪙\n⭐ Купить — 3311 звёзд\n🎰 Или выбить в Особом прокруте: шанс 0,3% до полуночи. С 00:00 до 01:00 первый Особый прокрут получает карту гарантированно, если её ещё не забрали.\n\nКарта достанется тому, кто первым её купит или выбьет. После 01:00 событие завершится.\n\n👉 @VoinyEpohBot";
+const SON_RELEASE_TEXT="⚔️ КАРТА ДНЯ: СЫН СЁГУНА!\n\nДо 01:00 по Минску доступны 2 анимированные «Ошибки печати»: одна за 3311 ⭐ (№ 111112), вторая — только из Особого прокрута, с отдельным красивым номером. Покупка не закрывает шанс выбить вторую карту.\n\n🎴 Оценка каждой — 1 311 111 🪙\n🎰 Шанс в Особом прокруте до 00:00 — 0,3%. С 00:00 до 01:00 первый Особый прокрут гарантированно выбьет вторую карту, если её ещё не выбили.\n\nПосле 01:00 событие завершится.\n\n👉 @VoinyEpohBot";
 async function sonReleaseTick(env){const now=Date.now(),at=Date.UTC(2026,10,22,18),until=Date.UTC(2026,10,22,22);
  if(!env.BOT_TOKEN||env.DEV==="1"||now<at||now>=until)return;
- await recruitSend(env,"son-shogun-20261122:channel",env.CHANNEL||CHANNEL,SON_RELEASE_TEXT,
-  "https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/assets/day-son-shogun.jpg");
+ const chan=env.CHANNEL||CHANNEL,photo="https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/assets/day-son-shogun.jpg?v=2";
+ if(!(await recruitSend(env,"son-shogun-20261122:channel",chan,SON_RELEASE_TEXT,photo)))return;
+ if(await kvGet(env,"son-shogun-20261122:corrected"))return;
+ const sent=await kvGet(env,birthdayKey("recruit:son-shogun-20261122:channel"));if(!sent?.mid)return;
+ let r=await tgApi(env,"editMessageMedia",{chat_id:chan,message_id:sent.mid,media:{type:"photo",media:photo,caption:SON_RELEASE_TEXT},reply_markup:birthdayButton});
+ if(!r?.ok&&/message is not modified/i.test(r?.description||""))r={ok:true};
+ if(!r?.ok){await tgApi(env,"editMessageCaption",{chat_id:chan,message_id:sent.mid,caption:SON_RELEASE_TEXT,reply_markup:birthdayButton});
+   if(await recruitSend(env,"son-shogun-20261122:correction",chan,SON_RELEASE_TEXT,photo))r={ok:true}}
+ if(r?.ok)await kvSet(env,"son-shogun-20261122:corrected",1);
 }
 
 export default {

@@ -776,11 +776,12 @@ const DUEL_MIN=[60,130,260,500,1000];function duelBase(me,opp){return Math.min(M
 /* редкая карта (легенда, миф или любая отделка кроме обычной) — 10 000 монет за победу */
 const DUEL_RARE=10000,duelRare=c=>((HEROES[c.h]||[])[2]|0)>=3||(c.f|0)>0;function duelPay(me,opp){return duelRare(me)?DUEL_RARE:Math.round(duelBase(me,opp)*.3+5)}
 function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(c.h,c.f,c.no,c.sn,0)||1;c.sn=sn;if(ctx.takeSn)ctx.takeSn(sn);c.v=Math.round(c.v*(priceOf(c.h,c.f,c.no,sn,0)/v0)*100)/100}}catch(e){}}
-const SON_SHOGUN={name:"Сын сёгуна",sn:"111112",value:1311111,stats:[544,526,580,526,562]};
+const SON_SHOGUN={name:"Сын сёгуна",snBuy:"111112",snSpin:["111113","111114","111115","111116","111117","111118","111119"],value:1311111,stats:[544,526,580,526,562]};
 function dayCardMake(ctx,h,how){const son=HEROES[h][0]===SON_SHOGUN.name,preset=son?{stats:SON_SHOGUN.stats}:null;
-  if(son&&!ctx.snFree(SON_SHOGUN.sn))fail("Уникальный номер карты дня уже занят");
-  const c=makeCard(ctx,h,4,preset);c.how=how;dcSn(ctx,c,son?SON_SHOGUN.sn:HEROES[h][4][how==="dspin"?"sn2":"sn"]);
-  if(son){if(c.sn!==SON_SHOGUN.sn)fail("Уникальный номер карты дня уже занят");c.v=SON_SHOGUN.value}return c}
+  const sn=son?(how==="dspin"?SON_SHOGUN.snSpin.find(n=>ctx.snFree(n)):SON_SHOGUN.snBuy):HEROES[h][4][how==="dspin"?"sn2":"sn"];
+  if(son&&(!sn||!ctx.snFree(sn)))fail("Уникальный номер карты дня уже занят");
+  const c=makeCard(ctx,h,4,preset);c.how=how;dcSn(ctx,c,sn);
+  if(son){if(c.sn!==sn)fail("Уникальный номер карты дня уже занят");c.v=SON_SHOGUN.value}return c}
 function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4].day||!x)continue;H[0]=String(x.n||"Карта дня").slice(0,40);H[1]=String(x.e||"Карта дня").slice(0,40);H[3]=String(x.d||"").slice(0,200);
   const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x","p","sn","sn2"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
 SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
