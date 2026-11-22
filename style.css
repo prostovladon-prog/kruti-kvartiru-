@@ -3523,6 +3523,9 @@ section[id^="sec-"]:not([hidden]){animation:secin .2s ease-out}@keyframes secin{
 .minic .face{backface-visibility:visible;-webkit-backface-visibility:visible}
 /* память на iPhone: в маленьких копиях карт тени-фильтры (drop-shadow) не видны глазу, но каждая требует отдельный буфер в полном размере карты */
 .minic svg.pt,.minic .gc1,.minic .power{filter:none!important}
+.son-shogun .ss-sword{transform-box:view-box;transform-origin:139px 156px;animation:sonKatana 3.6s ease-in-out infinite}
+@keyframes sonKatana{0%,54%,100%{transform:rotate(0)}70%{transform:rotate(-75deg)}82%{transform:rotate(18deg)}}
+@media (prefers-reduced-motion:reduce){.son-shogun .ss-sword{animation:none!important}}
 
 /* 📦 сундуки гемов */
 .gbx-el{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}

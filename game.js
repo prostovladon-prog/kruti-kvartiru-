@@ -367,6 +367,53 @@ const DETAILED={
  </g></svg>`
 };
 
+/* Карта дня: тот же векторный контур и палитра, что у Сёгуна. Двигаются только лёгкие SVG-группы. */
+DETAILED["Сын сёгуна"]=u=>`<svg viewBox="0 0 200 200" class="pt son-shogun" aria-hidden="true"><defs>
+ <linearGradient id="ssA${u}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9cd9ef"/><stop offset=".5" stop-color="#447aa9"/><stop offset="1" stop-color="#1b315f"/></linearGradient>
+ <linearGradient id="ssG${u}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff6c4"/><stop offset=".48" stop-color="#efbd4e"/><stop offset="1" stop-color="#a8681f"/></linearGradient>
+ <linearGradient id="ssK${u}" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ffffff"/><stop offset=".5" stop-color="#dcefff"/><stop offset="1" stop-color="#6689ac"/></linearGradient>
+ <linearGradient id="ssSky${u}" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#251f50"/><stop offset=".58" stop-color="#a4376a"/><stop offset="1" stop-color="#ffcf78"/></linearGradient>
+ <radialGradient id="ssSun${u}"><stop stop-color="#fff9cc"/><stop offset=".58" stop-color="#ffb457"/><stop offset="1" stop-color="#ff5476" stop-opacity="0"/></radialGradient></defs>
+ <rect width="200" height="200" fill="url(#ssSky${u})"/><circle cx="144" cy="70" r="58" fill="url(#ssSun${u})"><animate attributeName="r" values="53;61;53" dur="4s" repeatCount="indefinite"/></circle>
+ <g fill="#271b46" stroke="#150e2a" stroke-width="2"><path d="M0 157 L23 152 L34 139 L47 152 L71 154 L71 200 H0Z M130 157 L152 150 L165 132 L178 150 L200 155 V200 H130Z"/><path d="M9 145 L34 137 L58 145 L34 131Z M139 143 L165 130 L191 143 L165 122Z"/></g>
+ <path d="M-5 18 Q38 12 63 55 M1 49 Q34 34 53 73" fill="none" stroke="#251429" stroke-width="7" stroke-linecap="round"/><g fill="#f8a5c7" stroke="#b83d6d" stroke-width="1.5"><circle cx="20" cy="30" r="7"/><circle cx="43" cy="49" r="6"/><circle cx="26" cy="55" r="5"/><circle cx="56" cy="62" r="5"/></g>
+ <g fill="#ffd5e4" stroke="#a93f6d" stroke-width="1"><path d="M20 30 l3 -7 5 5 7 1 -4 6 -2 7 -7 -4 -7 2 1 -7 -4 -5Z M43 49 l2 -6 4 4 6 1 -3 5 -1 6 -6 -3 -5 2 1 -6 -4 -3Z"/></g>
+ <g fill="#ffd0e3" stroke="#7d294e" stroke-width="1"><path d="M25 48 Q34 39 38 50 Q31 58 25 48Z"><animateMotion path="M0 0 Q25 35 38 105" dur="5.2s" repeatCount="indefinite"/></path><path d="M166 52 Q176 42 182 55 Q174 63 166 52Z"><animateMotion path="M0 0 Q-30 65 -80 145" dur="4.6s" repeatCount="indefinite"/></path><path d="M18 132 Q27 121 31 132 Q26 141 18 132Z"><animateMotion path="M0 0 Q30 30 70 70" dur="3.8s" repeatCount="indefinite"/></path></g>
+ <g class="ss-cloak" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"><animateTransform attributeName="transform" type="translate" values="0 0;-3 -2;0 0;4 1;0 0" dur="3.4s" repeatCount="indefinite"/><path d="M66 127 Q28 130 5 177 L34 169 L8 198 L63 171 Q76 147 91 136Z" fill="#b22645"/><path d="M135 127 Q173 131 197 180 L169 170 L192 200 L140 170 Q125 146 109 136Z" fill="#b22645"/><path d="M25 181 Q46 150 65 146 M178 181 Q155 150 134 146" fill="none" stroke="#f48592" stroke-width="3"/></g>
+ <g stroke="#0d1030" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M45 205 Q47 157 70 138 Q98 126 130 138 Q153 160 157 205Z" fill="url(#ssA${u})"/>
+  <path d="M58 158 Q99 175 144 158 M53 176 Q100 192 149 176 M58 190 Q100 202 143 190" fill="none" stroke="#9dd9e8" stroke-width="3"/>
+  <path d="M61 153 L69 176 L78 155 M75 153 L83 181 L92 158 M108 158 L117 181 L125 153 M122 155 L131 176 L139 153" fill="none" stroke="#142f55" stroke-width="2.5"/>
+  <circle cx="100" cy="185" r="10" fill="url(#ssG${u})"/><path d="M100 178 l4 7 -4 7 -4 -7Z" fill="#c92b4b"/>
+  <path d="M70 140 L49 145 L42 178 L70 174 L83 147Z M130 140 L151 145 L158 178 L130 174 L117 147Z" fill="url(#ssG${u})"/>
+  <path d="M53 158 L72 153 M48 170 L69 166 M147 158 L128 153 M152 170 L131 166" fill="none" stroke="#8b591f" stroke-width="2.5"/>
+  <path d="M85 114 L85 139 L115 139 L115 114Z" fill="#efc29b"/>
+  <ellipse cx="100" cy="91" rx="29" ry="32" fill="#efc29b"/>
+  <path d="M73 91 Q79 60 100 58 Q121 60 127 91 L120 72 Q102 80 80 72Z" fill="#151b35"/>
+  <path d="M78 91 L96 94 L94 100 L78 98Z M122 91 L104 94 L106 100 L122 98Z" fill="#15243b"/>
+  <path d="M82 94 L94 96 M118 94 L106 96" fill="none" stroke="#d9f6ff" stroke-width="2.5"/>
+  <path d="M94 105 L106 105 L110 112 L105 124 L95 124 L90 112Z" fill="url(#ssA${u})"/><path d="M95 114 L105 114 M96 119 L104 119" fill="none" stroke="#f4d27d" stroke-width="2"/>
+  <path d="M80 108 L91 116 L91 126 Q79 123 75 113Z M120 108 L109 116 L109 126 Q121 123 125 113Z" fill="#ad293e"/>
+  <path d="M67 89 Q59 67 70 53 Q77 40 99 41 Q122 40 132 54 Q141 67 133 89 L127 75 Q100 82 73 75Z" fill="url(#ssA${u})"/>
+  <path d="M64 70 L47 58 L60 88Z M136 70 L153 58 L140 88Z" fill="url(#ssG${u})"/>
+  <path d="M62 81 Q100 94 138 81 L138 90 Q100 101 62 90Z" fill="url(#ssG${u})"/>
+  <path d="M73 51 Q98 62 127 51 M78 64 Q100 71 123 64" fill="none" stroke="#b7e0ec" stroke-width="2.5"/>
+  <path d="M93 46 Q100 29 109 46 Q103 52 93 46Z" fill="#e4b348"/>
+  <path d="M93 44 Q72 30 68 12 Q79 28 100 33 Q121 28 132 12 Q128 30 107 44Z" fill="url(#ssG${u})"/>
+  <path d="M73 22 Q101 43 128 22" fill="none" stroke="#fff3bd" stroke-width="2"/>
+  <circle cx="100" cy="84" r="8" fill="#c93351"/><path d="M96 82 L100 88 L105 80" fill="none" stroke="#fff5b8" stroke-width="2"/>
+  <path d="M69 143 L95 169 L107 151 L85 138Z M131 143 L108 169 L96 153 L115 138Z" fill="#ad233c"/>
+  <path d="M95 164 L107 164 L112 205 L90 205Z" fill="url(#ssG${u})"/>
+ </g>
+ <g class="ss-sword" stroke="#0d1030" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 139 156;0 139 156;-27 139 156;12 139 156;0 139 156" keyTimes="0;.58;.72;.82;1" dur="3.6s" repeatCount="indefinite"/>
+  <path d="M123 154 Q139 142 149 134 L184 23 Q188 17 194 15 Q186 65 159 142 L143 166Z" fill="url(#ssK${u})"/>
+  <path d="M161 139 Q177 75 188 38" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+  <path d="M132 150 L157 157" stroke="#0d1030" stroke-width="8"/><path d="M132 150 L157 157" stroke="#efbd4e" stroke-width="4"/>
+  <path d="M139 155 L128 189" stroke="#0d1030" stroke-width="11"/><path d="M139 155 L128 189" stroke="#9a2440" stroke-width="6"/>
+  <path d="M139 156 Q146 144 150 153 L145 163Z" fill="#efc29b"/>
+ </g><g fill="none" stroke-linecap="round" opacity="0"><animate attributeName="opacity" values="0;0;1;.8;0;0" keyTimes="0;.56;.69;.79;.88;1" dur="3.6s" repeatCount="indefinite"/><path d="M38 130 Q89 6 190 25" stroke="#fff8c2" stroke-width="11"/><path d="M33 135 Q86 6 190 25" stroke="#ff386d" stroke-width="3"/><path d="M52 96 l-13 -11 M86 41 l-5 -17 M159 35 l18 -14" stroke="#ffd23f" stroke-width="4"/></g>
+ <g fill="#fff8c2"><path d="M37 116 l3 -9 3 9 9 3 -9 3 -3 9 -3 -9 -9 -3Z"><animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;.58;.72;.82;1" dur="3.6s" repeatCount="indefinite"/></path><path d="M176 42 l2 -6 2 6 6 2 -6 2 -2 6 -2 -6 -6 -2Z"><animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;.63;.75;.87;1" dur="3.6s" repeatCount="indefinite"/></path></g></svg>`;
+
 /* ---------- составные воины: шесть чудовищ, собираются из двух половинок ---------- */
 const BEASTS={
  "Дракон":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true"><defs><radialGradient id="dE${u}"><stop offset="0" stop-color="#fff6a0"/><stop offset="1" stop-color="#ff9f0a"/></radialGradient><linearGradient id="dH${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4a3a"/><stop offset="1" stop-color="#a8141a"/></linearGradient><linearGradient id="dF${u}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff3a0"/><stop offset=".5" stop-color="#ffb347"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></linearGradient></defs>
@@ -921,7 +968,7 @@ function faceV2(root,c){const q=s=>root.querySelector(s),H=HEROES[c.h],t=H[2],ar
     if(fx.dataset.t!==String(t)){let h="";for(let i=0;i<(t>=4?14:t===3?10:6);i++)h+=`<i style="left:${8+((i*53)%84)}%;bottom:${4+(i*17)%24}%;--d:${2.2+(i%5)*.5}s;--dl:-${((i*.37)%3).toFixed(2)}s;--dx:${((i*29)%40)-20}px"></i>`;
       fx.innerHTML=(t>=3?'<svg class="slash" viewBox="0 0 300 270"><path d="M30 220 Q140 40 290 70" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".8"/><path d="M40 214 Q140 54 285 76" fill="none" stroke="var(--hac)" stroke-width="3" stroke-linecap="round"/></svg>':"")+h;fx.dataset.t=t}}
   else if(fx)fx.remove();
-  const pw=q(".power");pw.textContent="«"+epithet(c)+"»";
+  const pw=q(".power");pw.textContent=H[0]===SON_SHOGUN.name?H[3]:"«"+epithet(c)+"»";
   q(".stats").innerHTML=[0,1,2,3,4].map(i=>{const v=c.stats?eff(c,i):0;return `<div class="s${i===4?" w":""}"><i>${STAT_IC[i]}</i><div class="b"><u style="width:${Math.max(4,Math.min(100,Math.round(v/STAT_MAX*100)))}%"></u></div><b class="num">${c.stats?v:"?"}</b></div>`}).join("")}
 /* составные воины: половинки обрезаны по зубчатому шву, у целой карточки золотой шов */
 const HALF_CLIP=["","polygon(0 0,52% 0,47% 9%,54% 18%,46% 28%,53% 38%,45% 49%,54% 60%,46% 71%,53% 82%,47% 92%,51% 100%,0 100%)","polygon(52% 0,100% 0,100% 100%,51% 100%,47% 92%,53% 82%,46% 71%,54% 60%,45% 49%,53% 38%,46% 28%,54% 18%,47% 9%)"];
@@ -1009,7 +1056,7 @@ function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=tierOf(c.h),F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"")+(H[4].rl?" mega":"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
-  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
+  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=H[0]===SON_SHOGUN.name?"🔥 1 ИЗ 1":H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");

@@ -748,7 +748,7 @@ function rollDia(ctx){const L=Object.keys(DIA).map(Number).filter(h=>HEROES[h]&&
   const w=L.map(h=>DIA[h].run-ctx.issuedOf(h,DIA_F));try{return makeDia(ctx,L[pick(w)])}catch(e){return null}}   // чем больше осталось в тираже, тем чаще
 function makeDia(ctx,h){const D=DIA[h];if(!D||!HEROES[h])fail("Такой карточки нет в Алмазной серии");if(ctx.issuedOf(h,DIA_F)>=D.run)fail("Тираж «"+HEROES[h][0]+"» в Алмазной серии закончился");return makeCard(ctx,h,DIA_F)}
 SHOP.any={n:"Любая карточка в игре",stars:4000,any:1,d:["выбери <b>любого воина</b> и <b>любую отделку</b>","хоть Зевса 1 из 1, если он ещё свободен (кроме Тора — его только выбить)"]};
-SHOP.daycard={n:"Карта дня",stars:2000,dayc:1,d:["🌙 <b>Карта дня</b> — воин, который есть только сегодня с 19:00 до 23:00","всего <b>2 экземпляра</b>: один за звёзды, второй — из Особого прокрута"]};
+SHOP.daycard={n:"Карта дня",stars:2000,dayc:1,d:["🌙 <b>Карта дня</b> — доступна в указанное в игре время","тираж и способы получения смотри в окне «Карта дня»"]};
 /* задания за Особые прокруты (в окне «Карта дня»): каждое — +1 прокрут, все пять — ещё +1 */
 const DQ=[{k:"tap",n:300,ic:"🏕",t:"Натапай 300 в лагере"},{k:"tap",n:1000,ic:"🏕",t:"Натапай 1000 в лагере"},{k:"open",n:10,ic:"🎴",t:"Открой 10 карточек"},{k:"open",n:30,ic:"🎴",t:"Открой 30 карточек"},
  {k:"win",n:3,ic:"⚔️",t:"Выиграй 3 боя"},{k:"dg",n:3,ic:"🐉",t:"Поиграй с драконом 3 раза"},{k:"gem",n:1,ic:"💎",t:"Попробуй выбить гем в кузне"},{k:"wheel",n:1,ic:"🎡",t:"Крутни колесо удачи"},
@@ -776,6 +776,11 @@ const DUEL_MIN=[60,130,260,500,1000];function duelBase(me,opp){return Math.min(M
 /* редкая карта (легенда, миф или любая отделка кроме обычной) — 10 000 монет за победу */
 const DUEL_RARE=10000,duelRare=c=>((HEROES[c.h]||[])[2]|0)>=3||(c.f|0)>0;function duelPay(me,opp){return duelRare(me)?DUEL_RARE:Math.round(duelBase(me,opp)*.3+5)}
 function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(c.h,c.f,c.no,c.sn,0)||1;c.sn=sn;if(ctx.takeSn)ctx.takeSn(sn);c.v=Math.round(c.v*(priceOf(c.h,c.f,c.no,sn,0)/v0)*100)/100}}catch(e){}}
+const SON_SHOGUN={name:"Сын сёгуна",sn:"111112",value:1311111,stats:[544,526,580,526,562]};
+function dayCardMake(ctx,h,how){const son=HEROES[h][0]===SON_SHOGUN.name,preset=son?{stats:SON_SHOGUN.stats}:null;
+  if(son&&!ctx.snFree(SON_SHOGUN.sn))fail("Уникальный номер карты дня уже занят");
+  const c=makeCard(ctx,h,4,preset);c.how=how;dcSn(ctx,c,son?SON_SHOGUN.sn:HEROES[h][4][how==="dspin"?"sn2":"sn"]);
+  if(son){if(c.sn!==SON_SHOGUN.sn)fail("Уникальный номер карты дня уже занят");c.v=SON_SHOGUN.value}return c}
 function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4].day||!x)continue;H[0]=String(x.n||"Карта дня").slice(0,40);H[1]=String(x.e||"Карта дня").slice(0,40);H[3]=String(x.d||"").slice(0,200);
   const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x","p","sn","sn2"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
 SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
@@ -1109,7 +1114,7 @@ function gemAdd(st,g){const I=st.gems||(st.gems={});I[g]=(I[g]||0)+1}
 function gemTake(st,g){const I=st.gems||{};if(!(I[g]>0))fail("Нет такого гема");I[g]--;if(!I[g])delete I[g]}
 const ACTIONS={
   dsp_roll(G){const {st,ctx}=G;if(ctx.dcLive===false)fail("Особые прокруты работают только пока идёт карта дня. Накопить заранее нельзя — заходи, когда она выйдет");if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
-    const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.luck?.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=makeCard(ctx,h,4);c.how="dspin";dcSn(ctx,c,HEROES[h][4].sn2);G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
+    const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.dayCh===1?1:ctx.luck?.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=dayCardMake(ctx,h,"dspin");G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
     return {empty:1,h:h!=null&&h>=0?h:null}},
   dsp_buy(G){const {st,ctx}=G,Q=dqDay(st,ctx.now);if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if((Q.buy||0)>=DSP_BUY.day)fail("Сегодня уже куплено. Завтра снова");pay(st,DSP_BUY.cash);Q.buy=(Q.buy||0)+1;st.dsp=(st.dsp||0)+DSP_BUY.n;return {dsp:DSP_BUY.n}},
   dqr_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),T=DQR[G.p.i|0];if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if(!T)fail("Нет такого задания");Q.rg=Q.rg||{};const got=Q.rg[T.k]||0,can=Math.floor(dqProg(st,ctx.now,T.k)/T.per)-got;if(can<1)fail("Ещё не набрано");Q.rg[T.k]=got+can;st.dsp=(st.dsp||0)+can;return {dsp:can}},
@@ -1408,7 +1413,7 @@ const ACTIONS={
     if(I.kolo)add(makeCard(ctx,KOLO,4));
     if(I.errq){let pool=[];for(const t of [3,2])if(!pool.length)pool=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===t&&!HEROES[i][4].sale&&ctx.issuedOf(i,4)<1);
       if(pool.length)add(makeCard(ctx,pool[Math.floor(Math.random()*pool.length)],4));else add(rollTier(ctx,4,DON))}
-    if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");const c=makeCard(ctx,h,4);c.how="dbuy";dcSn(ctx,c,HEROES[h][4].sn);add(c)}
+    if(I.dayc){const h=p.h|0;if(!HEROES[h]||!HEROES[h][4].day)fail("Нет карты дня");add(dayCardMake(ctx,h,"dbuy"))}
     if(I.fsave){const Lz=st.fireLost;if(!Lz||Lz.day!==today(ctx.now))fail("Огонёк сейчас не нужно спасать");st.fire.n=Lz.n+1;st.fire.best=Math.max(st.fire.best||0,st.fire.n);delete st.fireLost}
     if(I.motto)st.motto=String(p.text||"").slice(0,60);
     if(I.shelfx)st.shelfX=1;
