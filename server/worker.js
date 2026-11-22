@@ -4035,11 +4035,13 @@ async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.
 const dcOf=h=>DCS.find(x=>x.h===h)||null,dcOn=h=>{const X=h!=null?dcOf(h):DC;return !!(X&&Date.now()>=X.at&&Date.now()<X.until)};
 async function dcLeft(env,except,h){const X=h!=null?dcOf(h):DC;if(!X)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND COALESCE(json_extract(p,'$.h'),?)=? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(X.at-36e5,except||0,DCS[0]?DCS[0].h:X.h,X.h,Date.now()-PAY_HOLD).first())||{}).n||0;
   const son=HEROES[X.h][0]===SON_SHOGUN.name;
-  if(son){const old=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind("dc:claimed:"+X.h).first();let oldHow="";try{oldHow=JSON.parse(old?.v||"{}").how||""}catch(e){}
-    const buy=oldHow==="dbuy"||!!(await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h+":dbuy").first());
-    const spin=oldHow==="dspin"||!!(await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h+":dspin").first());
-    const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;
-    return {buy:X.so?0:Math.max(0,1-sold-(buy?1:0)),spin:X.ns?0:Math.max(0,1-sp-(spin?1:0))}}
+  if(son){const claimed=async key=>{const row=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind(key).first();try{const v=JSON.parse(row?.v||"{}");return v.t>=X.at&&v.t<X.until?v.how||"":""}catch(e){return ""}};
+    const oldHow=await claimed("dc:claimed:"+X.h);
+    const buy=oldHow==="dbuy"||await claimed("dc:claimed:"+X.h+":dbuy")==="dbuy";
+    const spin=oldHow==="dspin"||await claimed("dc:claimed:"+X.h+":dspin")==="dspin";
+    const sn=SON_SHOGUN.snSpin;
+    const spun=!!(await env.DB.prepare("SELECT 1 FROM cards WHERE h=? AND how='dspin' AND created>=? AND created<? AND sn IN ("+sn.map(()=>"?").join(",")+") LIMIT 1").bind(X.h,X.at,X.until,...sn).first());
+    return {buy:X.so?0:+!(sold||buy),spin:X.ns?0:+!(spun||spin)}}
   if(X.one&&await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h).first())return {buy:0,spin:0};
   const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;if(X.one){const t=sold+sp;return {buy:X.so?0:Math.max(0,1-t),spin:X.ns?0:Math.max(0,1-t)}}return {buy:X.so?0:Math.max(0,1-sold),spin:X.ns?0:Math.max(0,1-sp)}}
 /* шанс Особого прокрута: у карты «только из прокрута» он растёт к концу, чтобы до полуночи её точно кто-то выбил */
