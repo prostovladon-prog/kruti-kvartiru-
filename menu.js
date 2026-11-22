@@ -1277,32 +1277,19 @@ async function profileContestOpen(action="get",payload={}){
   const t=await act("profile_contest_"+action,payload,12000);if(!t)return;
   const pre=t.now<t.start,ended=t.now>=t.end;
   const m=$("modal"),sh=$("msheet");m.hidden=false;
-  const status={pending:"Заявка на проверке",approved:"Заявка подтверждена",rejected:"Заявка отклонена"};
   sh.innerHTML='<div class="box nickbox tkbox"><small class="tk-k">23.11 08:00 — 24.11 22:00 · МИНСК</small><h3>🏆 Конкурс профилей</h3>'+
-    '<p>Добавь <b>@VoinyEpohBot</b> в имя или описание профиля Telegram. Подай заявку здесь и отправь скрин настроек профиля администратору. Сохрани отметку до проверки.</p>'+
+    '<p>Добавь <b>@VoinyEpohBot</b> в имя или описание профиля Telegram. Нажми «Проверить профиль». Игра проверит отображаемое имя и описание через бота.</p>'+
     '<div class="tk-pr">'+t.prizes.map(([stars,cash],i)=>'<div><b>'+(i+1)+' место · '+stars+' ⭐ + '+fmtN(cash)+' 🪙</b></div>').join("")+'</div>'+
     '<p class="cln">Одна заявка на аккаунт. Три места разыгрываются среди подтверждённых заявок. Звёзды зачисляются на игровой баланс.</p>'+
-    (t.status?'<p><b>'+status[t.status]+'</b></p>':pre?'<p>Приём начнётся в 08:00.</p>':ended?'<p>Приём заявок завершён.</p>':'<button type="button" class="craftbtn" id="profile-contest-join">Подать заявку</button>')+
-    (t.status==="pending"?'<button type="button" class="mini2" id="profile-contest-proof">Отправить скрин администратору</button>':'')+
+    (t.status?'<p><b>Профиль подтверждён, ты участвуешь!</b></p>':pre?'<p>Приём начнётся в 08:00.</p>':ended?'<p>Приём заявок завершён.</p>':'<button type="button" class="craftbtn" id="profile-contest-join">Проверить профиль</button>')+
     (t.winners?'<h4>Победители</h4>'+(t.winners.map((w,i)=>'<p>'+(i+1)+'. '+fnEsc(w.name)+' · '+w.stars+' ⭐ + '+fmtN(w.cash)+' 🪙</p>').join("")||'<p>Нет подтверждённых заявок.</p>'):'')+
-    (t.admin&&!t.winners?'<h4>Проверка заявок</h4><div id="profile-contest-review"></div>'+(ended?'<button type="button" class="craftbtn" id="profile-contest-draw">Разыграть и выдать призы</button>':''):'')+
+    (t.admin&&ended&&!t.winners?'<button type="button" class="craftbtn" id="profile-contest-draw">Разыграть и выдать призы</button>':'')+
     '<button type="button" class="ghost" id="profile-contest-close">Закрыть</button></div>';
   $("profile-contest-close").onclick=closeModal;
   const run=(button,a,p)=>{button.disabled=true;profileContestOpen(a,p).finally(()=>{button.disabled=false})};
   const join=$("profile-contest-join");if(join)join.onclick=()=>run(join,"join",{});
-  const proof=$("profile-contest-proof");if(proof)proof.onclick=()=>{const u="https://t.me/VoinyEpohBotAdmn";if(tg?.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank")};
   const draw=$("profile-contest-draw");if(draw)draw.onclick=()=>{if(confirm("Случайно выбрать победителей и выдать призы?"))run(draw,"draw",{})};
-  const list=$("profile-contest-review");
-  if(list)for(const x of t.pending||[]){
-    const row=document.createElement("div");const label=document.createElement("p");
-    label.textContent=x.name+(x.username?" · @"+x.username:"")+" · ID "+x.uid;row.append(label);
-    for(const approve of [true,false]){
-      const button=document.createElement("button");button.type="button";button.className="mini2";
-      button.textContent=approve?"Подтвердить":"Отклонить";
-      button.onclick=()=>run(button,"review",{uid:x.uid,approve});row.append(button);
-    }
-    list.append(row);
-  }
+
 }
 setInterval(profileContestBar,3000);
 if(new URLSearchParams(location.search).has("profilecontest")){

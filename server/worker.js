@@ -5182,7 +5182,7 @@ const PROFILE_CONTEST={
   start:Date.UTC(2026,10,23,5),end:Date.UTC(2026,10,24,19),
   prefix:"profile-contest:20261123:",prizes:[[500,1000000],[300,600000],[150,300000]]
 };
-const profileContestRules="Добавь @VoinyEpohBot в отображаемое имя или описание своего Telegram-профиля. В игре открой «Конкурс профилей», подай заявку и отправь скрин настроек профиля администратору @VoinyEpohBotAdmn. Сохрани отметку до проверки. Один аккаунт — одна заявка. Три победителя будут выбраны случайно среди подтверждённых заявок. Заявки до вторника, 24 ноября, 22:00 по Минску.";
+const profileContestRules="Добавь @VoinyEpohBot в отображаемое имя или описание своего Telegram-профиля. В игре открой «Конкурс профилей», нажми «Проверить профиль». Бот сам проверит имя и описание Telegram. Один аккаунт — одна заявка. Три победителя будут выбраны случайно среди подтверждённых заявок. Заявки до вторника, 24 ноября, 22:00 по Минску.";
 const profileContestPrizes=`🥇 500 ⭐ + 1 000 000 🪙
 🥈 300 ⭐ + 600 000 🪙
 🥉 150 ⭐ + 300 000 🪙
@@ -5212,24 +5212,29 @@ async function profileContestApi(env,me,a,p){
   const admin=isAdmin(env,me.id);
   if(a==="profile_contest_join"){
     if(now<C.start||now>=C.end)fail("Приём заявок закрыт");
-    const entry={uid:me.id,name:String(me.name||"Игрок").slice(0,80),username:String(me.username||""),status:"pending"};
-    await env.DB.prepare("INSERT OR IGNORE INTO kv(k,v) SELECT ?,? WHERE EXISTS (SELECT 1 FROM users WHERE id=?)")
-      .bind(key,JSON.stringify(entry),me.id).run();
-  }else if(a==="profile_contest_review"){
-    if(!admin)fail("Нет доступа");
-    if(await kvGet(env,resultKey))fail("Итоги уже подведены");
-    const entryKey=C.prefix+"entry:"+Number(p.uid);
-    const approval=p.approve===true?"approved":"rejected";
-    await env.DB.prepare("UPDATE kv SET v=json_set(v,'$.status',?) WHERE k=? AND json_extract(v,'$.status')='pending' AND NOT EXISTS(SELECT 1 FROM kv WHERE k=?)")
-      .bind(approval,entryKey,resultKey).run();
+    const existing=await kvGet(env,key);
+    if(!existing?.verifiedAt){
+      const chat=await tgApi(env,"getChat",{chat_id:me.id});
+      if(!chat?.ok||chat.result?.type!=="private"||chat.result.id!==me.id){
+        if(/chat not found|bot was blocked/i.test(chat?.description||""))
+          fail("Открой чат @VoinyEpohBot, нажми «Старт» и повтори проверку в игре");
+        fail("Telegram сейчас не отдал профиль. Попробуй ещё раз чуть позже");
+      }
+      const profile=chat.result,mention=/(?<![A-Za-z0-9_])@VoinyEpohBot(?![A-Za-z0-9_])/i;
+      if(!mention.test([profile.first_name,profile.last_name].filter(Boolean).join(" "))&&!mention.test(profile.bio||""))
+        fail("Бот не видит @VoinyEpohBot в имени или описании. Проверь написание и попробуй снова. Если описание скрыто, добавь отметку в имя");
+      const verifiedAt=Date.now();
+      if(verifiedAt>=C.end)fail("Приём заявок закрыт");
+      const entry={uid:me.id,name:String(me.name||"Игрок").slice(0,80),status:"approved",verifiedAt};
+      await env.DB.prepare("INSERT INTO kv(k,v) SELECT ?,? WHERE EXISTS (SELECT 1 FROM users WHERE id=?) ON CONFLICT(k) DO UPDATE SET v=excluded.v")
+        .bind(key,JSON.stringify(entry),me.id).run();
+    }
   }else if(a==="profile_contest_draw"){
     if(!admin)fail("Нет доступа");
     if(now<C.end)fail("Розыгрыш доступен после 22:00 24 ноября");
     if(!await kvGet(env,resultKey)){
-      const pending=await env.DB.prepare("SELECT 1 FROM kv WHERE k LIKE ? AND json_extract(v,'$.status')='pending' LIMIT 1").bind(C.prefix+"entry:%").first();
-      if(pending)fail("Сначала проверь все заявки");
-      const rows=(await env.DB.prepare("SELECT v,COALESCE(u.nick,u.name) AS nick FROM kv JOIN users u ON u.id=json_extract(v,'$.uid') WHERE k LIKE ? AND json_extract(v,'$.status')='approved' ORDER BY RANDOM() LIMIT 3")
-        .bind(C.prefix+"entry:%").all()).results;
+      const rows=(await env.DB.prepare("SELECT v,COALESCE(u.nick,u.name) AS nick FROM kv JOIN users u ON u.id=json_extract(v,'$.uid') WHERE k LIKE ? AND json_extract(v,'$.verifiedAt') BETWEEN ? AND ? ORDER BY RANDOM() LIMIT 3")
+        .bind(C.prefix+"entry:%",C.start,C.end-1).all()).results;
       const winners=rows.map(({v,nick},i)=>{const x=JSON.parse(v);return {uid:x.uid,name:nick||x.name,stars:C.prizes[i][0],cash:C.prizes[i][1]}});
       const q=[env.DB.prepare("INSERT INTO kv(k,v) VALUES(?,?)").bind(resultKey,JSON.stringify(winners))];
       for(const w of winners){
@@ -5240,9 +5245,7 @@ async function profileContestApi(env,me,a,p){
     }
   }
   const entry=await kvGet(env,key),winners=await kvGet(env,resultKey);
-  const pending=admin&&!winners?(await env.DB.prepare("SELECT v FROM kv WHERE k LIKE ? AND json_extract(v,'$.status')='pending' ORDER BY k LIMIT 50")
-    .bind(C.prefix+"entry:%").all()).results.map(x=>JSON.parse(x.v)):null;
-  return {start:C.start,end:C.end,now,status:entry?.status||null,winners,prizes:C.prizes,pending,admin};
+  return {start:C.start,end:C.end,now,status:entry?.verifiedAt?"approved":null,winners,prizes:C.prizes,admin};
 }
 async function tkMediaTick(env){const now=Date.now();if(tkMediaBusy||now<TK.start||now>=TK.end||!env.BOT_TOKEN||env.DEV==="1")return;
  tkMediaBusy=true;try{for(const W of TK_MEDIA){if(now<W.at||now>=W.until)continue;await blastRun(env,W);
@@ -5905,7 +5908,7 @@ async function handle(req,env){{
     if(env.TK_FORCE)TK.force=1;
     if(a==="open"||a==="open_multi")CLREQ.set(req,{uid:me.id,n:a==="open"?1:Math.max(1,Math.min(50,+p.n||1))});
 
-    if(/^profile_contest_(get|join|review|draw)$/.test(a)){
+    if(/^profile_contest_(get|join|draw)$/.test(a)){
       try{return J({ok:true,res:await profileContestApi(env,me,a,p)})}
       catch(e){if(e instanceof GameError)return J({ok:false,err:e.message});throw e}
     }
