@@ -33,7 +33,7 @@ const MENU_GROUPS=[
   {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]}]],
  ["💬 Сообщество",[
   {k:"friends",ic:"👥",n:"Друзья",c:["#c8ffd8","#1a8a4a"]},
-  {k:"tk",ic:"🎟",n:"Билетная гонка",c:["#ffd23f","#d02a89"]},
+  {k:"tk",ic:"🏆",n:"Конкурс профилей",c:["#ffd23f","#d02a89"]},
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
   {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
   {k:"votes",ic:"🗳",n:"Голосование",c:["#ffd0c0","#d03a1a"]},
@@ -76,7 +76,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="duel")return goSub("duel");
   if(k==="ads")return adOpen();
   if(k==="contest"){setTab("spin");setTimeout(()=>{const e=$("chal");if(e&&!e.hidden)e.scrollIntoView({block:"start"})},60);return}
-  if(k==="tk"){if(TKS)tkOpen();else tkPing(true).then(()=>{if(TKS)tkOpen()});return}
+  if(k==="tk"){profileContestOpen();return}
   setTab(k)}
 /* что ждёт игрока: красные точки на плитках и на кнопке «Ещё» */
 function menuBadges(){const b={};if(!S)return b;const now=NOW();
@@ -95,7 +95,6 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
     sh.addEventListener("touchend",()=>{if(y0==null)return;y0=null;sh.style.transform="";if(dy>90)menuClose()})}
   const B=menuBadges(),on=!ONLINE||!!(S&&S.shopOn);let h="";
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
-  if(TKS&&Date.now()+TKS.off<TKS.end+864e5)h+='<button type="button" class="drw-ban" data-go="tk"><i>🎟</i><span><b>Билетная гонка до 22:00</b><small>Твои билеты: '+TKS.n+' · топ-3 получат сундуки и 300 / 200 / 100 ⭐</small></span><em>›</em></button>';
   if(S&&S.vts&&S.vts.length){const n=S.vts.filter(x=>!x.ch).length;h+='<button type="button" class="drw-ban vt'+(n?' pulse':'')+'" data-go="votes"><i>🗳</i><span><b>Голосование'+(n?' — голосуй!':' ✅')+'</b><small>'+(n?S.vts.filter(x=>!x.ch).map(x=>x.title).join(" · ")+' · выбери свой вариант':'Ты проголосовал везде — смотри результаты')+'</small></span><em>›</em></button>'}
   if(S&&S.ft&&!S.ft.ch)h+='<button type="button" class="drw-ban vt pulse" data-go="ftu"><i>🏆</i><span><b>Кто победит в бою '+S.ft.n+'?</b><small>'+ftuN(S.ft.a)+' vs '+ftuN(S.ft.b)+' · угадай и получи 🎴</small></span><em>›</em></button>';
   if(S&&S.poll&&!S.poll.v)h+='<button type="button" class="drw-ban vt pulse" data-go="poll"><i>📊</i><span><b>Опрос: '+escH(S.poll.q.slice(0,60))+'</b><small>Ответь в чате — твой голос важен</small></span></button>';
@@ -108,7 +107,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   {let F=[];try{F=JSON.parse(localStorage.getItem("we-fav")||"[]")}catch(e){}const all=MENU_GROUPS.flatMap(x=>x[1]),fi=F.map(k=>all.find(it=>it.k===k)).filter(Boolean);
     h+='<div class="drw-g">⭐ Избранное <button type="button" class="drw-fe'+(window.FAVE?' on':'')+'" data-go="favedit">'+(window.FAVE?'✅ Готово':'✏️ Настроить')+'</button></div>'+(window.FAVE?'<p class="drw-fh">Нажимай на разделы ниже — они добавятся в избранное или уберутся из него</p>':'')+(fi.length?'<div class="drw-t">'+fi.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span></button>').join("")+'</div>':(window.FAVE?'':'<p class="drw-fh">Нажми «Настроить», чтобы закрепить любимые разделы сверху</p>'))}
-  MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>(it.k!=="gold"||on)&&(it.k!=="tk"||TKS&&Date.now()+TKS.off<TKS.end+864e5));if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i'+(window.FAVE&&(localStorage.getItem("we-fav")||"").includes('"'+it.k+'"')?' fav':'')+'" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
+  MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>(it.k!=="gold"||on)&&(it.k!=="tk"||profileContestVisible()));if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i'+(window.FAVE&&(localStorage.getItem("we-fav")||"").includes('"'+it.k+'"')?' fav':'')+'" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
   d.querySelector(".drw-b").innerHTML=h;d.hidden=false;document.body.classList.add("drw-on");requestAnimationFrame(()=>d.classList.add("on"));$("tab-more").setAttribute("aria-expanded","true")}
 function menuClose(){const d=$("drw");if(!d||!d.classList.contains("on"))return;d.classList.remove("on");document.body.classList.remove("drw-on");$("tab-more").setAttribute("aria-expanded","false");setTimeout(()=>{if(!d.classList.contains("on"))d.hidden=true},260)}
 $("tab-more").onclick=()=>{const d=$("drw");if(d&&d.classList.contains("on"))menuClose();else menuOpen()};
@@ -1261,36 +1260,54 @@ async function warFight(r){const sh=$("msheet"),w=ms=>new Promise(z=>setTimeout(
   try{if(r.win){sfx.fanfare();burst(4);hapN("success")}else{sfx.lose();hapN("error")}}catch(e){}$("wf-ok").onclick=()=>{WR=null;warOpen()}}
 if(new URLSearchParams(location.search).get("war")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);setTimeout(()=>warOpen(),500)},500)}
 /* ===================== 🎟 БИЛЕТНАЯ ГОНКА ===================== */
-let TKS=null,tkAct=Date.now(),tkPingAt=0,tkLastN=-1;
-["pointerdown","touchstart","keydown","scroll"].forEach(ev=>document.addEventListener(ev,()=>{tkAct=Date.now()},{passive:true,capture:true}));
-const tkT=ms=>{ms=Math.max(0,ms);const h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);return (h?h+" ч ":"")+(h||m?m+" мин ":"")+(h?"":s+" с")};
-async function tkPing(force){if(!S||!ONLINE||document.hidden)return;const now=Date.now();if(!force&&now-tkPingAt<30e3)return;tkPingAt=now;
-  try{const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"tk_ping",p:{act:now-tkAct<3*6e4?1:0}})});const j=await r.json();
-    if(j.ok){const was=TKS?TKS.n:-1;TKS=j.res;TKS.off=TKS.now-Date.now();if(was>=0&&TKS.n>was)tkFloat(TKS.n-was);tkBar();const o=$("tkbox");if(o)tkOpen()}}catch(e){}}
-function tkFloat(d){const e=document.createElement("div");e.className="tk-fl";e.textContent="+"+d+" 🎟";document.body.appendChild(e);setTimeout(()=>e.remove(),1600)}
-function tkBar(){const sp=$("sec-spin");if(!sp||!S||!ONLINE)return;const now=Date.now()+(TKS?.off||0),start=TKS?.start||Date.UTC(2026,10,22,5),end=TKS?.end||Date.UTC(2026,10,22,19),show=now<end+864e5;let b=$("tk-bar");if(!show){if(b)b.remove();return}
-  if(!b){b=document.createElement("div");b.id="tk-bar";b.className="tk-contest";const e=$("chal");if(e&&e.parentNode===sp)e.before(b);else sp.appendChild(b)}
-  const st=now<start?0:now<end?1:2,n=TKS?.n||0;
-  b.innerHTML='<div class="tkc-head"><h3>🎟 '+(st===2?'ИТОГИ БИЛЕТНОЙ ГОНКИ':'БИЛЕТНАЯ ГОНКА')+'</h3><b>'+(st===0?'СТАРТ 08:00':st===1?'ДО 22:00':'ЗАВЕРШЕНА')+'</b></div>'+
-   '<p>'+(st===0?'Сегодня с 08:00 собирай билеты за действия в игре и новых друзей.':st===1?'Играй, выполняй задания, приглашай друзей — поднимайся в таблице до 22:00!':'Проверь победителей и свой результат.')+'</p>'+
-   '<div class="tkc-pr"><span>🥇 300 ⭐<small>Мифический сундук</small></span><span>🥈 200 ⭐<small>Сундук Империи</small></span><span>🥉 100 ⭐<small>Легендарный сундук</small></span></div>'+
-   '<div class="tkc-foot"><span>'+(TKS?'У тебя <b>'+n+' 🎟</b>'+(TKS.rank?' · место #'+TKS.rank:''):'Загружаем твои билеты…')+'</span><button type="button">'+(st===2?'Смотреть итоги':'Участвовать и смотреть правила')+' →</button></div>';
-  b.querySelector("button").onclick=async()=>{if(!TKS)await tkPing(true);if(TKS)tkOpen();else toast("Не удалось загрузить гонку. Попробуй ещё раз")}}
-function tkOpen(){const m=$("modal"),sh=$("msheet"),T=TKS;if(!T)return;m.hidden=false;const now=Date.now()+T.off,st=now<T.start?0:now<T.end?1:2,medal=["🥇","🥈","🥉"];
-  const how=T.how||[];
-  sh.innerHTML='<div class="box nickbox tkbox" id="tkbox"><small class="tk-k">🎟 22 НОЯБРЯ · 08:00–22:00 ПО МИНСКУ</small><h3>Билетная гонка</h3>'+
-   '<div class="tk-tm">'+(st===0?'Старт через <b>'+tkT(T.start-now)+'</b>':st===1?'До финиша <b>'+tkT(T.end-now)+'</b>':'<b>Гонка завершена</b>')+'</div>'+
-   '<div class="tk-me"><div><b>'+T.n+'</b><small>твоих билетов</small></div><div><b>'+(T.rank?'#'+T.rank:'—')+'</b><small>место из '+T.cnt+'</small></div></div>'+
-   '<div class="tk-pr">'+T.prizes.map((p,i)=>'<div><i>'+medal[i]+'</i><b>'+p+'</b></div>').join("")+'</div>'+
-   (T.fin?'<div class="tk-fin"><b>🏆 Победители</b>'+T.fin.w.map((w,i)=>'<div>'+medal[i]+' '+fnEsc(w.name)+' — '+w.n+' 🎟</div>').join("")+'</div>':'')+
-   '<div class="tk-top"><b>🏁 Таблица лидеров</b>'+(T.top.length?T.top.map((x,i)=>'<div class="'+(x.me?"me":"")+'"><em>'+(medal[i]||i+1)+'</em>'+avaHTML(x.ava,"xs")+'<span>'+fnEsc(String(x.name).slice(0,18))+'</span><b>'+x.n+' 🎟</b></div>').join(""):'<p class="cln">Пока пусто — стань первым!</p>')+'</div>'+
-   '<div class="tk-how"><b>Как получать билеты</b>'+how.map(h=>'<div><i>'+h[0]+'</i><span>'+h[1]+'</span><small>'+h[2]+'</small></div>').join("")+'</div>'+(T.caps&&T.caps.length?'<div class="tk-how tk-caps"><b>Твои лимиты на сегодня</b><p class="cln">Лимиты одинаковы для всех. За покупки, прокрутки, казино, VIP и платные добавочные попытки билетов нет.</p>'+T.caps.map(c=>'<div class="'+(c.have>=c.cap?"full":"")+'"><span>'+c.n+'</span><small>'+c.have+' / '+c.cap+' 🎟'+(c.have>=c.cap?' · лимит':'')+'</small></div>').join("")+'</div>':'')+
-   '<p class="cln">Побеждает топ-3 по билетам. При равенстве выше тот, кто раньше набрал итоговую сумму; затем меньший ID. Победы и поражения дают одинаковые билеты. Покупки и прокрутки не считаются. Звёзды зачисляются на игровой баланс, сундук появляется в призах для открытия.</p><button type="button" class="ghost" id="tk-x">Закрыть</button></div>';
-  $("tk-x").onclick=closeModal}
-setInterval(()=>{try{tkPing();tkBar();const o=$("tkbox");if(o&&TKS){const t=o.querySelector(".tk-tm b");const now=Date.now()+TKS.off;if(t&&now<TKS.end)t.textContent=tkT((now<TKS.start?TKS.start:TKS.end)-now)}}catch(e){}},1000);
-/* после действий — быстрее обновить счёт */
-{const _act=act;act=async function(name,p){const r=await _act.apply(this,arguments);if(r&&TKS&&TKS.act&&(TKS.act[name]||["rk_get","rk_act","community_check"].includes(name)))setTimeout(()=>tkPing(true),400);return r}}
-if(new URLSearchParams(location.search).get("tk")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||!TKS)return;clearInterval(t);setTimeout(()=>tkOpen(),400)},500)}
+const profileContestStart=Date.UTC(2026,10,23,5),profileContestEnd=Date.UTC(2026,10,24,19);
+const profileContestVisible=()=>Date.now()<profileContestEnd+7*864e5||!!S?.admin;
+function profileContestBar(){
+  const sp=$("sec-spin");if(!sp||!S||!ONLINE)return;
+  let b=$("tk-bar");
+  if(!profileContestVisible()){b?.remove();return}
+  if(b)return;
+  b=document.createElement("div");b.id="tk-bar";b.className="tk-contest";
+  const e=$("chal");if(e&&e.parentNode===sp)e.before(b);else sp.appendChild(b);
+  b.innerHTML='<div class="tkc-head"><h3>🏆 КОНКУРС ПРОФИЛЕЙ</h3><b>24 НОЯБРЯ · 22:00</b></div><p>Добавь @VoinyEpohBot в имя или описание Telegram и участвуй в розыгрыше.</p><div class="tkc-foot"><span>Первый приз · 500 ⭐ + 1 000 000 🪙</span><button type="button">Открыть →</button></div>';
+  b.querySelector("button").onclick=()=>profileContestOpen();
+}
+async function profileContestOpen(action="get",payload={}){
+  if(!ONLINE){toast("Открой игру через Telegram");return}
+  const t=await act("profile_contest_"+action,payload,12000);if(!t)return;
+  const pre=t.now<t.start,ended=t.now>=t.end;
+  const m=$("modal"),sh=$("msheet");m.hidden=false;
+  const status={pending:"Заявка на проверке",approved:"Заявка подтверждена",rejected:"Заявка отклонена"};
+  sh.innerHTML='<div class="box nickbox tkbox"><small class="tk-k">23.11 08:00 — 24.11 22:00 · МИНСК</small><h3>🏆 Конкурс профилей</h3>'+
+    '<p>Добавь <b>@VoinyEpohBot</b> в имя или описание профиля Telegram. Подай заявку здесь и отправь скрин настроек профиля администратору. Сохрани отметку до проверки.</p>'+
+    '<div class="tk-pr">'+t.prizes.map(([stars,cash],i)=>'<div><b>'+(i+1)+' место · '+stars+' ⭐ + '+fmtN(cash)+' 🪙</b></div>').join("")+'</div>'+
+    '<p class="cln">Одна заявка на аккаунт. Три места разыгрываются среди подтверждённых заявок. Звёзды зачисляются на игровой баланс.</p>'+
+    (t.status?'<p><b>'+status[t.status]+'</b></p>':pre?'<p>Приём начнётся в 08:00.</p>':ended?'<p>Приём заявок завершён.</p>':'<button type="button" class="craftbtn" id="profile-contest-join">Подать заявку</button>')+
+    (t.status==="pending"?'<button type="button" class="mini2" id="profile-contest-proof">Отправить скрин администратору</button>':'')+
+    (t.winners?'<h4>Победители</h4>'+(t.winners.map((w,i)=>'<p>'+(i+1)+'. '+fnEsc(w.name)+' · '+w.stars+' ⭐ + '+fmtN(w.cash)+' 🪙</p>').join("")||'<p>Нет подтверждённых заявок.</p>'):'')+
+    (t.admin&&!t.winners?'<h4>Проверка заявок</h4><div id="profile-contest-review"></div>'+(ended?'<button type="button" class="craftbtn" id="profile-contest-draw">Разыграть и выдать призы</button>':''):'')+
+    '<button type="button" class="ghost" id="profile-contest-close">Закрыть</button></div>';
+  $("profile-contest-close").onclick=closeModal;
+  const run=(button,a,p)=>{button.disabled=true;profileContestOpen(a,p).finally(()=>{button.disabled=false})};
+  const join=$("profile-contest-join");if(join)join.onclick=()=>run(join,"join",{});
+  const proof=$("profile-contest-proof");if(proof)proof.onclick=()=>{const u="https://t.me/VoinyEpohBotAdmn";if(tg?.openTelegramLink)tg.openTelegramLink(u);else window.open(u,"_blank")};
+  const draw=$("profile-contest-draw");if(draw)draw.onclick=()=>{if(confirm("Случайно выбрать победителей и выдать призы?"))run(draw,"draw",{})};
+  const list=$("profile-contest-review");
+  if(list)for(const x of t.pending||[]){
+    const row=document.createElement("div");const label=document.createElement("p");
+    label.textContent=x.name+(x.username?" · @"+x.username:"")+" · ID "+x.uid;row.append(label);
+    for(const approve of [true,false]){
+      const button=document.createElement("button");button.type="button";button.className="mini2";
+      button.textContent=approve?"Подтвердить":"Отклонить";
+      button.onclick=()=>run(button,"review",{uid:x.uid,approve});row.append(button);
+    }
+    list.append(row);
+  }
+}
+setInterval(profileContestBar,3000);
+if(new URLSearchParams(location.search).has("profilecontest")){
+  const timer=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(timer);profileContestOpen()},500);
+}
 
 /* 📲 иконка игры на главном экране телефона (Telegram 8.0+) */
 function homeAdd(){try{if(tg&&tg.isVersionAtLeast&&tg.isVersionAtLeast("8.0")&&tg.addToHomeScreen){tg.addToHomeScreen();return}}catch(e){}
