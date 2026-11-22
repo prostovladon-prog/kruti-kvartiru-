@@ -1268,10 +1268,14 @@ async function tkPing(force){if(!S||!ONLINE||document.hidden)return;const now=Da
   try{const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"tk_ping",p:{act:now-tkAct<3*6e4?1:0}})});const j=await r.json();
     if(j.ok){const was=TKS?TKS.n:-1;TKS=j.res;TKS.off=TKS.now-Date.now();if(was>=0&&TKS.n>was)tkFloat(TKS.n-was);tkBar();const o=$("tkbox");if(o)tkOpen()}}catch(e){}}
 function tkFloat(d){const e=document.createElement("div");e.className="tk-fl";e.textContent="+"+d+" 🎟";document.body.appendChild(e);setTimeout(()=>e.remove(),1600)}
-function tkBar(){const sp=$("sec-spin");if(!sp||!TKS)return;const now=Date.now()+TKS.off,show=now<TKS.end+864e5;let b=$("tk-bar");if(!show){if(b)b.remove();return}
-  if(!b){b=document.createElement("button");b.type="button";b.id="tk-bar";b.className="tk-bar";b.onclick=()=>tkOpen();const e=$("chal");if(e&&e.parentNode===sp)e.before(b);else sp.appendChild(b)}
-  const st=now<TKS.start?0:now<TKS.end?1:2;
-  b.innerHTML='<i>🎟</i><span><b>'+(st===0?'Билетная гонка · 22 ноября, 08:00':st===1?'Билетная гонка идёт!':'🏆 Билетная гонка завершена')+'</b><small>'+(st===0?'через '+tkT(TKS.start-now)+' · 3 приза':st===1?'у тебя <u>'+TKS.n+'</u> 🎟'+(TKS.rank?' · место #'+TKS.rank:'')+' · до финиша '+tkT(TKS.end-now):'смотри победителей')+'</small></span><em>›</em>'}
+function tkBar(){const sp=$("sec-spin");if(!sp||!S||!ONLINE)return;const now=Date.now()+(TKS?.off||0),start=TKS?.start||Date.UTC(2026,10,22,5),end=TKS?.end||Date.UTC(2026,10,22,19),show=now<end+864e5;let b=$("tk-bar");if(!show){if(b)b.remove();return}
+  if(!b){b=document.createElement("div");b.id="tk-bar";b.className="tk-contest";const e=$("chal");if(e&&e.parentNode===sp)e.before(b);else sp.appendChild(b)}
+  const st=now<start?0:now<end?1:2,n=TKS?.n||0;
+  b.innerHTML='<div class="tkc-head"><h3>🎟 '+(st===2?'ИТОГИ БИЛЕТНОЙ ГОНКИ':'БИЛЕТНАЯ ГОНКА')+'</h3><b>'+(st===0?'СТАРТ 08:00':st===1?'ДО 22:00':'ЗАВЕРШЕНА')+'</b></div>'+
+   '<p>'+(st===0?'Сегодня с 08:00 собирай билеты за действия в игре и новых друзей.':st===1?'Играй, выполняй задания, приглашай друзей — поднимайся в таблице до 22:00!':'Проверь победителей и свой результат.')+'</p>'+
+   '<div class="tkc-pr"><span>🥇 300 ⭐<small>Мифический сундук</small></span><span>🥈 200 ⭐<small>Сундук Империи</small></span><span>🥉 100 ⭐<small>Легендарный сундук</small></span></div>'+
+   '<div class="tkc-foot"><span>'+(TKS?'У тебя <b>'+n+' 🎟</b>'+(TKS.rank?' · место #'+TKS.rank:''):'Загружаем твои билеты…')+'</span><button type="button">'+(st===2?'Смотреть итоги':'Участвовать и смотреть правила')+' →</button></div>';
+  b.querySelector("button").onclick=async()=>{if(!TKS)await tkPing(true);if(TKS)tkOpen();else toast("Не удалось загрузить гонку. Попробуй ещё раз")}}
 function tkOpen(){const m=$("modal"),sh=$("msheet"),T=TKS;if(!T)return;m.hidden=false;const now=Date.now()+T.off,st=now<T.start?0:now<T.end?1:2,medal=["🥇","🥈","🥉"];
   const how=T.how||[];
   sh.innerHTML='<div class="box nickbox tkbox" id="tkbox"><small class="tk-k">🎟 22 НОЯБРЯ · 08:00–22:00 ПО МИНСКУ</small><h3>Билетная гонка</h3>'+
@@ -1283,7 +1287,7 @@ function tkOpen(){const m=$("modal"),sh=$("msheet"),T=TKS;if(!T)return;m.hidden=
    '<div class="tk-how"><b>Как получать билеты</b>'+how.map(h=>'<div><i>'+h[0]+'</i><span>'+h[1]+'</span><small>'+h[2]+'</small></div>').join("")+'</div>'+(T.caps&&T.caps.length?'<div class="tk-how tk-caps"><b>Твои лимиты на сегодня</b><p class="cln">Лимиты одинаковы для всех. За покупки, прокрутки, казино, VIP и платные добавочные попытки билетов нет.</p>'+T.caps.map(c=>'<div class="'+(c.have>=c.cap?"full":"")+'"><span>'+c.n+'</span><small>'+c.have+' / '+c.cap+' 🎟'+(c.have>=c.cap?' · лимит':'')+'</small></div>').join("")+'</div>':'')+
    '<p class="cln">Побеждает топ-3 по билетам. При равенстве выше тот, кто раньше набрал итоговую сумму; затем меньший ID. Победы и поражения дают одинаковые билеты. Покупки и прокрутки не считаются. Звёзды зачисляются на игровой баланс, сундук появляется в призах для открытия.</p><button type="button" class="ghost" id="tk-x">Закрыть</button></div>';
   $("tk-x").onclick=closeModal}
-setInterval(()=>{try{tkPing();if(TKS)tkBar();const o=$("tkbox");if(o&&TKS){const t=o.querySelector(".tk-tm b");const now=Date.now()+TKS.off;if(t&&now<TKS.end)t.textContent=tkT((now<TKS.start?TKS.start:TKS.end)-now)}}catch(e){}},1000);
+setInterval(()=>{try{tkPing();tkBar();const o=$("tkbox");if(o&&TKS){const t=o.querySelector(".tk-tm b");const now=Date.now()+TKS.off;if(t&&now<TKS.end)t.textContent=tkT((now<TKS.start?TKS.start:TKS.end)-now)}}catch(e){}},1000);
 /* после действий — быстрее обновить счёт */
 {const _act=act;act=async function(name,p){const r=await _act.apply(this,arguments);if(r&&TKS&&TKS.act&&(TKS.act[name]||["rk_get","rk_act","community_check"].includes(name)))setTimeout(()=>tkPing(true),400);return r}}
 if(new URLSearchParams(location.search).get("tk")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot")||!TKS)return;clearInterval(t);setTimeout(()=>tkOpen(),400)},500)}

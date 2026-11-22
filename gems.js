@@ -346,7 +346,7 @@ setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();con
  new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
 
 /* 🎠 События над карточкой: свайп и автоматическое переключение */
-const EVENT_BARS=["tk-bar","lot-bar","vhstrip"];
+const EVENT_BARS=["lot-bar","vhstrip"];
 function gameGiftStrip(sp){$("game-gift-strip")?.remove();}
 function evCar(){const sp=$("sec-spin");if(!sp)return;gameGiftStrip(sp);const bars=EVENT_BARS.map(id=>$(id)).filter(Boolean);let C=$("ev-car");
  if(!bars.length){if(C)C.remove();return}
