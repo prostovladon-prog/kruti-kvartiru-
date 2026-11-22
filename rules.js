@@ -1213,10 +1213,14 @@ const ACTIONS={
     const cand=HEROES.map((H,i)=>i).filter(i=>isBase(i)&&HEROES[i][2]===tt),oh=cand[Math.floor(Math.random()*cand.length)];
     // соперник: карточка настоящего игрока (сервер подбирает её сам), иначе бот
     const real=G.ctx.oppCard||null;
-    if(real&&p.mode&&G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Освободи место, чтобы драться на карточку");
+    if(real&&(p.mode||ctx.recovery)&&G.cards.length>=capOf(st))fail("Коллекция заполнена ("+capOf(st)+"). Освободи место, чтобы драться на карточку");
     const opp=real||phantom(oh,Math.random()<.2?1:0),before=snap(me);
     const dk=dgBonus(st,ctx.now),p2=aiPick(opp,[stat]),p3=rndPick([stat,p2]),picks=[stat,p2,p3],R=fight3(me,opp,picks,dk);
     let reward=0,gotCard=null,lostCard=false,dg=null;
+    if(ctx.recovery){
+      if(R.w>R.l){ctx.takeCard=real.id;gotCard=snap(real);addCard(G,gotCard)}
+      return {me:before,opp,picks,rounds:R.rounds,w:R.w,l:R.l,reward:0,gotCard,lostCard:false,real:true,oppName:ctx.oppName,oppUid:ctx.oppUid,dk};
+    }
     if(R.w===R.l)addXp(ctx,me,15);
     else if(R.w>R.l){me.wins=(me.wins||0)+1;st.totalWins=(st.totalWins||0)+1;addXp(ctx,me,30);day(st,ctx.now).wins++;dg=dgWin(st,ctx);
       if(p.mode&&real){ctx.takeCard=real.id;gotCard=snap(real);addCard(G,gotCard)}   // забираем карточку игрока

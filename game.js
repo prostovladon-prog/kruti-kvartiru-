@@ -1661,7 +1661,7 @@ function runBattle(o){const rounds=[];let i=0;const shown=o.shown||[0];
   next()}
 
 /* ---------- дуэли ---------- */
-let duMine=null,duStat=0,duMode=0,duBusy=false;
+let duMine=null,duStat=0,duMode=0,duBusy=false,duRecovery=null;
 const BOTN=["Артём_777","lena.k","Тимур","Max_Rich","Ксюша","Vlad_B","Самурай228","Олег"];
 
 /* карточка в бою: та же настоящая карточка, что в коллекции, а под ней плашка с характеристикой раунда */
@@ -1669,7 +1669,7 @@ function mcHTML(c,stat,show){return `<div class="mcf">${miniSlot(c)}</div><div c
 function renderDuel(){
   if(duMine&&!S.cards.some(c=>c.id===duMine))duMine=null;
   const md=$("du-mode");md.innerHTML="";
-  ["На интерес","На карточку"].forEach((t,i)=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.setAttribute("aria-pressed",i===duMode);b.onclick=()=>{if(duBusy)return;duMode=i;renderDuel()};md.appendChild(b)});
+  ["На интерес","На карточку"].forEach((t,i)=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.setAttribute("aria-pressed",i===duMode);b.onclick=()=>{if(duBusy)return;duMode=i;duRecovery=null;renderDuel()};md.appendChild(b)});
   const me=S.cards.find(c=>c.id===duMine),mel=$("du-me");
   if(!duBusy){
     if(me){mel.className="mc";mel.style.setProperty("--hc",HT[HEROES[me.h][2]].c);mel.innerHTML=mcHTML(me,duStat)}
@@ -1679,7 +1679,7 @@ function renderDuel(){
   const sb=$("du-stats");sb.innerHTML="";
   STN.forEach((n,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",i===duStat);b.innerHTML=`${n}<b class="num">${me?eff(me,i):"—"}</b>`;b.onclick=()=>{if(duBusy)return;duStat=i;renderDuel()};sb.appendChild(b)});
   if(!duBusy)$("du-rounds").innerHTML=pipsHTML([duStat,null,null],[],0);
-  const go=$("du-go");go.disabled=!me||duBusy;go.textContent=duMode?"В бой на карточку!":"В бой!";
+  const go=$("du-go");go.disabled=!me||duBusy;go.textContent=duRecovery?"Реванш за свою карту":duMode?"В бой на карточку!":"В бой!";
   const pk=$("du-pick");pk.innerHTML="";
   [...S.cards].filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>eff(b,duStat)-eff(a,duStat)).forEach(c=>{
     const H=HEROES[c.h],b=document.createElement("button");b.type="button";b.className="pc";b.style.setProperty("--hc",HT[H[2]].c);b.setAttribute("aria-pressed",c.id===duMine);
@@ -1688,11 +1688,12 @@ function renderDuel(){
   $("du-wins").textContent="Побед сегодня: "+day(S,NOW()).wins;
   $("du-mode").title=duMode?"На карточку дерёшься с ботами: чужие карточки не отнимаются":"";
   renderAttacks();renderStake();
-  if(duMode&&!duBusy&&!$("du-res").textContent)$("du-res").textContent=ONLINE&&S.stake?"На карточку: соперник из игроков с похожей ценой карточки, если таких нет, то бот":"Сейчас на карточку ты дерёшься с ботами. Включи бои с игроками ниже";
+  if(duRecovery&&!duBusy)$("du-res").textContent="Победи, чтобы вернуть свою карту. Твой воин не на ставке.";
+  if(duMode&&!duBusy&&!$("du-res").textContent)$("du-res").textContent=ONLINE&&S.stake?"На карточку: соперник из игроков с включёнными ставками":"Включи бои на карточку ниже, чтобы участвовать";
 }
 function renderStake(){const b=$("stake-go"),t=$("stake-t");if(!b)return;const on=!!S.stake;
   b.textContent=on?"Выключить":"Включить";b.style.background=on?"#e8eaf3":"";
-  t.textContent=(on?"Включено. ":"")+"Твоих воинов могут вызвать на бой на карточку другие игроки, даже когда тебя нет в игре. Отобьётся твой воин, и ты заберёшь карточку нападавшего. Проиграет, и твоя карточка уйдёт к нему. Соперники только с похожей ценой карточки (от 0,5× до 2×). Карточки на рынке и в походе не участвуют. Нападать на игроков в бою на карточку можно, только если включено и у тебя."+(ONLINE?"":" Работает в игре через Telegram.")}
+  t.textContent=(on?"Включено. ":"")+"Твоих воинов могут вызвать на бой на карточку другие игроки, даже когда тебя нет в игре. Отобьётся твой воин, и ты заберёшь карточку нападавшего. Проиграет, и твоя карточка уйдёт к нему. В автоматическом подборе подходят карты от ¼ до 4× стоимости твоей. На арене — от ½ до 2×. Карточки на рынке и в походе не участвуют. Нападать на игроков в бою на карточку можно, только если включено и у тебя."+(ONLINE?"":" Работает в игре через Telegram.")}
 $("stake-go").onclick=async()=>{if(!ONLINE){toast("Бои с игроками работают в игре через Telegram");return}const on=!S.stake;const r=await act("stake_set",{on:on?1:0});if(r){renderDuel();toast(on?"Бои на карточку с игроками включены. Удачи!":"Бои на карточку с игроками выключены")}};
 /* кто нападал на мои карточки: уведомление и реванш */
 const seenFights=new Set();
@@ -1701,13 +1702,18 @@ function renderAttacks(){const box=$("du-att"),list=$("du-att-list"),F=(S&&S.fig
     d.innerHTML='<span><b></b><br><small></small></span><button type="button" class="mini2">Реванш</button>';
     d.querySelector("b").textContent=f.att_name;
     d.querySelector("small").textContent=defTxt(f)+" · "+ago(f.t);
-    d.querySelector("button").onclick=()=>openParam("c_"+f.att_card);list.appendChild(d)})}
+    d.querySelector("button").onclick=()=>f.stake&&f.took&&f.w>f.l?startRecovery(f.id):openParam("c_"+f.att_card);list.appendChild(d)})}
 /* счёт с точки зрения защитника: сначала его раунды */
 function defTxt(f){const H=HEROES[f.def_h][0],sc=f.l+":"+f.w;
   if(f.stake&&f.took)return f.w>f.l?"Бой на карточку: твой "+H+" проиграл "+sc+" и ушёл к сопернику":"Бой на карточку: твой "+H+" отбился "+sc+" и забрал карточку соперника ("+HEROES[f.att_h][0]+")";
   return f.w>f.l?"Твой "+H+" проиграл "+sc:f.w<f.l?"Твой "+H+" отбился "+sc:"Твой "+H+": ничья "+sc}
 function fightNews(){((S&&S.fights)||[]).filter(f=>!f.seen&&!seenFights.has(f.id)).forEach(f=>{seenFights.add(f.id);
   toast("Нападение от "+f.att_name+": "+defTxt(f).replace("Твой","твой")+". Реванш во вкладке «Бой»")})}
+function startRecovery(id){
+  if(duBusy)return;
+  duRecovery=id;duMode=0;setTab("duel");btView="duel";renderBattle();
+  $("du-mode").scrollIntoView({block:"start"});
+}
 let duRematch=null;
 $("du-again").onclick=()=>{if(!duRematch||duBusy)return;$("du-go").click()};
 $("du-go").onclick=async()=>{
@@ -1717,18 +1723,19 @@ $("du-go").onclick=async()=>{
   $("du-go").disabled=true;mel.classList.remove("win","lose");
   op.classList.add("back");op.innerHTML="<span>СОПЕР<br>НИК</span>";
   if(!reduce){op.style.animation="shake .11s linear infinite";whoosh()}
-  const r=await act("duel",{id:me.id,stat:duStat,mode:duMode,rematch:rem||undefined});
-  if(!r){op.style.animation="";duBusy=false;renderDuel();return}
+  const r=await act("duel",{id:me.id,stat:duStat,mode:duMode,rematch:rem||undefined,recovery:duRecovery||undefined});
+  if(!r){op.style.animation="";duBusy=false;res.textContent="";renderDuel();return}
+  const recovery=duRecovery;if(recovery&&r.gotCard)duRecovery=null;
   if(r.real)bot=r.oppName;res.textContent="Соперник: "+bot+(r.real?" (игрок)":"");
   setTimeout(()=>{
     op.style.animation="";op.className="mc";op.style.setProperty("--hc",HT[HEROES[r.opp.h][2]].c);
     runBattle({L:r.me,Rc:r.opp,picks:r.picks,rounds:r.rounds,leftEl:mel,rightEl:op,roundsEl:$("du-rounds"),statusEl:$("du-st"),vsEl:$("du-vs"),done:(w,l)=>{
       let msg;const sc=w+" : "+l;
-      if(w===l)msg="Ничья "+sc+"! Опыт +15";
+      if(w===l)msg="Ничья "+sc+(recovery?". Карта остаётся у соперника.":"! Опыт +15");
       else if(w>l){sfx.fanfare();burst(3);hapN("success");msg=r.gotCard?"Победа "+sc+"! Карточка "+HEROES[r.gotCard.h][0]+(r.real?" игрока "+bot:"")+" теперь твоя":"Победа "+sc+"! Награда "+fmt(r.reward)}
       else{sfx.lose();msg=r.lostCard?"Поражение "+sc+". Твоя карточка ушла к "+bot:"Поражение "+sc+". Попробуй другого воина или характеристику";if(r.lostCard&&current&&current.id===me.id){current=null;$("sell").disabled=true}}
       res.textContent=(r.real?"Против "+bot+". ":"")+msg;res.className="result "+(w>l?"win":w<l?"lose":"");updCash();
-      if(r.real){duRematch=r.opp.id;const ag=$("du-again");ag.hidden=false;ag.textContent=(w>l?"Ещё раз с ":"Реванш с ")+bot}
+      if(r.real&&!recovery&&!duMode){duRematch=r.opp.id;const ag=$("du-again");ag.hidden=false;ag.textContent=(w>l?"Ещё раз с ":"Реванш с ")+bot}
       setTimeout(()=>{duBusy=false;if(r.lostCard)duMine=null;$("du-st").textContent="Раунд 1: выбери характеристику";renderDuel()},2200)}});
   },reduce?0:Math.max(0,900));
 };
@@ -2167,6 +2174,7 @@ async function openParam(p){
   if(p.startsWith("r_"))return;   // приглашение: сервер уже засчитал его при первом входе
   if(p.startsWith("u_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const r=await act("profile",{uid:+p.slice(2)});if(r)openShowcase(Object.assign(r,{p}));return}
   if(p.startsWith("b_")){if(!ONLINE){toast("Арена работает в игре через Telegram");return}const [,id,code]=p.split("_");setTab("duel");btView="arena";renderBattle();arOpen(+id,code);return}
+  if(p.startsWith("rv_")){if(ONLINE)startRecovery(+p.slice(3));return}
   if(p.startsWith("c_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const [,id,stat]=p.split("_");const r=await act("card",{id:+id});
     if(r)openDuel({name:r.name,card:r.card,stat:stat!=null&&stat!==""?(+stat)%5:null,cardId:r.card.id,id:"c"+r.card.id});return}
   const v=parseLocalParam(p);if(!v){toast("Ссылка от друга не открылась");return}
@@ -2178,6 +2186,7 @@ function renderFriends(){const box=$("friends");if(!box)return;box.innerHTML="";
     d.querySelector("button").onclick=()=>openParam(F[n].p);box.appendChild(d)})}
 function handleStart(){let p=null;try{p=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param"))}catch(e){}
   if(!p){const q=new URLSearchParams(location.search).get("startapp");if(q)p=q}
+  if(p?.startsWith("c_")){const id=+p.split("_")[1];const f=(S?.fights||[]).find(f=>f.att_card===id&&f.stake&&f.took&&f.w>f.l);if(f){startRecovery(f.id);return}}
   if(p)openParam(p)}
 
 

@@ -729,9 +729,13 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
     // новая версия случайная: проверка ниже пропустит записи, только если именно этот запрос обновил игрока
     const nv=Math.floor(Math.random()*9e15)+1,guard="(SELECT ver FROM users WHERE id=?)=?",keep=new Set();
     // бой на карточку с игроком: сначала карточка соперника переходит ко мне, и только если это удалось, записывается всё остальное
-    const take=ctx.takeCard?env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL").bind(me.id,ctx.takeCard,ctx.oppUid):null;
-    const own=take?" AND (SELECT owner FROM cards WHERE id="+Math.floor(+ctx.takeCard)+")="+Math.floor(+me.id):"";   // id в Telegram больше 32 бит: без |0
-    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=?,dg_exp=? WHERE id=? AND ver=?"+own).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,st.dg&&st.dg.exp?st.dg.exp.end:0,me.id,u.ver)];
+    const stakeGuard=name==="duel"&&p.mode?
+      " AND (SELECT COUNT(*) FROM users WHERE id IN ("+Number(me.id)+","+Number(ctx.oppUid)+") AND stake=1)=2":"";
+    const recoveryGuard=ctx.recovery?" AND NOT EXISTS (SELECT 1 FROM kv WHERE k=?)":"";
+    const take=ctx.takeCard?env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL"+stakeGuard+recoveryGuard+" AND (SELECT ver FROM users WHERE id=?)=?")
+      .bind(me.id,ctx.takeCard,ctx.oppUid,...(ctx.recovery?[ctx.recovery]:[]),me.id,u.ver):null;
+    const own=take?" AND changes()=1 AND (SELECT owner FROM cards WHERE id="+Math.floor(+ctx.takeCard)+")="+Math.floor(+me.id):"";   // id в Telegram больше 32 бит: без |0
+    const stm=[env.DB.prepare("UPDATE users SET state=?,cash=cash+?,gift_spins=gift_spins-?,ver=?,name=?,updated=?,refill_at=?,camp_at=?,camp_dk=?,camp_dr=?,camp_wk=?,camp_wr=?,dg_pow=?,dg_exp=? WHERE id=? AND ver=?"+own+stakeGuard).bind(JSON.stringify(st),delta,gift,nv,me.name,ctx.now,st.refillAt||0,(st.camp&&st.camp.fullAt)||0,(st.camp&&st.camp.dK)||null,(st.camp&&st.camp.dR)||0,(st.camp&&st.camp.wK)||null,(st.camp&&st.camp.wR)||0,st.dg?dgPower(st.dg):0,st.dg&&st.dg.exp?st.dg.exp.end:0,me.id,u.ver)];
     const tk= tkProof(name,p,out.res,st,ctx);if(tk)stm.push(...tkAwardSql(env,me.id,tk.a,tk.n,"state:"+nv,ctx.now,nv));
     if((name==="open"||name==="open_multi")&&st.nOp>=15&&u.ref&&u.ref!==me.id){
       const C=await recruitCfg(env);if(ctx.now>=C.start&&ctx.now<C.end&&u.created>=C.start&&u.created<C.end){
@@ -771,9 +775,11 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
     stm.push(...ins);
     for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&(dcOf(c.h)?.one||HEROES[c.h][0]===SON_SHOGUN.name))
       stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(HEROES[c.h][0]===SON_SHOGUN.name?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
+    if(ctx.recovery&&take)stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind(ctx.recovery,JSON.stringify({t:ctx.now}),me.id,nv));
     if(take)stm.unshift(take);
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
-    if(take&&rs[0].meta.changes!==1)fail("Соперник только что убрал эту карточку. Бой отменён, попробуй ещё раз");
+    if(take&&rs[0].meta.changes!==1)fail("Карта или настройки соперника изменились. Бой отменён");
+    if(stakeGuard&&!take&&rs[0].meta.changes!==1)fail("Настройки ставок изменились. Бой отменён");
     if(rs[take?1:0].meta.changes!==1){if(take)await env.DB.prepare("UPDATE cards SET owner=? WHERE id=? AND owner=?").bind(ctx.oppUid,ctx.takeCard,me.id).run();continue}
     if(out.cards.some(c=>typeof c.id==="string"&&(c.f>0||HEROES[c.h][2]>=3))||before.size!==keep.size)delete topCache.prints;   // тираж изменился
     if(tk)delete TKC.v;
@@ -1075,12 +1081,21 @@ async function adminStatsX(env,now,t0,D,days,by){const one=async(q,...a)=>(await
 /* ---------- бои с настоящими игроками ---------- */
 /* «на интерес»: любая карточка похожей редкости.
    «на карточку»: только у игроков, которые сами включили бои на карточку, цена от 0,5× до 2× моей, и у соперника есть место в коллекции */
+async function recoveryOpponent(env,me,id){
+  const f=await env.DB.prepare("SELECT * FROM fights WHERE def=? AND id=? AND stake=1 AND took=1 AND w>l AND t>?").bind(me.id,Number(id),Date.now()-3*864e5).first();
+  if(!f)fail("Нет проигранной карты для этого реванша");
+  const recovery="fight:recovery:"+f.id;
+  if(await kvGet(env,recovery))fail("Карта по этому бою уже возвращена");
+  const c=await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.id=? AND c.owner=? AND c.list_price IS NULL AND c.away=0 AND c.room_id IS NULL").bind(f.def_card,f.att).first();
+  if(!c||stakeProtected(rowToCard(c)))fail("У соперника нет этой карты или она недоступна для боя");
+  return {card:pub(rowToCard(c)),name:c.owner_name||"Игрок",owner:c.owner,recovery};
+}
 async function pickOpponent(env,me,p,stake){
   const row=async(sql,...a)=>env.DB.prepare(sql).bind(...a).first();
   const mine=await row("SELECT h,v FROM cards WHERE id=? AND owner=?",p.id|0,me.id);if(!mine)return null;
   let SEL="SELECT c.*,COALESCE(u.nick,u.name) AS owner_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.owner>0 AND c.owner<>? AND c.list_price IS NULL AND c.away=0 AND c.room_id IS NULL AND c.f<>5 AND NOT (c.f=4 AND c.sn='000010') AND c.part=0";   // «Основатель» в боях не участвует
   const args=[me.id];
-  if(stake){SEL+=" AND c.f<>? AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<COALESCE(json_extract(u.state,'$.capOld'),?)+(CASE COALESCE(json_extract(u.state,'$.castle'),0) "+CASTLE.map((x,i)=>"WHEN "+(i+1)+" THEN "+castleSlots(i+1)).join(" ")+" ELSE 0 END)+"+SLOT_STEP+"*MIN(1,COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(BIRTHDAY_PRINT_F,mine.v*.5,mine.v*2,CAP)}
+  if(stake){SEL+=" AND c.f<>? AND u.stake=1 AND c.v BETWEEN ? AND ? AND (SELECT COUNT(*) FROM cards x WHERE x.owner=c.owner)<COALESCE(json_extract(u.state,'$.capOld'),?)+(CASE COALESCE(json_extract(u.state,'$.castle'),0) "+CASTLE.map((x,i)=>"WHEN "+(i+1)+" THEN "+castleSlots(i+1)).join(" ")+" ELSE 0 END)+"+SLOT_STEP+"*MIN(1,COALESCE(json_extract(u.state,'$.capC'),0))+"+SLOT_STAR.n+"*MIN("+SLOT_STAR.max+",COALESCE(json_extract(u.state,'$.capS'),0))";args.push(BIRTHDAY_PRINT_F,mine.v*.25,mine.v*4,CAP)}
   let r=null;
   if(p.rematch)r=await row(SEL+" AND c.id=?",...args,p.rematch|0);
   if(!r){if(!stake&&Math.random()<.2)return null;   // иногда всё равно бот, чтобы соперники были разными
@@ -1093,14 +1108,14 @@ async function pickOpponent(env,me,p,stake){
 }
 async function logFight(env,me,myCardId,opp,res,stake){
   try{const u=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(me.id).first();
-    await env.DB.prepare("INSERT INTO fights(att,att_name,att_card,att_h,def,def_card,def_h,w,l,t,stake,took) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
-      .bind(me.id,(u&&u.n)||me.name,myCardId|0,res.me.h,opp.owner,opp.card.id,opp.card.h,res.w,res.l,Date.now(),stake?1:0,(res.gotCard||res.lostCard)?1:0).run();
+    const fight=await env.DB.prepare("INSERT INTO fights(att,att_name,att_card,att_h,def,def_card,def_h,w,l,t,stake,took) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id")
+      .bind(me.id,(u&&u.n)||me.name,myCardId|0,res.me.h,opp.owner,opp.card.id,opp.card.h,res.w,res.l,Date.now(),stake?1:0,(res.gotCard||res.lostCard)?1:0).first();
     // защитнику: не чаще раза в 30 минут, чтобы не заспамить
     const d=await env.DB.prepare("UPDATE users SET att_note=? WHERE id=? AND pm=1 AND att_note<?").bind(Date.now(),opp.owner,Date.now()-30*60e3).run();
     if(d.meta.changes===1){const H=HEROES[opp.card.h][0],att=(u&&u.n)||me.name,took=stake&&(res.gotCard||res.lostCard);
       const txt=res.w>res.l?(took?"⚔️ "+att+" победил твоего воина «"+H+"» в бою на карточку и забрал его!":"⚔️ "+att+" напал на твоего воина «"+H+"» и победил "+res.w+":"+res.l+"!")
         :res.w<res.l?(took?"🛡 Твой «"+H+"» отбился от "+att+" и забрал его карточку!":"🛡 Твой «"+H+"» отбился от "+att+" "+res.l+":"+res.w+"!"):"⚔️ Ничья с "+att+": твой «"+H+"» устоял";
-      await notify(env,opp.owner,txt+"\n\nОтветь реваншем 👇","⚔️ Реванш",PAGE+"?startapp=c_"+(myCardId|0))}
+      await notify(env,opp.owner,txt+"\n\nОтветь реваншем 👇","⚔️ Реванш",PAGE+"?startapp="+(stake&&res.gotCard&&fight?.id?"rv_"+fight.id:"c_"+(myCardId|0)))}
   }catch(e){console.error("fight",e)}
 }
 
@@ -4191,17 +4206,17 @@ async function handle(req,env){{
         await logFight(env,me,p.myId,o,r.res);if(r.res.first)await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
       if(a==="duel"){
         if(p.mode!=null&&p.mode!==0&&p.mode!==1&&typeof p.mode!=="boolean")fail("Неверный режим боя");
-        const stake=p.mode===1||p.mode===true;
+        const stake=p.recovery==null&&(p.mode===1||p.mode===true);
         if(stake){
           const mu=await env.DB.prepare("SELECT stake FROM users WHERE id=?").bind(me.id).first();
           if(!mu?.stake)fail("Сначала включи бои на карточку");
         }
-        const o=await pickOpponent(env,me,p,stake);
+        const o=p.recovery!=null?await recoveryOpponent(env,me,p.recovery):await pickOpponent(env,me,p,stake);
         // В онлайн-дуэли ставка возможна только с реальным соперником.
-        if(stake&&!o)fail("Соперник для боя на карточку не найден");
+        if(stake&&!o)fail("Нет свободного соперника с включёнными ставками и подходящей картой. Попробуй выбрать другую карту");
         if(o&&o.card)try{const ou=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(o.owner).first();const g=(JSON.parse((ou&&ou.state)||"{}").gsock||{})[o.card.id];if(g&&g.length)o.card.gm=g}catch(e){}
-        const r=await doAction(env,me,"duel",{...p,mode:stake},o?{oppCard:o.card,oppName:o.name,oppUid:o.owner}:null);
-        if(o)await logFight(env,me,p.id,o,r.res,stake);await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
+        const r=await doAction(env,me,"duel",{...p,mode:stake},o?{oppCard:o.card,oppName:o.name,oppUid:o.owner,recovery:o.recovery}:null);
+        if(o&&!o.recovery)await logFight(env,me,p.id,o,r.res,stake);await dtopAdd(env,"fight",me.id,1);return J({ok:true,...r})}
       if(a==="pm_on"){await env.DB.prepare("UPDATE users SET pm=1 WHERE id=?").bind(me.id).run();
         const b=await env.DB.prepare("UPDATE users SET pm_bonus=1,gift_spins=gift_spins+? WHERE id=? AND pm_bonus=0").bind(PM_BONUS,me.id).run();
         return J({ok:true,res:{bonus:b.meta.changes===1?PM_BONUS:0},S:await stateFor(env,me)})}
