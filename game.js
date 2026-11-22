@@ -52,10 +52,12 @@ function localCtx(){S.issued=S.issued||{};S.used=S.used||{};
 function issuedOfUI(h,f){if(FIN[f].run===Infinity)return 0;return ONLINE?((S.prints||{})[h+"-"+f]||0):localCtx().issuedOf(h,f)}
 
 /* ---------- действие игрока: локально или через сервер ---------- */
-async function act(name,p){
+async function act(name,p,timeoutMs){
+  let timer=0,abort=null;
   try{let out;
     if(ONLINE){
-      const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:name,p:p||{}})});
+      if(timeoutMs){abort=new AbortController();timer=setTimeout(()=>abort.abort(),timeoutMs)}
+      const r=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:name,p:p||{}}),signal:abort?abort.signal:undefined});
       let j;try{j=await r.json()}catch(e){throw new GameError(r.status===429||r.status>=500?"Сервер перегружен, попробуй через пару минут":"Нет связи с сервером. Попробуй ещё раз")}
       if(!j.ok)throw new GameError(j.err||"Ошибка сервера");if(j.S)S=j.S;out=j.res||{};
     }else{
@@ -67,8 +69,8 @@ async function act(name,p){
     (out.events||[]).forEach(e=>{if(e.t==="lvl")toast(HEROES[e.h][0]+" достиг уровня "+e.lv+"!"+(STAR_LVL.includes(e.lv)?" Его можно закалить ★"+(STAR_LVL.indexOf(e.lv)+1)+" во вкладке «Мои»":""))});
     if(name==="open")setTimeout(()=>{if(S&&S.spins<=0)askPm()},4500);
     news();fightNews();chatDot();showNotice();return out;
-  }catch(e){if(!(e instanceof GameError))console.error(e);toast(e instanceof GameError?e.message:"Нет связи с сервером. Попробуй ещё раз");
-    if(e instanceof GameError&&/^Коллекция заполнена|^У тебя полная коллекция/.test(e.message)&&typeof openCap==="function")setTimeout(()=>{if($("modal").hidden)openCap()},700);return null}
+  }catch(e){if(!(e instanceof GameError)&&!(abort&&abort.signal.aborted))console.error(e);toast(e instanceof GameError?e.message:abort&&abort.signal.aborted?"Сервер долго не отвечает. Попробуй ещё раз":"Нет связи с сервером. Попробуй ещё раз");
+    if(e instanceof GameError&&/^Коллекция заполнена|^У тебя полная коллекция/.test(e.message)&&typeof openCap==="function")setTimeout(()=>{if($("modal").hidden)openCap()},700);return null}finally{if(timer)clearTimeout(timer)}
 }
 /* новости: кто купил твои карточки на рынке */
 let noticeShown="";
@@ -2589,9 +2591,13 @@ async function renderRk(force){const box=$("rk-box");if(!box)return;if(!ONLINE){
 $("rk-go").onclick=()=>rkPick();
 function rkPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
   try{gemAnn(S,S.cards)}catch(e){}const list=S.cards.filter(c=>!away(c)&&!(FIN[c.f].excl||c.part)).sort((a,b)=>rkPower(b)-rkPower(a));   /* сильнейшие (с гемами) — первыми */
-  sh.innerHTML='<div class="box nickbox"><h3>Выбери воина для рейтингового боя</h3><p class="rkpn">Соперник будет из той же весовой категории</p><div class="pkg rkpk">'+list.map(c=>'<button type="button" class="pki" data-id="'+c.id+'">'+miniSlot(c)+'<span class="rkwc">'+WC_IC[wclass(c.h)]+'</span>'+(rkTiredC(c)?'<span class="rktd">😮‍💨</span>':"")+'<small>'+abil(c.h)[0]+" "+abil(c.h)[1]+'</small></button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
-  $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=async e=>{const b=e.target.closest("[data-id]");if(!b)return;const c=S.cards.find(x=>String(x.id)===b.dataset.id);if(!c)return;closeModal();rkStart(c)}}
-async function rkStart(c){if(rkBusy)return;rkBusy=true;try{rkLastCard=c.id;const r=await act("rk_find",{id:c.id});if(!r)return;rkInfo=null;if(r.match)rkOpen(r.match);else rkSearch(r.queued)}finally{rkBusy=false}}
+  sh.innerHTML='<div class="box nickbox"><h3>Выбери воина для рейтингового боя</h3><p class="rkpn">Соперник будет из той же весовой категории</p><div class="pkg rkpk"></div><button type="button" class="ghost" id="rk-more" hidden>Показать ещё</button><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
+  const pkg=sh.querySelector(".rkpk"),more=$("rk-more");let shown=0;
+  const append=()=>{const end=Math.min(shown+24,list.length);if(end===shown)return;pkg.insertAdjacentHTML("beforeend",list.slice(shown,end).map(c=>'<button type="button" class="pki" data-id="'+c.id+'">'+miniSlot(c)+'<span class="rkwc">'+WC_IC[wclass(c.h)]+'</span>'+(rkTiredC(c)?'<span class="rktd">😮‍💨</span>':"")+'<small>'+abil(c.h)[0]+" "+abil(c.h)[1]+'</small></button>').join(""));shown=end;more.hidden=shown>=list.length};
+  append();more.onclick=append;pkg.onscroll=()=>{if(pkg.scrollTop+pkg.clientHeight>=pkg.scrollHeight-160)append()};
+  $("pk-x").onclick=closeModal;pkg.onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;const c=list.find(x=>String(x.id)===b.dataset.id);if(!c)return;closeModal();rkStart(c)}}
+async function rkStart(c){if(rkBusy)return;rkBusy=true;const o=rkOverlay();o.innerHTML='<div class="rks"><div class="rksp">🔎</div><h3>Подбираем соперника</h3><p>Подключаемся к рейтинговому бою…</p></div>';
+  try{rkLastCard=c.id;const r=await act("rk_find",{id:c.id},15000);if(!r){o.remove();return}rkInfo=null;if(r.match)rkOpen(r.match);else rkSearch(r.queued)}finally{rkBusy=false}}
 function rkOverlay(){let o=$("rkm");if(!o){o=document.createElement("div");o.id="rkm";o.className="rkm";document.body.appendChild(o)}return o}
 function rkClose(){clearInterval(rkTimer);rkTimer=0;rkMatch=null;const o=$("rkm");if(o)o.remove();renderRk(true);renderAll()}
 function rkSearch(q){const o=rkOverlay();clearInterval(rkTimer);const since=q&&q.since?q.since:NOW(),wc=q?q.wc:0;
