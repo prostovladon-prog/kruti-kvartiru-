@@ -33,6 +33,7 @@ const MENU_GROUPS=[
   {k:"promo",ic:"🎟",n:"Промокод",c:["#c8ffe0","#1a9a6a"]}]],
  ["💬 Сообщество",[
   {k:"friends",ic:"👥",n:"Друзья",c:["#c8ffd8","#1a8a4a"]},
+  {k:"tk",ic:"🎟",n:"Билетная гонка",c:["#ffd23f","#d02a89"]},
   {k:"chat",ic:"💬",n:"Чат",c:["#9fe0ff","#1f6fd0"]},
   {k:"dm",ic:"✉️",n:"Сообщения",c:["#ffd0f0","#c03a8a"]},
   {k:"votes",ic:"🗳",n:"Голосование",c:["#ffd0c0","#d03a1a"]},
@@ -75,6 +76,7 @@ function menuGo(k){menuClose();hap&&hap("light");
   if(k==="duel")return goSub("duel");
   if(k==="ads")return adOpen();
   if(k==="contest"){setTab("spin");setTimeout(()=>{const e=$("chal");if(e&&!e.hidden)e.scrollIntoView({block:"start"})},60);return}
+  if(k==="tk"){if(TKS)tkOpen();else tkPing(true).then(()=>{if(TKS)tkOpen()});return}
   setTab(k)}
 /* что ждёт игрока: красные точки на плитках и на кнопке «Ещё» */
 function menuBadges(){const b={};if(!S)return b;const now=NOW();
@@ -93,6 +95,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
     sh.addEventListener("touchend",()=>{if(y0==null)return;y0=null;sh.style.transform="";if(dy>90)menuClose()})}
   const B=menuBadges(),on=!ONLINE||!!(S&&S.shopOn);let h="";
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
+  if(TKS&&Date.now()+TKS.off<TKS.end+864e5)h+='<button type="button" class="drw-ban" data-go="tk"><i>🎟</i><span><b>Билетная гонка до 22:00</b><small>Твои билеты: '+TKS.n+' · топ-3 получат сундуки и 300 / 200 / 100 ⭐</small></span><em>›</em></button>';
   if(S&&S.vts&&S.vts.length){const n=S.vts.filter(x=>!x.ch).length;h+='<button type="button" class="drw-ban vt'+(n?' pulse':'')+'" data-go="votes"><i>🗳</i><span><b>Голосование'+(n?' — голосуй!':' ✅')+'</b><small>'+(n?S.vts.filter(x=>!x.ch).map(x=>x.title).join(" · ")+' · выбери свой вариант':'Ты проголосовал везде — смотри результаты')+'</small></span><em>›</em></button>'}
   if(S&&S.ft&&!S.ft.ch)h+='<button type="button" class="drw-ban vt pulse" data-go="ftu"><i>🏆</i><span><b>Кто победит в бою '+S.ft.n+'?</b><small>'+ftuN(S.ft.a)+' vs '+ftuN(S.ft.b)+' · угадай и получи 🎴</small></span><em>›</em></button>';
   if(S&&S.poll&&!S.poll.v)h+='<button type="button" class="drw-ban vt pulse" data-go="poll"><i>📊</i><span><b>Опрос: '+escH(S.poll.q.slice(0,60))+'</b><small>Ответь в чате — твой голос важен</small></span></button>';
@@ -105,7 +108,7 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
   if(S&&S.admin)h+='<button type="button" class="drw-ban adm" data-go="ads"><i>📈</i><span><b>Реклама: ссылки и статистика</b><small>Переходы → Старт → зашли в игру → играют</small></span><em>›</em></button>';
   {let F=[];try{F=JSON.parse(localStorage.getItem("we-fav")||"[]")}catch(e){}const all=MENU_GROUPS.flatMap(x=>x[1]),fi=F.map(k=>all.find(it=>it.k===k)).filter(Boolean);
     h+='<div class="drw-g">⭐ Избранное <button type="button" class="drw-fe'+(window.FAVE?' on':'')+'" data-go="favedit">'+(window.FAVE?'✅ Готово':'✏️ Настроить')+'</button></div>'+(window.FAVE?'<p class="drw-fh">Нажимай на разделы ниже — они добавятся в избранное или уберутся из него</p>':'')+(fi.length?'<div class="drw-t">'+fi.map(it=>'<button type="button" class="drw-i" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span></button>').join("")+'</div>':(window.FAVE?'':'<p class="drw-fh">Нажми «Настроить», чтобы закрепить любимые разделы сверху</p>'))}
-  MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>it.k!=="gold"||on);if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i'+(window.FAVE&&(localStorage.getItem("we-fav")||"").includes('"'+it.k+'"')?' fav':'')+'" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
+  MENU_GROUPS.forEach(([g,L])=>{const items=L.filter(it=>(it.k!=="gold"||on)&&(it.k!=="tk"||TKS&&Date.now()+TKS.off<TKS.end+864e5));if(!items.length)return;h+='<div class="drw-g">'+g+'</div><div class="drw-t">'+items.map(it=>'<button type="button" class="drw-i'+(window.FAVE&&(localStorage.getItem("we-fav")||"").includes('"'+it.k+'"')?' fav':'')+'" data-go="'+it.k+'" style="--a:'+it.c[0]+';--b:'+it.c[1]+'"><i>'+it.ic+'</i><span>'+it.n+'</span>'+(B[it.k]?'<em>'+B[it.k]+'</em>':it.k==="gold"&&S&&!S.newbie?'<em class="sale">−50%</em>':'')+'</button>').join("")+'</div>'});
   d.querySelector(".drw-b").innerHTML=h;d.hidden=false;document.body.classList.add("drw-on");requestAnimationFrame(()=>d.classList.add("on"));$("tab-more").setAttribute("aria-expanded","true")}
 function menuClose(){const d=$("drw");if(!d||!d.classList.contains("on"))return;d.classList.remove("on");document.body.classList.remove("drw-on");$("tab-more").setAttribute("aria-expanded","false");setTimeout(()=>{if(!d.classList.contains("on"))d.hidden=true},260)}
 $("tab-more").onclick=()=>{const d=$("drw");if(d&&d.classList.contains("on"))menuClose();else menuOpen()};
@@ -1266,7 +1269,7 @@ async function tkPing(force){if(!S||!ONLINE||document.hidden)return;const now=Da
     if(j.ok){const was=TKS?TKS.n:-1;TKS=j.res;TKS.off=TKS.now-Date.now();if(was>=0&&TKS.n>was)tkFloat(TKS.n-was);tkBar();const o=$("tkbox");if(o)tkOpen()}}catch(e){}}
 function tkFloat(d){const e=document.createElement("div");e.className="tk-fl";e.textContent="+"+d+" 🎟";document.body.appendChild(e);setTimeout(()=>e.remove(),1600)}
 function tkBar(){const sp=$("sec-spin");if(!sp||!TKS)return;const now=Date.now()+TKS.off,show=now<TKS.end+864e5;let b=$("tk-bar");if(!show){if(b)b.remove();return}
-  if(!b){b=document.createElement("button");b.type="button";b.id="tk-bar";b.className="tk-bar";b.onclick=()=>tkOpen();const e=$("emp-bar");if(e&&e.parentNode===sp)e.before(b);else sp.insertBefore(b,sp.firstChild)}
+  if(!b){b=document.createElement("button");b.type="button";b.id="tk-bar";b.className="tk-bar";b.onclick=()=>tkOpen();const e=$("chal");if(e&&e.parentNode===sp)e.before(b);else sp.appendChild(b)}
   const st=now<TKS.start?0:now<TKS.end?1:2;
   b.innerHTML='<i>🎟</i><span><b>'+(st===0?'Билетная гонка · 22 ноября, 08:00':st===1?'Билетная гонка идёт!':'🏆 Билетная гонка завершена')+'</b><small>'+(st===0?'через '+tkT(TKS.start-now)+' · 3 приза':st===1?'у тебя <u>'+TKS.n+'</u> 🎟'+(TKS.rank?' · место #'+TKS.rank:'')+' · до финиша '+tkT(TKS.end-now):'смотри победителей')+'</small></span><em>›</em>'}
 function tkOpen(){const m=$("modal"),sh=$("msheet"),T=TKS;if(!T)return;m.hidden=false;const now=Date.now()+T.off,st=now<T.start?0:now<T.end?1:2,medal=["🥇","🥈","🥉"];
