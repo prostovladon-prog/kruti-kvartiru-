@@ -978,7 +978,7 @@ setInterval(()=>{try{const R=S&&S.ref3;if(!R||R.got||R.end<=NOW()||!ONLINE||(S.n
   const m=$("modal"),sh=$("msheet");m.hidden=false;sfx.fanfare();burst(3);
   sh.innerHTML=`<div class="box nickbox r3pop"><div class="kg-rays"></div><div class="r3-fire">🔥</div><h3>АКЦИЯ ТОЛЬКО ${Math.max(1,Math.round((R.end-NOW())/36e5))} ${plural(Math.max(1,Math.round((R.end-NOW())/36e5)),"ЧАС","ЧАСА","ЧАСОВ")}</h3><p class="r3-big">Пригласи ${R.need||3} друзей</p>
     <div class="r3-gifts one"><div><b>👑</b><span>VIP-статус</span><small>корона у ника в топах и чате, больше прокруток и места для карточек</small></div>${R.gold?"<div><b>✨</b><span>Золотой профиль</span><small>Золотая плашка и оформление на 7 дней</small></div>":""}</div>
-    <p class="cln">Друг засчитывается, когда откроет 3 карточки</p><button type="button" class="hhbtn" id="r3-go">👥 Позвать друзей</button><button type="button" class="hhx" id="r3-x">Позже</button></div>`;
+    <p class="cln">Друг засчитывается, когда откроет ${R.open||(R.gold?30:3)} карт</p><button type="button" class="hhbtn" id="r3-go">👥 Позвать друзей</button><button type="button" class="hhx" id="r3-x">Позже</button></div>`;
   $("r3-go").onclick=()=>{closeModal();r3Invite()};$("r3-x").onclick=closeModal}catch(e){}},4000);
 /* админ: кнопка в статистике */
 {const _ds=drawStats;drawStats=function(){_ds.apply(this,arguments);try{const b=$("st-body");if(!b||$("r3adm"))return;const x=document.createElement("div");x.id="r3adm";x.className="srcbox r3adm";b.prepend(x);

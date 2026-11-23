@@ -2135,7 +2135,7 @@ async function stateFor(env,me){
   try{S.ft=await ftState(env,me)}catch(e){}
   try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
   try{const now=Date.now();if(!VC.off&&now>=VC.start&&now<VC.end){const r=await env.DB.prepare("SELECT uid FROM vc_part WHERE uid=?").bind(me.id).first();S.vc={end:VC.end,j:r?1:0}}}catch(e){}
-  try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,need:C3.need||3,gold:!!C3.gold,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
+  try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,need:C3.need||3,open:C3.gold?REF3.open:CHAL_OPEN,gold:!!C3.gold,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
   try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
   S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
@@ -3274,10 +3274,10 @@ async function liveClaim(env,me,code){const D=await env.DB.prepare("SELECT * FRO
   for(const ad of ADMINS)try{await notify(env,ad,"🎥 Карточку с эфира забрали: код "+code+" («"+D.name+"») → "+(me.nick||me.name||me.id)+" (id "+me.id+"), "+(row?HEROES[row.h][0]:"?"),"⚔️ Открыть")}catch(e){}
   return {live:1,card:row?pub(rowToCard(row)):null,name:D.name,sp:D.sp||0}}
 /* ---------- 🔥 акция «пригласи 3 друзей → VIP на 7 дней + x2 к пополнению звёзд» (включает админ на N часов) ---------- */
-const REF3={need:5,vip:2,days:7,x2:500,late:6*36e5};
+const REF3={need:5,open:30,vip:2,days:7,x2:500,late:6*36e5};
 async function ref3Cur(env){return cached("ref3",env.TEST==="1"?0:5e3,async()=>{const C=await kvGet(env,"ref3");return C&&C.end?C:null})}
-async function ref3Count(env,C,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND banned=0 AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=?").bind(uid,C.start,C.end,CHAL_OPEN).first())||{}).n||0}
-const REF_GOLD_TEXT="👑 ПРИГЛАСИ 5 ДРУЗЕЙ — ПОЛУЧИ ЗОЛОТО!\n\nПригласи 5 новых игроков по своей ссылке до полуночи по Минску. Друг засчитывается после первых 3 открытых карточек.\n\n🎁 Награда на 7 дней: VIP Золото, золотая плашка у ника и золотое оформление профиля. Выдача автоматическая.\n\nЖми на плашку акции в игре, чтобы поделиться приглашением.";
+async function ref3Count(env,C,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND banned=0 AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=?").bind(uid,C.start,C.end,(C.gold?REF3.open:CHAL_OPEN)).first())||{}).n||0}
+const REF_GOLD_TEXT="👑 ПРИГЛАСИ 5 ДРУЗЕЙ — ПОЛУЧИ ЗОЛОТО!\n\nПригласи 5 новых игроков по своей ссылке до полуночи по Минску. Друг засчитывается после первых 30 открытых карточек.\n\n🎁 Награда на 7 дней: VIP Золото, золотая плашка у ника и золотое оформление профиля. Выдача автоматическая.\n\nЖми на плашку акции в игре, чтобы поделиться приглашением.";
 let refGoldBroadcastBusy=false;
 async function refGoldBroadcast(env,C){
   if(!C.gold||Date.now()>=C.end||refGoldBroadcastBusy)return;
@@ -3288,7 +3288,7 @@ async function refGoldBroadcast(env,C){
 async function ref3Tick(env){
   const C=await ref3Cur(env),now=Date.now();
   if(!C||now>C.end+REF3.late)return;
-  const rows=(await env.DB.prepare("SELECT ref AS uid,COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND banned=0 AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=? GROUP BY ref HAVING COUNT(*)>=?").bind(C.start,C.end,CHAL_OPEN,C.need||3).all()).results;
+  const rows=(await env.DB.prepare("SELECT ref AS uid,COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND banned=0 AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=? GROUP BY ref HAVING COUNT(*)>=?").bind(C.start,C.end,(C.gold?REF3.open:CHAL_OPEN),C.need||3).all()).results;
   for(const r of rows){
     if(isAdmin(env,r.uid))continue;
     const duration=REF3.days*864e5;
@@ -3306,7 +3306,7 @@ async function ref3Tick(env){
 }
 async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_get"){const C=await ref3Cur(env);if(!C)return {on:0};const got=!!(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C.id,me.id).first());
-    return {on:now<C.end?1:0,start:C.start,end:C.end,n:await ref3Count(env,C,me.id),need:C.need||3,gold:!!C.gold,got:got?1:0,days:REF3.days,x2:REF3.x2,
+    return {on:now<C.end?1:0,start:C.start,end:C.end,n:await ref3Count(env,C,me.id),need:C.need||3,open:C.gold?REF3.open:CHAL_OPEN,gold:!!C.gold,got:got?1:0,days:REF3.days,x2:REF3.x2,
       adm:isAdmin(env,me.id)?{done:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ref3_got WHERE camp=?").bind(C.id).first())||{}).n||0,fresh:((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND created>=? AND created<?").bind(C.start,Math.min(now,C.end)).first())||{}).n||0}:undefined}}
   if(!isAdmin(env,me.id))fail("Нет доступа");
   if(a==="ref3_start"){
