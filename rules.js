@@ -1703,4 +1703,52 @@ Object.assign(ACTIONS,{
     if(prem&&!P.prem)fail("Нужен пропуск завоевателя");const L=prem?P.gotP:P.got;if(L.includes(i))fail("Уже забрано");L.push(i);return mapGive(G,(prem?MPASS.prem:MPASS.free)[i])},
   mflag_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,k=G.p.k;if(!MFLAG[k])fail("Нет такого флага");st.mflags=st.mflags||[];if(!st.mflags.includes(k))st.mflags.push(k);st.mflagOn=k;return {k}},
   mflag_set(G){const st=G.st,k=String(G.p.k||"");if(k&&!(st.mflags||[]).includes(k))fail("Сначала купи этот флаг");st.mflagOn=k;return {k}}});
-if(typeof module!=="undefined")module.exports={relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+/* ===== ИВЕНТ «ПОКОЛЕНИЕ ЭПОХ» (акт I: стройка, акт II–III: поход) ===== */
+const EV={
+  id:"epoch-2026-11-25",
+  start:Date.UTC(2026,10,25,5),      // 08:00 по Минску
+  end:Date.UTC(2026,11,16,5),        // +21 день
+  segments:[6000,8000,10000,11000],
+  playerCap:1500, passBonus:200, clanCap:6000,
+  starCap:500, coinsPer:1000, shardsPer:25,
+  srcCap:{coins:600,shards:900},
+  nodes:[40000,46000,52000,58000,70000,80000,90000,100000,100000,110000,120000,130000],
+  nodeShare:.15, elemBonus:1.4, dragonMax:.2,
+  kvorum:5, kvorumAge:5, kvorumCards:30,
+  rewards:{chest:[3,6,9],epic:[4,8],final:12,cardChance:.2},
+  shop:{pass:599,clanPass:6000,chest:199,chestPoints:250,chestDay:2,card:2500,named:5000}
+};
+/* «Вольное знамя» — личный трек для игроков без клана: те же сроки, награды 50 % */
+const EV_SOLO={
+  segments:EV.segments.map(x=>x/4),        // 1500 / 2000 / 2500 / 2750
+  nodes:EV.nodes.map(x=>x/5),              // 8 000 … 26 000
+  rewardK:.5,
+  transferK:.5,                            // перенос прогресса в клан при вступлении
+  needKvorum:false
+};
+const evOpen=now=>(now||Date.now())>=EV.start&&(now||Date.now())<EV.end;
+const evPlayerCap=hasPass=>EV.playerCap+(hasPass?EV.passBonus:0);
+function evPoints(coins,shards){
+  const c=Math.floor(Math.max(0,coins||0)/EV.coinsPer), s=Math.floor(Math.max(0,shards||0))*EV.shardsPer;
+  return {coins:Math.min(c,EV.srcCap.coins),shards:Math.min(s,EV.srcCap.shards)};
+}
+function evAccept(points,used,clanGiven,fromStars,starUsed,hasPass){
+  const cap=evPlayerCap(hasPass);
+  let left=Math.max(0,cap-(used||0));
+  if(fromStars)left=Math.min(left,Math.max(0,EV.starCap-(starUsed||0)));
+  const clanLeft=Math.max(0,EV.clanCap-(clanGiven||0));
+  return Math.min(points||0,left,clanLeft);
+}
+function evMinActOneDays(){return Math.round(EV.segments.reduce((s,x)=>s+x/EV.clanCap,0)*100)/100}
+function evNodeDamage(cards,hp,dealtToday,dragonBonus,elem){
+  if(!Array.isArray(cards)||!cards.length||cards.length>3||!(hp>0))return 0;
+  let raw=0;for(const e of cards){const v=+e||0;if(!(v>0))return 0;raw+=v}
+  raw*=elem?EV.elemBonus:1;
+  raw*=1+Math.min(EV.dragonMax,Math.max(0,dragonBonus||0));
+  const left=Math.max(0,Math.floor(hp*EV.nodeShare)-(dealtToday||0));
+  return Math.max(0,Math.min(Math.floor(raw),left));
+}
+function evKvorumOk(n){return (n||0)>=EV.kvorum}
+function evNodeReward(n){return EV.rewards.chest.includes(n)?"chest":EV.rewards.epic.includes(n)?"epic":n===EV.rewards.final?"card":null}
+
+if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
