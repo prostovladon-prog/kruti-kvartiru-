@@ -80,7 +80,7 @@ function dcT(ms){ms=Math.max(0,ms);const h=Math.floor(ms/36e5),m=Math.floor(ms%3
 let dcTmr=null;
 function dcOpen(){if(!S)return;$("modal").hidden=false;dcDraw();clearInterval(dcTmr);dcTmr=setInterval(()=>{if($("modal").hidden||!$("dc-t")){clearInterval(dcTmr);return}dcDraw(1)},1000)}
 /* настоящая карточка «Ошибка печати» — как она будет выглядеть в коллекции */
-const DCF={};function dcFace(h,i){try{if(!DCF[h]){const son=HEROES[h][0]===SON_SHOGUN.name,B=cardBody(h,4,son?{stats:SON_SHOGUN.stats}:null),sn=son?SON_SHOGUN.snBuy:(HEROES[h][4].sn)||"000001";DCF[h]={id:"dc"+h,h,f:4,no:1,sn,hue:B.hue,stats:B.stats,v:son?SON_SHOGUN.value:priceOf(h,4,1,sn,B.top),xp:0,stars:0}}return miniSlot(DCF[h])}catch(e){return portrait(h,null)}}
+const DCF={};function dcFace(h,i){try{if(!DCF[h]){const edition=dayEdition(h),B=cardBody(h,4,edition?{stats:edition.stats}:null),sn=edition?[].concat(edition.snBuy)[0]:(HEROES[h][4].sn)||"000001";DCF[h]={id:"dc"+h,h,f:4,no:1,sn,hue:B.hue,stats:B.stats,v:edition?edition.value:priceOf(h,4,1,sn,B.top),xp:0,stars:0}}return miniSlot(DCF[h])}catch(e){return portrait(h,null)}}
 function dcDraw(tick){const sh=$("msheet"),L0=S.dcs||(S.dc?[S.dc]:[]),now=Date.now();
   if(tick){L0.forEach((D,i)=>{const e=$("dc-t"+i);if(e)e.textContent=now<D.at?"старт через "+dcT(D.at-now):now<D.until?"осталось "+dcT(D.until-now):"завершено"});if($("dc-x"))return}
   let h='<div class="gemw"><div class="gem-h"><b>🌙 Карта дня'+(L0.length>1?' · '+L0.length+' карты':'')+'</b><button type="button" class="ghost" id="dc-x">✕</button></div>';

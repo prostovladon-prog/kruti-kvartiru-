@@ -636,6 +636,10 @@ Object.assign(DETAILED,{
   <path d="M81 92 Q87 88 93 92 Q87 96 81 92Z M107 92 Q113 88 119 92 Q113 96 107 92Z" fill="#ffe14d" stroke-width="2"/>
   <path d="M66 70 Q100 52 134 70" fill="none" stroke="#3a8a2a" stroke-width="6"/>
   <g fill="#7ee89a" stroke-width="2"><path d="M70 66 q-8 -8 2 -12 q4 6 -2 12Z M82 60 q-6 -10 4 -12 q2 8 -4 12Z M96 57 q-2 -10 6 -10 q0 8 -6 10Z M112 58 q2 -10 8 -8 q-2 8 -8 8Z M126 63 q6 -8 10 -4 q-4 6 -10 4Z"/></g>
+ </g><g class="zeus-strike" aria-hidden="true">
+ <path d="M26 0 L13 35 L30 33 L10 68 L27 64 L5 104" fill="none" stroke="#905bff" stroke-width="10" opacity=".5"/>
+ <path d="M26 0 L13 35 L30 33 L10 68 L27 64 L5 104" fill="none" stroke="#faf3ff" stroke-width="3.5" stroke-linejoin="round"/>
+ <path d="M14 77L3 70 M11 86L24 90" stroke="#e0b5ff" stroke-width="2"/>
  </g></svg>`,
  "Геракл":u=>`<svg viewBox="0 0 200 200" class="pt" aria-hidden="true">${BOG_COMMON(u,{cape:"#c98a2a",cape2:"#6a3a0a"})}
  <defs><radialGradient id="hl${u}" cx=".5" cy=".4"><stop offset="0" stop-color="#e0a85a"/><stop offset="1" stop-color="#8a5414"/></radialGradient></defs>
@@ -969,7 +973,7 @@ function faceV2(root,c){const q=s=>root.querySelector(s),H=HEROES[c.h],t=H[2],ar
     if(fx.dataset.t!==String(t)){let h="";for(let i=0;i<(t>=4?14:t===3?10:6);i++)h+=`<i style="left:${8+((i*53)%84)}%;bottom:${4+(i*17)%24}%;--d:${2.2+(i%5)*.5}s;--dl:-${((i*.37)%3).toFixed(2)}s;--dx:${((i*29)%40)-20}px"></i>`;
       fx.innerHTML=(t>=3?'<svg class="slash" viewBox="0 0 300 270"><path d="M30 220 Q140 40 290 70" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".8"/><path d="M40 214 Q140 54 285 76" fill="none" stroke="var(--hac)" stroke-width="3" stroke-linecap="round"/></svg>':"")+h;fx.dataset.t=t}}
   else if(fx)fx.remove();
-  const pw=q(".power");pw.textContent=H[0]===SON_SHOGUN.name?H[3]:"«"+epithet(c)+"»";
+  const pw=q(".power");pw.textContent=dayEdition(c.h)?H[3]:"«"+epithet(c)+"»";
   q(".stats").innerHTML=[0,1,2,3,4].map(i=>{const v=c.stats?eff(c,i):0;return `<div class="s${i===4?" w":""}"><i>${STAT_IC[i]}</i><div class="b"><u style="width:${Math.max(4,Math.min(100,Math.round(v/STAT_MAX*100)))}%"></u></div><b class="num">${c.stats?v:"?"}</b></div>`}).join("")}
 /* составные воины: половинки обрезаны по зубчатому шву, у целой карточки золотой шов */
 const HALF_CLIP=["","polygon(0 0,52% 0,47% 9%,54% 18%,46% 28%,53% 38%,45% 49%,54% 60%,46% 71%,53% 82%,47% 92%,51% 100%,0 100%)","polygon(52% 0,100% 0,100% 100%,51% 100%,47% 92%,53% 82%,46% 71%,54% 60%,45% 49%,53% 38%,46% 28%,54% 18%,47% 9%)"];
@@ -1057,7 +1061,7 @@ function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=tierOf(c.h),F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"")+(H[4].rl?" mega":"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
-  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=H[0]===SON_SHOGUN.name?"🔥 "+c.no+" ИЗ 2":H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
+  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=dayEdition(c.h)?"🔥 "+c.no+" ИЗ 2":H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
@@ -2562,7 +2566,7 @@ if(!isDiaU(S.uid)||S.diaT)v+=offer("diap","💎 НОВОЕ");if(!isDiaU(S.uid)||
       Object.keys(NFX).map(k=>'<div class="fxc"><div class="fxn"><span class="nfx nfx-'+k+'"></span></div><small>'+NFX[k]+'</small><button type="button" class="buy sm" data-fx="'+k+'">30 дней · ⭐ '+NFX_PRICE.m+'</button><button type="button" class="buy sm alt" data-fx="'+k+'" data-forever="1">навсегда · ⭐ '+NFX_PRICE.f+'</button></div>').join("")+'</div>';
     v+='<div class="ghd">🏆 Помогли игре</div><p class="gnote">Эти люди поддержали «Воинов Эпох» — спасибо им! Купи «Карточку мечты», и твой ник тоже будет здесь навсегда.</p>'+HELPERS.map(x=>'<div class="helper"><b>👑 '+rdEsc(x.n)+'</b><small>'+x.t+'</small></div>').join('');
     v+='<div class="ghd">😏 Для очень богатых</div><p class="gnote">Это шутка, никто такое не купит… Но если купишь — сделаем по-настоящему.</p>'+
-      '<div class="joke"><div class="jk-h">🃏 Любая карточка в игре</div><p>Выбери <b>любого воина</b> и <b>любую отделку</b> — хоть золотого Сёгуна, хоть Зевса 1 из 1, если он ещё свободен. Карточка сразу твоя.</p><button type="button" class="buy" id="any-go">⭐ 4 000</button></div>'+
+      '<div class="joke"><div class="jk-h">🃏 Любая карточка в игре</div><p>Выбери <b>любого воина</b> и <b>любую отделку</b> — например, золотого Сёгуна из доступного списка. Карточка сразу твоя.</p><button type="button" class="buy" id="any-go">⭐ 4 000</button></div>'+
       '<div class="joke j2"><div class="jk-h">👑 Карточка твоей мечты</div><p>Нарисуем <b>любого героя</b>, какого захочешь, с <b>любым номером</b>. Она будет только у тебя — в единственном экземпляре на весь мир. Дорого? Ну так это ж мечта 😅</p><button type="button" class="buy" data-buy="custom">⭐ 3 500</button></div>';
     v+='<div class="ghd">✍️ Свой номер на карточке</div><p class="gnote">Любой свободный номер из 6 цифр: дата рождения, 000 777, 123 456. Обычный — ⭐ 100, красивый дороже (×15 → ⭐ 1600). На карточке появится лента «Именной номер». Цена карточки не меняется — это чистый понт.</p><button type="button" class="craftbtn" id="num-pick">Выбрать карточку</button>'}
   B.innerHTML=v;
@@ -2571,7 +2575,7 @@ if(!isDiaU(S.uid)||S.diaT)v+=offer("diap","💎 НОВОЕ");if(!isDiaU(S.uid)||
     B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c));$("any-go").onclick=anyPick}}
 /* «любая карточка»: сначала воин, потом отделка */
 function anyPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  const hs=HEROES.map((H,i)=>i).filter(i=>!HEROES[i][4].collab&&!HEROES[i][4].hid&&!HEROES[i][4].relic&&!HEROES[i][4].rift).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
+  const hs=HEROES.map((H,i)=>i).filter(i=>!HEROES[i][4].collab&&!HEROES[i][4].hid&&!HEROES[i][4].relic&&!HEROES[i][4].rift&&!HEROES[i][4].day&&HEROES[i][0]!==ZEUS_DAY.name).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
   sh.innerHTML='<div class="box nickbox"><h3>🃏 Выбери воина</h3><div class="pkg">'+hs.map(h=>'<button type="button" class="pki" data-h="'+h+'">'+miniSlot(demoOne(h,HEROES[h][4].one?4:0))+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
   $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-h]");if(!b)return;const h=+b.dataset.h,W=HEROES[h][4];
     if(W.one)return anyConfirm(h,4);if(W.comp)return anyConfirm(h,0);

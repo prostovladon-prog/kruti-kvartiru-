@@ -779,11 +779,20 @@ const DUEL_MIN=[60,130,260,500,1000];function duelBase(me,opp){return Math.min(M
 const DUEL_RARE=10000,duelRare=c=>((HEROES[c.h]||[])[2]|0)>=3||(c.f|0)>0;function duelPay(me,opp){return duelRare(me)?DUEL_RARE:Math.round(duelBase(me,opp)*.3+5)}
 function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(c.h,c.f,c.no,c.sn,0)||1;c.sn=sn;if(ctx.takeSn)ctx.takeSn(sn);c.v=Math.round(c.v*(priceOf(c.h,c.f,c.no,sn,0)/v0)*100)/100}}catch(e){}}
 const SON_SHOGUN={name:"Сын сёгуна",snBuy:"111112",snSpin:["111113","111114","111115","111116","111117","111118","111119"],value:1311111,stats:[544,526,580,526,562]};
-function dayCardMake(ctx,h,how){const son=HEROES[h][0]===SON_SHOGUN.name,preset=son?{stats:SON_SHOGUN.stats}:null;
-  const sn=son?(how==="dspin"?SON_SHOGUN.snSpin.find(n=>ctx.snFree(n)):SON_SHOGUN.snBuy):HEROES[h][4][how==="dspin"?"sn2":"sn"];
-  if(son&&(!sn||!ctx.snFree(sn)))fail("Уникальный номер карты дня уже занят");
-  const c=makeCard(ctx,h,4,preset);c.how=how;dcSn(ctx,c,sn);
-  if(son){if(c.sn!==sn)fail("Уникальный номер карты дня уже занят");c.v=SON_SHOGUN.value}return c}
+const ZEUS_DAY={name:"Зевс",snBuy:["555555","555556","555557","555558","555559","555554","555553","555552","555551","555550"],snSpin:["555565","555575","555585","555595","555545","555535","555525","555515","555505"],value:9999999,stats:[570,532,518,542,590]};
+function dayEdition(h){
+  const H=HEROES[h];if(!H?.[4].day)return null;
+  return H[0]===SON_SHOGUN.name?SON_SHOGUN:H[0]===ZEUS_DAY.name?ZEUS_DAY:null;
+}
+function dayCardMake(ctx,h,how){
+  const edition=dayEdition(h),opts=HEROES[h][4];
+  const list=edition?(how==="dspin"?edition.snSpin:[].concat(edition.snBuy)):null;
+  const sn=list?list.find(n=>ctx.snFree(n)):opts[how==="dspin"?"sn2":"sn"];
+  if(edition&&(!sn||!ctx.snFree(sn)))fail("Уникальный номер карты дня уже занят");
+  const c=makeCard(ctx,h,4,edition?{stats:edition.stats}:null);c.how=how;dcSn(ctx,c,sn);
+  if(edition){if(c.sn!==sn)fail("Уникальный номер карты дня уже занят");c.v=edition.value}
+  return c;
+}
 function xhApply(X){for(const k in X||{}){const H=HEROES[+k],x=X[k];if(!H||!H[4].day||!x)continue;H[0]=String(x.n||"Карта дня").slice(0,40);H[1]=String(x.e||"Карта дня").slice(0,40);H[3]=String(x.d||"").slice(0,200);
   const o=x.o||{};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","crest","fierce","female","gold","hue","skin","x","p","sn","sn2"])if(o[q]!=null)H[4][q]=o[q];H[4].hid=x.on?0:1}}
 SHOP.kolobok={n:"Колобок · Ошибка печати",stars:1700,kolo:1,until:Date.UTC(2026,10,12,20,59),d:["🟡 <b>Колобок</b> — анимированная «Ошибка печати»","продаётся <b>только сегодня</b> до 23:59","потом пропадёт — вернётся ли, неизвестно"]};
@@ -1117,7 +1126,7 @@ function gemAdd(st,g){const I=st.gems||(st.gems={});I[g]=(I[g]||0)+1}
 function gemTake(st,g){const I=st.gems||{};if(!(I[g]>0))fail("Нет такого гема");I[g]--;if(!I[g])delete I[g]}
 const ACTIONS={
   dsp_roll(G){const {st,ctx}=G;if(ctx.dcLive===false)fail("Особые прокруты работают только пока идёт карта дня. Накопить заранее нельзя — заходи, когда она выйдет");if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
-    const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.dayCh===1?1:ctx.luck?.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=dayCardMake(ctx,h,"dspin");G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
+    const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.dayCh===1?1:(ctx.luck&&dayEdition(h)!==ZEUS_DAY)?0.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=dayCardMake(ctx,h,"dspin");G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
     return {empty:1,h:h!=null&&h>=0?h:null}},
   dsp_buy(G){const {st,ctx}=G,Q=dqDay(st,ctx.now);if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if((Q.buy||0)>=DSP_BUY.day)fail("Сегодня уже куплено. Завтра снова");pay(st,DSP_BUY.cash);Q.buy=(Q.buy||0)+1;st.dsp=(st.dsp||0)+DSP_BUY.n;return {dsp:DSP_BUY.n}},
   dqr_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),T=DQR[G.p.i|0];if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if(!T)fail("Нет такого задания");Q.rg=Q.rg||{};const got=Q.rg[T.k]||0,can=Math.floor(dqProg(st,ctx.now,T.k)/T.per)-got;if(can<1)fail("Ещё не набрано");Q.rg[T.k]=got+can;st.dsp=(st.dsp||0)+can;return {dsp:can}},
@@ -1413,7 +1422,7 @@ const ACTIONS={
     G.p={item:x.k,pid:x.pid};const was=G.ctx.grant;G.ctx.grant=true;try{const r=ACTIONS.grant(G)||{};r.item=x.k;r.src=x.src;return r}finally{G.ctx.grant=was}},
   grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,ctx,p}=G,I=SHOP[p.item];if(!I)fail("Нет такого товара");
     st.pays=st.pays||[];if(st.pays.includes(p.pid))return {dup:1};
-    const got=[],add=c=>{c.how="chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
+    const got=[],add=c=>{c.how=c.how||"chest";G.cards.push(c);noteCard(st,c);got.push(c)};   // купленное кладётся сверх лимита коллекции
     if(I.sp)st.spins+=I.sp;if(I.guar)st.guar=(st.guar||0)+I.guar;if(I.once)st.newbie=1;if(I.luckH)st.luckU=Math.max(st.luckU||0,ctx.now)+I.luckH*36e5;if(I.horn)st.warXD=today(ctx.now);
     for(let i=0;i<(I.halves||0);i++)add(rollHalf(ctx,i===0&&I.right1?1:I.rightP,I.riftChest?RIFT:undefined));
     if(I.any)add(makeAny(ctx,p.h|0,p.f|0));
@@ -2063,6 +2072,8 @@ async function makeCtx(env,test){
       const used=new Set((await env.DB.prepare("SELECT no FROM cards WHERE h=? AND f=?").bind(r.h,r.f).all()).results.map(x=>x.no));
       gaps[k]=[];for(let i=1;i<=FIN[r.f].run;i++)if(!used.has(i))gaps[k].push(i)}}
   const nice=new Set((await env.DB.prepare("SELECT sn FROM cards WHERE nice>=1").all()).results.map(r=>r.sn));
+  const zeusNumbers=[...ZEUS_DAY.snBuy,...ZEUS_DAY.snSpin];
+  for(const {sn} of (await env.DB.prepare("SELECT sn FROM cards WHERE sn IN ("+zeusNumbers.map(()=>"?").join(",")+")").bind(...zeusNumbers).all()).results)nice.add(sn);
   // места тиража составных воинов (1..300): их занимают правые половинки и собранные карточки
   const slots={},usedS={};for(const h of COMP)usedS[h]=new Set();
   for(const r of (await env.DB.prepare("SELECT h,no FROM cards WHERE f=0 AND h>=? AND no<=?").bind(NBASE,HALF_RUN).all()).results)if(usedS[r.h])usedS[r.h].add(r.no);
@@ -2426,7 +2437,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
     const ins=[];   // новые карточки пишутся после удалений: собранный воин забирает номер и место тиража правой половинки
     for(const c of out.cards){
       if(typeof c.id==="string"){ins.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,frame,away,dest,created,part,how) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
-        .bind(me.id,c.h,c.f,c.no,c.sn,c.cust?2:classify(c.sn)?1:0,c.hue,c.v,JSON.stringify(c.stats),c.xp|0,c.wins|0,c.stars|0,c.frame||null,c.away||0,c.dest??null,ctx.now,c.part|0,c.how||null,me.id,nv));continue}
+        .bind(me.id,c.h,c.f,c.no,c.sn,c.cust?2:(classify(c.sn)||dayEdition(c.h))?1:0,c.hue,c.v,JSON.stringify(c.stats),c.xp|0,c.wins|0,c.stars|0,c.frame||null,c.away||0,c.dest??null,ctx.now,c.part|0,c.how||null,me.id,nv));continue}
       keep.add(c.id);
       if(before.get(c.id)!==JSON.stringify(c))stm.push(env.DB.prepare(`UPDATE cards SET xp=?,wins=?,stars=?,v=?,frame=?,away=?,dest=? WHERE id=? AND owner=? AND ${guard}`)
         .bind(c.xp|0,c.wins|0,c.stars|0,c.v,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
@@ -2449,8 +2460,8 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
       if(id===ctx.giveAway)stm.push(env.DB.prepare(`UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(ctx.oppUid,id,me.id,me.id,nv));   // проиграл игроку: карточка уходит к нему
       else stm.push(env.DB.prepare(`DELETE FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND room_id IS NULL AND ${guard}`).bind(id,me.id,me.id,nv))}
     stm.push(...ins);
-    for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&(dcOf(c.h)?.one||HEROES[c.h][0]===SON_SHOGUN.name))
-      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(HEROES[c.h][0]===SON_SHOGUN.name?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
+    for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&(dcOf(c.h)?.one||dayEdition(c.h)))
+      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(dayEdition(c.h)?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
     if(ctx.recovery&&take)stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind(ctx.recovery,JSON.stringify({t:ctx.now}),me.id,nv));
     if(take)stm.unshift(take);
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
@@ -4096,7 +4107,8 @@ const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бес
   "2026-11-18":[{n:"Один",e:"Асгард",d:"Всеотец богов. Отдал глаз за мудрость, а вороны Хугин и Мунин каждое утро приносят ему вести со всего мира. Копьё Гунгнир никогда не промахивается.",o:{p:[9,8,8,8,9],sn:"171117",sn2:"111000"},from:15,to:20.5,stars:3200,ch:.0004,lock:3,one:1},
   {n:"Банда",e:"Сказки и легенды",d:"Баба Яга, Кощей и Дракула снова вместе. Яга кружит в ступе, Кощей крутит свою иглу, а Дракула так и норовит кого-нибудь укусить.",o:{p:[7,7,7,7,7],sn:"373737",sn2:"474747"},from:15,to:20.5,stars:2500,ch:.0006,lock:3},
   {n:"Локи",e:"Асгард",d:"Бог обмана. Огонь вместо волос, змей Ёрмунганд на плечах и маска лиса в руке. Моргнёшь — и рядом уже двое Локи. Какой из них настоящий?",o:{p:[8,8,8,8,8],sn:"181118",sn2:"666000"},from:15,to:20.5,stars:2500,ch:.0004,lock:3,one:1}],
-  "2026-11-22":[{n:"Сын сёгуна",e:"Япония",d:"Наследник сёгуна. Его первый взмах катаны решает судьбу поединка.",o:{p:[8,7,10,7,9],sn:"111112",sn2:"111113"},from:18,to:22,stars:3311,ch:DSP.ch,guarantee:1}]};
+  "2026-11-22":[{n:"Сын сёгуна",e:"Япония",d:"Наследник сёгуна. Его первый взмах катаны решает судьбу поединка.",o:{p:[8,7,10,7,9],sn:"111112",sn2:"111113"},from:18,to:22,stars:3311,ch:DSP.ch,guarantee:1}],
+  "2026-11-23":[{n:"Зевс",e:"Мифы Греции",d:"Громовержец Олимпа. Молния раскалывает небо рядом с ним.",o:{sn:"555555",sn2:"555565",hue:270},from:14.5,to:20.5,stars:3999,ch:DSP.ch}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd)+(P.from!=null?P.from:16)*36e5,until=Date.UTC(y,m-1,dd)+(P.to!=null?P.to:20)*36e5;
@@ -4104,12 +4116,12 @@ async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.
   xhApply(XH)}
 const dcOf=h=>DCS.find(x=>x.h===h)||null,dcOn=h=>{const X=h!=null?dcOf(h):DC;return !!(X&&Date.now()>=X.at&&Date.now()<X.until)};
 async function dcLeft(env,except,h){const X=h!=null?dcOf(h):DC;if(!X)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND COALESCE(json_extract(p,'$.h'),?)=? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(X.at-36e5,except||0,DCS[0]?DCS[0].h:X.h,X.h,Date.now()-PAY_HOLD).first())||{}).n||0;
-  const son=HEROES[X.h][0]===SON_SHOGUN.name;
-  if(son){const claimed=async key=>{const row=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind(key).first();try{const v=JSON.parse(row?.v||"{}");return v.t>=X.at&&v.t<X.until?v.how||"":""}catch(e){return ""}};
+  const edition=dayEdition(X.h);
+  if(edition){const claimed=async key=>{const row=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind(key).first();try{const v=JSON.parse(row?.v||"{}");return v.t>=X.at&&v.t<X.until?v.how||"":""}catch(e){return ""}};
     const oldHow=await claimed("dc:claimed:"+X.h);
     const buy=oldHow==="dbuy"||await claimed("dc:claimed:"+X.h+":dbuy")==="dbuy";
     const spin=oldHow==="dspin"||await claimed("dc:claimed:"+X.h+":dspin")==="dspin";
-    const sn=SON_SHOGUN.snSpin;
+    const sn=edition.snSpin;
     const spun=!!(await env.DB.prepare("SELECT 1 FROM cards WHERE h=? AND how='dspin' AND created>=? AND created<? AND sn IN ("+sn.map(()=>"?").join(",")+") LIMIT 1").bind(X.h,X.at,X.until,...sn).first());
     return {buy:X.so?0:+!(sold||buy),spin:X.ns?0:+!(spun||spin)}}
   if(X.one&&await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h).first())return {buy:0,spin:0};
@@ -4137,7 +4149,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     let dcH=null,dcSt=0;if(I.dayc){await xhLoad(env,1);dcH=p.h!=null&&dcOf(+p.h)?+p.h:(DC?DC.h:null);const X=dcOf(dcH)||DC;if(!X||!dcOn(dcH))fail("Карта дня сейчас не продаётся — смотри время в окне «Карта дня»");if(X.so)fail("Эту карту нельзя купить — только выбить в Особом прокруте!");dcSt=X.stars||I.stars;if((await dcLeft(env,except,dcH)).buy<=0)fail("Экземпляр за звёзды уже купили. Остался шанс в Особом прокруте!");}
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
-    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(H[4].relic)fail("Конкретного героя Забытых Эпох нельзя купить: только случайное выпадение");if(H[4].rift)fail("Стражей Разлома собирают из половинок, купить целиком нельзя");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
+    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(H[0]===ZEUS_DAY.name||H[4].day)fail("Этот воин недоступен в «Понте»");if(H[4].relic)fail("Конкретного героя Забытых Эпох нельзя купить: только случайное выпадение");if(H[4].rift)fail("Стражей Разлома собирают из половинок, купить целиком нельзя");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
       if(H[4].one&&f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");if(H[4].comp&&f!==0)fail("Составного воина можно взять только обычной отделки");
       const f2=H[4].comp?0:f,n=((await env.DB.prepare(H[4].comp?"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=0 AND no<=?":"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,H[4].comp?HALF_RUN:f2).first())||{}).n||0;
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");

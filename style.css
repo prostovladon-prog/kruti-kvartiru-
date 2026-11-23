@@ -3762,3 +3762,7 @@ body:has(#sec-spin:not([hidden]) #chal[data-birthday]:not([hidden]))::after{
 .gold-profile-title,.gold-profile-badge{background:linear-gradient(120deg,#fff2a6,#f8bf41);color:#351807;font-weight:900}
 .gold-profile-title{margin:0 0 10px;padding:7px 12px;border-radius:10px;text-align:center}
 .gold-profile-badge{display:inline-block;font-size:.72em;padding:2px 5px;border-radius:6px;vertical-align:middle;white-space:nowrap}
+
+.zeus-strike{animation:zeus-strike 3.6s ease-in-out infinite;pointer-events:none}
+@keyframes zeus-strike{0%,8%,18%,100%{opacity:.16}10%,15%,21%{opacity:1}27%{opacity:.16}}
+@media(prefers-reduced-motion:reduce){.zeus-strike{animation:none;opacity:.55}}

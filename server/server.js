@@ -391,6 +391,8 @@ async function makeCtx(env,test){
       const used=new Set((await env.DB.prepare("SELECT no FROM cards WHERE h=? AND f=?").bind(r.h,r.f).all()).results.map(x=>x.no));
       gaps[k]=[];for(let i=1;i<=FIN[r.f].run;i++)if(!used.has(i))gaps[k].push(i)}}
   const nice=new Set((await env.DB.prepare("SELECT sn FROM cards WHERE nice>=1").all()).results.map(r=>r.sn));
+  const zeusNumbers=[...ZEUS_DAY.snBuy,...ZEUS_DAY.snSpin];
+  for(const {sn} of (await env.DB.prepare("SELECT sn FROM cards WHERE sn IN ("+zeusNumbers.map(()=>"?").join(",")+")").bind(...zeusNumbers).all()).results)nice.add(sn);
   // места тиража составных воинов (1..300): их занимают правые половинки и собранные карточки
   const slots={},usedS={};for(const h of COMP)usedS[h]=new Set();
   for(const r of (await env.DB.prepare("SELECT h,no FROM cards WHERE f=0 AND h>=? AND no<=?").bind(NBASE,HALF_RUN).all()).results)if(usedS[r.h])usedS[r.h].add(r.no);
@@ -754,7 +756,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
     const ins=[];   // новые карточки пишутся после удалений: собранный воин забирает номер и место тиража правой половинки
     for(const c of out.cards){
       if(typeof c.id==="string"){ins.push(env.DB.prepare(`INSERT INTO cards(owner,h,f,no,sn,nice,hue,v,stats,xp,wins,stars,frame,away,dest,created,part,how) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`)
-        .bind(me.id,c.h,c.f,c.no,c.sn,c.cust?2:classify(c.sn)?1:0,c.hue,c.v,JSON.stringify(c.stats),c.xp|0,c.wins|0,c.stars|0,c.frame||null,c.away||0,c.dest??null,ctx.now,c.part|0,c.how||null,me.id,nv));continue}
+        .bind(me.id,c.h,c.f,c.no,c.sn,c.cust?2:(classify(c.sn)||dayEdition(c.h))?1:0,c.hue,c.v,JSON.stringify(c.stats),c.xp|0,c.wins|0,c.stars|0,c.frame||null,c.away||0,c.dest??null,ctx.now,c.part|0,c.how||null,me.id,nv));continue}
       keep.add(c.id);
       if(before.get(c.id)!==JSON.stringify(c))stm.push(env.DB.prepare(`UPDATE cards SET xp=?,wins=?,stars=?,v=?,frame=?,away=?,dest=? WHERE id=? AND owner=? AND ${guard}`)
         .bind(c.xp|0,c.wins|0,c.stars|0,c.v,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
@@ -777,8 +779,8 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
       if(id===ctx.giveAway)stm.push(env.DB.prepare(`UPDATE cards SET owner=? WHERE id=? AND owner=? AND list_price IS NULL AND ${guard}`).bind(ctx.oppUid,id,me.id,me.id,nv));   // проиграл игроку: карточка уходит к нему
       else stm.push(env.DB.prepare(`DELETE FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND room_id IS NULL AND ${guard}`).bind(id,me.id,me.id,nv))}
     stm.push(...ins);
-    for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&(dcOf(c.h)?.one||HEROES[c.h][0]===SON_SHOGUN.name))
-      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(HEROES[c.h][0]===SON_SHOGUN.name?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
+    for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&(dcOf(c.h)?.one||dayEdition(c.h)))
+      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(dayEdition(c.h)?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
     if(ctx.recovery&&take)stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind(ctx.recovery,JSON.stringify({t:ctx.now}),me.id,nv));
     if(take)stm.unshift(take);
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
@@ -2424,7 +2426,8 @@ const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бес
   "2026-11-18":[{n:"Один",e:"Асгард",d:"Всеотец богов. Отдал глаз за мудрость, а вороны Хугин и Мунин каждое утро приносят ему вести со всего мира. Копьё Гунгнир никогда не промахивается.",o:{p:[9,8,8,8,9],sn:"171117",sn2:"111000"},from:15,to:20.5,stars:3200,ch:.0004,lock:3,one:1},
   {n:"Банда",e:"Сказки и легенды",d:"Баба Яга, Кощей и Дракула снова вместе. Яга кружит в ступе, Кощей крутит свою иглу, а Дракула так и норовит кого-нибудь укусить.",o:{p:[7,7,7,7,7],sn:"373737",sn2:"474747"},from:15,to:20.5,stars:2500,ch:.0006,lock:3},
   {n:"Локи",e:"Асгард",d:"Бог обмана. Огонь вместо волос, змей Ёрмунганд на плечах и маска лиса в руке. Моргнёшь — и рядом уже двое Локи. Какой из них настоящий?",o:{p:[8,8,8,8,8],sn:"181118",sn2:"666000"},from:15,to:20.5,stars:2500,ch:.0004,lock:3,one:1}],
-  "2026-11-22":[{n:"Сын сёгуна",e:"Япония",d:"Наследник сёгуна. Его первый взмах катаны решает судьбу поединка.",o:{p:[8,7,10,7,9],sn:"111112",sn2:"111113"},from:18,to:22,stars:3311,ch:DSP.ch,guarantee:1}]};
+  "2026-11-22":[{n:"Сын сёгуна",e:"Япония",d:"Наследник сёгуна. Его первый взмах катаны решает судьбу поединка.",o:{p:[8,7,10,7,9],sn:"111112",sn2:"111113"},from:18,to:22,stars:3311,ch:DSP.ch,guarantee:1}],
+  "2026-11-23":[{n:"Зевс",e:"Мифы Греции",d:"Громовержец Олимпа. Молния раскалывает небо рядом с ним.",o:{sn:"555555",sn2:"555565",hue:270},from:14.5,to:20.5,stars:3999,ch:DSP.ch}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd)+(P.from!=null?P.from:16)*36e5,until=Date.UTC(y,m-1,dd)+(P.to!=null?P.to:20)*36e5;
@@ -2432,12 +2435,12 @@ async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.
   xhApply(XH)}
 const dcOf=h=>DCS.find(x=>x.h===h)||null,dcOn=h=>{const X=h!=null?dcOf(h):DC;return !!(X&&Date.now()>=X.at&&Date.now()<X.until)};
 async function dcLeft(env,except,h){const X=h!=null?dcOf(h):DC;if(!X)return {buy:0,spin:0};const sold=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE item='daycard' AND created>=? AND id<>? AND COALESCE(json_extract(p,'$.h'),?)=? AND (status IN ('paid','done') OR (status='new' AND created>?))").bind(X.at-36e5,except||0,DCS[0]?DCS[0].h:X.h,X.h,Date.now()-PAY_HOLD).first())||{}).n||0;
-  const son=HEROES[X.h][0]===SON_SHOGUN.name;
-  if(son){const claimed=async key=>{const row=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind(key).first();try{const v=JSON.parse(row?.v||"{}");return v.t>=X.at&&v.t<X.until?v.how||"":""}catch(e){return ""}};
+  const edition=dayEdition(X.h);
+  if(edition){const claimed=async key=>{const row=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind(key).first();try{const v=JSON.parse(row?.v||"{}");return v.t>=X.at&&v.t<X.until?v.how||"":""}catch(e){return ""}};
     const oldHow=await claimed("dc:claimed:"+X.h);
     const buy=oldHow==="dbuy"||await claimed("dc:claimed:"+X.h+":dbuy")==="dbuy";
     const spin=oldHow==="dspin"||await claimed("dc:claimed:"+X.h+":dspin")==="dspin";
-    const sn=SON_SHOGUN.snSpin;
+    const sn=edition.snSpin;
     const spun=!!(await env.DB.prepare("SELECT 1 FROM cards WHERE h=? AND how='dspin' AND created>=? AND created<? AND sn IN ("+sn.map(()=>"?").join(",")+") LIMIT 1").bind(X.h,X.at,X.until,...sn).first());
     return {buy:X.so?0:+!(sold||buy),spin:X.ns?0:+!(spun||spin)}}
   if(X.one&&await env.DB.prepare("SELECT 1 FROM kv WHERE k=?").bind("dc:claimed:"+X.h).first())return {buy:0,spin:0};
@@ -2465,7 +2468,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
     let dcH=null,dcSt=0;if(I.dayc){await xhLoad(env,1);dcH=p.h!=null&&dcOf(+p.h)?+p.h:(DC?DC.h:null);const X=dcOf(dcH)||DC;if(!X||!dcOn(dcH))fail("Карта дня сейчас не продаётся — смотри время в окне «Карта дня»");if(X.so)fail("Эту карту нельзя купить — только выбить в Особом прокруте!");dcSt=X.stars||I.stars;if((await dcLeft(env,except,dcH)).buy<=0)fail("Экземпляр за звёзды уже купили. Остался шанс в Особом прокруте!");}
     if(I.twins&&((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE f=?").bind(DUO_F).first())||{}).n>=DUO.length*DUO_RUN)fail("Все Близнецы уже разобраны игроками");
     let data={},title=I.n;
-    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(H[4].relic)fail("Конкретного героя Забытых Эпох нельзя купить: только случайное выпадение");if(H[4].rift)fail("Стражей Разлома собирают из половинок, купить целиком нельзя");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
+    if(I.any){const h=p.h|0,f=p.f|0,H=HEROES[h];if(!H||!FIN[f]||FIN[f].excl||FIN[f].dia||H[4].collab)fail("Такой карточки нет");if(H[0]===ZEUS_DAY.name||H[4].day)fail("Этот воин недоступен в «Понте»");if(H[4].relic)fail("Конкретного героя Забытых Эпох нельзя купить: только случайное выпадение");if(H[4].rift)fail("Стражей Разлома собирают из половинок, купить целиком нельзя");if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
       if(H[4].one&&f!==4)fail("Легенды 1 из 1 бывают только «Ошибкой печати»");if(H[4].comp&&f!==0)fail("Составного воина можно взять только обычной отделки");
       const f2=H[4].comp?0:f,n=((await env.DB.prepare(H[4].comp?"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=0 AND no<=?":"SELECT COUNT(*) AS n FROM cards WHERE h=? AND f=?").bind(h,H[4].comp?HALF_RUN:f2).first())||{}).n||0;
       const run=H[4].one?1:H[4].comp?HALF_RUN:FIN[f2].run;if(n>=run)fail("Тираж «"+H[0]+"» ("+FIN[f2].k.toLowerCase()+") уже закончился. Выбери другую");
