@@ -4326,6 +4326,377 @@ export default {
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
+/* ================= ИВЕНТ «ПОКОЛЕНИЕ ЭПОХ» ================= */
+let EV_DB = false;
+async function evEnsure(env) {
+  if (EV_DB) return;
+  await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS ev_seg(season TEXT,key TEXT,seg INT,points INT NOT NULL DEFAULT 0,given INT NOT NULL DEFAULT 0,day INT NOT NULL DEFAULT 0,PRIMARY KEY(season,key,seg))"),
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS ev_contrib(season TEXT,uid INT,day INT,used INT NOT NULL DEFAULT 0,stars_used INT NOT NULL DEFAULT 0,coins_used INT NOT NULL DEFAULT 0,shards_used INT NOT NULL DEFAULT 0,PRIMARY KEY(season,uid,day))"),
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS ev_node(season TEXT,key TEXT,n INT,hp INT NOT NULL,dmg INT NOT NULL DEFAULT 0,closed INT NOT NULL DEFAULT 0,PRIMARY KEY(season,key,n))"),
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS ev_hit(season TEXT,key TEXT,n INT,uid INT,day INT,dmg INT NOT NULL DEFAULT 0,PRIMARY KEY(season,key,n,uid,day))"),
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS ev_shop(season TEXT,uid INT,item TEXT,qty INT NOT NULL DEFAULT 0,day INT NOT NULL DEFAULT 0,bought INT NOT NULL DEFAULT 0,PRIMARY KEY(season,uid,item))"),
+  ]);
+  for (const q of ["ALTER TABLE ev_contrib ADD COLUMN coins_used INT NOT NULL DEFAULT 0",
+                   "ALTER TABLE ev_contrib ADD COLUMN shards_used INT NOT NULL DEFAULT 0"]) {
+    try { await env.DB.prepare(q).run(); } catch (e) {}
+  }
+  EV_DB = true;
+}
+
+const evKey = (u, me) => (u && u.clan ? "c" + u.clan : "u" + me.id);
+const evIsOpen = (now, admin) => admin || (now >= EV.start && now < EV.end);
+const evNeed = (clan, seg) => (clan ? EV.segments : EV_SOLO.segments)[seg];
+const evNodeHp = (clan, n) => Math.round((clan ? EV.nodes : EV_SOLO.nodes)[n - 1]);
+
+async function evPass(env, season, me, clan) {
+  try {
+    const own = await env.DB.prepare("SELECT bought FROM ev_shop WHERE season=? AND uid=? AND item='pass'").bind(season, me.id).first();
+    if (own && own.bought) return true;
+    if (clan) {
+      const cp = await kvGet(env, "evcpass:" + season + ":" + clan);
+      if (cp) return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+async function evState(env, me) {
+  await evEnsure(env);
+  const season = EV.id, now = Date.now(), day = mskDay(now);
+  const { u } = await loadUser(env, me);
+  const clan = (u && u.clan) || 0;
+  const key = evKey(u, me);
+  const admin = isAdmin(env, me.id);
+  const open = evIsOpen(now, admin && now < EV.start);   // админ может тестировать до старта
+
+  const segs = (await env.DB.prepare("SELECT seg,points,given,day FROM ev_seg WHERE season=? AND key=?").bind(season, key).all()).results || [];
+  const nodes = (await env.DB.prepare("SELECT n,hp,dmg,closed FROM ev_node WHERE season=? AND key=?").bind(season, key).all()).results || [];
+  const contrib = (await env.DB.prepare("SELECT used,stars_used FROM ev_contrib WHERE season=? AND uid=? AND day=?").bind(season, me.id, day).first()) || { used: 0, stars_used: 0 };
+  const hasPass = await evPass(env, season, me, clan);
+
+  const segOut = (clan ? EV.segments : EV_SOLO.segments).map((need, i) => {
+    const r = segs.find(s => s.seg === i) || { points: 0, given: 0, day: 0 };
+    return { i, need, points: r.points, done: r.points >= need };
+  });
+
+  const nodeOut = (clan ? EV.nodes : EV_SOLO.nodes).map((hp, i) => {
+    const n = i + 1, r = nodes.find(x => x.n === n) || { dmg: 0, closed: 0 };
+    return { n, hp: Math.round(hp), dmg: r.dmg | 0, closed: !!r.closed, reward: evNodeReward(n) };
+  });
+
+  const claim = (await env.DB.prepare("SELECT k FROM kv WHERE k LIKE ?").bind("evc:" + season + ":" + key + ":%:" + me.id).all()).results || [];
+  const claimed = new Set(claim.map(r => +String(r.k).split(":")[3]));
+
+  return {
+    season, start: EV.start, end: EV.end, open, admin, clan, solo: !clan,
+    act: now < EV.start ? 1 : (nodes.filter(n => n.closed).length < 4 ? 1 : nodes.filter(n => n.closed).length < 8 ? 2 : 3),
+    segs: segOut, nodes: nodeOut,
+    me: { used: contrib.used | 0, starsUsed: contrib.stars_used | 0, cap: evPlayerCap(hasPass), hasPass },
+    claimable: nodeOut.filter(n => n.closed && n.reward && !claimed.has(n.n)).map(n => n.n),
+    shop: EV.shop, starBal: (u && u.star_bal) || 0,
+    kvorum: clan ? EV.kvorum : 1,
+  };
+}
+
+/** Положить очки в текущий сегмент (клановый или личный). */
+async function evAddPoints(env, season, key, seg, points, day, isClan) {
+  if (points <= 0) return 0;
+  const cap = isClan ? EV.clanCap : EV.playerCap;
+  const row = await env.DB.prepare("SELECT points,given,day FROM ev_seg WHERE season=? AND key=? AND seg=?").bind(season, key, seg).first();
+  const given = row && row.day === day ? row.given : 0;
+  const left = Math.max(0, cap - given);
+  const add = Math.min(points, left);
+  if (add <= 0) return 0;
+  await env.DB.prepare(
+    "INSERT INTO ev_seg(season,key,seg,points,given,day) VALUES(?,?,?,?,?,?) " +
+    "ON CONFLICT(season,key,seg) DO UPDATE SET points=points+excluded.points," +
+    "given=CASE WHEN ev_seg.day=? THEN ev_seg.given+excluded.given ELSE excluded.given END,day=excluded.day"
+  ).bind(season, key, seg, add, add, day, day).run();
+  return add;
+}
+
+async function evContrib(env, me, p) {
+  await evEnsure(env);
+  const season = EV.id, now = Date.now(), day = mskDay(now);
+  const admin = isAdmin(env, me.id);
+  if (!evIsOpen(now, admin && now < EV.start)) fail("Ивент ещё не открыт");
+  const { u } = await loadUser(env, me);
+  const clan = (u && u.clan) || 0, key = evKey(u, me);
+  const coinsIn = Math.max(0, Math.floor(+p.coins || 0));
+  const shardsIn = Math.max(0, Math.floor(+p.shards || 0));
+  if (!coinsIn && !shardsIn) fail("Укажи, сколько монет и осколков внести");
+
+  const st = JSON.parse((u && u.state) || "{}");
+  const H = st.gsh || {};
+  const haveShards = (H.f || 0) + (H.w || 0) + (H.e || 0) + (H.a || 0);
+
+  const c = (await env.DB.prepare("SELECT used,coins_used,shards_used FROM ev_contrib WHERE season=? AND uid=? AND day=?")
+    .bind(season, me.id, day).first()) || {};
+  const used = c.used || 0, cnUsed = c.coins_used || 0, shUsed = c.shards_used || 0;
+  const hasPass = await evPass(env, season, me, clan);
+  const cap = evPlayerCap(hasPass);
+  if (used >= cap) fail("Дневной лимит вклада исчерпан — возвращайся завтра");
+
+  const coinLeft = Math.max(0, EV.srcCap.coins - cnUsed);
+  const shardLeft = Math.max(0, EV.srcCap.shards - shUsed);
+  if (!coinLeft && !shardLeft) fail("Дневные лимиты по источникам исчерпаны");
+
+  const useCoins = Math.min(coinsIn, Math.floor(u.cash || 0), coinLeft * EV.coinsPer);
+  const useShards = Math.min(shardsIn, haveShards, Math.floor(shardLeft / EV.shardsPer));
+  const pts = evPoints(useCoins, useShards);
+  const coinPts = Math.min(pts.coins, coinLeft);
+  const shardPts = Math.min(pts.shards, shardLeft);
+  if (!coinPts && !shardPts) fail("Недостаточно ресурсов");
+
+  const segIdx = await evCurrentSeg(env, season, key, clan);
+  const row = await env.DB.prepare("SELECT given,day FROM ev_seg WHERE season=? AND key=? AND seg=?").bind(season, key, segIdx).first();
+  const given = row && row.day === day ? row.given : 0;
+  const accepted = evAccept(coinPts + shardPts, used, given, false, 0, hasPass);
+  if (accepted <= 0) fail("Дневной лимит вклада исчерпан — возвращайся завтра");
+
+  const accCoin = Math.min(coinPts, accepted);
+  const accShard = Math.min(shardPts, accepted - accCoin);
+  const coinsSpent = accCoin * EV.coinsPer;
+  const shardsSpent = Math.floor(accShard / EV.shardsPer);
+
+  let left = shardsSpent;
+  for (const k of ["f", "w", "e", "a"]) {
+    if (left <= 0) break;
+    const take = Math.min(H[k] || 0, left); H[k] = (H[k] || 0) - take; left -= take;
+  }
+  st.gsh = H;
+
+  const paid = await env.DB.prepare("UPDATE users SET cash=cash-?,state=?,ver=ver+1 WHERE id=? AND ver=? AND cash>=?")
+    .bind(coinsSpent, JSON.stringify(st), me.id, u.ver, coinsSpent).run();
+  if (!paid.meta || !paid.meta.changes) fail("Не удалось списать ресурсы — обнови игру и попробуй ещё раз");
+
+  const add = await evAddPoints(env, season, key, segIdx, accCoin + accShard, day, !!clan);
+  if (!add) {
+    await env.DB.prepare("UPDATE users SET cash=cash+?,ver=ver+1 WHERE id=?").bind(coinsSpent, me.id).run();
+    fail("Лимит клана на этот сегмент исчерпан");
+  }
+
+  await env.DB.prepare("INSERT INTO ev_contrib(season,uid,day,used,coins_used,shards_used) VALUES(?,?,?,?,?,?) " +
+    "ON CONFLICT(season,uid,day) DO UPDATE SET used=used+excluded.used,coins_used=coins_used+excluded.coins_used," +
+    "shards_used=shards_used+excluded.shards_used")
+    .bind(season, me.id, day, add, accCoin, accShard).run();
+
+  return { added: add, coinsSpent, shardsSpent, left: cap - used - add, seg: segIdx };
+}
+
+async function evCurrentSeg(env, season, key, clan) {
+  const need = clan ? EV.segments : EV_SOLO.segments;
+  const rows = (await env.DB.prepare("SELECT seg,points FROM ev_seg WHERE season=? AND key=?").bind(season, key).all()).results || [];
+  for (let i = 0; i < need.length; i++) {
+    const r = rows.find(x => x.seg === i);
+    if (!r || r.points < need[i]) return i;
+  }
+  return need.length - 1;
+}
+
+async function evHit(env, me, p) {
+  await evEnsure(env);
+  const season = EV.id, now = Date.now(), day = mskDay(now);
+  const admin = isAdmin(env, me.id);
+  if (!evIsOpen(now, admin && now < EV.start)) fail("Ивент ещё не открыт");
+  const n = Math.floor(+p.n || 0);
+  if (!(n >= 1 && n <= EV.nodes.length)) fail("Нет такого узла");
+  const { u, cards } = await loadUser(env, me);
+  const clan = (u && u.clan) || 0, key = evKey(u, me);
+  const ids = Array.isArray(p.cards) ? p.cards.slice(0, 3) : [];
+  if (!ids.length) fail("Выбери отряд");
+  const pick = cards.filter(c => ids.includes(c.id) && !c.away && !c.list_price && !c.room_id);
+  if (!pick.length) fail("Эти карты заняты или не твои");
+  const effs = pick.map(c => eff(c, 0));
+
+  let hp = evNodeHp(!!clan, n);
+  const node = await env.DB.prepare("SELECT hp,dmg,closed FROM ev_node WHERE season=? AND key=? AND n=?").bind(season, key, n).first();
+  if (node) hp = node.hp;
+  if (node && node.closed) fail("Узел уже закрыт");
+
+  const hit = await env.DB.prepare("SELECT dmg FROM ev_hit WHERE season=? AND key=? AND n=? AND uid=? AND day=?").bind(season, key, n, me.id, day).first();
+  const dealt = (hit && hit.dmg) || 0;
+
+  let dragon = 0;
+  try { dragon = Math.min(EV.dragonMax, dgBonus(JSON.parse((u.state) || "{}")) || 0); } catch (e) {}
+  let dmg = evNodeDamage(effs, hp, dealt, dragon, false);
+
+  // кворум: без 5 разных игроков клан бьёт вполсилы
+  let kv = 1;
+  if (clan) {
+    kv = ((await env.DB.prepare("SELECT COUNT(DISTINCT h.uid) AS n FROM ev_hit h JOIN users x ON x.id=h.uid " +
+      "WHERE h.season=? AND h.key=? AND h.day=? AND x.created<=? AND (SELECT COUNT(*) FROM cards c WHERE c.owner=x.id)>=?")
+      .bind(season, key, day, now - EV.kvorumAge * 864e5, EV.kvorumCards).first()) || {}).n || 0;
+    if (kv < EV.kvorum) dmg = Math.floor(dmg * 0.5);
+  }
+  if (dmg <= 0) fail("Лимит урона на сегодня исчерпан");
+
+  const total = Math.min(hp, (node ? node.dmg : 0) + dmg);
+  const closed = total >= hp ? 1 : 0;
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO ev_node(season,key,n,hp,dmg,closed) VALUES(?,?,?,?,?,?) " +
+      "ON CONFLICT(season,key,n) DO UPDATE SET dmg=dmg+excluded.dmg,closed=MAX(closed,excluded.closed)")
+      .bind(season, key, n, hp, dmg, closed),
+    env.DB.prepare("INSERT INTO ev_hit(season,key,n,uid,day,dmg) VALUES(?,?,?,?,?,?) " +
+      "ON CONFLICT(season,key,n,uid,day) DO UPDATE SET dmg=dmg+excluded.dmg")
+      .bind(season, key, n, me.id, day, dmg),
+  ]);
+  return { dmg, total, hp, closed: !!closed, kvorum: clan ? kv : 1, half: clan && kv < EV.kvorum };
+}
+
+async function evClaim(env, me, p) {
+  await evEnsure(env);
+  const season = EV.id, now = Date.now();
+  const admin = isAdmin(env, me.id);
+  if (!evIsOpen(now, admin && now < EV.start)) fail("Ивент ещё не открыт");
+  const n = Math.floor(+p.n || 0);
+  if (!(n >= 1 && n <= EV.nodes.length)) fail("Нет такого узла");
+  const { u } = await loadUser(env, me);
+  const clan = (u && u.clan) || 0, key = evKey(u, me);
+  const node = await env.DB.prepare("SELECT closed FROM ev_node WHERE season=? AND key=? AND n=?").bind(season, key, n).first();
+  if (!node || !node.closed) fail("Узел ещё не закрыт");
+  const reward = evNodeReward(n);
+  if (!reward) fail("За этот узел награды нет");
+
+  const ck = "evc:" + season + ":" + key + ":" + n + ":" + me.id;
+  if (await kvGet(env, ck)) fail("Награда уже получена");
+  await kvSet(env, ck, 1);
+
+  const k = clan ? 1 : EV_SOLO.rewardK;
+  let cash = 0, sp = 0, chest = null;
+  const rnd = Math.random();
+  if (reward === "chest") { cash = Math.round(20000 * k); sp = Math.max(1, Math.round(3 * k)); }
+  else if (reward === "epic") {
+    cash = Math.round(60000 * k); sp = Math.max(1, Math.round(6 * k));
+    if (rnd < EV.rewards.cardChance * k) chest = "general";
+  } else {
+    cash = Math.round(100000 * k); sp = Math.max(1, Math.round(10 * k));
+    if (k === 1 || rnd < 0.5) chest = "empire";
+  }
+  const st = JSON.parse((u && u.state) || "{}");
+  st.spins = (st.spins || 0) + sp;
+  await env.DB.prepare("UPDATE users SET cash=cash+?,state=?,ver=ver+1 WHERE id=? AND ver=?").bind(cash, JSON.stringify(st), me.id, u.ver).run();
+  if (chest) { try { await doAction(env, me, "grant", { item: chest, pid: "ev:" + season + ":" + key + ":" + n }, { grant: true }); } catch (e) {} }
+  return { reward, cash, sp, chest };
+}
+
+async function evShop(env, me, p) {
+  await evEnsure(env);
+  const season = EV.id, now = Date.now(), day = mskDay(now);
+  const item = String(p.item || "");
+  const { u } = await loadUser(env, me);
+  const clan = (u && u.clan) || 0, key = evKey(u, me);
+  const admin = isAdmin(env, me.id);
+  if (!evIsOpen(now, admin && now < EV.start)) fail("Ивент ещё не открыт");
+  const stars = (u && u.star_bal) || 0;
+
+  const pay = async (amount) => {
+    const r = await env.DB.prepare("UPDATE users SET star_bal=star_bal-? WHERE id=? AND star_bal>=?").bind(amount, me.id, amount).run();
+    if (!r.meta || !r.meta.changes) fail("Недостаточно звёзд");
+  };
+  const row = async (it) => (await env.DB.prepare("SELECT qty,day,bought FROM ev_shop WHERE season=? AND uid=? AND item=?").bind(season, me.id, it).first()) || { qty: 0, day: 0, bought: 0 };
+  const mark = (it, qty, bought) => env.DB.prepare(
+    "INSERT INTO ev_shop(season,uid,item,qty,day,bought) VALUES(?,?,?,?,?,?) " +
+    "ON CONFLICT(season,uid,item) DO UPDATE SET qty=CASE WHEN ev_shop.day=? THEN ev_shop.qty+excluded.qty ELSE excluded.qty END," +
+    "day=excluded.day,bought=MAX(ev_shop.bought,excluded.bought)"
+  ).bind(season, me.id, it, qty, day, bought, day);
+
+  if (item === "pass") {
+    const r = await row("pass");
+    if (r.bought) fail("Пасс уже куплен");
+    if (stars < EV.shop.pass) fail("Недостаточно звёзд");
+    await pay(EV.shop.pass); await mark("pass", 1, 1).run();
+    return { item, stars: EV.shop.pass, bonus: EV.passBonus };
+  }
+  if (item === "clanpass") {
+    if (!clan) fail("Сначала вступи в клан");
+    const cp = await kvGet(env, "evcpass:" + season + ":" + clan);
+    if (cp) fail("Клан уже купил пасс");
+    if (stars < EV.shop.clanPass) fail("Недостаточно звёзд");
+    await pay(EV.shop.clanPass);
+    await kvSet(env, "evcpass:" + season + ":" + clan, me.id);
+    try {
+      const mem = (await env.DB.prepare("SELECT id FROM users WHERE clan=? AND id<>? LIMIT 40").bind(clan, me.id).all()).results || [];
+      const nm = me.nick || me.name || "Игрок";
+      for (const m of mem) await notify(env, m.id, "🎫 " + nm + " купил «Знамя клана» — пасс ивента действует для всего клана!", "🏛 Открыть", null);
+    } catch (e) {}
+    return { item, stars: EV.shop.clanPass };
+  }
+  if (item === "chest") {
+    const r = await row("chest");
+    const bought = r.day === day ? r.qty : 0;
+    if (bought >= EV.shop.chestDay) fail("Больше двух сундуков в день нельзя");
+    const c = await env.DB.prepare("SELECT used,stars_used FROM ev_contrib WHERE season=? AND uid=? AND day=?").bind(season, me.id, day).first() || { used: 0, stars_used: 0 };
+    if ((c.stars_used || 0) + EV.shop.chestPoints > EV.starCap) fail("Дневной звёздный лимит исчерпан");
+    if (stars < EV.shop.chest) fail("Недостаточно звёзд");
+    await pay(EV.shop.chest);
+    const seg = await evCurrentSeg(env, season, key, clan);
+    const add = await evAddPoints(env, season, key, seg, EV.shop.chestPoints, day, !!clan);
+    if (!add) {
+      await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(EV.shop.chest, me.id).run();
+      fail("Лимит клана на сегмент исчерпан — звёзды возвращены");
+    }
+    await env.DB.batch([
+      mark("chest", 1, 0),
+      env.DB.prepare("INSERT INTO ev_contrib(season,uid,day,used,stars_used) VALUES(?,?,?,?,?) " +
+        "ON CONFLICT(season,uid,day) DO UPDATE SET used=used+excluded.used,stars_used=stars_used+excluded.stars_used")
+        .bind(season, me.id, day, add, EV.shop.chestPoints),
+    ]);
+    return { item, stars: EV.shop.chest, points: add };
+  }
+  if (item === "card" || item === "named") {
+    const price = item === "card" ? EV.shop.card : EV.shop.named;
+    const r = await row(item);
+    if (r.bought) fail("Уже куплено");
+    if (stars < price) fail("Недостаточно звёзд");
+    await pay(price); await mark(item, 1, 1).run();
+    if (item === "card") { try { await doAction(env, me, "grant", { item: "empire", pid: "evcard:" + season }, { grant: true }); } catch (e) {} }
+    else { try { await kvSet(env, "evnamed:" + season + ":" + me.id, me.nick || me.name || "Игрок"); } catch (e) {} }
+    return { item, stars: price };
+  }
+  fail("Нет такого товара");
+}
+
+/* админ-инструменты для проверки ивента: только isAdmin */
+async function evAdmin(env, me, p) {
+  if (!isAdmin(env, me.id)) fail("Нет доступа");
+  await evEnsure(env);
+  const season = EV.id, now = Date.now(), day = mskDay(now);
+  const { u } = await loadUser(env, me);
+  const clan = (u && u.clan) || 0, key = evKey(u, me);
+  const op = String(p.op || "");
+  if (op === "points") {
+    const seg = await evCurrentSeg(env, season, key, clan);
+    const add = Math.max(0, Math.floor(+p.n || 5000));
+    await env.DB.prepare("INSERT INTO ev_seg(season,key,seg,points,given,day) VALUES(?,?,?,?,0,?) " +
+      "ON CONFLICT(season,key,seg) DO UPDATE SET points=points+excluded.points")
+      .bind(season, key, seg, add, day).run();
+    return { op, seg, add };
+  }
+  if (op === "close") {
+    const n = Math.max(1, Math.min(EV.nodes.length, Math.floor(+p.n || 1)));
+    const hp = evNodeHp(!!clan, n);
+    await env.DB.prepare("INSERT INTO ev_node(season,key,n,hp,dmg,closed) VALUES(?,?,?,?,?,1) " +
+      "ON CONFLICT(season,key,n) DO UPDATE SET dmg=excluded.hp,closed=1")
+      .bind(season, key, n, hp, hp).run();
+    return { op, n };
+  }
+  if (op === "reset") {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM ev_seg WHERE season=?").bind(season),
+      env.DB.prepare("DELETE FROM ev_node WHERE season=?").bind(season),
+      env.DB.prepare("DELETE FROM ev_hit WHERE season=?").bind(season),
+      env.DB.prepare("DELETE FROM ev_contrib WHERE season=?").bind(season),
+      env.DB.prepare("DELETE FROM ev_shop WHERE season=?").bind(season),
+    ]);
+    return { op };
+  }
+  fail("Нет такой операции");
+}
+
+/* =============== /ИВЕНТ =============== */
+
 async function handle(req,env){{
     if(req.method==="OPTIONS")return new Response(null,{headers:CORS});
     const url=new URL(req.url);
@@ -4507,6 +4878,12 @@ async function handle(req,env){{
         return J({ok:true,res:{code,rows}})}
       if(a==="stats"){if(!isAdmin(env,me.id))fail("Нет доступа");const R=await adminStats(env);try{R.adNow=await adNow(env)}catch(e){console.error("adNow",e)}return J({ok:true,res:R,S:await stateFor(env,me)})}
       if(a==="sync")return J({ok:true,res:{},S:await stateFor(env,me)});
+      if(a==="ev_state")return J({ok:true,res:await evState(env,me),S:await stateFor(env,me)});
+      if(a==="ev_contrib"){const r=await evContrib(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="ev_hit"){const r=await evHit(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="ev_claim"){const r=await evClaim(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="ev_shop"){const r=await evShop(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="ev_admin"){const r=await evAdmin(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
