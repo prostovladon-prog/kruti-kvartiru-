@@ -158,7 +158,7 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
 }
 /* --- настоящие id Telegram длиннее 32 бит: бой на карточку не должен падать --- */
 {
-  const B = [6724818967, 7123456789];
+  const B = [8123456789, 7123456789];
   for (const u of B) { await call(u, "sync"); for (let i = 0; i < 5; i++) await call(u, "open"); await call(u, "stake_set", { on: 1 }) }
   db.prepare("UPDATE cards SET v=10 WHERE owner IN (?,?)").run(B[0], B[1]);
   let busy = 0, real = 0;
@@ -943,7 +943,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
     q = await call(A, "war_get"); ok(q.res.left === 4 && q.res.log.length === 1, "летопись и счётчик битв");
     db.prepare("UPDATE users SET state=json_set(state,'$.warN',5) WHERE id=?").run(A); db.prepare("DELETE FROM emp_war").run(); q = await call(A, "war_attack", { uid: tid }); ok(!q.ok && /5 битв/.test(q.err), "не больше 5 битв в день");
     q = await call(A, "top", { kind: "glory" }); ok(q.ok, "топ славы");
-    { const BIG = 6724818967; db.prepare("DELETE FROM users WHERE id=?").run(BIG); await call(BIG, "sync"); for (let k = 0; k < 3; k++) await call(BIG, "open");
+    { const BIG = 8123456789; db.prepare("DELETE FROM users WHERE id=?").run(BIG); await call(BIG, "sync"); for (let k = 0; k < 3; k++) await call(BIG, "open");
       db.prepare("UPDATE users SET state=json_set(state,'$.warN',0) WHERE id=?").run(A); q = await call(A, "war_attack", { uid: BIG }); ok(q.ok && q.res.duels.length === 5, "атака на игрока с длинным Telegram ID (" + (q.err || "ok") + ")"); } }
   // 🍀 оберег удачи + 🏛 зал славы
   { db.prepare("UPDATE users SET cash=100000 WHERE id=?").run(A);
@@ -1177,7 +1177,7 @@ await worker.tick(env); ok(!db.prepare("SELECT v FROM kv WHERE k='blast:lot1700'
   await cs(8501, "sync"); let q = await cs(8501, "dg_hatch"); ok(q.ok && q.S.dg, "яйцо без друзей и истории — сразу"); }
 // 🐉 сообщение в игре всем без дракона (без бота)
 { db.prepare("DELETE FROM kv WHERE k='dmb:dgst3110'").run(); const n0 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n; const RN = Date.now; Date.now = () => Date.UTC(2026, 9, 31, 10); try { await worker.tick({ ...env }) } finally { Date.now = RN }
-  const n1 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n, nd = db.prepare("SELECT COUNT(*) n FROM users WHERE json_extract(state,'$.dg') IS NULL AND id<>6724818967").get().n;
+  const n1 = db.prepare("SELECT COUNT(*) n FROM dm WHERE text LIKE '%ДРАКОН ТЕПЕРЬ%'").get().n, nd = db.prepare("SELECT COUNT(*) n FROM users WHERE json_extract(state,'$.dg') IS NULL AND id<>8123456789").get().n;
   ok(n1 - n0 === nd && nd > 0, "сообщение в игре про дракона за историю — всем без дракона (" + (n1 - n0) + ")");
   const hasDg = db.prepare("SELECT id FROM users WHERE json_extract(state,'$.dg') IS NOT NULL LIMIT 1").get(); ok(!hasDg || !db.prepare("SELECT 1 FROM dm WHERE b=? AND text LIKE '%ДРАКОН ТЕПЕРЬ%'").get(hasDg.id), "у кого дракон уже есть — не пишем"); }
 // 🐉 эволюция, облики, арена драконов, дракон рядом с ником
