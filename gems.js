@@ -81,7 +81,7 @@ let dcTmr=null;
 function dcOpen(){if(!S)return;$("modal").hidden=false;dcDraw();clearInterval(dcTmr);dcTmr=setInterval(()=>{if($("modal").hidden||!$("dc-t")){clearInterval(dcTmr);return}dcDraw(1)},1000)}
 /* настоящая карточка «Ошибка печати» — как она будет выглядеть в коллекции */
 const DCF={};function dcFace(h,i){try{if(!DCF[h]){const edition=dayEdition(h),B=cardBody(h,4,edition?{stats:edition.stats}:null),sn=edition?[].concat(edition.snBuy)[0]:(HEROES[h][4].sn)||"000001";DCF[h]={id:"dc"+h,h,f:4,no:1,sn,hue:B.hue,stats:B.stats,v:edition?edition.value:priceOf(h,4,1,sn,B.top),xp:0,stars:0}}return miniSlot(DCF[h])}catch(e){return portrait(h,null)}}
-function dcDraw(tick){const sh=$("msheet"),L0=S.dcs||(S.dc?[S.dc]:[]),now=Date.now();
+function dcDraw(tick){const sh=$("msheet"),now=Date.now(),L0=(S.dcs||(S.dc?[S.dc]:[])).filter(D=>!isZeusDay(D)||dayCardLive(D,now));
   if(tick){L0.forEach((D,i)=>{const e=$("dc-t"+i);if(e)e.textContent=now<D.at?"старт через "+dcT(D.at-now):now<D.until?"осталось "+dcT(D.until-now):"завершено"});if($("dc-x"))return}
   let h='<div class="gemw"><div class="gem-h"><b>🌙 Карта дня'+(L0.length>1?' · '+L0.length+' карты':'')+'</b><button type="button" class="ghost" id="dc-x">✕</button></div>';
   h+=dspBox(L0);
@@ -228,7 +228,7 @@ function profChips(root,o){try{const top=root&&root.querySelector(".top");if(!to
 /* ===== «Сейчас важно»: лента плиток над карточкой во вкладке «Крутить», листается вбок. Только то, что сейчас актуально ===== */
 let nowSig="";
 function nowItems(){const L=[],now=Date.now();if(!S)return L;let B={};try{B=menuBadges()}catch(e){}
-  for(const D of (S.dcs||(S.dc?[S.dc]:[])))if(D&&HEROES[D.h]&&now<D.until){const on=now>=D.at;L.push({k:"dc",ic:"🌙",t:HEROES[D.h][0],s:on?"⏳ "+dcT(D.until-now)+" · "+(D.one?"1 экз.":"2 экз."):"старт в "+dcHM(D.at),c:"#1a1050,#7a2ad0",hot:on})}
+  for(const D of (S.dcs||(S.dc?[S.dc]:[])))if(D&&HEROES[D.h]&&!isZeusDay(D)&&now<D.until){const on=now>=D.at;L.push({k:"dc",ic:"🌙",t:HEROES[D.h][0],s:on?"⏳ "+dcT(D.until-now)+" · "+(D.one?"1 экз.":"2 экз."):"старт в "+dcHM(D.at),c:"#1a1050,#7a2ad0",hot:on})}
 
   {const h=new Date(now).getUTCHours();if(h>=17&&h<19)L.push({k:"cw",ic:"🗺",t:"Война за земли",s:"бои до 22:00",c:"#c4400a,#7a1a8a",em:"!"})}
   if(B.quest)L.push({k:"quest",ic:"🎁",t:"Забрать награды",s:"задания: "+B.quest+" готово",c:"#1e8a4a,#0a4a2a",em:B.quest});
@@ -272,12 +272,20 @@ function dspBind(){const b=$("dsp-go");if(!b)return;b.onclick=async()=>{if(dspBu
     S2.style.transition="transform 2.2s cubic-bezier(.12,.8,.18,1)";S2.style.transform="translateX("+(-(22*w)+box/2-w/2+4)+"px)";try{sfx.whoosh&&sfx.whoosh()}catch(e){}}
   setTimeout(()=>{dspBusy=false;if(win!=null){try{hapN("success");burst(4);epicFx(r.card,4)}catch(e){}toast("🌙🔥 ВЫБИЛ: "+HEROES[win][0]+"! Карта уже в коллекции")}else{try{hap("light")}catch(e){}toast("💨 Пусто… Попробуй ещё!")}dcDraw()},2400)}}
 
-/* большая кнопка «Особые прокруты» над карточкой на главном экране — чтобы все видели, где крутить */
-function dspBan(){const sec=$("sec-spin");if(!sec||sec.hidden)return;let b=$("dsp-ban");const n=S&&S.dsp||0,has=(S&&S.dcs||[]).some(x=>Date.now()<x.until);
-  if(!has){if(b)b.remove();return}
-  if(!b){b=document.createElement("button");b.type="button";b.id="dsp-ban";b.className="dsp-ban";b.onclick=()=>{dcOpen();setTimeout(()=>{const x=$("dspb");if(x)x.scrollIntoView({block:"start"})},250)};const ns=$("now-strip");if(ns)ns.after(b);else sec.prepend(b)}
-  const t=n>0?'🎰 КРУТИТЬ ОСОБЫЙ ПРОКРУТ <em>×'+n+'</em>':'🎰 Особые прокруты: выполни задание и выбей карту дня';if(b._t!==t){b._t=t;const L=(S.dcs||[]).filter(D=>!D.ns&&Date.now()<D.until).map(D=>HEROES[D.h]&&HEROES[D.h][0]).filter(Boolean);b.innerHTML=t+'<small>'+(L.length?escH(L.join(" · "))+' — шанс одинаковый весь вечер':'карта дня выпадает вечером')+'</small>'}b.classList.toggle("hot",n>0)}
-{const _ra=renderAll;renderAll=function(){const r=_ra.apply(this,arguments);try{dspBan()}catch(e){}return r}}
+function isZeusDay(D){return !!D&&dayEdition(D.h)===ZEUS_DAY}
+function dayCardLive(D,now){return now>=D.at&&now<D.until}
+function zeusDaySlide(){
+  const sec=$("sec-spin");if(!sec||!S)return;
+  const now=Date.now(),D=(S.dcs||(S.dc?[S.dc]:[])).find(x=>isZeusDay(x)&&dayCardLive(x,now));
+  const old=$("zeus-day-slide");
+  if(!D){if(old){old.remove();evCar()}return}
+  if(old)return;
+  const slide=document.createElement("button");
+  slide.type="button";slide.id="zeus-day-slide";slide.className="lot-bar";
+  slide.innerHTML='<i aria-hidden="true">⚡</i><span><b>Карта дня: Зевс</b><small>3999 ⭐ или Особый прокрут · до 23:30</small></span><em aria-hidden="true">›</em>';
+  slide.onclick=dcOpen;sec.append(slide);evCar();
+}
+setInterval(zeusDaySlide,1000);
 /* опросы: чат открывается разными кнопками (часть из них привязана к старой функции) — поэтому блок опросов подставляем, как только появился список чата */
 setInterval(()=>{try{const L=$("ch-list");if(L&&L.isConnected&&!$("ch-poll")){const d=document.createElement("div");d.id="ch-poll";d.className="ch-poll";L.before(d);pollLoad()}}catch(e){}},500);
 
@@ -360,7 +368,7 @@ setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();con
  new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
 
 /* 🎠 События над карточкой: свайп и автоматическое переключение */
-const EVENT_BARS=["lot-bar","profile-contest-slide","vhstrip"];
+const EVENT_BARS=["lot-bar","profile-contest-slide","zeus-day-slide","vhstrip"];
 function gameGiftStrip(sp){$("game-gift-strip")?.remove();}
 function evCar(){const sp=$("sec-spin");if(!sp)return;gameGiftStrip(sp);const bars=EVENT_BARS.map(id=>$(id)).filter(Boolean);let C=$("ev-car");
  if(!bars.length){if(C)C.remove();return}
