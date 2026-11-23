@@ -779,7 +779,7 @@ const DUEL_MIN=[60,130,260,500,1000];function duelBase(me,opp){return Math.min(M
 const DUEL_RARE=10000,duelRare=c=>((HEROES[c.h]||[])[2]|0)>=3||(c.f|0)>0;function duelPay(me,opp){return duelRare(me)?DUEL_RARE:Math.round(duelBase(me,opp)*.3+5)}
 function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(c.h,c.f,c.no,c.sn,0)||1;c.sn=sn;if(ctx.takeSn)ctx.takeSn(sn);c.v=Math.round(c.v*(priceOf(c.h,c.f,c.no,sn,0)/v0)*100)/100}}catch(e){}}
 const SON_SHOGUN={name:"Сын сёгуна",snBuy:"111112",snSpin:["111113","111114","111115","111116","111117","111118","111119"],value:1311111,stats:[544,526,580,526,562]};
-const ZEUS_DAY={name:"Зевс",snBuy:["555555","555556","555557","555558","555559","555554","555553","555552","555551","555550"],snSpin:["555565","555575","555585","555595","555545","555535","555525","555515","555505"],value:9999999,stats:[570,532,518,542,590]};
+const ZEUS_DAY={name:"Зевс",start:Date.UTC(2026,10,23,14,30),end:Date.UTC(2026,10,23,20,30),snBuy:["555555","555556","555557","555558","555559","555554","555553","555552","555551","555550"],snSpin:["555565","555575","555585","555595","555545","555535","555525","555515","555505"],value:9999999,stats:[570,532,518,542,590]};
 function dayEdition(h){
   const H=HEROES[h];if(!H?.[4].day)return null;
   return H[0]===SON_SHOGUN.name?SON_SHOGUN:H[0]===ZEUS_DAY.name?ZEUS_DAY:null;
@@ -1128,6 +1128,12 @@ const ACTIONS={
   dsp_roll(G){const {st,ctx}=G;if(ctx.dcLive===false)fail("Особые прокруты работают только пока идёт карта дня. Накопить заранее нельзя — заходи, когда она выйдет");if(!(st.dsp>0))fail("Нет Особых прокрутов. Выполняй задания: каждые "+DSP.per+" задания — 1 прокрут");st.dsp--;
     const h=ctx.dayH;if(h!=null&&h>=0&&Math.random()<(ctx.dayCh===1?1:(ctx.luck&&dayEdition(h)!==ZEUS_DAY)?0.2:(ctx.dayCh!=null?ctx.dayCh:DSP.ch))){const c=dayCardMake(ctx,h,"dspin");G.cards.push(c);noteCard(st,c);return {card:c,win:1}}
     return {empty:1,h:h!=null&&h>=0?h:null}},
+  zeus_raffle(G){
+    const {st,ctx,p}=G;
+    if(!ctx.zeusRaffle||dayEdition(p.h)!==ZEUS_DAY||ctx.now<ZEUS_DAY.end)fail("Розыгрыш недоступен");
+    const card=dayCardMake(ctx,p.h,"dspin");G.cards.push(card);noteCard(st,card);
+    return {card};
+  },
   dsp_buy(G){const {st,ctx}=G,Q=dqDay(st,ctx.now);if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if((Q.buy||0)>=DSP_BUY.day)fail("Сегодня уже куплено. Завтра снова");pay(st,DSP_BUY.cash);Q.buy=(Q.buy||0)+1;st.dsp=(st.dsp||0)+DSP_BUY.n;return {dsp:DSP_BUY.n}},
   dqr_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),T=DQR[G.p.i|0];if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if(!T)fail("Нет такого задания");Q.rg=Q.rg||{};const got=Q.rg[T.k]||0,can=Math.floor(dqProg(st,ctx.now,T.k)/T.per)-got;if(can<1)fail("Ещё не набрано");Q.rg[T.k]=got+can;st.dsp=(st.dsp||0)+can;return {dsp:can}},
   dq_claim(G){const {st,ctx}=G,Q=dqDay(st,ctx.now),i=G.p.i|0;if(ctx.dcLive===false)fail("Особые прокруты дают только пока идёт карта дня — заходи, когда она выйдет");if(i===DQ.length){if(Q.got.length<DQ.length)fail("Сначала выполни все задания");if(Q.all)fail("Уже получено");Q.all=1;st.dsp=(st.dsp||0)+1;return {dsp:1}}
@@ -2443,6 +2449,9 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
         .bind(c.xp|0,c.wins|0,c.stars|0,c.v,c.frame||null,c.away||0,c.dest??null,c.id,me.id,me.id,nv));
     }
     stm.push(env.DB.prepare(`INSERT INTO stats(day,k,n) SELECT ?,?,1 WHERE ${guard} ON CONFLICT(day,k) DO UPDATE SET n=n+1`).bind(dayOf(ctx.now),"a_"+name,me.id,nv));
+    if(name==="dsp_roll"&&dayEdition(ctx.dayH)===ZEUS_DAY&&ctx.now>=ZEUS_DAY.start&&ctx.now<ZEUS_DAY.end)
+      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,'1' WHERE ${guard} ON CONFLICT(k) DO UPDATE SET v=CAST(v AS INTEGER)+1`)
+        .bind(ZEUS_ENTRY_PREFIX+me.id,me.id,nv));
     if(birthdayOpened)stm.push(env.DB.prepare(`INSERT INTO stats(day,k,n) SELECT ?,?,? WHERE ${guard} ON CONFLICT(day,k) DO UPDATE SET n=n+excluded.n`)
       .bind(BIRTHDAY.day,BIRTHDAY.id,birthdayOpened,me.id,nv));
     const printSlot=birthdayPrintSlot(Date.now());
@@ -2461,7 +2470,7 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
       else stm.push(env.DB.prepare(`DELETE FROM cards WHERE id=? AND owner=? AND list_price IS NULL AND room_id IS NULL AND ${guard}`).bind(id,me.id,me.id,nv))}
     stm.push(...ins);
     for(const c of out.cards)if(typeof c.id==="string"&&(c.how==="dspin"||c.how==="dbuy")&&(dcOf(c.h)?.one||dayEdition(c.h)))
-      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(dayEdition(c.h)?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now}),me.id,nv));
+      stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind("dc:claimed:"+c.h+(dayEdition(c.h)?":"+c.how:""),JSON.stringify({how:c.how,uid:me.id,t:ctx.now,raffle:ctx.zeusRaffle?1:undefined,sn:ctx.zeusRaffle?c.sn:undefined}),me.id,nv));
     if(ctx.recovery&&take)stm.push(env.DB.prepare(`INSERT INTO kv(k,v) SELECT ?,? WHERE ${guard}`).bind(ctx.recovery,JSON.stringify({t:ctx.now}),me.id,nv));
     if(take)stm.unshift(take);
     let rs;try{rs=await env.DB.batch(stm)}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))continue;throw e}
@@ -5917,7 +5926,7 @@ const ZEUS_DAY_MAIL={
   at:Date.UTC(2026,10,23,14,30),until:Date.UTC(2026,10,23,20,30),
   photo:"assets/day-zeus.jpg",btn:"⚡ Открыть карту дня",
   url:"https://t.me/VoinyEpohBot?startapp=dayzeus",
-  dm:"⚡ КАРТА ДНЯ — ЗЕВС!\n\nМифическая «Ошибка печати» с анимированной молнией. Два экземпляра: один за 3999 ⭐, второй — в Особом прокруте.\n\n🪙 Оценка: 9 999 999 монет. Сегодня до 23:30 по Минску."
+  dm:"⚡ КАРТА ДНЯ — ЗЕВС!\n\nМифическая «Ошибка печати» с анимированной молнией. Один экземпляр за 3999 ⭐, второй — в Особом прокруте. Если второй не выпадет, после 23:30 разыграем его среди участников с более чем 20 зачтёнными Особыми прокрутами. Если таких нет, участвуют все с хотя бы одним зачтённым Особым прокрутом. Одна заявка на игрока.\n\n🪙 Оценка: 9 999 999 монет. Сегодня до 23:30 по Минску."
 };
 let zeusDayMailBusy=false;
 async function zeusDayMailTick(env){
@@ -5925,6 +5934,43 @@ async function zeusDayMailTick(env){
   if(zeusDayMailBusy||now<ZEUS_DAY_MAIL.at||now>=ZEUS_DAY_MAIL.until)return;
   zeusDayMailBusy=true;
   try{await blastRun(env,ZEUS_DAY_MAIL)}finally{zeusDayMailBusy=false}
+}
+const ZEUS_ENTRY_PREFIX="zeus-day-20261123:spin:";
+let zeusRaffleBusy=false;
+async function zeusRaffleTick(env){
+  if(zeusRaffleBusy||Date.now()<ZEUS_DAY.end+5000)return;
+  zeusRaffleBusy=true;
+  try{
+    if(await kvGet(env,"zeus-day-20261123:raffle-done"))return;
+    await xhLoad(env,1);
+    const h=DAY_SLOTS.find(id=>dayEdition(id)===ZEUS_DAY);
+    if(h==null)return;
+    const claimKey="dc:claimed:"+h+":dspin";
+    let claim=await kvGet(env,claimKey);
+    if(!claim){
+      const existing=await env.DB.prepare("SELECT 1 FROM cards WHERE h=? AND how='dspin' LIMIT 1").bind(h).first();
+      if(existing){await kvSet(env,"zeus-day-20261123:raffle-done",{natural:true});return}
+      const eligible=(await env.DB.prepare(
+        "SELECT u.id,COALESCE(u.nick,u.name,'Игрок') AS name,CAST(k.v AS INTEGER) AS spins FROM kv k JOIN users u ON u.id=CAST(substr(k.k,?) AS INTEGER) WHERE k.k LIKE ? AND u.banned=0 AND CAST(k.v AS INTEGER)>0"
+      ).bind(ZEUS_ENTRY_PREFIX.length+1,ZEUS_ENTRY_PREFIX+"%").all()).results;
+      if(!eligible.length){await kvSet(env,"zeus-day-20261123:raffle-done",{entrants:0});return}
+      const qualified=eligible.filter(x=>x.spins>20),pool=qualified.length?qualified:eligible;
+      const random=new Uint32Array(1),limit=Math.floor(2**32/pool.length)*pool.length;
+      do{crypto.getRandomValues(random)}while(random[0]>=limit);
+      const winner=pool[random[0]%pool.length];
+      try{await doAction(env,winner,"zeus_raffle",{h},{zeusRaffle:true})}
+      catch(e){if(!await kvGet(env,claimKey))throw e}
+      claim=await kvGet(env,claimKey);
+      if(!claim)return;
+    }
+    if(claim.raffle){
+      if(!env.BOT_TOKEN||env.DEV==="1")return;
+      const sent=await recruitSend(env,"zeus-day-20261123:winner",claim.uid,
+        "⚡ Ты выиграл Зевса в резервном розыгрыше карты дня! Ошибка печати №"+claim.sn+" уже в твоей коллекции.");
+      if(!sent)return;
+    }
+    await kvSet(env,"zeus-day-20261123:raffle-done",{uid:claim.uid,raffle:!!claim.raffle});
+  }finally{zeusRaffleBusy=false}
 }
 async function sonReleaseTick(env){const now=Date.now(),at=Date.UTC(2026,10,22,18),until=Date.UTC(2026,10,22,22);
  if(!env.BOT_TOKEN||env.DEV==="1"||now<at||now>=until)return;
@@ -5940,7 +5986,7 @@ async function sonReleaseTick(env){const now=Date.now(),at=Date.UTC(2026,10,22,1
 }
 
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await zeusDayMailTick(env)}catch(e){console.error("zeus day mail",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await zeusDayMailTick(env)}catch(e){console.error("zeus day mail",e)}try{await zeusRaffleTick(env)}catch(e){console.error("zeus raffle",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
