@@ -1265,10 +1265,17 @@ const profileContestVisible=()=>Date.now()<profileContestEnd+7*864e5||!!S?.admin
 function profileContestBar(){
   const sp=$("sec-spin");if(!sp||!S||!ONLINE)return;
   let b=$("tk-bar");
+  const active=Date.now()<profileContestEnd;
+  if(!active&&$("profile-contest-slide")){$("profile-contest-slide").remove();if(typeof evCar==="function")evCar()}
   if(!profileContestVisible()){b?.remove();return}
+  if(active&&!$("profile-contest-slide")){
+    const slide=document.createElement("button");slide.type="button";slide.id="profile-contest-slide";slide.className="lot-bar";
+    slide.innerHTML='<i aria-hidden="true">🏆</i><span><b>Конкурс профилей</b><small>500 ⭐ + 1 000 000 🪙 · до 24.11, 22:00</small></span><em aria-hidden="true">›</em>';
+    slide.onclick=()=>profileContestOpen();sp.appendChild(slide);if(typeof evCar==="function")evCar();
+  }
   if(b)return;
   b=document.createElement("div");b.id="tk-bar";b.className="tk-contest profile-contest-banner";
-  sp.prepend(b);
+  const anchor=$("chal");if(anchor?.parentNode===sp)anchor.before(b);else sp.appendChild(b);
   b.innerHTML='<div class="tkc-head"><h3>🏆 КОНКУРС ПРОФИЛЕЙ</h3><b>24 НОЯБРЯ · 22:00</b></div><p>Добавь @VoinyEpohBot в имя или описание Telegram и участвуй в розыгрыше.</p><div class="tkc-foot"><span>Первый приз · 500 ⭐ + 1 000 000 🪙</span><button type="button">К конкурсу →</button></div>';
   b.querySelector("button").onclick=()=>profileContestOpen();
 }

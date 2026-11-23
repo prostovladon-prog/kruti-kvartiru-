@@ -314,17 +314,18 @@ function pagerApply(boxId,sel,per,label){const box=$(boxId);if(!box)return;const
 
 /* ===== 🎰 Беспроигрышная лотерея ===== */
 let LOTS=null;
+const lotTime=ms=>{const mins=Math.max(0,Math.ceil(ms/60000));return mins>=60?Math.floor(mins/60)+" ч "+(mins%60)+" мин":mins+" мин"};
 async function lotLoad(){let r=null;try{if(ONLINE){const x=await fetch(API_URL.replace(/\/$/,"")+"/api",{method:"POST",headers:{"Content-Type":"application/json","X-Init-Data":INIT||"","X-Dev-User":DEV_USER||""},body:JSON.stringify({a:"lot_get",p:{}})});const j=await x.json();if(j&&j.ok)r=j.res}}catch(e){}
  if(!r){const n=Date.now(),d=new Date(n+3*36e5),s=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),5,0);r={on:0,start:s,end:s+14*36e5,now:n,price:29,max:15,tot:0,bank:0,players:0,my:0,left:15,fin:null,soon:1}}
  LOTS=r;LOTS.off=r.now-Date.now();return r}
 function lotBar(){const sp=$("sec-spin");if(!sp||!LOTS)return;let b=$("lot-bar");const nw=Date.now()+(LOTS.off||0),pre=!LOTS.on&&nw<LOTS.start;
- if(!b){b=document.createElement("button");b.type="button";b.id="lot-bar";b.className="lot-bar";b.onclick=()=>lotOpen();const e=$("tk-bar");if(e&&e.parentNode===sp)e.after(b);else sp.insertBefore(b,sp.firstChild)}
- b.innerHTML='<i>🎰</i><span><b>'+(LOTS.on?'Лотерея: банк '+fmtN(LOTS.bank)+' ⭐':pre?'Беспроигрышная лотерея — старт в 08:00':'Лотерея — завтра с 08:00')+'</b><small>'+(LOTS.on?'беспроигрышная · у тебя '+LOTS.my+' 🎟 · розыгрыш в 22:00':pre?'через '+tkT(LOTS.start-nw)+' · билет '+LOTS.price+' ⭐ · банк одному':(LOTS.fin&&LOTS.fin.uid?'банк забрал '+escH(LOTS.fin.name):'новый банк каждый день'))+'</small></span><em>›</em>'}
+ if(!b){b=document.createElement("button");b.type="button";b.id="lot-bar";b.className="lot-bar";b.onclick=()=>lotOpen();sp.prepend(b)}
+ b.innerHTML='<i>🎰</i><span><b>'+(LOTS.on?'Лотерея: банк '+fmtN(LOTS.bank)+' ⭐':pre?'Беспроигрышная лотерея — старт в 08:00':'Лотерея — завтра с 08:00')+'</b><small>'+(LOTS.on?'беспроигрышная · у тебя '+LOTS.my+' 🎟 · розыгрыш в 22:00':pre?'через '+lotTime(LOTS.start-nw)+' · билет '+LOTS.price+' ⭐ · банк одному':(LOTS.fin&&LOTS.fin.uid?'банк забрал '+escH(LOTS.fin.name):'новый банк каждый день'))+'</small></span><em>›</em>'}
 async function lotOpen(){const m=$("modal"),sh=$("msheet");m.hidden=false;if(!LOTS)sh.innerHTML='<div class="box nickbox"><p>Загружаю…</p></div>';await lotLoad();lotDraw()}
 function lotDraw(){const L=LOTS,sh=$("msheet");if(!L||$("modal").hidden)return;const now=Date.now()+L.off,ch=L.tot?Math.round(L.my/L.tot*1000)/10:0;
  let h='<div class="box nickbox lotbox"><small class="tk-k">🎰 КАЖДЫЙ ДЕНЬ · 08:00–22:00</small><h3>Беспроигрышная лотерея</h3>';
  h+='<div class="lot-bank"><small>БАНК ДНЯ</small><b>'+fmtN(L.bank)+' ⭐</b><span>'+L.tot+' 🎟 · '+L.players+' игр.</span></div>';
- if(L.on)h+='<div class="tk-tm">Розыгрыш через <b>'+tkT(L.end-now)+'</b></div><div class="lot-my">У тебя <b>'+L.my+'</b> из '+L.max+' 🎟'+(L.my?' · шанс <b>'+ch+'%</b>':'')+'</div>';
+ if(L.on)h+='<div class="tk-tm">Розыгрыш через <b>'+lotTime(L.end-now)+'</b></div><div class="lot-my">У тебя <b>'+L.my+'</b> из '+L.max+' 🎟'+(L.my?' · шанс <b>'+ch+'%</b>':'')+'</div>';
  else h+='<div class="tk-tm"><b>Сейчас билеты не продаются</b> — новая лотерея с 08:00</div>';
  if(L.on&&L.left>0)h+='<div class="lot-buy">'+[1,3,5,10,15].filter(n=>n<=L.left).map(n=>'<button type="button" data-n="'+n+'"><b>'+n+' 🎟</b><small>'+(n*L.price)+' ⭐</small></button>').join("")+'</div>';
  else if(L.on)h+='<p class="cln">Ты купил максимум на сегодня — удачи в 22:00! 🍀</p>';
@@ -346,7 +347,7 @@ setInterval(()=>{if(S&&ONLINE&&!document.hidden)lotLoad().then(()=>{lotBar();con
  new MutationObserver(()=>{if(pend)return;pend=1;requestAnimationFrame(run)}).observe(document.body,{childList:true,subtree:true})}
 
 /* 🎠 События над карточкой: свайп и автоматическое переключение */
-const EVENT_BARS=["lot-bar","vhstrip"];
+const EVENT_BARS=["lot-bar","profile-contest-slide","vhstrip"];
 function gameGiftStrip(sp){$("game-gift-strip")?.remove();}
 function evCar(){const sp=$("sec-spin");if(!sp)return;gameGiftStrip(sp);const bars=EVENT_BARS.map(id=>$(id)).filter(Boolean);let C=$("ev-car");
  if(!bars.length){if(C)C.remove();return}
@@ -357,7 +358,7 @@ function evCar(){const sp=$("sec-spin");if(!sp)return;gameGiftStrip(sp);const ba
  {const hy=$("hype");if(hy&&hy.parentNode===sp&&C.previousElementSibling!==hy)hy.after(C)}
  const tr=C.firstChild;bars.forEach((b,i)=>{if(tr.children[i]!==b)tr.insertBefore(b,tr.children[i]||null)});
  const n=tr.children.length,D=C.lastChild;if(D.children.length!==n)D.innerHTML=n>1?[...Array(n)].map((_,i)=>'<i class="'+(i?"":"on")+'"></i>').join(""):""}
-{const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("tkBar");w("lotBar")}
+{const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("lotBar")}
 
 {const w=n=>{const f=window[n];if(typeof f!=="function")return;window[n]=function(){const r=f.apply(this,arguments);try{evCar()}catch(e){}return r}};w("vhStrip")}
 {const _ps=payShow;payShow=function(r){if(r&&r.item==="diap"&&r.status!=="refund"){renderAll();try{sfx.coin();hapN("success")}catch(e){}const m=$("modal"),sh=$("msheet");m.hidden=false;
