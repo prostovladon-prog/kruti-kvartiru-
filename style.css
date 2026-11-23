@@ -3766,3 +3766,6 @@ body:has(#sec-spin:not([hidden]) #chal[data-birthday]:not([hidden]))::after{
 .zeus-strike{animation:zeus-strike 3.6s ease-in-out infinite;pointer-events:none}
 @keyframes zeus-strike{0%,8%,18%,100%{opacity:.16}10%,15%,21%{opacity:1}27%{opacity:.16}}
 @media(prefers-reduced-motion:reduce){.zeus-strike{animation:none;opacity:.55}}
+
+.dc-mc .minic .face .zeus-strike{animation:zeus-strike 3.6s ease-in-out infinite!important}
+@media(prefers-reduced-motion:reduce){.dc-mc .minic .face .zeus-strike{animation:none!important}}

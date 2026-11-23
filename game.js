@@ -2176,6 +2176,7 @@ $("ref-go").onclick=()=>{if(!ONLINE){toast("Приглашения работа�
   sendLink("Залетай в «Воины Эпох»: крути карточки воинов, собирай легенды, сражайся с друзьями и торгуй на рынке!",linkFor("r_"+S.uid))};
 
 async function openParam(p){
+  if(p==="dayzeus"){dcOpen();return}
   if(p==="profilecontest"){profileContestOpen();return}
   if(p.startsWith("r_"))return;   // приглашение: сервер уже засчитал его при первом входе
   if(p.startsWith("u_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const r=await act("profile",{uid:+p.slice(2)});if(r)openShowcase(Object.assign(r,{p}));return}
