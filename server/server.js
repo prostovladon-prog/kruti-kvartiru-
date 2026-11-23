@@ -443,7 +443,7 @@ async function stateFor(env,me){
   })}catch(e){}
   try{const T=(await kvGet(env,"dia_tmp"))||{};if(T[me.id]>Date.now())S.diaT=T[me.id]}catch(e){}
   S.shN=S.shelfX?15:SHELF_N;   // id запоминается навсегда — смена ника не отнимет алмаз
-  try{await xhLoad(env);S.xh=XH;const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h),ch:(dayEdition(X.h)===ZEUS_DAY||repeatDaySpin(dayEdition(X.h)))?undefined:dcChance(X)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
+  try{await xhLoad(env);S.xh=dcPublicHeroes();const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h),ch:(dayEdition(X.h)===ZEUS_DAY||repeatDaySpin(dayEdition(X.h)))?undefined:dcChance(X)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
   try{const L=await vtState(env,me);S.vts=L;S.vt=L.find(x=>!x.ch)||L[0]||null}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
   try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
@@ -2462,8 +2462,14 @@ function dcChance(X){
   if(dayEdition(X.h)===ZEUS_DAY&&now>=X.until-36e5&&now<X.until)return .006;
   return X.guarantee&&now>=X.until-36e5?1:X.ch||DSP.ch;
 }
+function dcPublicHeroes(){
+  return Object.fromEntries(Object.entries(XH).map(([id,hero])=>{
+    if(!repeatDaySpin(dayEdition(Number(id))))return [id,hero];
+    const {ch,...visible}=hero;return [id,visible];
+  }));
+}
 async function dcApi(env,me,a,p){await xhLoad(env,1);
-  if(a==="dc_state")return {dc:DC,xh:XH,on:dcOn(),left:await dcLeft(env)};
+  if(a==="dc_state")return {dc:DC&&repeatDaySpin(dayEdition(DC.h))?{...DC,ch:undefined}:DC,xh:dcPublicHeroes(),on:dcOn(),left:await dcLeft(env)};
   if(!isAdmin(env,me.id))fail("Только для админа");
   if(a==="dc_set"){const used=new Set(Object.keys(XH).map(Number));let h=p.h!=null&&HEROES[p.h]&&HEROES[p.h][4].day?+p.h:DAY_SLOTS.find(i=>!used.has(i));if(h==null)fail("Слоты карты дня закончились — попроси добавить ещё");
     const o={};for(const q of ["helm","weapon","armor","shield","cape","hair","hairc","glow","hue","skin","female","gold","fierce"])if(p.o&&p.o[q]!=null&&p.o[q]!=="")o[q]=p.o[q];
