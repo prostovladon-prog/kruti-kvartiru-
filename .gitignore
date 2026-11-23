@@ -1,3 +1,12 @@
 dist/
 __pycache__/
 .DS_Store
+node_modules/
+*.log
+.env
+.env.*
+!.env.example
+server/*.db
+server/*.db-journal
+.vscode/
+.idea/

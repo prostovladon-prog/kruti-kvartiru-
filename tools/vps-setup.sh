@@ -16,7 +16,9 @@ if [ -f /etc/voiny.env ] && grep -q '^BOT_TOKEN=.\+' /etc/voiny.env; then echo "
   read -rsp "Вставь токен бота из @BotFather (символы не будут видны) и нажми Enter: " TOKEN; echo
   TOKEN=$(printf '%s' "$TOKEN" | tr -d '\r\n\t "'"'"'')
   [ -n "$TOKEN" ] || { echo "Токен пустой"; exit 1; }
-  umask 077; printf 'BOT_TOKEN=%s\nADMINS=6724818967\nDB_PATH=%s/game.db\nPORT=8787\n' "$TOKEN" "$DATA" > /etc/voiny.env; umask 022
+  read -rp "Твой Telegram ID — админ игры (узнать: @userinfobot). Enter — установить без админа: " ADMIN
+  ADMIN=$(printf '%s' "${ADMIN:-}" | tr -d '\r\n\t ')
+  umask 077; printf 'BOT_TOKEN=%s\nADMINS=%s\nINIT_MAX_AGE_H=24\nDB_PATH=%s/game.db\nPORT=8787\n' "$TOKEN" "$ADMIN" "$DATA" > /etc/voiny.env; umask 022
 fi
 
 echo "=== Пакеты ==="

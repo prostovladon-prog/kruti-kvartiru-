@@ -1,0 +1,28 @@
+# Единые переводы строк: в репозитории LF, в рабочей копии — как принято в ОС.
+* text=auto eol=lf
+
+# Скрипты и конфиги — строго LF, иначе bash на сервере падает с «\r: command not found».
+*.sh text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.sql text eol=lf
+
+# Бинарные файлы: git не должен пытаться их «нормализовать» и считать текстовый diff.
+*.mp4 binary
+*.mp3 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+
+# Крупное медиа (26 mp4 ~363 МБ) держим в git как есть. Если репозиторий будет расти дальше —
+# переводим эти шаблоны на Git LFS: git lfs track "assets/**/*.mp4" и переносим историю.
+# *.mp4 filter=lfs diff=lfs merge=lfs -text

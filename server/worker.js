@@ -1704,12 +1704,15 @@ const J=(o,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{...CORS,"Co
 async function hmac(key,msg){const k=await crypto.subtle.importKey("raw",typeof key==="string"?new TextEncoder().encode(key):key,{name:"HMAC",hash:"SHA-256"},false,["sign"]);
   return new Uint8Array(await crypto.subtle.sign("HMAC",k,new TextEncoder().encode(msg)))}
 const hex=b=>[...b].map(x=>x.toString(16).padStart(2,"0")).join("");
-async function checkInit(initData,token){
+/* сравнение строк за постоянное время: не выходим на первом различии, чтобы по времени ответа нельзя было подбирать подпись */
+function safeEq(a,b){if(typeof a!=="string"||typeof b!=="string"||a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
+/* maxAgeH — сколько часов подпись initData считается свежей (защита от переигровки старой ссылки). По умолчанию 24. */
+async function checkInit(initData,token,maxAgeH=24){
   if(!initData||!token)return null;
   const q=new URLSearchParams(initData),hash=q.get("hash");if(!hash)return null;q.delete("hash");
   const dcs=[...q.entries()].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0).map(([k,v])=>k+"="+v).join("\n");
-  const sig=hex(await hmac(await hmac("WebAppData",token),dcs));if(sig!==hash)return null;
-  if(Date.now()/1000-(+q.get("auth_date")||0)>7*86400)return null;
+  const sig=hex(await hmac(await hmac("WebAppData",token),dcs));if(!safeEq(sig,hash))return null;
+  const age=Date.now()/1000-(+q.get("auth_date")||0);if(age< -300||age>maxAgeH*3600)return null;
   try{const u=JSON.parse(q.get("user")||"{}");if(!u.id)return null;return {id:u.id,name:String(u.first_name||"Игрок").slice(0,32),start:q.get("start_param")||"",username:String(u.username||""),pm:!!u.allows_write_to_pm}}catch(e){return null}
 }
 
@@ -2095,9 +2098,10 @@ async function makeCtx(env,test){
       const k=h+"-"+f;cnt[k]=(cnt[k]||0)+1;if(gaps[k]&&gaps[k].length)return gaps[k].shift();return max[k]=(max[k]||0)+1},
     snFree:s=>!nice.has(s)&&!taken.has(s),takeSn:s=>taken.add(s),newId:()=>"n"+(++seq)};
 }
-/* администраторы игры (id в Telegram). Можно задать и переменной ADMINS="id1,id2" в настройках воркера */
-const ADMINS=[6724818967];
-const isAdmin=(env,id)=>ADMINS.includes(id)||String(env.ADMINS||"").split(",").map(Number).includes(id);
+/* администраторы игры (id в Telegram). Задаются ТОЛЬКО переменной ADMINS="id1,id2" в настройках сервера:
+   id в открытом коде не держим — репозиторий публичный. */
+const ADMINS=[];
+const isAdmin=(env,id)=>ADMINS.includes(id)||String(env.ADMINS||"").split(",").map(Number).filter(Boolean).includes(id);
 /* первопроходцы: первые 100 игроков, открывших игру, получают номер, +20 прокруток и рамку «Первопроходец» */
 let pioneersFull=false;   // когда все 100 мест заняты, базу больше не спрашиваем
 async function pioneersCount(env){if(pioneersFull)return PIONEERS;const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE pioneer>0").first())||{}).n||0;if(n>=PIONEERS)pioneersFull=true;return n}
@@ -6033,7 +6037,7 @@ async function handle(req,env){{
     await ensureSchema(env);
     if(await maintenance(env))return J({ok:false,err:"Технические работы: игра переезжает на новый сервер. Вернёмся через несколько минут ⚔️"});
     if(env.DEV==="1"&&req.headers.get("X-Dev-User"))me={id:+req.headers.get("X-Dev-User")||1,name:"Тестер "+req.headers.get("X-Dev-User"),start:req.headers.get("X-Dev-Start")||"",dev:1};
-    else me=await checkInit(req.headers.get("X-Init-Data"),env.BOT_TOKEN);
+    else me=await checkInit(req.headers.get("X-Init-Data"),env.BOT_TOKEN,+env.INIT_MAX_AGE_H||24);
     if(!me)return J({ok:false,err:"Открой игру через бота в Telegram"},401);
     let body;try{body=await req.json()}catch(e){return J({ok:false,err:"Плохой запрос"},400)}
     const a=String(body.a||""),p=body.p||{};

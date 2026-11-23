@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Главная проверка: server/worker.js — собранный артефакт, его легко забыть пересобрать
+  # после правки rules.js или server/server.js, и тогда сервер живёт по старым правилам.
+  build-check:
+    name: Сборка не разъехалась с источниками
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Пересобрать worker.js
+        run: python3 tools/build_worker.py
+      - name: Проверить, что артефакт совпадает с rules.js + server/server.js
+        run: |
+          if ! git diff --quiet -- server/worker.js; then
+            echo "::error::server/worker.js устарел. Запусти python3 tools/build_worker.py и закоммить результат."
+            git diff --stat -- server/worker.js
+            exit 1
+          fi
+
+  server-tests:
+    name: Тесты сервера
+    runs-on: ubuntu-latest
+    # Пока тесты не зелёные (20 известных падений на main), джоба не блокирует мердж,
+    # но результат виден в каждом PR. Убери continue-on-error, когда падения починим.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Собрать worker.js
+        run: python3 tools/build_worker.py
+      - name: Прогнать серверные тесты
+        run: node server/local-test.mjs
