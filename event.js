@@ -60,7 +60,7 @@
     const d = data;
     const left = d.open ? 'идёт' : (Date.now() < d.start ? 'откроется ' + new Date(d.start).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'завершён');
     return `<div id="ev-head"><b>ПОКОЛЕНИЕ ЭПОХ</b>
-      <span id="ev-date">${esc(left)}${d.admin ? ' · тест' : ''} <span id="ev-help" style="display:inline-block;width:18px;height:18px;line-height:16px;text-align:center;border-radius:50%;border:1px solid #ffd23f66;color:#ffd23f;cursor:pointer">?</span></span></div>
+      <span id="ev-date">${esc(left)}${d.admin ? ' · тест' : ''} <span id="ev-help" style="display:inline-block;width:18px;height:18px;line-height:16px;text-align:center;border-radius:50%;border:1px solid #ffd23f66;color:#ffd23f;cursor:pointer">?</span> <span style="color:#7d86a3;font-size:9px">ev1</span></span></div>
       <div class="ev-tabs">
         <div class="ev-tab ${tab === 'build' ? 'on' : ''}" data-t="build">🏗 Стройка</div>
         <div class="ev-tab ${tab === 'march' ? 'on' : ''}" data-t="march">🗺 Поход</div>
@@ -237,6 +237,7 @@
     sec.hidden = false;
     body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
     try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) {
+      try { if (typeof toast === 'function') toast('Ивент недоступен: сервер ещё не обновлён (ev1)'); } catch (e3) {}
       if (legacyOpen) { try { return legacyOpen(); } catch (e2) {} }
       body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>';
     }
