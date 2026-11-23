@@ -58,7 +58,8 @@
   function head() {
     const d = data;
     const left = d.open ? 'идёт' : (Date.now() < d.start ? 'откроется ' + new Date(d.start).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'завершён');
-    return `<div id="ev-head"><b>ПОКОЛЕНИЕ ЭПОХ</b><span id="ev-date">${esc(left)}${d.admin ? ' · тест' : ''}</span></div>
+    return `<div id="ev-head"><b>ПОКОЛЕНИЕ ЭПОХ</b>
+      <span id="ev-date">${esc(left)}${d.admin ? ' · тест' : ''} <span id="ev-help" style="display:inline-block;width:18px;height:18px;line-height:16px;text-align:center;border-radius:50%;border:1px solid #ffd23f66;color:#ffd23f;cursor:pointer">?</span></span></div>
       <div class="ev-tabs">
         <div class="ev-tab ${tab === 'build' ? 'on' : ''}" data-t="build">🏗 Стройка</div>
         <div class="ev-tab ${tab === 'march' ? 'on' : ''}" data-t="march">🗺 Поход</div>
@@ -200,6 +201,32 @@
       if (r) { await load(); paint(); toast('Куплено'); }
       else paint();
     });
+    bindHelp();
+  }
+
+  function intro() {
+    if (document.getElementById('ev-intro')) return;
+    const d = document.createElement('div');
+    d.id = 'ev-intro';
+    d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#05030cee;display:flex;align-items:center;justify-content:center;padding:18px';
+    d.innerHTML = `<div style="max-width:420px;background:linear-gradient(180deg,#1a1030,#0d0720);border:2px solid #ffd23f66;border-radius:18px;padding:16px;color:#fff">
+      <div style="font-family:'Rubik Mono One',Rubik,sans-serif;font-size:18px;color:#ffd23f;text-align:center">ПОКОЛЕНИЕ ЭПОХ</div>
+      <div style="font-size:12px;color:#c9d1e6;text-align:center;margin:6px 0 12px">Три недели. Три акта. Одна цель.</div>
+      <div style="font-size:12px;line-height:1.5;color:#e8edf7">
+        <p><b>1. Стройка.</b> Вноси монеты и осколки в сегменты Врат. Клан двигает стройку быстрее, у одиночек — «Вольное знамя».</p>
+        <p><b>2. Поход.</b> Отряд из 3 карт бьёт узлы. Стихия гема даёт ×1.4, кворум 5 игроков — полный урон.</p>
+        <p><b>3. Награды.</b> Каждые 3 узла — сундук, финал — карта серии.</p>
+      </div>
+      <div style="font-size:10px;color:#7d86a3;margin-top:8px">Донат не ускоряет сезон: лимиты вклада и потолок клана.</div>
+      <div class="ev-btn" id="ev-intro-ok" style="margin-top:12px">ПОНЯТНО</div>
+    </div>`;
+    document.body.appendChild(d);
+    d.querySelector('#ev-intro-ok').onclick = () => { try { localStorage.setItem('ev_intro_v1', '1'); } catch (e) {} d.remove(); };
+  }
+
+  function bindHelp() {
+    const h = document.getElementById('ev-help');
+    if (h) h.onclick = intro;
   }
 
   async function openConq() {
@@ -208,7 +235,7 @@
     if (!sec || !body) return;
     sec.hidden = false;
     body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
-    try { await load(); paint(); } catch (e) { body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>'; }
+    try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) { body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>'; }
   }
 
   window.openConq = openConq;
