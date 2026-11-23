@@ -3741,3 +3741,17 @@ body:has(#sec-spin:not([hidden]) #chal[data-birthday]:not([hidden]))::after{
 
 /* Ticket race: long rules remain readable on phones. */
 .tkbox .tk-how:not(.tk-caps)>div{grid-template-columns:24px minmax(0,1fr);align-items:start}.tkbox .tk-how:not(.tk-caps)>div>small{grid-column:2;text-align:left;white-space:normal}.tkbox .tk-how>div>span,.tkbox .tk-caps>div>small{min-width:0;overflow-wrap:anywhere}.tkbox .tk-caps>div{gap:10px}.tkbox .tk-caps>div>span{flex:1}
+
+/* Конкурс профилей */
+.profile-contest-banner{margin-block:10px 14px}
+.profile-contest-banner p,.profile-contest-banner .tkc-foot span{color:#fff}
+.profile-contest-box .profile-contest-intro,.profile-contest-box .profile-contest-hint{color:#fff;line-height:1.45}
+.profile-contest-box .profile-contest-intro b{color:#ffe066}
+.profile-contest-example{display:grid;gap:6px;margin:12px 0;padding:12px;border:1px solid #ffe06666;border-radius:14px;background:#220e2e;color:#fff;text-align:left}
+.profile-contest-example strong{color:#ffe066}
+.profile-contest-example div{display:grid;gap:3px;padding:6px 8px;border-radius:8px;background:#ffffff14;overflow-wrap:anywhere}
+.profile-contest-example small,.profile-contest-example span{color:#eadbed}
+.profile-contest-settings{display:inline-block;text-decoration:none;background:#ffe066;color:#17102a;margin:2px auto}
+.profile-contest-box .profile-contest-hint{font-size:12px;margin:6px 0 12px}
+.profile-contest-box .tk-pr>div{display:grid;gap:3px;align-content:center;text-align:center;min-width:0;padding-inline:3px}
+.profile-contest-box .tk-pr b{font-size:clamp(11px,3vw,15px);white-space:nowrap}

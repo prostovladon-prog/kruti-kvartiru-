@@ -1267,9 +1267,9 @@ function profileContestBar(){
   let b=$("tk-bar");
   if(!profileContestVisible()){b?.remove();return}
   if(b)return;
-  b=document.createElement("div");b.id="tk-bar";b.className="tk-contest";
-  const e=$("chal");if(e&&e.parentNode===sp)e.before(b);else sp.appendChild(b);
-  b.innerHTML='<div class="tkc-head"><h3>🏆 КОНКУРС ПРОФИЛЕЙ</h3><b>24 НОЯБРЯ · 22:00</b></div><p>Добавь @VoinyEpohBot в имя или описание Telegram и участвуй в розыгрыше.</p><div class="tkc-foot"><span>Первый приз · 500 ⭐ + 1 000 000 🪙</span><button type="button">Открыть →</button></div>';
+  b=document.createElement("div");b.id="tk-bar";b.className="tk-contest profile-contest-banner";
+  sp.prepend(b);
+  b.innerHTML='<div class="tkc-head"><h3>🏆 КОНКУРС ПРОФИЛЕЙ</h3><b>24 НОЯБРЯ · 22:00</b></div><p>Добавь @VoinyEpohBot в имя или описание Telegram и участвуй в розыгрыше.</p><div class="tkc-foot"><span>Первый приз · 500 ⭐ + 1 000 000 🪙</span><button type="button">К конкурсу →</button></div>';
   b.querySelector("button").onclick=()=>profileContestOpen();
 }
 async function profileContestOpen(action="get",payload={}){
@@ -1277,9 +1277,11 @@ async function profileContestOpen(action="get",payload={}){
   const t=await act("profile_contest_"+action,payload,12000);if(!t)return;
   const pre=t.now<t.start,ended=t.now>=t.end;
   const m=$("modal"),sh=$("msheet");m.hidden=false;
-  sh.innerHTML='<div class="box nickbox tkbox"><small class="tk-k">23.11 08:00 — 24.11 22:00 · МИНСК</small><h3>🏆 Конкурс профилей</h3>'+
-    '<p>Добавь <b>@VoinyEpohBot</b> в имя или описание профиля Telegram. Нажми «Проверить профиль». Игра проверит отображаемое имя и описание через бота.</p>'+
-    '<div class="tk-pr">'+t.prizes.map(([stars,cash],i)=>'<div><b>'+(i+1)+' место · '+stars+' ⭐ + '+fmtN(cash)+' 🪙</b></div>').join("")+'</div>'+
+  sh.innerHTML='<div class="box nickbox tkbox profile-contest-box"><small class="tk-k">23.11 08:00 — 24.11 22:00 · МИНСК</small><h3>🏆 Конкурс профилей</h3>'+
+    '<p class="profile-contest-intro">Добавь <b>@VoinyEpohBot</b> в имя или описание профиля Telegram, затем вернись в игру и нажми «Проверить профиль».</p>'+
+    '<div class="profile-contest-example"><strong>Пример оформления</strong><div><small>Имя</small><b>Алексей @VoinyEpohBot</b></div><span>или</span><div><small>О себе</small><b>Играю в @VoinyEpohBot</b></div></div>'+
+    '<a class="mini2 profile-contest-settings" href="tg://settings">Открыть профиль Telegram ↗</a><p class="profile-contest-hint">В Telegram: Настройки → Изменить профиль</p>'+
+    '<div class="tk-pr">'+t.prizes.map(([stars,cash],i)=>'<div><small>'+(i+1)+' место</small><b>'+stars+' ⭐</b><b>'+fmtN(cash)+' 🪙</b></div>').join("")+'</div>'+
     '<p class="cln">Одна заявка на аккаунт. Три места разыгрываются среди подтверждённых заявок. Звёзды зачисляются на игровой баланс.</p>'+
     (t.status?'<p><b>Профиль подтверждён, ты участвуешь!</b></p>':pre?'<p>Приём начнётся в 08:00.</p>':ended?'<p>Приём заявок завершён.</p>':'<button type="button" class="craftbtn" id="profile-contest-join">Проверить профиль</button>')+
     (t.winners?'<h4>Победители</h4>'+(t.winners.map((w,i)=>'<p>'+(i+1)+'. '+fnEsc(w.name)+' · '+w.stars+' ⭐ + '+fmtN(w.cash)+' 🪙</p>').join("")||'<p>Нет подтверждённых заявок.</p>'):'')+
