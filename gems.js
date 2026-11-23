@@ -156,6 +156,19 @@ function diaDeco(root){if(!root||root.classList.contains("diap"))return;root.cla
 {const _ds=drawShelf;drawShelf=function(){_ds.apply(this,arguments);try{if(isDiaU(S.uid))diaDeco($("prof-body").querySelector(".wsh"))}catch(e){}}}
 {const _os=openShowcase;openShowcase=function(F){_os.apply(this,arguments);try{if(F&&isDiaU(F.uid)){const sh=$("msheet");diaDeco(sh.querySelector(".wsh"));const w=sh.querySelector(".who span");if(w)w.classList.add("dian")}}catch(e){}}}
 {const _fx=fxName;fxName=function(el,prefix,name,uid){const r=_fx(el,prefix,name,uid);try{if(isDiaU(uid)&&!el.closest(".chm,#ch-list,.chlist,.dmm")){const sp=el.querySelector("span:not(.ttlb):not(.kingb):not(.vipb)")||el;sp.classList.add("dian");el.insertAdjacentHTML("afterbegin",'<span class="diab">💎 АЛМАЗ</span> ');const row=el.closest("button,.trow,li,.cpt");if(row&&!row.classList.contains("diar")&&!row.closest("#msheet .wsh")){row.classList.add("diar");if(!row.querySelector(".dsp"))row.insertAdjacentHTML("beforeend",DIA_SPK)}}}catch(e){}return r}}
+const isGoldProfile=uid=>Number(S?.goldProfiles?.[uid])>NOW();
+function goldProfileDeco(root,uid){
+  if(!root||!isGoldProfile(uid)||root.classList.contains("gold-profile"))return;
+  root.classList.add("gold-profile");
+  root.insertAdjacentHTML("afterbegin",'<div class="gold-profile-title">👑 ЗОЛОТОЙ ПРОФИЛЬ</div>');
+}
+{const previous=drawShelf;drawShelf=function(){previous.apply(this,arguments);goldProfileDeco($("prof-body")?.querySelector(".wsh"),S?.uid)}}
+{const previous=openShowcase;openShowcase=function(profile){previous.apply(this,arguments);goldProfileDeco($("msheet")?.querySelector(".wsh"),profile?.uid)}}
+{const previous=fxName;fxName=function(el,prefix,name,uid){
+  const result=previous.apply(this,arguments);
+  if(isGoldProfile(uid)&&!el.querySelector(".gold-profile-badge"))el.insertAdjacentHTML("afterbegin",'<span class="gold-profile-badge">👑 ЗОЛОТО</span> ');
+  return result;
+}}
 /* ===== Акция для новичков: позови 2 друзей → VIP 7 дней + 50 ⭐ ===== */
 function n2Open(){const N=S&&S.n2;if(!N)return;$("modal").hidden=false;const sh=$("msheet"),d=Math.max(0,Math.ceil((N.end-Date.now())/864e5));
   sh.innerHTML='<div class="gemw n2w"><div class="gem-h"><b>🎁 Подарок новичку</b><button type="button" class="ghost" id="n2-x">✕</button></div>'+

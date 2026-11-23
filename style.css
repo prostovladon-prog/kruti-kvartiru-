@@ -3755,3 +3755,10 @@ body:has(#sec-spin:not([hidden]) #chal[data-birthday]:not([hidden]))::after{
 .profile-contest-box .profile-contest-hint{font-size:12px;margin:6px 0 12px}
 .profile-contest-box .tk-pr>div{display:grid;gap:3px;align-content:center;text-align:center;min-width:0;padding-inline:3px}
 .profile-contest-box .tk-pr b{font-size:clamp(11px,3vw,15px);white-space:nowrap}
+
+/* Золотой профиль за приглашения */
+.wsh.gold-profile{border:2px solid #efb72f;background:linear-gradient(155deg,#472702,#190e20 64%,#3f2004);box-shadow:0 0 18px #efb72f66}
+.wsh.gold-profile .ava{box-shadow:0 0 0 3px #f8d56a,0 0 14px #ffbf40a0}
+.gold-profile-title,.gold-profile-badge{background:linear-gradient(120deg,#fff2a6,#f8bf41);color:#351807;font-weight:900}
+.gold-profile-title{margin:0 0 10px;padding:7px 12px;border-radius:10px;text-align:center}
+.gold-profile-badge{display:inline-block;font-size:.72em;padding:2px 5px;border-radius:6px;vertical-align:middle;white-space:nowrap}

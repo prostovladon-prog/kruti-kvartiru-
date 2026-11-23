@@ -435,6 +435,10 @@ async function stateFor(env,me){
   try{const now=Date.now();if((u.created||0)>=N2.start&&now<N2.until){const got=!!(await kvGet(env,"n2:"+me.id));S.n2={need:N2.need,have:got?N2.need:await n2Count(env,me.id),end:N2.until,got:got?1:0,vipD:N2.vipD,stars:N2.stars}}}catch(e){}
   try{S.diaU=await cached("diaU",60e3,async()=>{let L=(await kvGet(env,"dia_ids"))||[];const n=(await env.DB.prepare("SELECT id FROM users WHERE nick IN ("+DIA_NICKS.map(()=>"?").join(",")+")").bind(...DIA_NICKS).all()).results.map(r=>r.id);
     if(!L.length&&n.length){L=n.slice(0,1);await kvSet(env,"dia_ids",L)}const T=(await kvGet(env,"dia_tmp"))||{},nw=Date.now();for(const k in T)if(T[k]>nw)L.push(+k);return [...new Set(L)]})}catch(e){}
+  try{S.goldProfiles=await cached("ref-gold-profiles",15000,async()=>{
+    const rows=(await env.DB.prepare("SELECT k,v FROM kv WHERE k LIKE 'ref-gold:%' AND CAST(v AS INTEGER)>?").bind(Date.now()).all()).results;
+    return Object.fromEntries(rows.map(row=>[row.k.slice("ref-gold:".length),Number(row.v)]));
+  })}catch(e){}
   try{const T=(await kvGet(env,"dia_tmp"))||{};if(T[me.id]>Date.now())S.diaT=T[me.id]}catch(e){}
   S.shN=S.shelfX?15:SHELF_N;   // id запоминается навсегда — смена ника не отнимет алмаз
   try{await xhLoad(env);S.xh=XH;const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h),ch:dcChance(X)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
@@ -442,7 +446,7 @@ async function stateFor(env,me){
   try{S.ft=await ftState(env,me)}catch(e){}
   try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
   try{const now=Date.now();if(!VC.off&&now>=VC.start&&now<VC.end){const r=await env.DB.prepare("SELECT uid FROM vc_part WHERE uid=?").bind(me.id).first();S.vc={end:VC.end,j:r?1:0}}}catch(e){}
-  try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
+  try{const C3=await ref3Cur(env);S.ref3=C3&&Date.now()<C3.end?{end:C3.end,need:C3.need||3,gold:!!C3.gold,n:await ref3Count(env,C3,me.id),got:(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C3.id,me.id).first())?1:0}:null}catch(e){}
   try{const K=await kingCur(env);S.wking=K?{uid:K.uid,name:K.name}:null;S.kingHH=await kingDec(env)}catch(e){}
   S.spins=(S.spins??0)+(u.gift_spins||0);S.created=u.created||0;S.starBal=u.star_bal||0;try{S.dmUn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM dm WHERE b=? AND rd=0").bind(me.id).first())||{}).n||0}catch(e){S.dmUn=0}try{S.trIn=((await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE b=? AND kind='swap' AND status='new' AND t>?").bind(me.id,Date.now()-TR.ttl).first())||{}).n||0}catch(e){S.trIn=0}S.vipUntil=u.vip_until||0;S.vipT=u.vip_t||0;S.pmBonus=u.pm_bonus||0;S.cb={c:u.cb_claim?1:0,at:(dayNum(u.created||Date.now())+1)*864e5-TZ};S.golemUntil=u.golem_until||0;S.gv=u.gv||0;S.termsV=u.terms_v||0;
   S.gifts=(await env.DB.prepare("SELECT id,k,no,shelf,how,from_uid FROM gifts WHERE owner=? ORDER BY id DESC LIMIT 300").bind(me.id).all()).results;
@@ -1578,23 +1582,48 @@ async function liveClaim(env,me,code){const D=await env.DB.prepare("SELECT * FRO
   for(const ad of ADMINS)try{await notify(env,ad,"🎥 Карточку с эфира забрали: код "+code+" («"+D.name+"») → "+(me.nick||me.name||me.id)+" (id "+me.id+"), "+(row?HEROES[row.h][0]:"?"),"⚔️ Открыть")}catch(e){}
   return {live:1,card:row?pub(rowToCard(row)):null,name:D.name,sp:D.sp||0}}
 /* ---------- 🔥 акция «пригласи 3 друзей → VIP на 7 дней + x2 к пополнению звёзд» (включает админ на N часов) ---------- */
-const REF3={need:3,vip:2,days:7,x2:500,late:6*36e5};
+const REF3={need:5,vip:2,days:7,x2:500,late:6*36e5};
 async function ref3Cur(env){return cached("ref3",env.TEST==="1"?0:5e3,async()=>{const C=await kvGet(env,"ref3");return C&&C.end?C:null})}
-async function ref3Count(env,C,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=?").bind(uid,C.start,C.end,CHAL_OPEN).first())||{}).n||0}
-async function ref3Tick(env){const C=await ref3Cur(env),now=Date.now();if(!C||now>C.end+REF3.late)return;
-  const rows=(await env.DB.prepare("SELECT ref AS uid,COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=? GROUP BY ref HAVING COUNT(*)>=?").bind(C.start,C.end,CHAL_OPEN,REF3.need).all()).results;
-  for(const r of rows){if(isAdmin(env,r.uid))continue;const g=await env.DB.prepare("INSERT OR IGNORE INTO ref3_got(camp,uid,t) VALUES(?,?,?)").bind(C.id,r.uid,now).run();if(g.meta.changes!==1)continue;
-    const u=await env.DB.prepare("SELECT vip_until,vip_t FROM users WHERE id=?").bind(r.uid).first()||{},act=(u.vip_until||0)>now;
-    await env.DB.prepare("UPDATE users SET vip_until=?,vip_t=? WHERE id=?").bind(Math.max(now,u.vip_until||0)+REF3.days*864e5,act?Math.max(u.vip_t||1,REF3.vip):REF3.vip,r.uid).run();
-    delete topCache.nfx;
-    try{await notify(env,r.uid,"🎉 Ты пригласил "+r.n+" друзей — акция выполнена!\n\n👑 VIP уже включён: корона у ника, больше прокруток и места для карточек.","👑 Открыть игру")}catch(e){}}}
+async function ref3Count(env,C,uid){return ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref=? AND banned=0 AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=?").bind(uid,C.start,C.end,CHAL_OPEN).first())||{}).n||0}
+const REF_GOLD_TEXT="👑 ПРИГЛАСИ 5 ДРУЗЕЙ — ПОЛУЧИ ЗОЛОТО!\n\nПригласи 5 новых игроков по своей ссылке до полуночи по Минску. Друг засчитывается после первых 3 открытых карточек.\n\n🎁 Награда на 7 дней: VIP Золото, золотая плашка у ника и золотое оформление профиля. Выдача автоматическая.\n\nЖми на плашку акции в игре, чтобы поделиться приглашением.";
+let refGoldBroadcastBusy=false;
+async function refGoldBroadcast(env,C){
+  if(!C.gold||Date.now()>=C.end||refGoldBroadcastBusy)return;
+  refGoldBroadcastBusy=true;
+  try{await blastRun(env,{id:"ref-gold-"+C.id,dm:REF_GOLD_TEXT,photo:"assets/ref-gold-20261123.jpg",btn:"👥 Открыть игру",link:""})}
+  finally{refGoldBroadcastBusy=false}
+}
+async function ref3Tick(env){
+  const C=await ref3Cur(env),now=Date.now();
+  if(!C||now>C.end+REF3.late)return;
+  const rows=(await env.DB.prepare("SELECT ref AS uid,COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND banned=0 AND created>=? AND created<? AND COALESCE(json_extract(state,'$.nOp'),0)>=? GROUP BY ref HAVING COUNT(*)>=?").bind(C.start,C.end,CHAL_OPEN,C.need||3).all()).results;
+  for(const r of rows){
+    if(isAdmin(env,r.uid))continue;
+    const duration=REF3.days*864e5;
+    const batch=[
+      env.DB.prepare("INSERT OR IGNORE INTO ref3_got(camp,uid,t) SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM users WHERE id=? AND banned=0)").bind(C.id,r.uid,now,r.uid),
+      env.DB.prepare("UPDATE users SET vip_t=CASE WHEN vip_until>? THEN MAX(vip_t,?) ELSE ? END,vip_until=MAX(vip_until,?)+? WHERE id=? AND changes()=1").bind(now,REF3.vip,REF3.vip,now,duration,r.uid)
+    ];
+    if(C.gold)batch.push(env.DB.prepare("INSERT INTO kv(k,v) SELECT ?,? WHERE changes()=1 ON CONFLICT(k) DO UPDATE SET v=MAX(CAST(kv.v AS INTEGER),?)+?").bind("ref-gold:"+r.uid,now+duration,now,duration));
+    const result=await env.DB.batch(batch);
+    if(!result[0].meta.changes)continue;
+    delete topCache.nfx;delete topCache["ref-gold-profiles"];
+    try{await notify(env,r.uid,C.gold?"👑 Награда за 5 друзей: VIP Золото, золотая плашка и золотой профиль на 7 дней уже в игре!":"🎉 Акция выполнена! VIP уже включён на 7 дней.","👑 Открыть игру")}catch(e){}
+  }
+  await refGoldBroadcast(env,C);
+}
 async function ref3Api(env,me,a,p){const now=Date.now();
   if(a==="ref3_get"){const C=await ref3Cur(env);if(!C)return {on:0};const got=!!(await env.DB.prepare("SELECT 1 FROM ref3_got WHERE camp=? AND uid=?").bind(C.id,me.id).first());
-    return {on:now<C.end?1:0,start:C.start,end:C.end,n:await ref3Count(env,C,me.id),need:REF3.need,got:got?1:0,days:REF3.days,x2:REF3.x2,
+    return {on:now<C.end?1:0,start:C.start,end:C.end,n:await ref3Count(env,C,me.id),need:C.need||3,gold:!!C.gold,got:got?1:0,days:REF3.days,x2:REF3.x2,
       adm:isAdmin(env,me.id)?{done:((await env.DB.prepare("SELECT COUNT(*) AS n FROM ref3_got WHERE camp=?").bind(C.id).first())||{}).n||0,fresh:((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE ref IS NOT NULL AND created>=? AND created<?").bind(C.start,Math.min(now,C.end)).first())||{}).n||0}:undefined}}
   if(!isAdmin(env,me.id))fail("Нет доступа");
-  if(a==="ref3_start"){const h=Math.max(1,Math.min(24,+p.h||3)),C=await ref3Cur(env);if(C&&now<C.end)fail("Акция уже идёт");const id=new Date(now+3*3600e3).toISOString().slice(0,16).replace(/[-:T]/g,"");
-    await kvSet(env,"ref3",{id,start:now,end:now+h*36e5});delete topCache.ref3;return {id,end:now+h*36e5}}
+  if(a==="ref3_start"){
+    const C=await ref3Cur(env);if(C&&now<C.end)fail("Акция уже идёт");
+    const end=(Math.floor((now+TZ)/864e5)+1)*864e5-TZ;
+    const id="gold-"+now;
+    await kvSet(env,"ref3",{id,start:now,end,need:REF3.need,gold:true});
+    delete topCache.ref3;return {id,end};
+  }
   if(a==="ref3_stop"){const C=await ref3Cur(env);if(!C||now>=C.end)fail("Акция не идёт");C.end=now;await kvSet(env,"ref3",C);delete topCache.ref3;return {end:now}}
   fail("Неизвестное действие")}
 /* ---------- ⚔️ «Выбор серии»: зрители решают, что будет в следующей серии ---------- */
