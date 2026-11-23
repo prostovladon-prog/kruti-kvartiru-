@@ -443,7 +443,7 @@ async function stateFor(env,me){
   })}catch(e){}
   try{const T=(await kvGet(env,"dia_tmp"))||{};if(T[me.id]>Date.now())S.diaT=T[me.id]}catch(e){}
   S.shN=S.shelfX?15:SHELF_N;   // id запоминается навсегда — смена ника не отнимет алмаз
-  try{await xhLoad(env);S.xh=XH;const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h),ch:dcChance(X)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
+  try{await xhLoad(env);S.xh=XH;const L=[];for(const X of DCS)if(Date.now()<X.until+36e5)L.push({...X,left:await dcLeft(env,0,X.h),ch:dayEdition(X.h)===ZEUS_DAY?undefined:dcChance(X)});if(L.length){S.dcs=L;S.dc=L[0]}}catch(e){}
   try{const L=await vtState(env,me);S.vts=L;S.vt=L.find(x=>!x.ch)||L[0]||null}catch(e){}
   try{S.ft=await ftState(env,me)}catch(e){}
   try{const R=await rsCount(env,me.id);S.rs={sp:R.sp,act:R.act,pend:R.pend}}catch(e){}
@@ -2447,7 +2447,11 @@ async function dcLeft(env,except,h){const X=h!=null?dcOf(h):DC;if(!X)return {buy
   const sp=((await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE h=? AND how='dspin'").bind(X.h).first())||{}).n||0;if(X.one){const t=sold+sp;return {buy:X.so?0:Math.max(0,1-t),spin:X.ns?0:Math.max(0,1-t)}}return {buy:X.so?0:Math.max(0,1-sold),spin:X.ns?0:Math.max(0,1-sp)}}
 /* шанс Особого прокрута: у карты «только из прокрута» он растёт к концу, чтобы до полуночи её точно кто-то выбил */
 /* шанс Особого прокрута — постоянный весь вечер (раньше рос к концу, и карту забирали те, кто просто ждал) */
-function dcChance(X){return X.guarantee&&Date.now()>=X.until-36e5?1:X.ch||DSP.ch}
+function dcChance(X){
+  const now=Date.now();
+  if(dayEdition(X.h)===ZEUS_DAY&&now>=X.until-36e5&&now<X.until)return .006;
+  return X.guarantee&&now>=X.until-36e5?1:X.ch||DSP.ch;
+}
 async function dcApi(env,me,a,p){await xhLoad(env,1);
   if(a==="dc_state")return {dc:DC,xh:XH,on:dcOn(),left:await dcLeft(env)};
   if(!isAdmin(env,me.id))fail("Только для админа");
