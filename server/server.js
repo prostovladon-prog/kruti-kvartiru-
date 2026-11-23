@@ -3516,7 +3516,7 @@ const profileContestPrizes=`🥇 500 ⭐ + 1 000 000 🪙
 🥉 150 ⭐ + 300 000 🪙
 Звёзды — на игровой баланс.`;
 const profileContestSlots=[23,24].flatMap(d=>[8,14,20].map(h=>({id:"profilecontest-"+d+"-"+h,
-  at:Date.UTC(2026,10,d,h-3),until:Math.min(PROFILE_CONTEST.end,Date.UTC(2026,10,d,h-3)+2*36e5),
+  at:Date.UTC(2026,10,d,h-3),until:Date.UTC(2026,10,d,(h===20?22:h+6)-3),
   photo:"assets/profile-contest-20261123.jpg",btn:"🏆 Участвовать",link:"?profilecontest=1",url:"https://t.me/VoinyEpohBot?startapp=profilecontest",
   chan:(d===23&&h===8?"🏆 СТАРТ КОНКУРСА ПРОФИЛЕЙ":d===24&&h===20?"⏳ ПОСЛЕДНИЕ 2 ЧАСА КОНКУРСА":"🏆 КОНКУРС ПРОФИЛЕЙ ПРОДОЛЖАЕТСЯ")+`
 
@@ -3893,12 +3893,12 @@ async function fire30React(env,R){if(!R||!R.chat||String(R.chat.username||"").to
   if(!r.ok)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:cap,reply_markup:kb});
   for(const a of ADMINS)await notify(env,a,r.ok?"🔥 Под постом "+G+" реакций — бот выложил промокод "+code+" в канал.":"🔥 "+G+" реакций набралось, но бот не смог выложить код в канал: "+(r.description||"")+"\nВыложи вручную: "+code,"⚔️ Открыть")}
 async function blast2Tick(env){if(!BLAST2.on||b2Busy)return;b2Busy=true;try{await blastRun(env,BLAST2)}finally{b2Busy=false}}
-async function blastRun(env,BLAST2){if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
+async function blastRun(env,BLAST2){const channel=env.CHANNEL||CHANNEL;if(!env.BOT_TOKEN||env.DEV==="1"&&!env.NOTIFY_TEST)return;const now=Date.now();
   try{const k="blast:"+BLAST2.id,st=(await kvGet(env,k))||{ch:0,chn:0,cht:0,after:0,done:0,n:0};if(!BLAST2.chan)st.ch=1;if(!BLAST2.dm)st.done=1;if(st.done&&st.ch)return;
     if(!st.ch&&st.chn<20&&now-st.cht>30e3){st.chn++;st.cht=now;await kvSet(env,k,st);const kb={inline_keyboard:[[{text:BLAST2.btn,url:BLAST2.url||"https://t.me/VoinyEpohBot"}]]};
-      let r=await (BLAST2.anim?tgApi(env,"sendAnimation",{chat_id:CHANNEL,animation:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.anim+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb}):tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb}));
-      if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:CHANNEL,photo:PAGE+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
-      if(!r.ok&&st.chn>=6)r=await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:BLAST2.chan,reply_markup:kb});
+      let r=await (BLAST2.anim?tgApi(env,"sendAnimation",{chat_id:channel,animation:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.anim+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb}):tgApi(env,"sendPhoto",{chat_id:channel,photo:"https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb}));
+      if(!r.ok)r=await tgApi(env,"sendPhoto",{chat_id:channel,photo:PAGE+BLAST2.photo+"?t="+st.chn,caption:BLAST2.chan,reply_markup:kb});
+      if(!r.ok&&st.chn>=6)r=await tgApi(env,"sendMessage",{chat_id:channel,text:BLAST2.chan,reply_markup:kb});
       if(r.ok){st.ch=1;st.mid=r.result&&r.result.message_id;await kvSet(env,k,st)}else console.error("blast2 chan",st.chn,r.description)}
     if(st.done)return;const photo="https://raw.githubusercontent.com/prostovladon-prog/kruti-kvartiru-/main/"+BLAST2.photo;
     const us=(await env.DB.prepare("SELECT id FROM users WHERE pm=1 AND id>? ORDER BY id LIMIT 25").bind(st.after).all()).results;
@@ -4266,7 +4266,11 @@ async function handle(req,env){{
       if(a==="community_check"){const res=await communityCheck(env,me);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="recruit_get")return J({ok:true,res:await recruitView(env,me.id)});
       if(a==="community_reward")fail("Неизвестное действие");
-      if(a==="open"||a==="open_multi"){const {u}=await loadUser(env,me),st=JSON.parse(u.state||"{}");if(!(st.subGot2&&st.chatGot))fail("Сначала подтверди подписки на канал и чат в обучении")}
+      if(a==="open"||a==="open_multi"){const {u}=await loadUser(env,me),st=JSON.parse(u.state||"{}");if(!(st.subGot2&&st.chatGot)){
+        const proof=me.dev?{known:true,channel:true,chat:true}:await cached("open-community:"+me.id,10000,()=>communityMembership(env,me.id));
+        if(!((st.subGot2||proof.channel)&&(st.chatGot||proof.chat)))fail("Сначала подтверди подписки на канал и чат кнопкой «Проверить обе подписки»");
+        await doAction(env,me,"community_reward",{},{communityProof:proof});
+      }}
       if(a==="market")return J({ok:true,res:await market(env,me),S:await stateFor(env,me)});
       if(a==="ord_list"||a==="ord_add"||a==="ord_cancel"||a==="ord_fill"){const res=await ({ord_list:ordList,ord_add:ordAdd,ord_cancel:ordCancel,ord_fill:ordFill})[a](env,me,p);return J({ok:true,res,S:await stateFor(env,me)})}
       if(a==="list"||a==="unlist"||a==="buy"){const res=await (a==="list"?list:a==="unlist"?unlist:buy)(env,me,p);const S=await stateFor(env,me);fixIds(res,S.cards);return J({ok:true,res,S})}

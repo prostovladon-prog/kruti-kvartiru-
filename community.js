@@ -6,7 +6,7 @@ function communityLink(url){try{tg.openTelegramLink(url)}catch(e){window.open(ur
 function communityShow(force=false){
  const required=S&&ONLINE&&S.community?.required;let d=$("community-gate");
  if(!required){d?.remove();return}
- if(!force&&(!S.nick||$("tut")||$("nks")||$("birthday-quiz-dialog")))return;
+ if(!force&&($("tut")||$("nks")||$("birthday-quiz-dialog")))return;
  if(communityBusy)return;if(d)return;
  $("sbg")?.remove();$("chg")?.remove();d=document.createElement("div");d.id="community-gate";d.className="bq-dialog community-dialog";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");document.body.append(d);
  const c=S.community;

@@ -70,6 +70,7 @@ async function act(name,p,timeoutMs){
     if(name==="open")setTimeout(()=>{if(S&&S.spins<=0)askPm()},4500);
     news();fightNews();chatDot();showNotice();return out;
   }catch(e){if(!(e instanceof GameError)&&!(abort&&abort.signal.aborted))console.error(e);toast(e instanceof GameError?e.message:abort&&abort.signal.aborted?"Сервер долго не отвечает. Попробуй ещё раз":"Нет связи с сервером. Попробуй ещё раз");
+    if(e instanceof GameError&&/^Сначала подтверди подписки/.test(e.message)&&typeof communityShow==="function")communityShow(true);
     if(e instanceof GameError&&/^Коллекция заполнена|^У тебя полная коллекция/.test(e.message)&&typeof openCap==="function")setTimeout(()=>{if($("modal").hidden)openCap()},700);return null}finally{if(timer)clearTimeout(timer)}
 }
 /* новости: кто купил твои карточки на рынке */
