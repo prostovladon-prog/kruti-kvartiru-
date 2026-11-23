@@ -3573,7 +3573,9 @@ async function profileContestApi(env,me,a,p){
     }
   }
   const entry=await kvGet(env,key),winners=await kvGet(env,resultKey);
-  return {start:C.start,end:C.end,now,status:entry?.verifiedAt?"approved":null,winners,prizes:C.prizes,admin};
+  const total=await env.DB.prepare("SELECT COUNT(*) AS n FROM kv JOIN users u ON u.id=json_extract(v,'$.uid') WHERE k LIKE ? AND json_extract(v,'$.verifiedAt') BETWEEN ? AND ?")
+    .bind(C.prefix+"entry:%",C.start,C.end-1).first();
+  return {start:C.start,end:C.end,now,participants:total.n,status:entry?.verifiedAt?"approved":null,winners,prizes:C.prizes,admin};
 }
 async function tkMediaTick(env){const now=Date.now();if(tkMediaBusy||now<TK.start||now>=TK.end||!env.BOT_TOKEN||env.DEV==="1")return;
  tkMediaBusy=true;try{for(const W of TK_MEDIA){if(now<W.at||now>=W.until)continue;await blastRun(env,W);

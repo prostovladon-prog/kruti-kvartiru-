@@ -96,6 +96,10 @@ function menuOpen(){let d=$("drw");if(!d){d=document.createElement("div");d.id="
   const B=menuBadges(),on=!ONLINE||!!(S&&S.shopOn);let h="";
   if(S&&typeof chData!=="undefined"&&chData&&$("chal")&&!$("chal").hidden)h+='<button type="button" class="drw-ban" data-go="contest"><i>🏆</i><span><b>Идёт конкурс!</b><small>Участвуй и забирай призы</small></span><em>›</em></button>';
   if(S&&S.vts&&S.vts.length){const n=S.vts.filter(x=>!x.ch).length;h+='<button type="button" class="drw-ban vt'+(n?' pulse':'')+'" data-go="votes"><i>🗳</i><span><b>Голосование'+(n?' — голосуй!':' ✅')+'</b><small>'+(n?S.vts.filter(x=>!x.ch).map(x=>x.title).join(" · ")+' · выбери свой вариант':'Ты проголосовал везде — смотри результаты')+'</small></span><em>›</em></button>'}
+  if(S&&ONLINE&&profileContestVisible()){
+    h+='<button type="button" class="drw-ban" data-go="tk" style="background:linear-gradient(135deg,#6c2399,#b64024)"><i>🏆</i><span><b>Конкурс профилей</b><small>500 ⭐ + 1 000 000 🪙 · <span data-profile-contest-count>'+profileContestCountText()+'</span></small></span><em>›</em></button>';
+    profileContestRefresh();
+  }
   if(S&&S.ft&&!S.ft.ch)h+='<button type="button" class="drw-ban vt pulse" data-go="ftu"><i>🏆</i><span><b>Кто победит в бою '+S.ft.n+'?</b><small>'+ftuN(S.ft.a)+' vs '+ftuN(S.ft.b)+' · угадай и получи 🎴</small></span><em>›</em></button>';
   if(S&&S.poll&&!S.poll.v)h+='<button type="button" class="drw-ban vt pulse" data-go="poll"><i>📊</i><span><b>Опрос: '+escH(S.poll.q.slice(0,60))+'</b><small>Ответь в чате — твой голос важен</small></span></button>';
   if(S&&S.n2&&!S.n2.got)h+='<button type="button" class="drw-ban vt pulse" data-go="n2" style="background:linear-gradient(135deg,#ff7a1a,#d01a6a)"><i>🎁</i><span><b>Подарок новичку: VIP + 50 ⭐</b><small>Позови 2 друзей · '+Math.min(S.n2.have,S.n2.need)+'/'+S.n2.need+'</small></span></button>';
@@ -1262,6 +1266,19 @@ if(new URLSearchParams(location.search).get("war")){const t=setInterval(()=>{if(
 /* ===================== 🎟 БИЛЕТНАЯ ГОНКА ===================== */
 const profileContestStart=Date.UTC(2026,10,23,5),profileContestEnd=Date.UTC(2026,10,24,19);
 const profileContestVisible=()=>Date.now()<profileContestEnd+7*864e5||!!S?.admin;
+let profileContestCount=null,profileContestRefreshAt=0;
+function profileContestCountText(){return profileContestCount===null?"Счётчик загружается…":"Участников: "+fmtN(profileContestCount)}
+function profileContestUpdateCount(t){
+  if(!Number.isSafeInteger(t?.participants)||t.participants<0)return;
+  profileContestCount=t.participants;
+  document.querySelectorAll("[data-profile-contest-count]").forEach(el=>{el.textContent=profileContestCountText()});
+}
+async function profileContestRefresh(){
+  if(Date.now()-profileContestRefreshAt<15000)return;
+  profileContestRefreshAt=Date.now();
+  const t=await act("profile_contest_get",{},12000);
+  profileContestUpdateCount(t);
+}
 function profileContestBar(){
   const sp=$("sec-spin");if(!sp||!S||!ONLINE)return;
   let b=$("tk-bar");
@@ -1282,6 +1299,7 @@ function profileContestBar(){
 async function profileContestOpen(action="get",payload={}){
   if(!ONLINE){toast("Открой игру через Telegram");return}
   const t=await act("profile_contest_"+action,payload,12000);if(!t)return;
+  profileContestUpdateCount(t);
   const pre=t.now<t.start,ended=t.now>=t.end;
   const m=$("modal"),sh=$("msheet");m.hidden=false;
   sh.innerHTML='<div class="box nickbox tkbox profile-contest-box"><small class="tk-k">23.11 08:00 — 24.11 22:00 · МИНСК</small><h3>🏆 Конкурс профилей</h3>'+
@@ -1289,6 +1307,7 @@ async function profileContestOpen(action="get",payload={}){
     '<div class="profile-contest-example"><strong>Пример оформления</strong><div><small>Имя</small><b>Алексей @VoinyEpohBot</b></div><span>или</span><div><small>О себе</small><b>Играю в @VoinyEpohBot</b></div></div>'+
     '<a class="mini2 profile-contest-settings" href="tg://settings">Открыть профиль Telegram ↗</a><p class="profile-contest-hint">В Telegram: Настройки → Изменить профиль</p>'+
     '<div class="tk-pr">'+t.prizes.map(([stars,cash],i)=>'<div><small>'+(i+1)+' место</small><b>'+stars+' ⭐</b><b>'+fmtN(cash)+' 🪙</b></div>').join("")+'</div>'+
+    '<p><b data-profile-contest-count>'+profileContestCountText()+'</b></p>'+
     '<p class="cln">Одна заявка на аккаунт. Три места разыгрываются среди подтверждённых заявок. Звёзды зачисляются на игровой баланс.</p>'+
     (t.status?'<p><b>Профиль подтверждён, ты участвуешь!</b></p>':pre?'<p>Приём начнётся в 08:00.</p>':ended?'<p>Приём заявок завершён.</p>':'<button type="button" class="craftbtn" id="profile-contest-join">Проверить профиль</button>')+
     (t.winners?'<h4>Победители</h4>'+(t.winners.map((w,i)=>'<p>'+(i+1)+'. '+fnEsc(w.name)+' · '+w.stars+' ⭐ + '+fmtN(w.cash)+' 🪙</p>').join("")||'<p>Нет подтверждённых заявок.</p>'):'')+
