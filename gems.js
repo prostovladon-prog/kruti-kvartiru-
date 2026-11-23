@@ -87,9 +87,9 @@ function dcDraw(tick){const sh=$("msheet"),now=Date.now(),L0=(S.dcs||(S.dc?[S.dc
   h+=dspBox(L0);
   L0.forEach((D,i)=>{if(!HEROES[D.h])return;const H=HEROES[D.h],on=now>=D.at&&now<D.until,L=D.left||{buy:0,spin:0};
     h+='<div class="dc-card"><div class="dc-mc">'+dcFace(D.h,i)+'</div><div><b class="dc-n">'+escH(H[0])+'</b><small>'+escH(H[1])+' · Ошибка печати</small><p>'+escH(H[3])+'</p><span class="dc-t" id="dc-t'+i+'"></span></div></div>';
-    h+='<div class="dc-left"><div class="'+(L.buy?"":"off")+'">⭐ За звёзды<b>'+(L.buy?"1 из 1":"продано")+'</b></div><div class="'+(L.spin?"":"off")+'">🎰 Из прокрута<b>'+(D.ns?"не выпадает":L.spin?"1 из 1":"выбита")+'</b></div></div>';
+    h+='<div class="dc-left"><div class="'+(L.buy?"":"off")+'">⭐ За звёзды<b>'+(L.buy?"1 из 1":"продано")+'</b></div><div class="'+(L.spin?"":"off")+'">🎰 Из прокрута<b>'+(D.ns?"не выпадает":L.spin?(isZeusDay(D)?"доступна":"1 из 1"):"выбита")+'</b></div></div>';
     if(D.ns)h+='<div class="dc-so">💀 '+escH(H[0])+' продаётся <b>только за звёзды</b> — в Особом прокруте не выпадает.</div>';
-    if(isZeusDay(D))h+='<div class="dc-so">🎰 Второй экземпляр Зевса можно выбить в Особом прокруте до 23:30 по Минску, пока он доступен.</div>';
+    if(isZeusDay(D))h+='<div class="dc-so">🎰 Шанс выбить карту в Особом прокруте — 1 к 1 000 000. Покупка за звёзды доступна отдельно.</div>';
     else if(!D.ns)h+='<div class="dc-so">🎰 '+escH(H[0])+(D.so?' <b>не продаётся</b> — только выбить в Особом прокруте, всего 1 экземпляр.':D.one?' — <b>одна карта на всю игру</b>: достанется первому покупателю за ⭐ или победителю Особого прокрута.':' — второй экземпляр выбивается в Особом прокруте, даже если первый уже купили за ⭐.')+' Шанс <b>'+String(+((D.ch||0)*100).toFixed(2)).replace(".",",")+'%</b> за прокрут'+(D.guarantee?' до последнего часа. В последний час — <b>100%</b> для первого Особого прокрута, если экземпляр из прокрута ещё не выбили.':': <b>одинаковый весь вечер</b>, от времени не зависит.')+'</div>';
     if(!D.so)h+='<button type="button" class="gem-go dc-buy" data-h="'+D.h+'"'+(on&&L.buy?"":" disabled")+'>⭐ Купить «'+escH(H[0])+'» за '+(D.stars||SHOP.daycard.stars)+'<small>достанется тому, кто оплатит первым · с '+dcHM(D.at)+' до '+dcHM(D.until)+'</small></button>'});
   if(!L0.length)h+='<p class="gem-p">Сегодня карты дня нет. Загляни вечером!</p>';
@@ -273,17 +273,19 @@ function dspBind(){const b=$("dsp-go");if(!b)return;b.onclick=async()=>{if(dspBu
     S2.style.transition="transform 2.2s cubic-bezier(.12,.8,.18,1)";S2.style.transform="translateX("+(-(22*w)+box/2-w/2+4)+"px)";try{sfx.whoosh&&sfx.whoosh()}catch(e){}}
   setTimeout(()=>{dspBusy=false;if(win!=null){try{hapN("success");burst(4);epicFx(r.card,4)}catch(e){}toast("🌙🔥 ВЫБИЛ: "+HEROES[win][0]+"! Карта уже в коллекции")}else{try{hap("light")}catch(e){}toast("💨 Пусто… Попробуй ещё!")}dcDraw()},2400)}}
 
-function isZeusDay(D){return !!D&&dayEdition(D.h)===ZEUS_DAY}
+function isZeusDay(D){return !!D&&(dayEdition(D.h)===ZEUS_DAY||repeatDaySpin(dayEdition(D.h)))}
 function dayCardLive(D,now){return now>=D.at&&now<D.until}
 function zeusDaySlide(){
   const sec=$("sec-spin");if(!sec||!S)return;
-  const now=Date.now(),D=(S.dcs||(S.dc?[S.dc]:[])).find(x=>isZeusDay(x)&&dayCardLive(x,now));
+  const now=Date.now(),D=(S.dcs||(S.dc?[S.dc]:[])).find(x=>repeatDaySpin(dayEdition(x.h))&&dayCardLive(x,now));
   const old=$("zeus-day-slide");
   if(!D){if(old){old.remove();evCar()}return}
-  if(old)return;
+  const editions=(S.dcs||(S.dc?[S.dc]:[])).filter(x=>repeatDaySpin(dayEdition(x.h))&&dayCardLive(x,now));
+  const title=editions.map(x=>HEROES[x.h][0]).join(" и ");
+  if(old){old.querySelector("b").textContent="Карта дня: "+title;return}
   const slide=document.createElement("button");
   slide.type="button";slide.id="zeus-day-slide";slide.className="lot-bar";
-  slide.innerHTML='<i aria-hidden="true">⚡</i><span><b>Карта дня: Зевс</b><small>3999 ⭐ или Особый прокрут · до 23:30</small></span><em aria-hidden="true">›</em>';
+  slide.innerHTML='<i aria-hidden="true">⚡</i><span><b>Карта дня: '+escH(title)+'</b><small>За звёзды или Особый прокрут · до 23:30</small></span><em aria-hidden="true">›</em>';
   slide.onclick=dcOpen;sec.append(slide);evCar();
 }
 setInterval(zeusDaySlide,1000);

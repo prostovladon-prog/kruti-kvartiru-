@@ -1061,7 +1061,7 @@ function fillFace(root,c){
   const q=s=>root.querySelector(s),H=HEROES[c.h],T=tierOf(c.h),F=FIN[c.f],st=c.stars||0;
   root.className="face front "+F.cls+(st?" star"+st:"")+(H[4].rl?" mega":"");root.style.setProperty("--hc",T.c);
   root.style.removeProperty("--edge");if(c.frame&&FRAMES[c.frame])root.dataset.frame=c.frame;else delete root.dataset.frame;
-  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=dayEdition(c.h)?"🔥 "+c.no+" ИЗ 2":H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
+  q(".top b").textContent=H[0];q(".top b").classList.toggle("lng",H[0].length>12);q(".top span").textContent=repeatDaySpin(dayEdition(c.h))?"⚡ КАРТА ДНЯ":dayEdition(c.h)?"🔥 "+c.no+" ИЗ 2":H[4].relic?"✨ 0,0001%":isComp(c.h)?"🧩 СОСТАВНОЙ":HEROES[c.h][4].one?"🔥 1 ИЗ 1":HEROES[c.h][4].duo?"♊ БЛИЗНЕЦ":HEROES[c.h][4].don?"⭐ ДОНАТ":HEROES[c.h][4].fan?"👑 ФАН №"+(c.no||1):HEROES[c.h][4].dgc?"🐉 "+(HEROES.filter(H=>H[4].dgc).indexOf(HEROES[c.h])+1)+"/7":"№ "+String(baseNo(c.h)).padStart(2,"0")+"/"+NHEROES;
   q(".hero").innerHTML=portrait(c.h,c);q(".era").textContent=H[1];q(".tier").textContent=T.k;
   const pw=q(".power");pw.textContent=H[3];if(st>=3){const eb=document.createElement("b");eb.textContent="«"+epithet(c)+"» ";pw.prepend(eb)}
   q(".stats").innerHTML=["Атака","Броня","Скорость","Выносливость","Боевой дух"].map((n,i)=>`<span>${n}</span><span class="num">${c.stats?eff(c,i):"?"}</span>`).join("");
@@ -2576,7 +2576,7 @@ if(!isDiaU(S.uid)||S.diaT)v+=offer("diap","💎 НОВОЕ");if(!isDiaU(S.uid)||
     B.querySelectorAll(".fxn span").forEach(e=>e.textContent=myName());$("num-pick").onclick=()=>pickCard("Какой карточке поставить свой номер?",c=>numBuy(c));$("any-go").onclick=anyPick}}
 /* «любая карточка»: сначала воин, потом отделка */
 function anyPick(){const m=$("modal"),sh=$("msheet");sh.innerHTML="";m.hidden=false;
-  const hs=HEROES.map((H,i)=>i).filter(i=>!HEROES[i][4].collab&&!HEROES[i][4].hid&&!HEROES[i][4].relic&&!HEROES[i][4].rift&&!HEROES[i][4].day&&HEROES[i][0]!==ZEUS_DAY.name).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
+  const hs=HEROES.map((H,i)=>i).filter(i=>!HEROES[i][4].collab&&!HEROES[i][4].hid&&!HEROES[i][4].relic&&!HEROES[i][4].rift&&!HEROES[i][4].day&&![ZEUS_DAY.name,HADES_DAY.name].includes(HEROES[i][0])).sort((a,b)=>(HEROES[b][4].one?2:HEROES[b][4].don||HEROES[b][4].comp?1:0)-(HEROES[a][4].one?2:HEROES[a][4].don||HEROES[a][4].comp?1:0)||HEROES[b][2]-HEROES[a][2]);
   sh.innerHTML='<div class="box nickbox"><h3>🃏 Выбери воина</h3><div class="pkg">'+hs.map(h=>'<button type="button" class="pki" data-h="'+h+'">'+miniSlot(demoOne(h,HEROES[h][4].one?4:0))+'</button>').join("")+'</div><button type="button" class="ghost" id="pk-x">Отмена</button></div>';
   $("pk-x").onclick=closeModal;sh.querySelector(".pkg").onclick=e=>{const b=e.target.closest("[data-h]");if(!b)return;const h=+b.dataset.h,W=HEROES[h][4];
     if(W.one)return anyConfirm(h,4);if(W.comp)return anyConfirm(h,0);
