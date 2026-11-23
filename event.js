@@ -43,6 +43,7 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = n => Math.round(+n || 0).toLocaleString('ru-RU').replace(/\u00a0/g, ' ');
 
+  const legacyOpen = window.openConq || null;   // старое Покорение — если сервер ещё не обновлён
   let tab = 'build';
   let data = null;
   let busy = false;
@@ -235,7 +236,10 @@
     if (!sec || !body) return;
     sec.hidden = false;
     body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
-    try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) { body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>'; }
+    try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) {
+      if (legacyOpen) { try { return legacyOpen(); } catch (e2) {} }
+      body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>';
+    }
   }
 
   window.openConq = openConq;
