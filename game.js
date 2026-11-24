@@ -1691,14 +1691,16 @@ function renderDuel(){
     b.innerHTML=`<span class="pv">${miniSlot(c)}</span><span></span><span style="color:#5a5f80">${STN[duStat]}: ${eff(c,duStat)}</span><b>Ур. ${lvl(c)}${c.wins?", побед "+c.wins:""}</b>`;b.children[1].textContent=H[0];
     b.onclick=()=>{if(duBusy)return;duMine=c.id;$("du-res").textContent="";renderDuel();setTimeout(()=>$("du-go").scrollIntoView({block:"end",behavior:reduce?"auto":"smooth"}),60)};pk.appendChild(b)});
   $("du-wins").textContent="Побед сегодня: "+day(S,NOW()).wins;
-  $("du-mode").title=duMode?"На карточку дерёшься с ботами: чужие карточки не отнимаются":"";
+  $("du-mode").title=duMode?"Бот близкой редкости: победа даёт его карту при наличии места (иначе монеты), поражение сжигает твою. Для поиска живых игроков включи ставки.":"";
   renderAttacks();renderStake();
   if(duRecovery&&!duBusy)$("du-res").textContent="Победи, чтобы вернуть свою карту. Твой воин не на ставке.";
-  if(duMode&&!duBusy&&!$("du-res").textContent)$("du-res").textContent=ONLINE&&S.stake?"На карточку: соперник из игроков с включёнными ставками":"Включи бои на карточку ниже, чтобы участвовать";
+  if(duMode&&!duBusy&&!$("du-res").textContent)$("du-res").textContent=ONLINE&&S.stake
+    ?"На карточку: ищем игрока с включёнными ставками; если его нет — бота похожей редкости"
+    :"На карточку с ботом близкой редкости: победа — карта, если есть место, иначе монеты. Включи ставки, чтобы искать игроков";
 }
 function renderStake(){const b=$("stake-go"),t=$("stake-t");if(!b)return;const on=!!S.stake;
   b.textContent=on?"Выключить":"Включить";b.style.background=on?"#e8eaf3":"";
-  t.textContent=(on?"Включено. ":"")+"Твоих воинов могут вызвать на бой на карточку другие игроки, даже когда тебя нет в игре. Отобьётся твой воин, и ты заберёшь карточку нападавшего. Проиграет, и твоя карточка уйдёт к нему. В автоматическом подборе подходят карты от ¼ до 4× стоимости твоей. На арене — от ½ до 2×. Карточки на рынке и в походе не участвуют. Нападать на игроков в бою на карточку можно, только если включено и у тебя."+(ONLINE?"":" Работает в игре через Telegram.")}
+  t.textContent=(on?"Включено. ":"")+"Твоих воинов могут вызвать на бой на карточку другие игроки, даже когда тебя нет в игре. Отобьётся твой воин — заберёшь карточку нападавшего; проиграет — твоя карточка уйдёт ему. Для боёв с ботом включать ставки не нужно: бот подбирается похожей редкости, победа даёт его карту при наличии места (иначе — монетную награду), поражение сжигает твою. Реальные соперники подбираются от ¼ до 4× стоимости твоей карты; на арене — от ½ до 2×. Карточки на рынке и в походе не участвуют."+(ONLINE?"":" Работает в игре через Telegram.")}
 $("stake-go").onclick=async()=>{if(!ONLINE){toast("Бои с игроками работают в игре через Telegram");return}const on=!S.stake;const r=await act("stake_set",{on:on?1:0});if(r){renderDuel();toast(on?"Бои на карточку с игроками включены. Удачи!":"Бои на карточку с игроками выключены")}};
 /* кто нападал на мои карточки: уведомление и реванш */
 const seenFights=new Set();
@@ -2180,6 +2182,7 @@ async function openParam(p){
   if(p==="profilecontest"){profileContestOpen();return}
   if(p.startsWith("r_"))return;   // приглашение: сервер уже засчитал его при первом входе
   if(p.startsWith("g_"))return;   // приглашение в клан: обрабатывает wow.js (вступление), это не вызов на бой
+  if(/^c_\d+$/.test(p))return;    // старый формат приглашения в клан; новый формат — g_<clan>_<inviter>
   if(p.startsWith("u_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const r=await act("profile",{uid:+p.slice(2)});if(r)openShowcase(Object.assign(r,{p}));return}
   if(p.startsWith("b_")){if(!ONLINE){toast("Арена работает в игре через Telegram");return}const [,id,code]=p.split("_");setTab("duel");btView="arena";renderBattle();arOpen(+id,code);return}
   if(p.startsWith("rv_")){if(ONLINE)startRecovery(+p.slice(3));return}

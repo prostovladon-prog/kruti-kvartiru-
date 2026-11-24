@@ -1709,7 +1709,7 @@ const EV={
   start:Date.UTC(2026,10,25,5),      // 08:00 по Минску
   end:Date.UTC(2026,11,16,5),        // +21 день
   segments:[6000,8000,10000,11000],
-  playerCap:1500, passBonus:300, clanCap:6000,
+  playerCap:1500, passBonus:200, clanCap:6000,
   starCap:500, coinsPer:1000, shardsPer:25,
   srcCap:{coins:600,shards:900},
   nodes:[40000,46000,52000,58000,70000,80000,90000,100000,100000,110000,120000,130000],
@@ -1732,11 +1732,11 @@ function evPoints(coins,shards){
   const c=Math.floor(Math.max(0,coins||0)/EV.coinsPer), s=Math.floor(Math.max(0,shards||0))*EV.shardsPer;
   return {coins:Math.min(c,EV.srcCap.coins),shards:Math.min(s,EV.srcCap.shards)};
 }
-function evAccept(points,used,clanGiven,fromStars,starUsed,hasPass){
+function evAccept(points,used,clanGiven,fromStars,starUsed,hasPass,clanCap=EV.clanCap){
   const cap=evPlayerCap(hasPass);
   let left=Math.max(0,cap-(used||0));
   if(fromStars)left=Math.min(left,Math.max(0,EV.starCap-(starUsed||0)));
-  const clanLeft=Math.max(0,EV.clanCap-(clanGiven||0));
+  const clanLeft=Math.max(0,clanCap-(clanGiven||0));
   return Math.min(points||0,left,clanLeft);
 }
 function evMinActOneDays(){return Math.round(EV.segments.reduce((s,x)=>s+x/EV.clanCap,0)*100)/100}

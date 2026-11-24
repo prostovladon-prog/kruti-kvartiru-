@@ -97,6 +97,10 @@
       ${d.topClans.map((t, i) => `<div class="ev-row" style="margin-top:5px;${t.id === d.clan ? 'color:#ffd23f;font-weight:900' : ''}">
         <span>${i + 1}. ${esc(t.name)} <span class="ev-mini">${t.n} чел.</span></span><span>${fmt(t.points)}</span></div>`).join('')}
     </div>` : ''}
+    ${d.namedGates && d.namedGates.length ? `<div class="ev-box">
+      <div class="ev-row"><span>🏛 Имена на Вратах</span><span class="ev-mini">${d.namedGates.length}</span></div>
+      <div class="ev-note">${d.namedGates.map(x => esc(x.name)).join(' · ')}</div>
+    </div>` : ''}
     <div class="ev-box">
       <div class="ev-row"><span>🎁 Призы</span><span class="ev-mini">видны всем</span></div>
       <div class="ev-note">🥇 Первый клан, закрывший сегмент — <b style="color:#ffd23f">Легендарный сундук</b> каждому участнику</div>
@@ -145,8 +149,9 @@
       <div class="ev-note">${kvLine}</div>${list}</div>
       <div class="ev-box"><div class="ev-row"><span>Отряд (до 3)</span><span class="ev-mini">выбрано ${sel.size}</span></div>
       <div class="ev-cards">${cardsHtml}</div>
-      <button type="button" class="ev-btn" id="ev-hit" ${d.open && cards.length ? "" : "disabled"}>В БОЙ</button>
-      ${!d.open ? `<div class="ev-note">${Date.now() < d.start ? "Поход откроется с началом ивента." : "Ивент завершён."}</div>` : !cards.length && !d.demo ? `<div class="ev-note">Нет свободных карт для отряда.</div>` : ""}
+      <button type="button" class="ev-btn" id="ev-hit" ${d.open && cards.length && (d.buildDone || d.admin) ? "" : "disabled"}>В БОЙ</button>
+      ${!d.buildDone && !d.admin ? `<div class="ev-note">Поход откроется после завершения всех четырёх сегментов Стройки.</div>` : !d.open ? `<div class="ev-note">${Date.now() < d.start ? "Поход откроется с началом ивента." : "Ивент завершён."}</div>` : !cards.length && !d.demo ? `<div class="ev-note">Нет свободных карт для отряда.</div>` : ""}
+      <div class="ev-note">Узел 12: Сундук Империи — клану гарантированно, одиночке с шансом 50%. Это не уникальная карта серии.</div>
       <div class="ev-note">Не больше 15 % HP узла в сутки с игрока</div></div>`;
   }
 
@@ -157,10 +162,10 @@
       <div class="ev-btn ${extra ? '' : 'ghost'}" data-buy="${id}" style="margin-top:8px">Купить</div></div>`;
     return `<div class="ev-box"><div class="ev-row"><span>Баланс</span><b>${fmt(d.starBal)} ⭐</b></div>
       <div class="ev-note">Пасс даёт +200 к дневному лимиту вклада</div></div>
-      ${row('pass', 'Знамя Строителя', '+300 к лимиту, +1000 очков сразу и сундук — на весь сезон', s.pass)}
-      ${row('clanpass', 'Знамя клана', 'пасс всем участникам + 2000 очков клану + пост в канал', s.clanPass)}
+      ${row('pass', 'Знамя Строителя', '+200 к дневному лимиту вклада на весь сезон', s.pass)}
+      ${row('clanpass', 'Знамя клана', 'пасс всем участникам клана + уведомление', s.clanPass)}
       ${row('chest', 'Сундук вклада', '250 очков, до 2 в день', s.chest)}
-      ${row('card', 'Карта серии', 'гарантированный экземпляр, 1 на аккаунт', s.card)}
+      ${row('card', 'Сундук Империи', 'сундук Империи, 1 на аккаунт', s.card)}
       ${row('named', 'Именной Врат', 'имя на Вратах в финале, 1 на аккаунт', s.named)}`;
   }
 
@@ -213,7 +218,7 @@
       const uid = (typeof S !== 'undefined' && S && S.uid) || '';
       const inClan = !!(data && data.clan);
       /* приглашение в клан: g_<id> (как в разделе «Клан»). c_<id> занят вызовом на бой */
-      const p = inClan ? 'g_' + data.clan : 'r_' + uid;
+      const p = inClan ? 'g_' + data.clan + '_' + uid : 'r_' + uid;
       const link = (typeof linkFor === 'function')
         ? linkFor(p)
         : (() => { const u = new URL(location.href); u.search = ''; u.searchParams.set('startapp', p); return u.href; })();
@@ -295,7 +300,7 @@
       <div style="font-size:12px;line-height:1.5;color:#e8edf7">
         <p><b>1. Стройка.</b> Вноси монеты и осколки в сегменты Врат. Клан двигает стройку быстрее, у одиночек — «Вольное знамя».</p>
         <p><b>2. Поход.</b> Отряд из 3 карт бьёт узлы. Стихия гема даёт ×1.4, кворум 5 игроков — полный урон.</p>
-        <p><b>3. Награды.</b> Каждые 3 узла — сундук, финал — карта серии.</p>
+        <p><b>3. Награды.</b> Поход откроется после четырёх сегментов Стройки. Каждые 3 узла — награда; на 12-м — Сундук Империи (это не уникальная карта серии).</p>
       </div>
       <div style="font-size:10px;color:#7d86a3;margin-top:8px">Донат не ускоряет сезон: лимиты вклада и потолок клана.</div>
       <div class="ev-btn" id="ev-intro-ok" style="margin-top:12px">ПОНЯТНО</div>

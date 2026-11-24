@@ -46,6 +46,21 @@ if (existsSync(path.join(root, 'server/event-test.mjs'))) {
   }
 }
 
+/* ---------- тест фарма карт через бота в бою на карточку ---------- */
+if (existsSync(path.join(root, 'server/stake-test.mjs'))) {
+  try {
+    const out = execFileSync(process.execPath, ['server/stake-test.mjs'], {
+      cwd: root, stdio: 'pipe', encoding: 'utf8', timeout: 120000,
+    });
+    const last = out.trim().split('\n').filter(Boolean).pop() || 'ok';
+    oks.push(`бой на карточку: ${last.replace(/^✅\\s*/, '')}`);
+  } catch (e) {
+    const out = String(e.stdout || '') + String(e.stderr || '');
+    const bad = out.split('\n').filter(l => l.includes('✗')).slice(0, 6).join('\n');
+    fails.push(`тест боя на карточку провален${bad ? ':\n' + bad : ''}`);
+  }
+}
+
 /* ---------- 3. версии в index.html совпадают с файлами ---------- */
 if (existsSync(path.join(root, 'index.html'))) {
   const html = read('index.html');
@@ -95,6 +110,17 @@ if (existsSync(path.join(root, 'event.js'))) {
   if (dup.length) warns.push(`event.js: повторяются id (проверь привязку): ${dup.join(', ')}`);
 }
 
+/* ---------- 5. приглашение в клан не зависит от попадания в топ ---------- */
+if (existsSync(path.join(root, 'wow.js')) && existsSync(path.join(root, 'game.js'))) {
+  const wow = read('wow.js'), game = read('game.js');
+  const goodInvite = wow.includes('^g_(\\d+)(?:_(\\d+))?$') &&
+    wow.includes('act("clan_join",{id,inviter})');
+  if (!goodInvite) fails.push('клановая ссылка: формат g_<clan>_<inviter> или прямой clan_join не найден');
+  else oks.push('приглашение в клан: отдельный g_-формат и прямое вступление по id');
+  if (!game.includes('if(/^c_\\d+$/.test(p))return'))
+    fails.push('game.js: legacy c_<id> конфликтует с вызовом на бой');
+}
+
 /* ---------- 5. сервер: действия ивента не потерялись при сборке ---------- */
 if (existsSync(path.join(root, 'server/worker.js'))) {
   const w = read('server/worker.js');
@@ -102,6 +128,8 @@ if (existsSync(path.join(root, 'server/worker.js'))) {
   const lost = need.filter(k => !w.includes(k));
   if (lost.length) fails.push(`server/worker.js: потеряны действия ивента: ${lost.join(', ')}`);
   else oks.push('server/worker.js: все действия ивента на месте');
+  for (const token of ['ev_seg_contrib', 'evClanCap(active)', 'EV.starCap', 'evRewardTick'])
+    if (!w.includes(token)) fails.push(`server/worker.js: отсутствует защита/награда ${token}`);
 }
 
 /* ---------- итог ---------- */
@@ -112,4 +140,4 @@ if (fails.length) {
   console.log(`\n❌ ПРОВЕРКА НЕ ПРОЙДЕНА: ${fails.length}`);
   process.exit(1);
 }
-console.log('\n✅ ПРОВЕРКА ПРОЙДЕНА — можно пушить');
+console.log('\n✅ ПРОВЕРКИ ИВЕНТА ПРОЙДЕНЫ');

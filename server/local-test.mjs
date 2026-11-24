@@ -134,7 +134,18 @@ r = await call(1, "sub_reward"); ok(!r.ok, "награду за подписку
   r = await call(def, "sync"); ok(r.S.fights[0].seen === 1, "уведомление показывается один раз");
   const d2 = await call(2, "duel", { id: c2.id, stat: 1, mode: 0, rematch: d.res.opp.id });
   ok(d2.ok && d2.res.real && d2.res.opp.id === d.res.opp.id, "реванш с той же карточкой соперника");
-  const md = await call(2, "duel", { id: c2.id, stat: 0, mode: 1 }); ok(md.ok && !md.res.real, "без включённых боёв на карточку — только бот");
+  const farmCard = db.prepare("SELECT stats,v FROM cards WHERE id=? AND owner=?").get(c2.id, 2);
+  db.prepare("UPDATE cards SET stats=?,v=? WHERE id=? AND owner=?")
+    .run(JSON.stringify([1e9, 1e9, 1e9, 1e9, 1e9]), 1e9, c2.id, 2);
+  const beforeFarm = db.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=?").get(2).n;
+  const md = await call(2, "duel", { id: c2.id, stat: 0, mode: 1 });
+  ok(md.ok && !md.res.real && md.res.opp && md.res.opp.h != null, "без включённых боёв на карточку подставляется бот");
+  ok(md.ok && md.res.w > md.res.l && md.res.gotCard &&
+    db.prepare("SELECT owner FROM cards WHERE id=?").get(md.res.gotCard.id)?.owner === 2 &&
+    db.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=?").get(2).n === beforeFarm + 1,
+    "победа над ботом на ставке добавляет его карточку в коллекцию");
+  if (db.prepare("SELECT 1 FROM cards WHERE id=? AND owner=?").get(c2.id, 2))
+    db.prepare("UPDATE cards SET stats=?,v=? WHERE id=? AND owner=?").run(farmCard.stats, farmCard.v, c2.id, 2);
   // оба включили бои на карточку
   await call(2, "stake_set", { on: 1 }); r = await call(1, "stake_set", { on: 1 }); ok(r.ok && r.S.stake === 1, "бои на карточку с игроками включены");
   db.prepare("UPDATE cards SET v=10 WHERE owner IN (1,2)").run();   // цены похожие, чтобы подбор сработал
