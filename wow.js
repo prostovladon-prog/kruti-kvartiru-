@@ -498,7 +498,7 @@ function drawClan(){const b=$("clan-body");if(!b||$("sec-clan").hidden||!clData)
    (D.top.length?D.top.map((c,i)=>'<div class="clr'+(D.clan&&c.id===D.clan.id?" me":"")+'"><i>'+(i<3?["🥇","🥈","🥉"][i]:i+1)+'</i><span class="clnm"></span><small>'+c.n+'/'+CLAN.max+'</small><b>'+fmtN(c.total)+'</b>'+(!D.clan&&c.n<CLAN.max?'<button type="button" class="mini2" data-join="'+c.id+'">Вступить</button>':"")+'</div>').join(""):'<p class="cln">Кланов пока нет — создай первый!</p>')+'</div>';
   if(!D.clan){b.innerHTML='<div class="box clnew"><h3>🛡 Кланы</h3><p>Собери команду до '+CLAN.max+' человек. Каждую неделю — общий босс: все бьют его своими воинами (3 удара в день). Победили босса — каждому, кто бил, сундук: <b>+'+CLAN.chest.sp+' прокруток и +'+CLAN.chest.cash+' 🪙</b>, а следующий босс сильнее и снова с сундуком.</p>'+
      '<div class="clform"><input id="cl-name" maxlength="16" placeholder="Название клана"><button type="button" class="craftbtn" id="cl-make">Создать · '+fmtN(CLAN.cost)+' 🪙</button></div><p class="cln">Или вступи в клан из таблицы ниже</p></div>'+top}
-  else{const C=D.clan,B=D.boss,pct=Math.max(0,Math.min(100,B.dmg/B.hp*100)),inv="https://t.me/VoinyEpohBot?startapp=c_"+C.id;
+  else{const C=D.clan,B=D.boss,pct=Math.max(0,Math.min(100,B.dmg/B.hp*100)),inv="https://t.me/VoinyEpohBot?startapp=g_"+C.id;
     b.innerHTML='<div class="box clhead"><div class="clem">'+portrait(C.h,null)+'</div><div><h3 class="clnm0"></h3><small>'+C.members.length+'/'+CLAN.max+' участников'+(C.place?' · '+C.place+' место за неделю':"")+'</small></div></div>'+
      '<div class="box clboss"><div class="clbh"><b>👹 '+B.name+' · ур. '+B.lvl+'</b><small>до конца недели '+clLeft(D.weekEnd-NOW())+'</small></div>'+clBossHTML(B)+
      '<div class="clhp"><i style="width:'+(100-pct)+'%"></i><span>'+fmtN(B.hp-B.dmg)+' / '+fmtN(B.hp)+'</span></div><p class="cln">Повержено боссов на этой неделе: <b>'+B.kills+'</b> · урон клана: <b>'+fmtN(B.total)+'</b></p>'+
@@ -514,8 +514,8 @@ function drawClan(){const b=$("clan-body");if(!b||$("sec-clan").hidden||!clData)
     else if(t.id==="cl-hit"){t.disabled=true;const r=await act("clan_hit");if(r){const bp=b.querySelector(".clbp");bp.classList.remove("hit");void bp.offsetWidth;bp.classList.add("hit");hap(r.crit?"heavy":"medium");tone(120,.12,"square",.08);
         toast((r.crit?"💥 КРИТ! ":"⚔️ ")+"−"+fmtN(r.dmg)+" боссу");if(r.kill){sfx.fanfare();burst(4);hapN("success");toast("🏆 Босс повержен! Сундук клана: +"+r.kill.sp+" прокруток и +"+r.kill.cash+" монет");renderAll()}await loadClan()}else t.disabled=false}}finally{clBusy=false}}}
 let clConfirm=0;function confirmLeave(){if(NOW()-clConfirm<4000)return true;clConfirm=NOW();toast("Нажми ещё раз, чтобы выйти из клана");return false}
-/* приглашение в клан по ссылке ?startapp=c_<id> */
-(function(){const sp=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param"))||"";const m=/^c_(\d+)$/.exec(sp);
+/* приглашение в клан по ссылке ?startapp=g_<id> (старые c_<id> тоже понимаем) */
+(function(){const sp=new URLSearchParams(location.search).get("startapp")||(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param"))||"";const m=/(?:^|_)g_(\d+)$/.exec(sp)||/^c_(\d+)$/.exec(sp);
   const go=new URLSearchParams(location.search).get("clan");if(!m&&!go)return;const t=setInterval(async()=>{if(!S)return;clearInterval(t);await openClan();
     if(m&&clData&&!clData.clan){const id=+m[1],c=(clData.top||[]).find(x=>x.id===id);if(c){const r=await act("clan_join",{id});if(r){toast("🛡 Ты вступил в клан «"+c.name+"»!");await loadClan()}}}},400)})();
 

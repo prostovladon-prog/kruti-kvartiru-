@@ -103,8 +103,8 @@
       <div class="ev-note">👑 Первый клан, закрывший все 4 сегмента — <b style="color:#ffd23f">Мифический сундук</b> каждому</div>
       <div class="ev-note">🏆 Топ-1 сезона — Мифический · Топ-2 — Легендарный · Топ-3 — Королевский</div>
       <div class="ev-note">🤝 Новичок впервые внёс вклад — клану <b style="color:#ffd23f">+300 очков</b></div>
-      <div class="ev-note">🎓 Наставнику: за первый вклад друга — <b style="color:#ffd23f">Малый сундук</b>, за 10 000 его вклада — <b style="color:#ffd23f">Легендарный</b></div>
-      <div class="ev-btn ghost" id="ev-invite" style="margin-top:8px">ПОЗВАТЬ ДРУГА В КЛАН</div>
+      ${d.solo ? `<div class="ev-note">🎓 Наставнику: за друга, приглашённого по реферальной ссылке, — <b style="color:#ffd23f">Малый сундук</b> за первый вклад и <b style="color:#ffd23f">Легендарный</b> за 10 000</div>` : ''}
+      <div class="ev-btn ghost" id="ev-invite" style="margin-top:8px">${d.clan ? 'ПОЗВАТЬ ДРУГА В КЛАН' : 'ПОЗВАТЬ ДРУГА В ИГРУ'}</div>
     </div>
     <div class="ev-box">
       <div class="ev-row"><span>Твой вклад сегодня</span><span>${fmt(d.me.used)} / ${fmt(d.me.cap)}</span></div>
@@ -206,6 +206,30 @@
 
   function bind() {
     document.querySelectorAll('.ev-tab').forEach(el => el.onclick = () => { tab = el.dataset.t; paint(); });
+    /* кнопку приглашения привязываем до демо-выхода — иначе в демо она мертва */
+    const inv = document.getElementById('ev-invite');
+    if (inv) inv.onclick = () => {
+      try {
+      const uid = (typeof S !== 'undefined' && S && S.uid) || '';
+      const inClan = !!(data && data.clan);
+      /* приглашение в клан: g_<id> (как в разделе «Клан»). c_<id> занят вызовом на бой */
+      const p = inClan ? 'g_' + data.clan : 'r_' + uid;
+      const link = (typeof linkFor === 'function')
+        ? linkFor(p)
+        : (() => { const u = new URL(location.href); u.search = ''; u.searchParams.set('startapp', p); return u.href; })();
+      const text = inClan
+        ? 'Вступай в мой клан «' + (data.clanName || '') + '» в «Воины Эпох» — вместе строим Врата Эпох и берём клановые призы!'
+        : 'Заходи в «Воины Эпох» — вместе строим Врата Эпох и берём клановые призы!';
+      /* sendLink уже умеет открывать шаринг внутри Telegram; window.open там заблокирован */
+      if (typeof sendLink === 'function') { sendLink(text, link); return; }
+      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(text);
+      const T = window.Telegram && window.Telegram.WebApp;
+      if (T && T.openTelegramLink) { T.openTelegramLink(share); return; }
+      if (navigator.clipboard) navigator.clipboard.writeText(text + ' ' + link)
+        .then(() => toast('Ссылка скопирована — отправь её другу'), () => toast(link));
+      else toast(link);
+      } catch (e) { toast('Не удалось открыть приглашение — попробуй ещё раз'); }
+    };
     if (data.demo) {
       document.querySelectorAll('#ev-wrap button:not(.ev-tab)').forEach(button => { button.disabled = true; });
       bindHelp();
@@ -251,14 +275,6 @@
       const r = await act('ev_claim', { n });
       if (r) { await load(); paint(); toast('Награда получена'); }
     });
-    const inv = document.getElementById('ev-invite');
-    if (inv) inv.onclick = () => {
-      const uid = (typeof S !== 'undefined' && S && S.uid) || '';
-      const link = 'https://t.me/VoinyEpohBot?startapp=r_' + uid;
-      const text = 'Заходи в «Воины Эпох» — вместе строим Врата Эпох и берём клановые призы!';
-      try { window.open('https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(text), '_blank'); }
-      catch (e) { try { navigator.clipboard.writeText(link); toast('Ссылка скопирована'); } catch (e2) {} }
-    };
     document.querySelectorAll('[data-buy]').forEach(el => el.onclick = async () => {
       const item = el.dataset.buy;
       const r = await act('ev_shop', { item });
@@ -295,7 +311,8 @@
 
   function demo() {
     const hp = [40000, 46000, 52000, 58000, 70000, 80000, 90000, 100000, 100000, 110000, 120000, 130000];
-    data = {
+    const clanMode = new URLSearchParams(location.search).get('evdemo') === 'clan';
+    const base = {
       season: 'demo', start: Date.now() - 1, end: Date.now() + 864e5, open: true, admin: false,
       clan: 0, solo: true, act: 1,
       segs: [6000, 8000, 10000, 11000].map((need, i) => ({ i, need, points: [3200, 1500, 0, 0][i], done: false })),
@@ -304,6 +321,18 @@
       claimable: [], shop: { pass: 599, clanPass: 6000, chest: 199, card: 2500, named: 5000 },
       starBal: 0, kvorum: 1, demo: 1,
     };
+    data = clanMode ? Object.assign(base, {
+      clan: 7, solo: false, kvorum: 5,
+      segs: [18000, 24000, 30000, 33000].map((need, i) => ({ i, need, points: [9600, 4500, 0, 0][i], done: false })),
+      clanName: 'Северный ветер', clanMembers: 30, clanActive: 27, clanCap: 40500,
+      kvorumCount: 6, todayGiven: 9600, cash: 240000, shards: 380,
+      topContrib: [{ name: 'Хель', used: 1200 }, { name: 'Осирис', used: 900 }, { name: 'Шива', used: 700 }],
+      topClans: [
+        { id: 7, name: 'Северный ветер', n: 30, points: 9600 },
+        { id: 4, name: 'Дети Одина', n: 28, points: 8700 },
+        { id: 9, name: 'Атланты', n: 25, points: 6100 },
+      ],
+    }) : base;
     paint();
   }
 

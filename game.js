@@ -2037,7 +2037,7 @@ function encName(){const u=new TextEncoder().encode(myName()).slice(0,40);return
 function decName(a){const n=a[1];return {name:new TextDecoder().decode(new Uint8Array(a.slice(2,2+n))),i:2+n}}
 function linkFor(p){const bot=BOT_LINK.includes("YOUR_BOT")?null:BOT_LINK;return bot?bot+"?startapp="+p:PAGE_URL+"?startapp="+p}
 function sendLink(text,url){const share="https://t.me/share/url?url="+encodeURIComponent(url)+"&text="+encodeURIComponent(text);
-  if(tg&&tg.openTelegramLink){tg.openTelegramLink(share);return}
+  if(tg&&tg.openTelegramLink){try{tg.openTelegramLink(share);return}catch(e){}}
   if(navigator.clipboard)navigator.clipboard.writeText(text+" "+url).then(()=>toast("Ссылка скопирована, отправь её другу"),()=>toast(url));else toast(url)}
 function showcaseParam(){if(ONLINE)return "u_"+S.uid;
   const top=[...S.cards].sort((a,b)=>b.v-a.v).slice(0,3);const by=[1,...encName(),top.length,Math.min(255,S.totalWins||0),Math.min(255,new Set(S.cards.map(c=>c.h)).size)];top.forEach(c=>encCard(c,by));return "v_"+b64e(by)}
@@ -2179,6 +2179,7 @@ async function openParam(p){
   if(p==="dayzeus"){dcOpen();return}
   if(p==="profilecontest"){profileContestOpen();return}
   if(p.startsWith("r_"))return;   // приглашение: сервер уже засчитал его при первом входе
+  if(p.startsWith("g_"))return;   // приглашение в клан: обрабатывает wow.js (вступление), это не вызов на бой
   if(p.startsWith("u_")){if(!ONLINE){toast("Эта ссылка работает только в игре через Telegram");return}const r=await act("profile",{uid:+p.slice(2)});if(r)openShowcase(Object.assign(r,{p}));return}
   if(p.startsWith("b_")){if(!ONLINE){toast("Арена работает в игре через Telegram");return}const [,id,code]=p.split("_");setTab("duel");btView="arena";renderBattle();arOpen(+id,code);return}
   if(p.startsWith("rv_")){if(ONLINE)startRecovery(+p.slice(3));return}
