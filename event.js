@@ -75,10 +75,23 @@
         <div class="ev-bar"><i style="width:${p}%"></i></div>`;
     }).join('');
     const cur = d.segs.find(s => !s.done) || d.segs[d.segs.length - 1];
+    const clanBox = d.solo
+      ? `<div class="ev-box">
+          <div class="ev-row"><span>Вольное знамя</span><span>личный трек</span></div>
+          <div class="ev-note">Награды 50 %. Вступи в клан — прогресс перенесётся наполовину.</div>
+        </div>`
+      : `<div class="ev-box">
+          <div class="ev-row"><span>Клан «${esc(d.clanName || '—')}»</span><span>${d.clanMembers || 0} участников</span></div>
+          <div class="ev-row" style="margin-top:4px"><span>Клан сегодня</span><span>${fmt(d.todayGiven || 0)} / ${fmt(d.clanCap || 6000)}</span></div>
+          <div class="ev-bar"><i style="width:${Math.min(100, Math.round((d.todayGiven || 0) / (d.clanCap || 6000) * 100))}%"></i></div>
+          <div class="ev-note">${(d.kvorumCount || 0) >= 5 ? '✅ Кворум ' + d.kvorumCount + '/5 — полный урон' : '⚠️ Кворум ' + (d.kvorumCount || 0) + '/5 — урон вполсилы'}</div>
+          ${(d.topContrib && d.topContrib.length) ? '<div class="ev-note">Вклад: ' + d.topContrib.map(t => esc(t.name) + ' ' + fmt(t.used)).join(' · ') + '</div>' : ''}
+        </div>`;
     return `<div class="ev-box">
       <div class="ev-row"><span>Врата Эпох</span><b style="font-size:22px">${fmt(cur.points)} / ${fmt(cur.need)}</b></div>
       ${segs}
     </div>
+    ${clanBox}
     <div class="ev-box">
       <div class="ev-row"><span>Твой вклад сегодня</span><span>${fmt(d.me.used)} / ${fmt(d.me.cap)}</span></div>
       <div class="ev-row" style="margin-top:6px"><span>Монеты</span><span>${fmt(d.cash || 0)}</span></div>
@@ -113,7 +126,9 @@
     }).join('');
     const cardsHtml = cards.map(c => `<div class="ev-card ${sel.has(c.id) ? 'sel' : ''}" data-card="${c.id}">
       <img src="" data-cid="${c.id}" alt=""><div style="font-size:8px;text-align:center;color:#c9d1e6">${String(c.id).slice(-3)}</div></div>`).join('');
-    return `<div class="ev-box"><div class="ev-row"><span>Узлы</span><span>${d.nodes.filter(n => n.closed).length} / ${d.nodes.length}</span></div>${list}</div>
+    const kvLine = d.solo ? 'Вольное знамя' : ((d.kvorumCount || 0) >= 5 ? 'Кворум ' + d.kvorumCount + '/5 — полный урон' : 'Кворум ' + (d.kvorumCount || 0) + '/5 — урон вполсилы');
+    return `<div class="ev-box"><div class="ev-row"><span>Узлы</span><span>${d.nodes.filter(n => n.closed).length} / ${d.nodes.length}</span></div>
+      <div class="ev-note">${kvLine}</div>${list}</div>
       <div class="ev-box"><div class="ev-row"><span>Отряд (до 3)</span><span class="ev-mini">выбрано ${sel.size}</span></div>
       <div class="ev-cards">${cardsHtml}</div>
       <button type="button" class="ev-btn" id="ev-hit" ${d.open && cards.length ? "" : "disabled"}>В БОЙ</button>

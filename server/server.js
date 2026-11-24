@@ -4414,6 +4414,25 @@ async function evState(env, me) {
     return { n, hp: Math.round(hp), dmg: r.dmg | 0, closed: !!r.closed, reward: evNodeReward(n) };
   });
 
+  let clanName = null, clanMembers = 0, kvorumCount = 0, topContrib = [], todayGiven = 0;
+  if (clan) {
+    try {
+      const C = await env.DB.prepare("SELECT name,(SELECT COUNT(*) FROM users WHERE clan=clans.id) AS n FROM clans WHERE id=?").bind(clan).first();
+      if (C) { clanName = C.name; clanMembers = C.n || 0; }
+      kvorumCount = ((await env.DB.prepare(
+        "SELECT COUNT(DISTINCT h.uid) AS n FROM ev_hit h JOIN users x ON x.id=h.uid " +
+        "WHERE h.season=? AND h.key=? AND h.day=? AND x.created<=? AND (SELECT COUNT(*) FROM cards c WHERE c.owner=x.id)>=?")
+        .bind(season, key, day, now - EV.kvorumAge * 864e5, EV.kvorumCards).first()) || {}).n || 0;
+      topContrib = ((await env.DB.prepare(
+        "SELECT COALESCE(u.nick,u.name) AS name,c.used FROM ev_contrib c JOIN users u ON u.id=c.uid " +
+        "WHERE c.season=? AND c.day=? AND u.clan=? AND c.used>0 ORDER BY c.used DESC LIMIT 5")
+        .bind(season, day, clan).all()).results || []);
+    } catch (e) {}
+  }
+  const cseg = await evCurrentSeg(env, season, key, clan);
+  const csrow = await env.DB.prepare("SELECT given,day FROM ev_seg WHERE season=? AND key=? AND seg=?").bind(season, key, cseg).first();
+  todayGiven = csrow && csrow.day === day ? csrow.given : 0;
+
   const claim = (await env.DB.prepare("SELECT k FROM kv WHERE k LIKE ?").bind("evc:" + season + ":" + key + ":%:" + me.id).all()).results || [];
   const claimed = new Set(claim.map(r => +String(r.k).split(":")[3]));
 
@@ -4425,6 +4444,10 @@ async function evState(env, me) {
     claimable: nodeOut.filter(n => n.closed && n.reward && !claimed.has(n.n)).map(n => n.n),
     shop: EV.shop, starBal: (u && u.star_bal) || 0,
     kvorum: clan ? EV.kvorum : 1,
+    clanCap: EV.clanCap, clanName, clanMembers, kvorumCount, topContrib,
+    todayGiven,
+    cash: (u && u.cash) || 0,
+    shards: (() => { try { const g = (JSON.parse((u && u.state) || "{}").gsh) || {}; return (g.f || 0) + (g.w || 0) + (g.e || 0) + (g.a || 0); } catch (e) { return 0; } })(),
   };
 }
 
@@ -4442,6 +4465,16 @@ async function evAddPoints(env, season, key, seg, points, day, isClan) {
     "ON CONFLICT(season,key,seg) DO UPDATE SET points=points+excluded.points," +
     "given=CASE WHEN ev_seg.day=? THEN ev_seg.given+excluded.given ELSE excluded.given END,day=excluded.day"
   ).bind(season, key, seg, add, add, day, day).run();
+
+  const need = (isClan ? EV.segments : EV_SOLO.segments)[seg];
+  const total = ((row && row.points) || 0) + add;
+  if (need && total >= need) {
+    const ck = "evseg:" + season + ":" + key + ":" + seg;
+    if (!(await kvGet(env, ck))) {
+      await kvSet(env, ck, 1);
+      try { await evSegReward(env, season, key, seg, isClan, day); } catch (e) { console.error("evseg", e); }
+    }
+  }
   return add;
 }
 
@@ -4685,6 +4718,23 @@ async function evShop(env, me, p) {
     return { item, stars: price };
   }
   fail("Нет такого товара");
+}
+
+
+/* награда всем, кто внёс вклад в закрытый сегмент: малый сундук */
+async function evSegReward(env, season, key, seg, isClan, day) {
+  let ids = [];
+  try {
+    if (isClan) {
+      const clan = +String(key).slice(1);
+      ids = ((await env.DB.prepare(
+        "SELECT c.uid FROM ev_contrib c JOIN users u ON u.id=c.uid " +
+        "WHERE c.season=? AND c.day=? AND c.used>0 AND u.clan=?").bind(season, day, clan).all()).results || []).map(r => r.uid);
+    } else ids = [+String(key).slice(1)];
+  } catch (e) { return; }
+  for (const uid of ids) {
+    try { await doAction(env, { id: uid, name: "Игрок" }, "grant", { item: "small", pid: "evseg:" + season + ":" + key + ":" + seg + ":" + uid }, { grant: true }); } catch (e) {}
+  }
 }
 
 /* админ-инструменты для проверки ивента: только isAdmin */
