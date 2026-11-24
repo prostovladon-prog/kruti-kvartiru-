@@ -144,18 +144,34 @@
     paintCards();
   }
 
+  /* SVG из движка местами невалиден как XML (дублируются атрибуты) —
+     прогоняем через HTML-парсер и сериализуем заново, иначе <img> не рисует. */
+  function svgUrl(h, c) {
+    const holder = document.createElement('div');
+    holder.innerHTML = portrait(h, c);
+    const el = holder.querySelector('svg');
+    if (!el) return '';
+    el.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    el.setAttribute('viewBox', '0 0 200 200');
+    const xml = new XMLSerializer().serializeToString(el);
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+  }
+
   function paintCards() {
     const player = data.demo ? {} : (S || {});
     (player.cards || []).forEach(c => {
       const img = document.querySelector(`img[data-cid="${c.id}"]`);
       if (!img || img.dataset.done) return;
+      img.dataset.done = 1;
       try {
         if (typeof portrait === 'function') {
-          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-            portrait(c.h, c).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" '));
-          img.dataset.done = 1;
+          const url = svgUrl(c.h, c);
+          if (url) img.src = url;
+          img.onerror = () => { img.style.background = 'linear-gradient(180deg,#2a1a4a,#1a1030)'; img.style.minHeight = '88px'; };
         }
-      } catch (e) {}
+      } catch (e) {
+        img.style.background = 'linear-gradient(180deg,#2a1a4a,#1a1030)';
+      }
     });
   }
 
