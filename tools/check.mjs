@@ -61,6 +61,21 @@ if (existsSync(path.join(root, 'server/stake-test.mjs'))) {
   }
 }
 
+/* ---------- тест порога реакций и выдачи промокода ---------- */
+if (existsSync(path.join(root, 'server/reaction-test.mjs'))) {
+  try {
+    const out = execFileSync(process.execPath, ['server/reaction-test.mjs'], {
+      cwd: root, stdio: 'pipe', encoding: 'utf8', timeout: 120000,
+    });
+    const last = out.trim().split('\n').filter(Boolean).pop() || 'ok';
+    oks.push(`промокод за реакции: ${last.replace(/^✅\\s*/, '')}`);
+  } catch (e) {
+    const out = String(e.stdout || '') + String(e.stderr || '');
+    const bad = out.split('\n').filter(l => l.includes('✗')).slice(0, 6).join('\n');
+    fails.push(`тест промокода за реакции провален${bad ? ':\n' + bad : ''}`);
+  }
+}
+
 /* ---------- 3. версии в index.html совпадают с файлами ---------- */
 if (existsSync(path.join(root, 'index.html'))) {
   const html = read('index.html');
@@ -147,6 +162,11 @@ if (existsSync(path.join(root, 'server/server.js'))) {
   if (!src.includes('Фарм карт снова доступен') || !src.includes('ev_posted:'))
     fails.push('автопост ивента: текст о фарме карт или защита от повторной отправки потеряны');
   else oks.push('автопост ивента: анонс фарма карт и однократная отправка на месте');
+  if (!src.includes('react_251125_1030') || !src.includes('Date.UTC(2026,10,25,7,30)') ||
+      !src.includes('await react4Tick(env)') || !src.includes('async function fire30React') ||
+      !src.includes('react_release:'))
+    fails.push('акция 10:30: расписание или обработчик реакций не подключён к серверному тику');
+  else oks.push('акция 10:30: автопост и обработчик реакций подключены');
 }
 
 /* ---------- итог ---------- */
