@@ -1706,8 +1706,8 @@ Object.assign(ACTIONS,{
 /* ===== ИВЕНТ «ПОКОЛЕНИЕ ЭПОХ» (акт I: стройка, акт II–III: поход) ===== */
 const EV={
   id:"epoch-2026-11-25",
-  start:Date.UTC(2026,10,25,5),      // 08:00 по Минску
-  end:Date.UTC(2026,11,16,5),        // +21 день
+  start:Date.UTC(2026,10,24,5),      // 08:00 по Минску
+  end:Date.UTC(2026,11,15,5),        // +21 день
   segments:[6000,8000,10000,11000],
   playerCap:1500, passBonus:200, clanCap:6000,
   starCap:500, coinsPer:1000, shardsPer:25,

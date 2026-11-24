@@ -150,7 +150,7 @@ if (existsSync(path.join(root, 'server/worker.js'))) {
 /* ---------- 6. автопост старта и новый постер ---------- */
 if (existsSync(path.join(root, 'server/server.js'))) {
   const src = read('server/server.js');
-  const image = 'event-assets/card-farm-2026-11-25.png';
+  const image = 'event-assets/card-farm-2026-11-24.png';
   if (!src.includes(image) || !existsSync(path.join(root, image)))
     fails.push(`автопост ивента: не найден постер ${image}`);
   else {
@@ -162,7 +162,7 @@ if (existsSync(path.join(root, 'server/server.js'))) {
   if (!src.includes('Фарм карт снова доступен') || !src.includes('ev_posted:'))
     fails.push('автопост ивента: текст о фарме карт или защита от повторной отправки потеряны');
   else oks.push('автопост ивента: анонс фарма карт и однократная отправка на месте');
-  if (!src.includes('react_251125_1030') || !src.includes('Date.UTC(2026,10,25,7,30)') ||
+  if (!src.includes('react_241124_1030') || !src.includes('Date.UTC(2026,10,24,7,30)') ||
       !src.includes('await react4Tick(env)') || !src.includes('async function fire30React') ||
       !src.includes('react_release:'))
     fails.push('акция 10:30: расписание или обработчик реакций не подключён к серверному тику');

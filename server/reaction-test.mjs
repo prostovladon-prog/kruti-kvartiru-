@@ -53,11 +53,11 @@ const ok = (condition, message, extra) => {
   if (!condition) process.exitCode = 1;
 };
 
-const uid = 72001, code = "ЭПОХИ40", campaign = "react_251125_1030", messageId = 43210;
-const at = Date.UTC(2026, 10, 25, 7, 31);
+const uid = 72001, code = "ЭПОХИ40", campaign = "react_241124_1030", messageId = 43210;
+const at = Date.UTC(2026, 10, 24, 7, 31);
 await call(uid, "sync");
 db.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,40,0,0,?,?,0,0,0,0)")
-  .run(code, Date.UTC(2026, 10, 25, 20, 59), at);
+  .run(code, Date.UTC(2026, 10, 24, 20, 59), at);
 db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES(?,?)")
   .run("blast:" + campaign, JSON.stringify({ ch: 1, mid: messageId, done: 1, after: 0, n: 0 }));
 

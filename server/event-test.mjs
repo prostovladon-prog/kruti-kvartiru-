@@ -35,6 +35,8 @@ const call = async (uid, a, p = {}) => {
 };
 
 const ADMIN = 6724818967, PL = 1001;
+const realNow = Date.now;
+Date.now = () => Date.UTC(2026, 10, 24, 4, 59);
 let fails = 0;
 const ok = (cond, msg, extra) => { console.log((cond ? "✓ " : "✗ ") + msg + (cond || !extra ? "" : " → " + JSON.stringify(extra))); if (!cond) fails++; };
 const sec = t => console.log("\n" + t);
@@ -241,5 +243,6 @@ sec("7. Клан: динамический лимит, приглашение и
     "первый клан, закрывший четыре сегмента, получает обещанный мифический сундук");
 }
 
+Date.now = realNow;
 console.log(`\n${fails === 0 ? "✅ ИВЕНТ РАБОТАЕТ" : "❌ ЕСТЬ ОШИБКИ"}: провалов ${fails}`);
 process.exit(fails ? 1 : 0);
