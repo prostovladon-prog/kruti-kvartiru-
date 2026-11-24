@@ -113,6 +113,14 @@ sec("4. Награды и идемпотентность");
   ok(!c2.ok && /уже получена/i.test(c2.err || ""), "повторно награду не выдать", c2.err);
   const c3 = await call(ADMIN, "ev_claim", { n: 1 });
   ok(!c3.ok && /не закрыт|награды нет/i.test(c3.err || ""), "узел без награды отклонён", c3.err);
+  await call(ADMIN, "ev_admin", { op: "close", n: 4 });
+  const random = Math.random;
+  let firstRandom = true;
+  Math.random = () => { if (firstRandom) { firstRandom = false; return 0; } return random(); };
+  const c4 = await call(ADMIN, "ev_claim", { n: 4 });
+  Math.random = random;
+  ok(c4.ok && c4.res.chest === "general" && /Карты \(4\)/.test(c4.res.loot || ""),
+    "при сундуке узла 4 сервер возвращает список реально выпавших карт", c4.err || c4.res);
 }
 
 /* 5. Магазин */

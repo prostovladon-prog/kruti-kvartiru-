@@ -209,6 +209,43 @@
     });
   }
 
+  function showClanDrop(cards) {
+    if (!cards || !cards.length) return false;
+    const modal = document.getElementById('modal'), sheet = document.getElementById('msheet');
+    if (!modal || !sheet) return false;
+    const rows = cards.map(c => {
+      const H = (typeof HEROES !== 'undefined' && HEROES[c.h]) || [];
+      const F = (typeof FIN !== 'undefined' && FIN[c.f]) || {};
+      const kind = c.part ? (c.part === 1 ? 'левая половина' : 'правая половина') : (F.k || 'карта');
+      const src = svgUrl(c.h, c);
+      return `<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid #0d103022">
+        ${src ? `<img src="${src}" alt="" style="width:54px;height:64px;object-fit:cover;border:2px solid #0d1030;border-radius:8px">` : ''}
+        <span><b>${esc(H[0] || 'Воин')}</b><br><small>${esc(kind)}</small></span></div>`;
+    }).join('');
+    sheet.innerHTML = `<div class="box nickbox"><h3>🎁 Выпало из сундука за вклад</h3>
+      <div style="max-height:55vh;overflow:auto">${rows}</div>
+      <button type="button" class="craftbtn" id="ev-drop-close" style="margin-top:10px">ПОНЯТНО</button></div>`;
+    modal.hidden = false;
+    const close = document.getElementById('ev-drop-close');
+    if (close) close.onclick = () => { modal.hidden = true; sheet.innerHTML = ''; };
+    return true;
+  }
+
+  function showClaimLoot(r) {
+    const modal = document.getElementById('modal'), sheet = document.getElementById('msheet');
+    if (!modal || !sheet) { toast('Награда получена: ' + (r.loot || 'проверь коллекцию')); return; }
+    const parts = [];
+    if (r.cash) parts.push('+' + fmt(r.cash) + ' монет');
+    if (r.sp) parts.push('+' + fmt(r.sp) + ' прокруток');
+    if (r.chest) parts.push((r.chest === 'empire' ? 'Сундук Империи' : r.chest === 'general' ? 'Сундук полководца' : 'Сундук') + ':\n' + (r.loot || 'содержимое уже в коллекции'));
+    sheet.innerHTML = `<div class="box nickbox"><h3>🎁 Награда за узел ${r.n}</h3>
+      <p class="cln" style="white-space:pre-line">${parts.length ? esc(parts.join('\n\n')) : 'Награда уже в коллекции.'}</p>
+      <button type="button" class="craftbtn" id="ev-loot-close">ПОНЯТНО</button></div>`;
+    modal.hidden = false;
+    const close = document.getElementById('ev-loot-close');
+    if (close) close.onclick = () => { modal.hidden = true; sheet.innerHTML = ''; };
+  }
+
   function bind() {
     document.querySelectorAll('.ev-tab').forEach(el => el.onclick = () => { tab = el.dataset.t; paint(); });
     /* кнопку приглашения привязываем до демо-выхода — иначе в демо она мертва */
@@ -244,10 +281,15 @@
     if (send) send.onclick = async () => {
       if (busy) return; busy = true; send.textContent = '...';
       try {
+        const beforeCards = new Set((typeof S !== 'undefined' && S && S.cards || []).map(c => c.id));
         const coins = Math.max(0, Math.floor(+document.getElementById('ev-coins').value || 0));
         const shards = Math.max(0, Math.floor(+document.getElementById('ev-shards').value || 0));
         const r = await act('ev_contrib', { coins, shards });
-        if (r) { await load(); paint(); if (r.added) toast('+' + r.added + ' очков'); }
+        if (r) {
+          await load(); paint();
+          const drops = (typeof S !== 'undefined' && S && S.cards || []).filter(c => !beforeCards.has(c.id));
+          if (!showClanDrop(drops) && r.added) toast('+' + r.added + ' очков');
+        }
       } catch (e) { toast(String(e.message || e)); }
       busy = false; if (document.getElementById('ev-send')) document.getElementById('ev-send').textContent = 'ВНЕСТИ ВКЛАД';
     };
@@ -278,7 +320,7 @@
     document.querySelectorAll('[data-claim]').forEach(el => el.onclick = async () => {
       const n = +el.dataset.claim;
       const r = await act('ev_claim', { n });
-      if (r) { await load(); paint(); toast('Награда получена'); }
+      if (r) { await load(); paint(); if (r.chest) showClaimLoot(r); else toast('Награда получена: +' + fmt(r.cash) + ' монет, +' + fmt(r.sp) + ' прокруток'); }
     });
     document.querySelectorAll('[data-buy]').forEach(el => el.onclick = async () => {
       const item = el.dataset.buy;

@@ -2659,9 +2659,9 @@ let cwwBusy=0;async function cwwTick(env){const now=Date.now(),W=cwWin(now);if(n
   const top=(await env.DB.prepare("SELECT w.clan AS id,w.n,c.name FROM clan_ww w JOIN clans c ON c.id=w.clan WHERE w.wk=? AND w.n>0 ORDER BY w.n DESC LIMIT 3").bind(W.wk).all()).results;
   await kvSet(env,k,{top,t:now});
   for(let i=0;i<top.length;i++){const C=top[i],P=CWW.prize[i];const mem=await clanMembers(env,C.id);
-    for(const m of mem){try{await doAction(env,{id:m.id,name:m.name},"grant",{item:P[0],pid:"cw:"+W.wk+":"+m.id},{grant:true})}catch(e){console.error("cw grant",e&&e.message)}
+    for(const m of mem){let details=null;try{const g=await doAction(env,{id:m.id,name:m.name},"grant",{item:P[0],pid:"cw:"+W.wk+":"+m.id},{grant:true});details=lootDetails(g.res)}catch(e){console.error("cw grant",e&&e.message)}
       await trophyAdd(env,m.id,"cw:"+W.wk,["🥇","🥈","🥉"][i],(i+1)+" место в войне кланов ("+C.name+")");
-      try{await notify(env,m.id,["🥇","🥈","🥉"][i]+" Твой клан «"+C.name+"» занял "+(i+1)+" место в войне кланов выходных!\n\n🎁 "+P[1]+" уже открыт у тебя в игре. Спасибо за вклад!","🎁 Открыть игру")}catch(e){}}}
+      if(details)try{await notify(env,m.id,["🥇","🥈","🥉"][i]+" Твой клан «"+C.name+"» занял "+(i+1)+" место в войне кланов выходных!\n\n🎁 "+P[1]+"\n\nЧто выпало:\n"+details,"🎁 Открыть игру")}catch(e){}}}
   if(top.length)try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"⚔️ ИТОГИ ВОЙНЫ КЛАНОВ ВЫХОДНЫХ!\n\n"+top.map((c,i)=>["🥇","🥈","🥉"][i]+" «"+c.name+"» — "+c.n+" карточек").join("\n")+"\n\nКаждый участник кланов-призёров уже получил сундук 🎁 В следующие выходные — новая война!\n\n👉 @VoinyEpohBot"})}catch(e){}
  }finally{cwwBusy=0}}
 // The original run recorded trophies even if an individual chest grant failed.
@@ -2680,7 +2680,10 @@ async function cwwRecoverNovember22(env,W,result){
     if(!players.length)throw new Error("No recorded recipients for clan "+clan.id);
     for(const player of players){
       const {res}=await doAction(env,player,"grant",{item:CWW.prize[i][0],pid:"cw:"+W.wk+":"+player.id},{grant:true});
-      if(!res.dup)granted++;
+      if(!res.dup){
+        granted++;
+        try{await notify(env,player.id,"🎁 Восстановлена награда за войну кланов!\n\n"+CWW.prize[i][1]+"\nЧто выпало:\n"+lootDetails(res),"🎁 Открыть игру")}catch(e){}
+      }
     }
   }
   await kvSet(env,key,{t:Date.now(),granted});
@@ -3740,6 +3743,22 @@ async function notify(env,uid,text,btn,url,photo){
     /* pm=0 только если игрок реально недоступен: заблокировал бота / не начинал чат / удалён. Раньше любая 400 (например, битая ссылка на фото) снимала pm у всех */
     if(!r.ok&&(r.error_code===403||/chat not found|user is deactivated|bot was blocked|bot can't initiate/i.test(r.description||"")))await env.DB.prepare("UPDATE users SET pm=0 WHERE id=?").bind(uid).run();
     return !!r.ok}catch(e){return false}}
+const lootCardText=c=>{
+  const h=HEROES[c.h],f=FIN[c.f],name=h?h[0]:"Воин";
+  const kind=c.part?(c.part===1?"левая половина":"правая половина"):(f&&f.k)||"обычная";
+  return name+" — "+kind+(c.sn?" · № "+fmtSn(c.sn):"");
+};
+const lootCardNames=cards=>(cards||[]).map(lootCardText).join("\n");
+function lootDetails(res){
+  if(!res)return "Награда уже в игре.";
+  const out=[];
+  if(res.cards&&res.cards.length)out.push("Карты ("+res.cards.length+"):\n"+lootCardNames(res.cards));
+  if(res.sp)out.push("+"+res.sp+" прокруток");
+  if(res.cash)out.push("+"+Math.round(res.cash).toLocaleString("ru-RU")+" 🪙");
+  if(res.gems&&res.gems.length)out.push("Гемы: "+res.gems.join(", "));
+  if(res.note)out.push(res.note);
+  return out.join("\n")||"Награда уже в игре.";
+}
 async function reminders(env){await ensureSchema(env);if(await maintenance(env))return {sent:0,maintenance:true};
   try{for(const r of (await env.DB.prepare("SELECT * FROM rooms WHERE (phase='open' AND created<?) OR (phase IN ('p0','s0','p1','s1','s2') AND until<?) OR (phase IN ('done','cancel') AND applied=0) LIMIT 50").bind(Date.now()-OPEN_MS,Date.now()-1000).all()).results)await roomAdvance(env,r)}catch(e){console.error("rooms",e)}const now=Date.now(),h=new Date(now+TZ).getUTCHours();
   if((h>=23||h<9)&&!env.NOTIFY_TEST)return {sent:0,quiet:true};
@@ -4411,7 +4430,8 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         const what=B.sp?"+"+B.sp+" прокруток":"+"+B.bon+" ⭐ к пополнению от "+B.bmin+" ⭐";res.promo={code,what,big:B.bon>=300||B.sp>=20?1:0};
         if(B.bon>=1000)try{await hypeAdd(env,P.uid,"🎟 выбил промокод на +1000 ⭐ из сундука!",1)}catch(e){}
         try{await notify(env,P.uid,"🎟 Твой промокод из сундука: "+code+"\n\nВнутри: "+what+". Действует 14 дней, активировать может 1 человек — себе или другу 🎁","🎟 Ввести код",PAGE+"?promo=1")}catch(e){}}
-      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+(res.cash?"+"+Number(res.cash).toLocaleString("ru")+" 🪙. ":"")+(res.note?res.note+" ":"")+"Всё уже в игре.";
+      msg="🎁 «"+I.n+"» открыт! "+(res.promo?"🎟 Промокод "+res.promo.code+" ("+res.promo.what+") — он же пришёл тебе в бот. ":"")+(res.cards&&res.cards.length?"Внутри "+res.cards.length+" "+(res.cards.some(c=>c.part)?"карточек и половинок":"карточек")+", ":"")+(res.sp?"+"+res.sp+" прокруток. ":"")+(res.cash?"+"+Number(res.cash).toLocaleString("ru")+" 🪙. ":"")+(res.note?res.note+" ":"")+"Всё уже в игре."+
+        (res.cards&&res.cards.length?"\n\n🎴 Выпали:\n"+lootCardNames(res.cards):"");
       if(I.clanb)try{const cu=await env.DB.prepare("SELECT clan,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(cu&&cu.clan){const mem=(await clanMembers(env,cu.clan)).filter(m=>m.id!==P.uid);
         for(const m of mem){try{await doAction(env,{id:m.id,name:m.name},"grant",{item:"clsp",pid:"cl:"+P.id+":"+m.id},{grant:true});await notify(env,m.id,"🛡 "+cu.n+" открыл Сундук клана — тебе +5 прокруток!","🎴 Крутить")}catch(e){}}msg+=" 🛡 Соклановцы получили по +5 прокруток ("+mem.length+")."}else msg+=" (Ты не в клане — бонус соклановцам некому отдать.)"}catch(e){console.error("clanb",e&&e.message)}}
     else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");
@@ -6573,7 +6593,8 @@ async function evClaim(env, me, p) {
   }
   /* Сначала выдаём сундук с идемпотентным pid, затем одной CAS-записью — монеты,
      прокрутки и отметку. Повтор после сетевого сбоя не дублирует награду. */
-  if (chest) await doAction(env, me, "grant", { item: chest, pid: "ev:" + season + ":" + key + ":" + n }, { grant: true });
+  let chestRes = null;
+  if (chest) chestRes = (await doAction(env, me, "grant", { item: chest, pid: "ev:" + season + ":" + key + ":" + n }, { grant: true })).res;
   ({ u } = await loadUser(env, me));
   const st = JSON.parse((u && u.state) || "{}");
   st.evClaims = Array.isArray(st.evClaims) ? st.evClaims.map(Number) : [];
@@ -6584,7 +6605,7 @@ async function evClaim(env, me, p) {
     .bind(cash, JSON.stringify(st), me.id, u.ver).run();
   if (!saved.meta || saved.meta.changes !== 1) fail("Состояние изменилось. Нажми «Забрать» ещё раз");
   try { await kvSet(env, ck, 1); } catch (e) {}
-  return { reward, cash, sp, chest };
+  return { reward, cash, sp, chest, n, loot: chestRes ? lootDetails(chestRes) : "" };
 }
 
 async function evShop(env, me, p) {
@@ -6698,7 +6719,17 @@ async function evSettle(env) {
     let clanOk = true;
     for (const r of rows) {
       try {
-        await doAction(env, { id: r.uid, name: "Игрок" }, "grant", { item: items[i], pid: "evsettle:" + season + ":" + t.id + ":" + r.uid }, { grant: true });
+        const pid = "evsettle:" + season + ":" + t.id + ":" + r.uid;
+        const g = await doAction(env, { id: r.uid, name: "Игрок" }, "grant", { item: items[i], pid }, { grant: true });
+        const lootKey = "loot:" + pid, notifyKey = lootKey + ":notify";
+        const details = await kvGet(env, lootKey) || lootDetails(g.res);
+        await kvSet(env, lootKey, details);
+        if (!(await kvGet(env, notifyKey))) {
+          const label = i === 0 ? "Мифический" : i === 1 ? "Легендарный" : "Королевский";
+          try { await notify(env, r.uid, "🏆 Награда сезона «Поколение Эпох» — клан «" + t.name + "» занял " + (i + 1) +
+            " место.\n\n" + label + " сундук открыт. Что выпало:\n" + details, "🏛 Открыть ивент", PAGE + "?conq=1"); } catch (e) {}
+          await kvSet(env, notifyKey, 1);
+        }
       } catch (e) { clanOk = false; console.error("evsettle grant", t.id, r.uid, e); }
     }
     if (!clanOk || !rows.length) { allOk = false; continue; }
@@ -6806,8 +6837,17 @@ async function evSegReward(env, season, key, seg, isClan) {
   let ok = true;
   for (const uid of ids) {
     try {
-      await doAction(env, { id: uid, name: "Игрок" }, "grant",
-        { item: "small", pid: "evseg:" + season + ":" + key + ":" + seg + ":" + uid }, { grant: true });
+      const pid = "evseg:" + season + ":" + key + ":" + seg + ":" + uid;
+      const g = await doAction(env, { id: uid, name: "Игрок" }, "grant",
+        { item: "small", pid }, { grant: true });
+      const nk = "evseg-notify:" + season + ":" + key + ":" + seg + ":" + uid;
+      if (!(await kvGet(env, nk))) {
+        const details = await kvGet(env, "loot:" + pid) || lootDetails(g.res);
+        await kvSet(env, "loot:" + pid, details);
+        await notify(env, uid, "🎁 Сегмент «" + (seg + 1) + "/4» закрыт!\n\nСодержимое Малого сундука:\n" +
+          details, "🏛 Открыть ивент", PAGE + "?conq=1");
+        await kvSet(env, nk, 1);
+      }
     } catch (e) { ok = false; console.error("evseg grant", uid, e); }
   }
   return ok && ids.length > 0;
@@ -6822,10 +6862,14 @@ async function evClanGift(env, season, clan, seg, item, pid, label) {
   let ok = true;
   for (const r of rows) {
     try {
-      await doAction(env, { id: r.uid, name: "Игрок" }, "grant", { item, pid: pid + ":" + r.uid }, { grant: true });
-      const nk = pid + ":notify:" + r.uid;
+      const grantPid = pid + ":" + r.uid;
+      const g = await doAction(env, { id: r.uid, name: "Игрок" }, "grant", { item, pid: grantPid }, { grant: true });
+      const nk = pid + ":notify:" + r.uid, detailKey = "loot:" + grantPid;
       if (!(await kvGet(env, nk))) {
-        try { await notify(env, r.uid, "🏆 Твой клан первым достиг рубежа в «Поколении Эпох»! Награда: " + label, "🏛 Открыть", null); } catch (e) {}
+        const details = await kvGet(env, detailKey) || lootDetails(g.res);
+        await kvSet(env, detailKey, details);
+        try { await notify(env, r.uid, "🏆 Твой клан первым достиг рубежа в «Поколении Эпох»!\n\n" +
+          label + "\nСодержимое:\n" + details, "🏛 Открыть ивент", PAGE + "?conq=1"); } catch (e) {}
         await kvSet(env, nk, 1);
       }
     } catch (e) { ok = false; console.error("evclan grant", r.uid, e); }

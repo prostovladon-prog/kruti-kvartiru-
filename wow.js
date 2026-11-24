@@ -494,16 +494,33 @@ async function openClan(){setTab("clan");const b=$("clan-body");if(!ONLINE){b.in
 async function loadClan(){const r=await act("clan_info");if(r){clData=r;drawClan()}}
 const clLeft=ms=>{const h=Math.max(0,Math.floor(ms/3600e3));return h>=24?Math.floor(h/24)+" д "+(h%24)+" ч":h+" ч"};
 function drawClan(){const b=$("clan-body");if(!b||$("sec-clan").hidden||!clData)return;const D=clData;
+  const loot='<div class="box cloot"><div class="rowb"><h3>🎁 Клановые награды</h3><span class="cln">состав и условия</span></div>'+
+    '<div class="clr"><i>👹</i><span><b>Сундук недельного босса</b><small>Всем, кто нанёс боссу урон хотя бы раз за неделю</small></span><b>+'+CLAN.chest.sp+' 🎴 · +'+fmtN(CLAN.chest.cash)+' 🪙</b></div>'+
+    '<details><summary>Война кланов выходных · топ-3</summary>'+
+      '<p class="cln">🥇 1-е место — Легендарный сундук: '+SHOP.legend.d.join(' · ')+'</p>'+
+      '<p class="cln">🥈 2-е место — Королевский сундук: '+SHOP.royal.d.join(' · ')+'</p>'+
+      '<p class="cln">🥉 3-е место — Сундук воина: '+SHOP.warrior.d.join(' · ')+'</p>'+
+      '<p class="cln">Сундук получает каждый участник клана-призёра; награда открывается автоматически.</p>'+
+    '</details>'+
+    '<details><summary>Сундуки события «Поколение Эпох»</summary>'+
+      '<p class="cln">За закрытый сегмент Стройки вкладчики получают Малый сундук: '+SHOP.small.d.join(' · ')+'</p>'+
+      '<p class="cln">Первый клан, закрывший сегмент, получает каждому его вкладчику Легендарный сундук: '+SHOP.legend.d.join(' · ')+'</p>'+
+      '<p class="cln">Первый клан, завершивший все 4 сегмента, получает каждому строителю Мифический сундук: '+SHOP.mythic.d.join(' · ')+'</p>'+
+      '<p class="cln">В финале сезона топ-3 кланов: 🥇 Мифический · 🥈 Легендарный · 🥉 Королевский сундук участникам, внесшим вклад.</p>'+
+    '</details>'+
+    '<div class="clr"><i>🏆</i><span><b>Топ кланов недели</b><small>Каждому участнику клана-призёра</small></span><b>🥇 +'+CLAN.week[0]+' · 🥈 +'+CLAN.week[1]+' · 🥉 +'+CLAN.week[2]+' 🎴</b></div>'+
+    '<details><summary>Покупной «Сундук клана» · '+SHOP.clanb.stars+' ⭐</summary><p class="cln">Покупатель получает '+SHOP.clanb.cards+' случайных карточек без гарантированной редкости; каждый соклановец — +5 прокруток. Это отдельная покупка.</p></details>'+
+    '<p class="cln">Сундук босса фиксированный: прокрутки и монеты. Карточные сундуки выдаются и открываются автоматически по своим шансам.</p></div>';
   const top='<div class="box cltop"><h3>🏆 Кланы недели</h3><p class="cln">Считается урон по боссам за неделю. В понедельник топ-3 получают награды: каждому участнику 🥇 +'+CLAN.week[0]+', 🥈 +'+CLAN.week[1]+', 🥉 +'+CLAN.week[2]+' прокруток</p>'+
    (D.top.length?D.top.map((c,i)=>'<div class="clr'+(D.clan&&c.id===D.clan.id?" me":"")+'"><i>'+(i<3?["🥇","🥈","🥉"][i]:i+1)+'</i><span class="clnm"></span><small>'+c.n+'/'+CLAN.max+'</small><b>'+fmtN(c.total)+'</b>'+(!D.clan&&c.n<CLAN.max?'<button type="button" class="mini2" data-join="'+c.id+'">Вступить</button>':"")+'</div>').join(""):'<p class="cln">Кланов пока нет — создай первый!</p>')+'</div>';
   if(!D.clan){b.innerHTML='<div class="box clnew"><h3>🛡 Кланы</h3><p>Собери команду до '+CLAN.max+' человек. Каждую неделю — общий босс: все бьют его своими воинами (3 удара в день). Победили босса — каждому, кто бил, сундук: <b>+'+CLAN.chest.sp+' прокруток и +'+CLAN.chest.cash+' 🪙</b>, а следующий босс сильнее и снова с сундуком.</p>'+
-     '<div class="clform"><input id="cl-name" maxlength="16" placeholder="Название клана"><button type="button" class="craftbtn" id="cl-make">Создать · '+fmtN(CLAN.cost)+' 🪙</button></div><p class="cln">Или вступи в клан из таблицы ниже</p></div>'+top}
+      '<div class="clform"><input id="cl-name" maxlength="16" placeholder="Название клана"><button type="button" class="craftbtn" id="cl-make">Создать · '+fmtN(CLAN.cost)+' 🪙</button></div><p class="cln">Или вступи в клан из таблицы ниже</p></div>'+top+loot}
    else{const C=D.clan,B=D.boss,pct=Math.max(0,Math.min(100,B.dmg/B.hp*100)),inv="https://t.me/VoinyEpohBot?startapp=g_"+C.id+"_"+S.uid;
     b.innerHTML='<div class="box clhead"><div class="clem">'+portrait(C.h,null)+'</div><div><h3 class="clnm0"></h3><small>'+C.members.length+'/'+CLAN.max+' участников'+(C.place?' · '+C.place+' место за неделю':"")+'</small></div></div>'+
      '<div class="box clboss"><div class="clbh"><b>👹 '+B.name+' · ур. '+B.lvl+'</b><small>до конца недели '+clLeft(D.weekEnd-NOW())+'</small></div>'+clBossHTML(B)+
      '<div class="clhp"><i style="width:'+(100-pct)+'%"></i><span>'+fmtN(B.hp-B.dmg)+' / '+fmtN(B.hp)+'</span></div><p class="cln">Повержено боссов на этой неделе: <b>'+B.kills+'</b> · урон клана: <b>'+fmtN(B.total)+'</b></p>'+
      '<button type="button" class="craftbtn clhit" id="cl-hit"'+(D.left<=0?" disabled":"")+'>'+(D.left>0?"⚔️ Ударить ("+D.left+" из "+CLAN.hits+" сегодня)":"Удары на сегодня закончились — завтра снова")+'</button><p class="cln">Бьют 3 твоих самых сильных воина (по атаке). Закаляй карточки — урон растёт</p></div>'+
-     '<div class="box clmem"><div class="rowb"><h3>👥 Участники</h3><button type="button" class="mini2" id="cl-inv">Позвать друга</button></div>'+C.members.map((m,i)=>'<div class="clr"><i>'+(i+1)+'</i><span class="clnm"></span><b>'+fmtN(m.dmg)+'</b></div>').join("")+'<button type="button" class="ghost" id="cl-leave" style="margin-top:10px;width:100%">Выйти из клана</button></div>'+top;
+      '<div class="box clmem"><div class="rowb"><h3>👥 Участники</h3><button type="button" class="mini2" id="cl-inv">Позвать друга</button></div>'+C.members.map((m,i)=>'<div class="clr"><i>'+(i+1)+'</i><span class="clnm"></span><b>'+fmtN(m.dmg)+'</b></div>').join("")+'<button type="button" class="ghost" id="cl-leave" style="margin-top:10px;width:100%">Выйти из клана</button></div>'+loot+top;
     b.querySelector(".clnm0").textContent=(C.owner===S.uid?"👑 ":"")+C.name;b.querySelectorAll(".clmem .clnm").forEach((e,i)=>e.textContent=(C.members[i].vip?"👑 ":"")+C.members[i].name+(C.members[i].uid===S.uid?" (ты)":""));
     $("cl-inv").onclick=()=>{const t="Вступай в мой клан «"+C.name+"» в «Воинах Эпох» — вместе бьём босса за сундуки!";try{tg.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(inv)+"&text="+encodeURIComponent(t))}catch(e){try{navigator.clipboard.writeText(inv);toast("Ссылка скопирована")}catch(x){}}};
     $("cl-leave").onclick=async()=>{if(!confirmLeave())return;const r=await act("clan_leave");if(r){toast("Ты вышел из клана");clData=null;loadClan()}}}
