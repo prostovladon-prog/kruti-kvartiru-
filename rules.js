@@ -1752,4 +1752,170 @@ function evNodeDamage(cards,hp,dealtToday,dragonBonus,elem){
 function evKvorumOk(n){return (n||0)>=EV.kvorum}
 function evNodeReward(n){return EV.rewards.chest.includes(n)?"chest":EV.rewards.epic.includes(n)?"epic":n===EV.rewards.final?"card":null}
 
+/* ===================== 🏰 БАШНЯ ИСПЫТАНИЙ =====================
+   Забег на 5 этажей, отряд из 3 настоящих карт. Карты не теряются, монет нет.
+   Состояние живёт в st.tower, поэтому отдельная таблица не нужна. */
+const TOWER={
+  ver:1,
+  free:2, paidMax:3, keeper:6,
+  floors:[
+    {n:"Дозор",e:2000},
+    {n:"Стража",e:2550},
+    {n:"Печать",e:3150,er:6500},
+    {n:"Бездна",e:3500},
+    {n:"Владыка",e:4250,er:9000}
+  ],
+  rew:[
+    {sh:5,xp:10},
+    {sh:8,xp:15},
+    {sh:8,sp:1,xp:20,risk:{sh:12,sp:2,xp:30}},
+    {sh:14,xp:25},
+    {sh:20,sp:4,xp:40,sig:1,card:.35,risk:{sh:30,sp:6,xp:50,sig:2,card:.55}}
+  ],
+  shop:{
+    keeper:{n:"Хранитель Башни",ic:"🛡",cost:6,d:"легендарная карта"},
+    frame:{n:"Рамка «Башня»",ic:"🖼",cost:5,d:"рамка профиля"},
+    title:{n:"Титул «Покоритель Башни»",ic:"🏷",cost:8,d:"титул в профиле"},
+    chest:{n:"Сундук Башни",ic:"🎁",cost:2,d:"прокрутки и осколки"}
+  },
+  fin:[1,1.02,1.05,1.10,1.05,1.10,1.10,1.05,1.10]
+};
+FRAMES.tower={k:"Башня",cost:0,only:"tower",bg:"linear-gradient(135deg,#ffd60a,#c4100a 45%,#3a1a8a)"};
+TITLES.tower={n:"Покоритель Башни",ic:"🏰",price:0,ex:1};
+function towerOf(st,now){
+  if(!st.tower||typeof st.tower!=="object")st.tower={};
+  const t=st.tower,wk=mskWeek(now),d=mskDay(now);
+  if(t.wk!==wk){t.wk=wk;t.wBest=0;t.wSig=0;t.wRuns=0;t.wAt=0;t.run=null;t.tour=null}
+  const vip=(st.vipUntil||0)>now||(t.passUntil||0)>now;
+  if(t.d!==d){t.d=d;t.free=TOWER.free+(vip?1:0);t.paid=0}
+  if(t.free==null)t.free=TOWER.free+(vip?1:0);
+  if(t.paid==null)t.paid=0;
+  if(t.keys==null)t.keys=0;
+  if(t.sig==null)t.sig=0;
+  if(t.wBest==null)t.wBest=0;
+  if(t.wSig==null)t.wSig=0;
+  if(t.wRuns==null)t.wRuns=0;
+  if(t.wAt==null)t.wAt=0;
+  if(!t.shop||typeof t.shop!=="object")t.shop={};
+  if(!Array.isArray(t.hist))t.hist=[];
+  return t;
+}
+function towerCardPow(c){
+  if(!c||!HEROES[c.h])return 0;
+  let s=0;for(let i=0;i<5;i++)s+=eff(c,i);
+  return Math.round(s*(TOWER.fin[c.f]||1.05));
+}
+function towerSquadPow(squad){
+  let p=0;for(const c of squad||[])p+=towerCardPow(c);return p;
+}
+function towerShards(st,ctx,n){
+  const els=["f","w","e","a"];let left=Math.max(0,n|0),got=0;
+  for(let i=0;i<4&&left>0;i++){
+    const q=i===3?left:Math.floor((n|0)/4);
+    if(q>0){got+=gemShard(st,ctx,els[i],q);left-=q}
+  }
+  return got;
+}
+function towerView(st,now){
+  const t=towerOf(st,now);
+  return {
+    on:1,wk:t.wk,day:t.d,free:t.free|0,paid:t.paid|0,paidMax:TOWER.paidMax,
+    keys:t.keys|0,sig:t.sig|0,pass:(t.passUntil||0)>now?1:0,passUntil:t.passUntil||0,
+    wBest:t.wBest|0,wSig:t.wSig|0,wRuns:t.wRuns|0,wAt:t.wAt||0,
+    run:t.run?{n:t.run.n|0,power:t.run.power|0,squad:t.run.squad,got:t.run.got||{}}:null,
+    shop:t.shop,tour:t.tour||null,
+    shopDef:Object.keys(TOWER.shop).map(k=>Object.assign({k},TOWER.shop[k])),
+    floors:TOWER.floors.map((f,i)=>({n:i+1,name:f.n,e:f.e,er:f.er||0}))
+  };
+}
+ACTIONS.tower_start=function(G){
+  const {st,ctx,p}=G,t=towerOf(st,ctx.now);
+  if(t.run)fail("Забег уже идёт — сначала закончи его");
+  const ids=Array.isArray(p.ids)?p.ids.slice(0,3).map(x=>{const n=+x;return Number.isFinite(n)&&String(n)===String(x)?n:x}):[];
+  if(ids.length!==3||new Set(ids).size!==3)fail("Выбери 3 разные карты");
+  const squad=ids.map(id=>{const c=freeCard(G,id);if(c.part)fail("Половинка не может идти в Башню. Собери целого воина");return snap(c)});
+  const power=towerSquadPow(squad);
+  if(!(power>0))fail("Пустой отряд");
+  if(t.free>0){t.free--}
+  else if(t.keys>0&&t.paid<TOWER.paidMax){t.keys--;t.paid++}
+  else if(t.paid<TOWER.paidMax)fail("Попытки на сегодня закончились. Купи Ключ Башни");
+  else fail("На сегодня всё: 3 платных забега уже использованы");
+  t.wRuns=(t.wRuns||0)+1;
+  t.run={n:1,squad,power,got:{sh:0,sp:0,xp:0,sig:0,card:0},started:ctx.now};
+  return {run:towerView(st,ctx.now).run,free:t.free,paid:t.paid,keys:t.keys};
+};
+ACTIONS.tower_fight=function(G){
+  const {st,ctx,p}=G,t=towerOf(st,ctx.now),r=t.run;
+  if(!r)fail("Нет активного забега");
+  const n=r.n|0;if(n<1||n>5)fail("Этаж уже пройден");
+  const risk=!!p.risk;
+  if(risk&&n!==3&&n!==5)fail("Рисковый путь есть только на 3 и 5 этаже");
+  const F=TOWER.floors[n-1],enemy=Math.round(risk?F.er:F.e);
+  const base=r.power/(r.power+enemy);
+  const chance=Math.max(.08,Math.min(.94,risk?base*.92:base));
+  const win=Math.random()<chance;
+  const R=TOWER.rew[n-1],rr=risk?R.risk:R;
+  const out={n,win,chance:Math.round(chance*1000)/1000,enemy,risk,got:{}};
+  if(win){
+    const sh=towerShards(st,ctx,rr.sh);out.got.sh=sh;r.got.sh=(r.got.sh||0)+sh;
+    if(rr.sp){st.spins=(st.spins||0)+rr.sp;out.got.sp=rr.sp;r.got.sp=(r.got.sp||0)+rr.sp}
+    if(rr.xp){for(const sc of r.squad){const c=G.cards.find(x=>x.id===sc.id);if(c)addXp(ctx,c,rr.xp)}out.got.xp=rr.xp;r.got.xp=(r.got.xp||0)+rr.xp}
+    if(rr.sig){t.sig=(t.sig||0)+rr.sig;t.wSig=(t.wSig||0)+rr.sig;out.got.sig=rr.sig;r.got.sig=(r.got.sig||0)+rr.sig}
+    if(rr.card){
+      const mult=Math.min(1,Math.max(.35,r.power/9000));
+      if(Math.random()<rr.card*mult){
+        try{const c=rollCard(ctx,false);c.how="tower";addCard(G,c);out.card=c;out.got.card=1;r.got.card=(r.got.card||0)+1}
+        catch(e){st.spins=(st.spins||0)+5;out.note="Коллекция полна — вместо карты 5 прокруток"}
+      }
+    }
+    if(n>t.wBest){t.wBest=n;t.wAt=ctx.now}
+    if(n>=5){t.run=null;out.done=1;out.end={win:1,best:5}}
+    else r.n=n+1;
+  }else{
+    t.wBest=Math.max(t.wBest||0,n-1);
+    t.run=null;out.done=1;out.lost=1;out.end={win:0,best:Math.max(0,n-1)};
+  }
+  out.run=towerView(st,ctx.now).run;out.sig=t.sig;out.wBest=t.wBest;out.free=t.free;out.keys=t.keys;
+  if(out.done)t.hist.push({t:ctx.now,win:win?1:0,best:out.end.best,got:r.got});t.hist=t.hist.slice(-20);
+  return out;
+};
+ACTIONS.tower_shop=function(G){
+  const {st,ctx,p}=G,t=towerOf(st,ctx.now),k=String(p.item||"");
+  const I=TOWER.shop[k];if(!I)fail("Нет такого товара");
+  if(k==="keeper"&&t.shop.keeper)fail("Хранитель Башни уже куплен");
+  if(k==="keeper"&&G.cards.length>=capOf(st))fail("Коллекция заполнена: освободи место для карты Хранителя");
+  if(k==="frame"&&(st.frames||[]).includes("tower"))fail("Рамка «Башня» уже есть");
+  if(k==="title"&&(st.titles||[]).includes("tower"))fail("Титул уже есть");
+  if((t.sig|0)<I.cost)fail("Не хватает печатей: нужно "+I.cost+" 🏅");
+  t.sig=(t.sig||0)-I.cost;
+  let out={item:k,cost:I.cost};
+  if(k==="keeper"){
+    const c=rollTier(ctx,3);c.how="tower_keeper";c.cust=1;addCard(G,c);
+    t.shop.keeper=1;out.card=c;
+  }else if(k==="frame"){
+    (st.frames||(st.frames=[])).push("tower");out.frame="tower";
+  }else if(k==="title"){
+    (st.titles||(st.titles=[])).push("tower");out.title="tower";
+  }else{
+    st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;out.sp=12;out.guar=1;
+  }
+  out.sig=t.sig;out.shop=t.shop;
+  return out;
+};
+ACTIONS.tower_grant=function(G){
+  const {st,ctx,p}=G;if(!ctx.grant)fail("Нет доступа");
+  const t=towerOf(st,ctx.now),kind=String(p.kind||"");
+  if(kind==="tower_key"){t.keys=(t.keys||0)+1;return {keys:t.keys}}
+  if(kind==="tower_set"){
+    t.keys=(t.keys||0)+2;const c=rollTier(ctx,2);c.how="tower_set";addCard(G,c);
+    return {keys:t.keys,card:c};
+  }
+  if(kind==="tower_pass"){
+    t.passUntil=Math.max(ctx.now,t.passUntil||0)+7*864e5;
+    if(t.free<3)t.free=(t.free||0)+1;
+    return {passUntil:t.passUntil,free:t.free};
+  }
+  fail("Нет такого товара");
+};
+
 if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

@@ -478,7 +478,34 @@ async function stateFor(env,me){
   S.quiz=null;
   S.community={required:!(S.subGot2&&S.chatGot),channel:!!S.subGot2,chat:!!S.chatGot};
   S.recruit=await recruitSummary(env,me.id);
+  try{S.tower=towerView(S,Date.now())}catch(e){S.tower=null}
   return S;
+}
+/* ---------- 🏰 Башня: недельный топ и фиксация топ-6 ---------- */
+async function towerTopRows(env,wk,limit){
+  const rows=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,json_extract(state,'$.tower.wBest') AS best,json_extract(state,'$.tower.wSig') AS sig,json_extract(state,'$.tower.wRuns') AS runs,json_extract(state,'$.tower.wAt') AS at FROM users WHERE json_extract(state,'$.tower.wk')=? AND json_extract(state,'$.tower.wBest')>0 ORDER BY best DESC,sig DESC,runs ASC,at ASC LIMIT ?").bind(wk,limit|0).all()).results;
+  return rows.map((r,i)=>({place:i+1,uid:r.id,name:r.name||"Игрок",best:r.best|0,sig:r.sig|0,runs:r.runs|0,at:r.at|0}));
+}
+async function towerTop(env,me){
+  const wk=mskWeek(Date.now());
+  const all=await cached("tower_top:"+wk,20e3,()=>towerTopRows(env,wk,50));
+  return {wk,top:all.slice(0,10),me:all.find(x=>x.uid===me.id)||null,total:all.length};
+}
+let towerBusy=0;
+async function towerTick(env){
+  if(towerBusy)return;
+  const now=Date.now(),d=new Date(now+TZ),dow=d.getUTCDay(),h=d.getUTCHours();
+  if(dow!==0||h<20)return;   // воскресенье, после 20:00 Minsk
+  const wk=mskWeek(now),key="tower_fix:"+wk;
+  if(await kvGet(env,key))return;
+  towerBusy=1;
+  try{
+    await kvSet(env,key,{t:now});
+    const top=await towerTopRows(env,wk,6);
+    await kvSet(env,"tower_tour:"+wk,{top,t:now});
+    for(const p of top)try{await notify(env,p.uid,"🏰 Ты в топ-6 Башни!\n\nТурнир сегодня в 21:00 (Minsk). Зайди в «Башню → Турнир» и нажми «Я готов». Если не готов к старту +60 секунд — авто-поражение.","🏰 Турнир",PAGE+"?tower=1")}catch(e){}
+    if(top.length)for(const a of ADMINS)try{await notify(env,a,"🏰 Башня: топ-6 недели зафиксирован.\n\n"+top.map((p,i)=>(i+1)+". "+p.name+" — этаж "+p.best+", 🏅 "+p.sig).join("\n"),"🏰 Турнир",PAGE+"?tower=1")}catch(e){}
+  }finally{towerBusy=0}
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
 function fixIds(o,cards,seen=new Set()){if(!o||typeof o!=="object"||seen.has(o))return;seen.add(o);
@@ -2503,6 +2530,9 @@ async function dcApi(env,me,a,p){await xhLoad(env,1);
   fail("Неизвестное действие")}
 const GAME_GIFT={min:1};
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
+  if(item==="tower_key")return {item,stars:199,title:"Ключ Башни",desc:"+1 забег в Башне испытаний",data:{}};
+  if(item==="tower_set")return {item,stars:499,title:"Набор Стража",desc:"+2 забега в Башне и карточка",data:{}};
+  if(item==="tower_pass")return {item,stars:899,title:"Пропуск Башни · 7 дней",desc:"+1 бесплатный забег в день и +20% осколков",data:{}};
   if(I){if(I.noBuy)fail("Это не продаётся — сундук даётся за приглашённых друзей");if(I.night){const hh=new Date(Date.now()+TZ).getUTCHours();if(hh>=2&&hh<22)fail("Ночной сундук продаётся только с 22:00 до 02:00");}if(I.until&&Date.now()>I.until)fail("Продажа закончилась");
     if(I.once){const u=await env.DB.prepare("SELECT state FROM users WHERE id=?").bind(uid).first();let st={};try{st=JSON.parse((u&&u.state)||"{}")}catch(e){}
       if(st.newbie||await env.DB.prepare("SELECT 1 FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND id<>?").bind(uid,item,except||0).first())fail("Подарок новичку уже получен")}
@@ -2638,6 +2668,16 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
     return;
   }
   const d=JSON.parse(P.p||"{}"),I=SHOP[P.item];let res,msg="";
+  if(String(P.item).startsWith("tower_")){
+    const u=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();
+    const r=await doAction(env,{id:P.uid,name:(u&&u.n)||"Игрок"},"tower_grant",{kind:P.item},{grant:true});
+    const done=await env.DB.prepare("UPDATE payments SET status='done',res=? WHERE id=? AND status='paid'").bind(JSON.stringify(r.res||{}),P.id).run();
+    if(done.meta.changes===1){
+      const txt=P.item==="tower_key"?"🔑 Ключ Башни куплен: +1 забег.":P.item==="tower_set"?"🛡 Набор Стража куплен: +2 забега и карта.":"👑 Пропуск Башни на 7 дней активирован.";
+      try{await notify(env,P.uid,txt,"🏰 Башня",PAGE+"?tower=1")}catch(e){}
+    }
+    return;
+  }
   try{
     if(I&&I.manual){res={manual:1};msg="👑 Ты купил «Карточку твоей мечты»! Это была шутка… но мы держим слово. Напиши @voinyepohbotadmn: какого героя нарисовать и какой номер поставить. Карточка будет только у тебя.";
       const u=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();
@@ -3872,7 +3912,7 @@ let eveOk=0;async function eveTick(env){const now=Date.now();if(now<EVE.at||now>
 let sunOk=0;async function sunTick(env){const now=Date.now();if(now<SUN.at||now>SUN.until)return;
   if(!sunOk){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,20,5000,30,?,?,0,0,0,0) ON CONFLICT(code) DO NOTHING").bind(SUN.code,SUN.codeUntil,now).run();sunOk=1}
   await blastRun(env,SUN)}
-async function koloTick(env){const n=Date.now();try{await funSeed(env)}catch(e){console.error("fun",e)}try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await cdvTick(env)}catch(e){console.error("cdv",e)}try{await aktTick(env)}catch(e){console.error("akt",e)}try{await cwwTick(env)}catch(e){console.error("cww",e)}try{await folWeekTick(env)}catch(e){console.error("folwk",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
+async function koloTick(env){const n=Date.now();try{await funSeed(env)}catch(e){console.error("fun",e)}try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await cdvTick(env)}catch(e){console.error("cdv",e)}try{await aktTick(env)}catch(e){console.error("akt",e)}try{await cwwTick(env)}catch(e){console.error("cww",e)}try{await towerTick(env)}catch(e){console.error("tower",e)}try{await folWeekTick(env)}catch(e){console.error("folwk",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
 /* 🌙 НОЧНИК (13.11): +200 ⭐ к пополнению от 150 ⭐ — только первым 10 пополнившим (BCAP), потом промокод выключается */
 /* 🎉 17.11 развлекательные коды: 2 поста «30 реакций → промокод» (код публикует админ) + охота: код спрятан во вкладке игры, первые 10 */
 const FUN=[{code:"РЕАКЦИЯ",sp:10,cash:3000,mx:50},{code:"ОГОНЁК30",sp:30,cash:3000,mx:50}],FUN_UNTIL=Date.UTC(2026,10,17,20,59);
@@ -5380,6 +5420,7 @@ async function handle(req,env){{
       if(a==="ev_claim"){const r=await evClaim(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(a==="ev_shop"){const r=await evShop(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(a==="ev_admin"){const r=await evAdmin(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="tower_top"){const r=await towerTop(env,me);return J({ok:true,res:r})}
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
