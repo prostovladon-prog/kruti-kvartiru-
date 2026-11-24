@@ -561,8 +561,8 @@ function cqBuySheet(after){const V=cqView(),ru=campView().runes;if(V.b>=CONQ.buy
    '<button type="button" class="craftbtn" data-buy="1"'+(ru<V.price?" disabled":"")+'>'+(ru<V.price?"Нужно "+fmtN(V.price)+" 💠 (у тебя "+fmtN(ru)+")":"Купить за "+fmtN(V.price)+" 💠")+'</button>'+(ru<V.price?'<button type="button" class="ghost" data-camp="1" style="width:100%;margin-top:8px">🎯 В лагерь за рунами</button>':"")+'<button type="button" class="ghost" data-pass="1" style="width:100%;margin-top:8px">📜 Задания дня</button>',
    btn=>{if(btn.dataset.camp){openCamp();return}if(btn.dataset.pass){goSub("pass");return}if(btn.dataset.buy){(async()=>{const r=await act("conq_buy");if(!r)return;sfx.coin();hap("medium");toast("🔥 +1 факел! Осталось "+r.left);cqKey="";renderAll();if(after)after()})();return}})}
 function cqEra(k){return ERAS.find(e=>e.k===k)}
-function openConq(){const V=cqView();if(cqCh==null)cqCh=Math.min(CONQ_CH.length-1,Math.floor(Math.min(V.c,conqN()-1)/CONQ.per));cqKey="";setTab("conq")}
-function drawConq(){const b=$("conq-body");if(!b||$("sec-conq").hidden||!S)return;const V=cqView(),C=CONQ_CH[cqCh],k=[cqCh,V.c,JSON.stringify(V.s),V.left].join("|");if(k===cqKey)return;cqKey=k;
+function openConq(){if(typeof window.__EV_OPEN__==="function")return window.__EV_OPEN__();const V=cqView();if(cqCh==null)cqCh=Math.min(CONQ_CH.length-1,Math.floor(Math.min(V.c,conqN()-1)/CONQ.per));cqKey="";setTab("conq")}
+function drawConq(){const b=$("conq-body");if(!b||$("sec-conq").hidden||$("sec-conq").dataset.epochEvent||!S)return;const V=cqView(),C=CONQ_CH[cqCh],k=[cqCh,V.c,JSON.stringify(V.s),V.left].join("|");if(k===cqKey)return;cqKey=k;
   const W=cqEra(C.weak),stars=Object.values(V.s).reduce((a,x)=>a+x,0),chDone=Math.max(0,Math.min(CONQ.per,V.c-cqCh*CONQ.per));
   const chips=CONQ_CH.map((X,i)=>{const lock=V.c<i*CONQ.per,d=Math.max(0,Math.min(CONQ.per,V.c-i*CONQ.per));return '<button type="button" class="cqc'+(i===cqCh?" on":"")+(lock?" lock":"")+'" data-ch="'+i+'"><i>'+(lock?"🔒":cqEra(X.k).ic)+'</i><span>'+X.n+'</span><small>'+d+'/'+CONQ.per+'</small></button>'}).join("");
   const H=CONQ.per*CQ_GAP+70,pos=i=>({x:CQ_X[i],y:H-50-i*CQ_GAP});

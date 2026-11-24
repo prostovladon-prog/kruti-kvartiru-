@@ -43,28 +43,16 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = n => Math.round(+n || 0).toLocaleString('ru-RU').replace(/\u00a0/g, ' ');
 
-  const legacyOpen = window.openConq || null;   // старое Покорение — если сервер ещё не обновлён
   let tab = 'build';
   let data = null;
   let busy = false;
   const sel = new Set();
 
-  const EV_TIMEOUT = 6000;
-  const withTimeout = (p, ms) => Promise.race([
-    p,
-    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
-  ]);
-
-  function cached() {
-    try { const s = localStorage.getItem('ev_cache'); return s ? JSON.parse(s) : null; } catch (e) { return null; }
-  }
-
   async function load() {
-    const r = await withTimeout(act('ev_state'), EV_TIMEOUT);
-    if (!r || !r.res) throw new Error('не удалось загрузить ивент');
-    data = r.res;
-    window.__EV_S__ = r.S || window.__EV_S__;
-    try { localStorage.setItem('ev_cache', JSON.stringify(data)); } catch (e) {}
+    const result = await act('ev_state', {}, 12000);
+    if (!result || !Array.isArray(result.segs) || !Array.isArray(result.nodes))
+      throw new Error('Не удалось загрузить «Поколение Эпох».');
+    data = result;
   }
 
   function head() {
@@ -110,8 +98,8 @@
 
   function marchTab() {
     const d = data;
-    const S = window.__EV_S__ || {};
-    const cards = (S.cards || []).filter(c => !c.away && !c.list_price).sort((a, b) => (b.v || 0) - (a.v || 0)).slice(0, 12);
+    const player = data.demo ? {} : (S || {});
+    const cards = (player.cards || []).filter(c => !c.away && !c.list_price).sort((a, b) => (b.v || 0) - (a.v || 0)).slice(0, 12);
     const list = d.nodes.map(n => {
       const p = Math.min(100, Math.round(n.dmg / n.hp * 100));
       const cls = n.closed ? 'done' : (p > 0 ? 'now' : '');
@@ -147,16 +135,15 @@
   function paint() {
     const sec = document.getElementById('sec-conq');
     const body = document.getElementById('conq-body');
-    if (!sec || !body) return;
-    sec.hidden = false;
+    if (!sec || sec.hidden || !body) return;
     body.innerHTML = `<div id="ev-wrap">${head()}${tab === 'build' ? buildTab() : tab === 'march' ? marchTab() : shopTab()}</div>`;
     bind();
     paintCards();
   }
 
   function paintCards() {
-    const S = window.__EV_S__ || {};
-    (S.cards || []).forEach(c => {
+    const player = data.demo ? {} : (S || {});
+    (player.cards || []).forEach(c => {
       const img = document.querySelector(`img[data-cid="${c.id}"]`);
       if (!img || img.dataset.done) return;
       try {
@@ -171,6 +158,11 @@
 
   function bind() {
     document.querySelectorAll('.ev-tab').forEach(el => el.onclick = () => { tab = el.dataset.t; paint(); });
+    if (data.demo) {
+      document.querySelectorAll('#ev-wrap button:not(.ev-tab)').forEach(button => { button.disabled = true; });
+      bindHelp();
+      return;
+    }
     const send = document.getElementById('ev-send');
     if (send) send.onclick = async () => {
       if (busy) return; busy = true; send.textContent = '...';
@@ -178,7 +170,7 @@
         const coins = Math.max(0, Math.floor(+document.getElementById('ev-coins').value || 0));
         const shards = Math.max(0, Math.floor(+document.getElementById('ev-shards').value || 0));
         const r = await act('ev_contrib', { coins, shards });
-        if (r) { await load(); paint(); if (r.res && r.res.added) toast('+' + r.res.added + ' очков'); }
+        if (r) { await load(); paint(); if (r.added) toast('+' + r.added + ' очков'); }
       } catch (e) { toast(String(e.message || e)); }
       busy = false; if (document.getElementById('ev-send')) document.getElementById('ev-send').textContent = 'ВНЕСТИ ВКЛАД';
     };
@@ -199,7 +191,7 @@
       if (!node) return toast('Все узлы закрыты');
       hit.textContent = '...';
       const r = await act('ev_hit', { n: node, cards: [...sel] });
-      if (r) { await load(); paint(); toast('Урон: ' + fmt(r.res.dmg)); }
+      if (r) { await load(); paint(); toast('Урон: ' + fmt(r.dmg)); }
       else paint();
     };
     document.querySelectorAll('[data-claim]').forEach(el => el.onclick = async () => {
@@ -255,22 +247,29 @@
     paint();
   }
 
+  let opening = false;
   async function openConq() {
     const sec = document.getElementById('sec-conq');
     const body = document.getElementById('conq-body');
     if (!sec || !body) return;
-    sec.hidden = false;
-    const c0 = cached();
-    if (c0) { data = c0; paint(); bindHelp(); }
-    else body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
-    try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) {
-      if (typeof ONLINE !== 'undefined' && !ONLINE) { demo(); return; }
-      try { if (typeof toast === 'function') toast('Ивент: ' + String((e && e.message) || e || 'ошибка').slice(0, 90) + ' (ev1)'); } catch (e3) {}
-      if (legacyOpen) { try { return legacyOpen(); } catch (e2) {} }
-      body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>';
-    }
+    sec.dataset.epochEvent = '1';
+    setTab('conq');
+    if (!ONLINE) { demo(); return; }
+    if (opening) return;
+    opening = true;
+    body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
+    try {
+      await load();
+      if (sec.hidden) return;
+      paint();
+      try { if (!localStorage.getItem('ev_intro_v1')) intro(); } catch {}
+    } catch (e) {
+      if (sec.hidden) return;
+      body.innerHTML = '<div style="padding:20px;color:#fff">' + esc(e.message) +
+        '<br><button type="button" class="mini2" id="ev-retry">Повторить</button></div>';
+      body.querySelector('#ev-retry').onclick = openConq;
+    } finally { opening = false; }
   }
 
-  window.openConq = openConq;
   window.__EV_OPEN__ = openConq;
 })();
