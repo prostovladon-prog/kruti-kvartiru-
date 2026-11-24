@@ -132,6 +132,23 @@ if (existsSync(path.join(root, 'server/worker.js'))) {
     if (!w.includes(token)) fails.push(`server/worker.js: отсутствует защита/награда ${token}`);
 }
 
+/* ---------- 6. автопост старта и новый постер ---------- */
+if (existsSync(path.join(root, 'server/server.js'))) {
+  const src = read('server/server.js');
+  const image = 'event-assets/card-farm-2026-11-25.png';
+  if (!src.includes(image) || !existsSync(path.join(root, image)))
+    fails.push(`автопост ивента: не найден постер ${image}`);
+  else {
+    const png = readFileSync(path.join(root, image));
+    if (png.toString('hex', 0, 8) !== '89504e470d0a1a0a' || png.readUInt32BE(16) !== 1080 || png.readUInt32BE(20) !== 1350)
+      fails.push('автопост ивента: постер должен быть валидным PNG 1080×1350');
+    else oks.push('автопост ивента: новый постер PNG 1080×1350 на месте');
+  }
+  if (!src.includes('Фарм карт снова доступен') || !src.includes('ev_posted:'))
+    fails.push('автопост ивента: текст о фарме карт или защита от повторной отправки потеряны');
+  else oks.push('автопост ивента: анонс фарма карт и однократная отправка на месте');
+}
+
 /* ---------- итог ---------- */
 for (const s of oks) console.log('✓ ' + s);
 for (const s of warns) console.log('! ' + s);
