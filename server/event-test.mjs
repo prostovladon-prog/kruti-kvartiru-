@@ -1,4 +1,4 @@
-// Серверные тесты ивента «Поколение Эпох» на встроенном SQLite.
+﻿// Серверные тесты ивента «Поколение Эпох» на встроенном SQLite.
 // Запуск: python tools/build_worker.py && node server/event-test.mjs
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
@@ -113,7 +113,7 @@ db.prepare("UPDATE users SET star_bal=0 WHERE id=?").run(ADMIN);
   ok(!p2.ok && /уже куплен/i.test(p2.err || ""), "пасс дважды нельзя", p2.err);
 
   const st = await call(ADMIN, "ev_state");
-  ok(st.res.me.cap === 1700, "пасс поднял лимит до 1700", st.res.me.cap);
+  ok(st.res.me.cap === 1800, "пасс поднял лимит до 1800", st.res.me.cap);
 
   const ch1 = await call(ADMIN, "ev_shop", { item: "chest" });
   ok(ch1.ok && ch1.res.points > 0, "сундук вклада даёт очки", ch1.res);

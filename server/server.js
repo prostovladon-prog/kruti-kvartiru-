@@ -4578,6 +4578,28 @@ async function evContrib(env, me, p) {
     } catch (e) {}
   }
 
+  /* награды наставнику: за первый вклад друга и за его 10 000 вклада */
+  if (u && u.ref) {
+    try {
+      const ref = +u.ref;
+      const fk = "evref:" + season + ":" + me.id;
+      if (!(await kvGet(env, fk))) {
+        await kvSet(env, fk, 1);
+        try { await doAction(env, { id: ref, name: "Наставник" }, "grant", { item: "small", pid: "evref:" + season + ":" + me.id }, { grant: true }); } catch (e) {}
+        try { await notify(env, ref, "🤝 Твой друг начал участвовать в «Поколении Эпох» — тебе Малый сундук!", "🏛 Открыть", null); } catch (e) {}
+      }
+      const tot = (((await env.DB.prepare("SELECT SUM(used) AS s FROM ev_contrib WHERE season=? AND uid=?").bind(season, me.id).first()) || {}).s) || 0;
+      if (tot >= 10000) {
+        const mk = "evref10:" + season + ":" + me.id;
+        if (!(await kvGet(env, mk))) {
+          await kvSet(env, mk, 1);
+          try { await doAction(env, { id: ref, name: "Наставник" }, "grant", { item: "legend", pid: "evref10:" + season + ":" + me.id }, { grant: true }); } catch (e) {}
+          try { await notify(env, ref, "🏆 Твой друг внёс 10 000 очков в «Поколении Эпох» — тебе Легендарный сундук!", "🏛 Открыть", null); } catch (e) {}
+        }
+      }
+    } catch (e) { console.error("evref", e); }
+  }
+
   await env.DB.prepare("INSERT INTO ev_contrib(season,uid,day,used,coins_used,shards_used) VALUES(?,?,?,?,?,?) " +
     "ON CONFLICT(season,uid,day) DO UPDATE SET used=used+excluded.used,coins_used=coins_used+excluded.coins_used," +
     "shards_used=shards_used+excluded.shards_used")
@@ -4709,7 +4731,14 @@ async function evShop(env, me, p) {
     if (r.bought) fail("Пасс уже куплен");
     if (stars < EV.shop.pass) fail("Недостаточно звёзд");
     await pay(EV.shop.pass); await mark("pass", 1, 1).run();
-    return { item, stars: EV.shop.pass, bonus: EV.passBonus };
+    /* пасс даёт ценность сразу: 1000 очков в текущий сегмент и сундук */
+    let pts = 0;
+    try {
+      const sg = await evCurrentSeg(env, season, key, clan);
+      pts = await evAddPoints(env, season, key, sg, 1000, day, !!clan);
+    } catch (e) {}
+    try { await doAction(env, me, "grant", { item: "warrior", pid: "evpass:" + season + ":" + me.id }, { grant: true }); } catch (e) {}
+    return { item, stars: EV.shop.pass, bonus: EV.passBonus, points: pts };
   }
   if (item === "clanpass") {
     if (!clan) fail("Сначала вступи в клан");
@@ -4718,6 +4747,11 @@ async function evShop(env, me, p) {
     if (stars < EV.shop.clanPass) fail("Недостаточно звёзд");
     await pay(EV.shop.clanPass);
     await kvSet(env, "evcpass:" + season + ":" + clan, me.id);
+    try { const sg = await evCurrentSeg(env, season, key, clan); await evAddPoints(env, season, key, sg, 2000, day, true); } catch (e) {}
+    try {
+      const cn = await env.DB.prepare("SELECT name FROM clans WHERE id=?").bind(clan).first();
+      await chanSend(env, { chan: CHANNEL }, { text: "🛡 Клан «" + ((cn && cn.name) || "Клан") + "» купил «Знамя клана»!\n\nВсем участникам — пасс ивента на сезон и +2000 очков в общую копилку.\n\n👉 @VoinyEpohBot" });
+    } catch (e) {}
     try {
       const mem = (await env.DB.prepare("SELECT id FROM users WHERE clan=? AND id<>? LIMIT 40").bind(clan, me.id).all()).results || [];
       const nm = me.nick || me.name || "Игрок";
