@@ -81,7 +81,7 @@
           <div class="ev-note">Награды 50 %. Вступи в клан — прогресс перенесётся наполовину.</div>
         </div>`
       : `<div class="ev-box">
-          <div class="ev-row"><span>Клан «${esc(d.clanName || '—')}»</span><span>${d.clanMembers || 0} участников</span></div>
+          <div class="ev-row"><span>Клан «${esc(d.clanName || '—')}»</span><span>${d.clanMembers || 0} участников · активны ${d.clanActive || 0}</span></div>
           <div class="ev-row" style="margin-top:4px"><span>Клан сегодня</span><span>${fmt(d.todayGiven || 0)} / ${fmt(d.clanCap || 6000)}</span></div>
           <div class="ev-bar"><i style="width:${Math.min(100, Math.round((d.todayGiven || 0) / (d.clanCap || 6000) * 100))}%"></i></div>
           <div class="ev-note">${(d.kvorumCount || 0) >= 5 ? '✅ Кворум ' + d.kvorumCount + '/5 — полный урон' : '⚠️ Кворум ' + (d.kvorumCount || 0) + '/5 — урон вполсилы'}</div>

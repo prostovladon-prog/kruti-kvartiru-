@@ -6162,7 +6162,11 @@ async function evState(env, me) {
   const contrib = (await env.DB.prepare("SELECT used,stars_used FROM ev_contrib WHERE season=? AND uid=? AND day=?").bind(season, me.id, day).first()) || { used: 0, stars_used: 0 };
   const hasPass = await evPass(env, season, me, clan);
 
-  const segOut = (clan ? EV.segments : EV_SOLO.segments).map((need, i) => {
+  const active = await evActive(env, clan);
+  const scale = clan ? evScale(active) : 1;
+  const segBase = clan ? EV.segments.map(x => Math.round(x * scale)) : EV_SOLO.segments;
+  const clanCap = clan ? evClanCap(active) : EV.playerCap;
+  const segOut = segBase.map((need, i) => {
     const r = segs.find(s => s.seg === i) || { points: 0, given: 0, day: 0 };
     return { i, need, points: r.points, done: r.points >= need };
   });
@@ -6202,7 +6206,7 @@ async function evState(env, me) {
     claimable: nodeOut.filter(n => n.closed && n.reward && !claimed.has(n.n)).map(n => n.n),
     shop: EV.shop, starBal: (u && u.star_bal) || 0,
     kvorum: clan ? EV.kvorum : 1,
-    clanCap: EV.clanCap, clanName, clanMembers, kvorumCount, topContrib,
+    clanCap, clanActive: active, clanName, clanMembers, kvorumCount, topContrib,
     todayGiven,
     cash: (u && u.cash) || 0,
     shards: (() => { try { const g = (JSON.parse((u && u.state) || "{}").gsh) || {}; return (g.f || 0) + (g.w || 0) + (g.e || 0) + (g.a || 0); } catch (e) { return 0; } })(),
@@ -6212,7 +6216,8 @@ async function evState(env, me) {
 /** Положить очки в текущий сегмент (клановый или личный). */
 async function evAddPoints(env, season, key, seg, points, day, isClan) {
   if (points <= 0) return 0;
-  const cap = isClan ? EV.clanCap : EV.playerCap;
+  const act = isClan ? await evActive(env, +String(key).slice(1)) : 1;
+  const cap = isClan ? evClanCap(act) : EV.playerCap;
   const row = await env.DB.prepare("SELECT points,given,day FROM ev_seg WHERE season=? AND key=? AND seg=?").bind(season, key, seg).first();
   const given = row && row.day === day ? row.given : 0;
   const left = Math.max(0, cap - given);
@@ -6224,7 +6229,7 @@ async function evAddPoints(env, season, key, seg, points, day, isClan) {
     "given=CASE WHEN ev_seg.day=? THEN ev_seg.given+excluded.given ELSE excluded.given END,day=excluded.day"
   ).bind(season, key, seg, add, add, day, day).run();
 
-  const need = (isClan ? EV.segments : EV_SOLO.segments)[seg];
+  const need = isClan ? Math.round(EV.segments[seg] * evScale(act)) : EV_SOLO.segments[seg];
   const total = ((row && row.points) || 0) + add;
   if (need && total >= need) {
     const ck = "evseg:" + season + ":" + key + ":" + seg;
@@ -6306,7 +6311,8 @@ async function evContrib(env, me, p) {
 }
 
 async function evCurrentSeg(env, season, key, clan) {
-  const need = clan ? EV.segments : EV_SOLO.segments;
+  const act = clan ? await evActive(env, clan) : 1;
+  const need = clan ? EV.segments.map(x => Math.round(x * evScale(act))) : EV_SOLO.segments;
   const rows = (await env.DB.prepare("SELECT seg,points FROM ev_seg WHERE season=? AND key=?").bind(season, key).all()).results || [];
   for (let i = 0; i < need.length; i++) {
     const r = rows.find(x => x.seg === i);
@@ -6478,6 +6484,21 @@ async function evShop(env, me, p) {
   fail("Нет такого товара");
 }
 
+
+
+/* сколько человек в клане реально играли за последние 3 дня */
+async function evActive(env, clan) {
+  if (!clan) return 1;
+  try {
+    const n = ((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE clan=? AND seen>=?")
+      .bind(clan, Date.now() - 3 * 864e5).first()) || {}).n || 0;
+    return Math.max(1, n);
+  } catch (e) { return 1; }
+}
+/* множитель нормы: 10 активных = базовая норма, 30 = ×3, 5 = ×0,6 */
+const evScale = active => Math.min(3, Math.max(0.6, active / 10));
+/* дневной потолок клана на сегмент: 600 на активного (10 → 6000) */
+const evClanCap = active => Math.round(1500 * active);
 
 /* награда всем, кто внёс вклад в закрытый сегмент: малый сундук */
 async function evSegReward(env, season, key, seg, isClan, day) {
