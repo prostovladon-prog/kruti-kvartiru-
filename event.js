@@ -99,7 +99,9 @@
   function marchTab() {
     const d = data;
     const player = data.demo ? {} : (S || {});
-    const cards = (player.cards || []).filter(c => !c.away && !c.list_price).sort((a, b) => (b.v || 0) - (a.v || 0)).slice(0, 12);
+    const cards = (player.cards || []).filter(c => Number.isSafeInteger(c.id) && !c.away && !c.listed && !c.lock && !c.list_price && !c.room_id).sort((a, b) => (b.v || 0) - (a.v || 0)).slice(0, 12);
+    const available = new Set(cards.map(c => c.id));
+    for (const id of sel) if (!available.has(id)) sel.delete(id);
     const list = d.nodes.map(n => {
       const p = Math.min(100, Math.round(n.dmg / n.hp * 100));
       const cls = n.closed ? 'done' : (p > 0 ? 'now' : '');
@@ -110,11 +112,12 @@
       </div>`;
     }).join('');
     const cardsHtml = cards.map(c => `<div class="ev-card ${sel.has(c.id) ? 'sel' : ''}" data-card="${c.id}">
-      <img src="" data-cid="${c.id}" alt=""><div style="font-size:8px;text-align:center;color:#c9d1e6">${c.id.slice(-3)}</div></div>`).join('');
+      <img src="" data-cid="${c.id}" alt=""><div style="font-size:8px;text-align:center;color:#c9d1e6">${String(c.id).slice(-3)}</div></div>`).join('');
     return `<div class="ev-box"><div class="ev-row"><span>Узлы</span><span>${d.nodes.filter(n => n.closed).length} / ${d.nodes.length}</span></div>${list}</div>
       <div class="ev-box"><div class="ev-row"><span>Отряд (до 3)</span><span class="ev-mini">выбрано ${sel.size}</span></div>
       <div class="ev-cards">${cardsHtml}</div>
-      <div class="ev-btn" id="ev-hit">В БОЙ</div>
+      <button type="button" class="ev-btn" id="ev-hit" ${d.open && cards.length ? "" : "disabled"}>В БОЙ</button>
+      ${!d.open ? `<div class="ev-note">${Date.now() < d.start ? "Поход откроется с началом ивента." : "Ивент завершён."}</div>` : !cards.length && !d.demo ? `<div class="ev-note">Нет свободных карт для отряда.</div>` : ""}
       <div class="ev-note">Не больше 15 % HP узла в сутки с игрока</div></div>`;
   }
 
@@ -180,19 +183,23 @@
       await load(); paint();
     });
     document.querySelectorAll('[data-card]').forEach(el => el.onclick = () => {
-      const id = el.dataset.card;
+      const id = Number(el.dataset.card);
+      if (!Number.isSafeInteger(id)) return;
       if (sel.has(id)) sel.delete(id); else if (sel.size < 3) sel.add(id);
       paint();
     });
     const hit = document.getElementById('ev-hit');
     if (hit) hit.onclick = async () => {
+      if (busy || !data.open) return;
       if (!sel.size) return toast('Выбери отряд');
       const node = (data.nodes.find(n => !n.closed) || {}).n;
       if (!node) return toast('Все узлы закрыты');
-      hit.textContent = '...';
-      const r = await act('ev_hit', { n: node, cards: [...sel] });
-      if (r) { await load(); paint(); toast('Урон: ' + fmt(r.dmg)); }
-      else paint();
+      busy = true; hit.disabled = true; hit.textContent = '...';
+      try {
+        const r = await act('ev_hit', { n: node, cards: [...sel] }, 12000);
+        if (r) { toast('Урон: ' + fmt(r.dmg)); await load(); }
+      } catch (e) { toast(String(e.message || e)); }
+      finally { busy = false; paint(); }
     };
     document.querySelectorAll('[data-claim]').forEach(el => el.onclick = async () => {
       const n = +el.dataset.claim;
