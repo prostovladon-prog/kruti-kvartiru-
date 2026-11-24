@@ -49,11 +49,22 @@
   let busy = false;
   const sel = new Set();
 
+  const EV_TIMEOUT = 6000;
+  const withTimeout = (p, ms) => Promise.race([
+    p,
+    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
+  ]);
+
+  function cached() {
+    try { const s = localStorage.getItem('ev_cache'); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+  }
+
   async function load() {
-    const r = await act('ev_state');
+    const r = await withTimeout(act('ev_state'), EV_TIMEOUT);
     if (!r || !r.res) throw new Error('не удалось загрузить ивент');
     data = r.res;
     window.__EV_S__ = r.S || window.__EV_S__;
+    try { localStorage.setItem('ev_cache', JSON.stringify(data)); } catch (e) {}
   }
 
   function head() {
@@ -249,7 +260,9 @@
     const body = document.getElementById('conq-body');
     if (!sec || !body) return;
     sec.hidden = false;
-    body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
+    const c0 = cached();
+    if (c0) { data = c0; paint(); bindHelp(); }
+    else body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
     try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) {
       if (typeof ONLINE !== 'undefined' && !ONLINE) { demo(); return; }
       try { if (typeof toast === 'function') toast('Ивент недоступен: сервер ещё не обновлён (ev1)'); } catch (e3) {}
