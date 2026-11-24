@@ -326,6 +326,21 @@
     };
   }
 
+  // Высокие экраны (правила, Мудрец): прижимаем к верху, иначе верх обрезается центрированием
+  const fitModal = () => {
+    const m = $("modal"), sh = $("msheet");
+    if (!m || !sh) return;
+    m.classList.toggle("tr-open", !m.hidden && sh.scrollHeight > m.clientHeight);
+  };
+  try {
+    const m = $("modal"), sh = $("msheet");
+    if (m && sh) {
+      new MutationObserver(fitModal).observe(sh, { childList: true, subtree: true });
+      new MutationObserver(fitModal).observe(m, { attributes: true, attributeFilter: ["hidden"] });
+      fitModal();
+    }
+  } catch (e) {}
+
   // при закрытии любого модала возвращаем обычное центрирование
   const oldClose = window.closeModal;
   if (typeof oldClose === "function") {
