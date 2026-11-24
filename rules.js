@@ -800,10 +800,11 @@ function dcSn(ctx,c,sn){try{if(sn&&ctx.snFree&&ctx.snFree(sn)){const v0=priceOf(
 const SON_SHOGUN={name:"Сын сёгуна",snBuy:"111112",snSpin:["111113","111114","111115","111116","111117","111118","111119"],value:1311111,stats:[544,526,580,526,562]};
 const ZEUS_DAY={name:"Зевс",start:Date.UTC(2026,10,23,14,30),end:Date.UTC(2026,10,23,20,30),snBuy:["555555","555556","555557","555558","555559","555554","555553","555552","555551","555550"],snSpin:["555565","555575","555585","555595","555545","555535","555525","555515","555505"],value:9999999,stats:[570,532,518,542,590]};
 const HADES_DAY={name:"Аид",snBuy:["666667","666668","666669","666664","666663","666662","666661","666660"],snSpin:["666676","666686","666696","666646","666636","666626","666616","666606"],value:9999999,stats:[560,570,498,552,580]};
+const DOMOVOY_DAY={name:"Домовой",snBuy:["777787"],snSpin:["777788"],value:3888000,stats:[524,578,496,596,612]};
 const repeatDaySpin=edition=>edition===HADES_DAY;
 function dayEdition(h){
   const H=HEROES[h];if(!H?.[4].day)return null;
-  return H[0]===SON_SHOGUN.name?SON_SHOGUN:H[0]===ZEUS_DAY.name?ZEUS_DAY:H[0]===HADES_DAY.name?HADES_DAY:null;
+  return H[0]===SON_SHOGUN.name?SON_SHOGUN:H[0]===DOMOVOY_DAY.name?DOMOVOY_DAY:H[0]===ZEUS_DAY.name?ZEUS_DAY:H[0]===HADES_DAY.name?HADES_DAY:null;
 }
 function dayCardMake(ctx,h,how){
   const edition=dayEdition(h),opts=HEROES[h][4];

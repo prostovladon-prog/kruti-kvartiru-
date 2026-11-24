@@ -1,0 +1,371 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="600" height="600" role="img" aria-label="Домовой — хранитель дома">
+  <defs>
+    <linearGradient id="dvWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d2418"/>
+      <stop offset=".55" stop-color="#2a1710"/>
+      <stop offset="1" stop-color="#160c08"/>
+    </linearGradient>
+    <linearGradient id="dvWood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a5230"/>
+      <stop offset=".5" stop-color="#5a3420"/>
+      <stop offset="1" stop-color="#3a1f14"/>
+    </linearGradient>
+    <linearGradient id="dvSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a2450"/>
+      <stop offset=".6" stop-color="#101a3a"/>
+      <stop offset="1" stop-color="#0a1026"/>
+    </linearGradient>
+    <radialGradient id="dvMoon">
+      <stop offset="0" stop-color="#fffbe0"/>
+      <stop offset=".55" stop-color="#ffe9a8"/>
+      <stop offset="1" stop-color="#ffd27a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dvGlow">
+      <stop offset="0" stop-color="#ffb35c" stop-opacity=".5"/>
+      <stop offset=".45" stop-color="#ff7a1a" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="dvSkin" x1="0" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#f7cc9a"/>
+      <stop offset=".6" stop-color="#e0a074"/>
+      <stop offset="1" stop-color="#b86a4e"/>
+    </linearGradient>
+    <linearGradient id="dvSkinDark" x1="0" y1="0" x2=".7" y2="1">
+      <stop offset="0" stop-color="#e8b184"/>
+      <stop offset="1" stop-color="#b86a4e"/>
+    </linearGradient>
+    <linearGradient id="dvHair" x1="0" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#d8c7a6"/>
+      <stop offset=".45" stop-color="#9a8468"/>
+      <stop offset="1" stop-color="#5a4a3e"/>
+    </linearGradient>
+    <linearGradient id="dvBeard" x1="0" y1="0" x2=".7" y2="1">
+      <stop offset="0" stop-color="#e8d8b8"/>
+      <stop offset=".5" stop-color="#b9a58a"/>
+      <stop offset="1" stop-color="#6a5848"/>
+    </linearGradient>
+    <linearGradient id="dvShirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7e8c0"/>
+      <stop offset="1" stop-color="#d9bd88"/>
+    </linearGradient>
+    <linearGradient id="dvVest" x1="0" y1="0" x2=".7" y2="1">
+      <stop offset="0" stop-color="#a34332"/>
+      <stop offset=".6" stop-color="#7a2a24"/>
+      <stop offset="1" stop-color="#4a1714"/>
+    </linearGradient>
+    <linearGradient id="dvVestDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6e2a22"/>
+      <stop offset="1" stop-color="#3a1512"/>
+    </linearGradient>
+    <linearGradient id="dvGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/>
+      <stop offset=".45" stop-color="#ffd23f"/>
+      <stop offset="1" stop-color="#c47a12"/>
+    </linearGradient>
+    <linearGradient id="dvFlame" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff7a1a"/>
+      <stop offset=".5" stop-color="#ffd23f"/>
+      <stop offset="1" stop-color="#fffbe0"/>
+    </linearGradient>
+    <radialGradient id="dvEmberGlow">
+      <stop offset="0" stop-color="#fffbe0" stop-opacity=".95"/>
+      <stop offset=".3" stop-color="#ffe14d" stop-opacity=".7"/>
+      <stop offset=".65" stop-color="#ff7a1a" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#ff3d1e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="dvCool">
+      <stop offset="0" stop-color="#7fe7ff" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#3a7bd5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="dvCat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a2440"/>
+      <stop offset="1" stop-color="#0d0a14"/>
+    </linearGradient>
+    <linearGradient id="dvJug" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8f0f8"/>
+      <stop offset=".5" stop-color="#9ab8d0"/>
+      <stop offset="1" stop-color="#4a6a8a"/>
+    </linearGradient>
+    <filter id="dvSoft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dvBlur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+    <style>
+      .dv-cat-eyes{transform-box:fill-box;transform-origin:center;animation:dvCatBlink 6.5s infinite}
+      @keyframes dvCatBlink{0%,90%,100%{transform:scaleY(1)}93%,96%{transform:scaleY(.08)}}
+      @media (prefers-reduced-motion:reduce){.dv-cat-eyes{animation:none}}
+    </style>
+  </defs>
+
+  <!-- изба: брёвна и тёплый свет -->
+  <rect width="200" height="200" fill="url(#dvWall)"/>
+  <g opacity=".55" stroke="#140a07" stroke-width="2">
+    <path d="M0 16H200M0 38H200M0 60H200M0 82H200M0 104H200M0 126H200M0 148H200M0 170H200M0 192H200"/>
+  </g>
+  <g opacity=".22" stroke="#a86a42" stroke-width="1">
+    <path d="M0 14H200M0 36H200M0 58H200M0 80H200M0 102H200M0 124H200M0 146H200M0 168H200M0 190H200"/>
+  </g>
+  <g fill="#1a0d09" opacity=".5">
+    <ellipse cx="22" cy="27" rx="5" ry="2.5"/>
+    <ellipse cx="174" cy="93" rx="6" ry="3"/>
+    <ellipse cx="36" cy="137" rx="4" ry="2"/>
+    <ellipse cx="150" cy="159" rx="5" ry="2.5"/>
+  </g>
+  <ellipse cx="138" cy="118" rx="92" ry="100" fill="url(#dvGlow)"/>
+  <ellipse cx="34" cy="52" rx="55" ry="60" fill="url(#dvCool)" opacity=".5"/>
+
+  <!-- окно с месяцем -->
+  <g>
+    <rect x="6" y="14" width="64" height="72" rx="4" fill="url(#dvWood)" stroke="#0d1030" stroke-width="4"/>
+    <rect x="12" y="20" width="52" height="60" rx="2" fill="url(#dvSky)" stroke="#0d1030" stroke-width="3"/>
+    <path d="M38 20V80M12 50H64" stroke="#0d1030" stroke-width="3"/>
+    <circle cx="25" cy="35" r="8" fill="url(#dvMoon)"/>
+    <circle cx="25" cy="35" r="14" fill="url(#dvMoon)" opacity=".25" filter="url(#dvBlur)"/>
+    <g fill="#fff8d0">
+      <circle cx="52" cy="30" r="1.4"><animate attributeName="opacity" values=".3;1;.3" dur="2.6s" repeatCount="indefinite"/></circle>
+      <circle cx="20" cy="60" r="1.1"><animate attributeName="opacity" values="1;.2;1" dur="3.2s" repeatCount="indefinite"/></circle>
+      <circle cx="56" cy="66" r="1.2"><animate attributeName="opacity" values=".4;1;.4" dur="2.1s" repeatCount="indefinite"/></circle>
+    </g>
+    <path d="M12 70Q24 66 36 70T64 68" fill="none" stroke="#0a1026" stroke-width="4" opacity=".7"/>
+    <rect x="1" y="82" width="74" height="8" rx="3" fill="url(#dvWood)" stroke="#0d1030" stroke-width="3"/>
+    <path d="M6 90V96M70 90V96" stroke="#0d1030" stroke-width="3"/>
+  </g>
+
+  <!-- кот на подоконнике -->
+  <g>
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-4 58 82;6 58 82;-4 58 82" dur="3.8s" repeatCount="indefinite"/>
+      <path d="M55 84Q64 82 68 74" fill="none" stroke="#0d1030" stroke-width="4" stroke-linecap="round"/>
+      <path d="M55 84Q64 82 68 74" fill="none" stroke="#2a1a2e" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+    <path d="M44 84Q42 72 49 68Q54 64 59 69Q63 74 60 84Z" fill="url(#dvCat)" stroke="#0d1030" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="51" cy="66" r="7.5" fill="url(#dvCat)" stroke="#0d1030" stroke-width="2.5"/>
+    <path d="M46 62L43 53L50 58Z M56 62L59 53L52 58Z" fill="url(#dvCat)" stroke="#0d1030" stroke-width="2.5" stroke-linejoin="round"/>
+    <g class="dv-cat-eyes">
+      <ellipse cx="48.5" cy="66" rx="1.7" ry="2.4" fill="#ffd23f"/>
+      <ellipse cx="53.5" cy="66" rx="1.7" ry="2.4" fill="#ffd23f"/>
+      <path d="M48.5 64v4M53.5 64v4" stroke="#0d1030" stroke-width=".8"/>
+    </g>
+    <path d="M50 70L51.5 71.2L53 70" fill="#e08a6a"/>
+  </g>
+
+  <!-- полка с кувшином и свечой -->
+  <g>
+    <rect x="130" y="64" width="70" height="8" rx="2" fill="url(#dvWood)" stroke="#0d1030" stroke-width="3"/>
+    <path d="M136 72V80M194 72V80" stroke="#0d1030" stroke-width="3"/>
+    <g>
+      <path d="M148 64Q142 56 146 48Q150 40 158 48Q164 56 158 64Z" fill="url(#dvJug)" stroke="#0d1030" stroke-width="3"/>
+      <rect x="150" y="38" width="8" height="10" rx="2" fill="url(#dvJug)" stroke="#0d1030" stroke-width="3"/>
+      <path d="M158 44Q168 46 164 56" fill="none" stroke="#0d1030" stroke-width="3"/>
+      <path d="M146 56Q153 60 160 56" fill="none" stroke="#2a5a8a" stroke-width="3"/>
+      <circle cx="151" cy="52" r="1.5" fill="#2a5a8a"/>
+      <circle cx="156" cy="54" r="1.5" fill="#2a5a8a"/>
+    </g>
+    <g>
+      <circle cx="182.5" cy="44" r="10" fill="url(#dvEmberGlow)" opacity=".35" filter="url(#dvBlur)"/>
+      <rect x="178" y="52" width="9" height="12" rx="2" fill="#f2dfb2" stroke="#0d1030" stroke-width="2.5"/>
+      <path d="M182.5 52V48" stroke="#0d1030" stroke-width="2"/>
+      <path d="M182.5 48Q179 44 182.5 40Q186 44 182.5 48Z" fill="url(#dvFlame)">
+        <animate attributeName="d" values="M182.5 48Q179 44 182.5 40Q186 44 182.5 48Z;M182.5 48Q180 43 182.5 39Q185 44 182.5 48Z;M182.5 48Q179 44 182.5 40Q186 44 182.5 48Z" dur="1.2s" repeatCount="indefinite"/>
+      </path>
+    </g>
+  </g>
+
+  <!-- травы и ягоды под потолком -->
+  <g>
+    <path d="M166 0V22" stroke="#c9a86a" stroke-width="2"/>
+    <path d="M182 0V18" stroke="#c9a86a" stroke-width="2"/>
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-2 166 22;2 166 22;-2 166 22" dur="5s" repeatCount="indefinite"/>
+      <path d="M166 22Q158 26 156 34Q164 34 168 28Z" fill="#4a6a32" stroke="#0d1030" stroke-width="2"/>
+      <path d="M166 22Q174 26 176 34Q168 34 164 28Z" fill="#5a7a3a" stroke="#0d1030" stroke-width="2"/>
+      <path d="M166 22Q160 30 158 38Q166 36 168 30Z" fill="#6a8a42" stroke="#0d1030" stroke-width="2"/>
+      <path d="M166 22Q172 30 174 38Q166 36 164 30Z" fill="#4a6a32" stroke="#0d1030" stroke-width="2"/>
+      <circle cx="160" cy="33" r="2" fill="#c0392b" stroke="#0d1030" stroke-width="1"/>
+      <circle cx="172" cy="33" r="2" fill="#c0392b" stroke="#0d1030" stroke-width="1"/>
+    </g>
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="2 182 18;-2 182 18;2 182 18" dur="6s" repeatCount="indefinite"/>
+      <path d="M182 18Q176 22 174 30Q182 30 186 24Z" fill="#5a7a3a" stroke="#0d1030" stroke-width="2"/>
+      <path d="M182 18Q188 22 190 30Q182 30 178 24Z" fill="#4a6a32" stroke="#0d1030" stroke-width="2"/>
+      <circle cx="180" cy="28" r="2" fill="#c0392b" stroke="#0d1030" stroke-width="1"/>
+    </g>
+  </g>
+
+  <!-- тело: рубаха, жилет, пояс -->
+  <g>
+    <path d="M34 202Q36 154 64 138Q82 128 100 128Q118 128 136 138Q164 154 166 202Z" fill="url(#dvVest)" stroke="#0d1030" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M66 202Q66 158 84 144L100 160L116 144Q134 158 134 202Z" fill="url(#dvShirt)" stroke="#0d1030" stroke-width="4"/>
+    <path d="M64 140Q48 156 46 202H72Q72 170 86 150Z" fill="url(#dvVestDark)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M136 140Q152 156 154 202H128Q128 170 114 150Z" fill="url(#dvVestDark)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M66 144Q52 160 50 202" fill="none" stroke="url(#dvGold)" stroke-width="2.5" opacity=".8"/>
+    <path d="M134 144Q148 160 150 202" fill="none" stroke="url(#dvGold)" stroke-width="2.5" opacity=".8"/>
+    <path d="M84 142L100 160L116 142" fill="none" stroke="#b83a3a" stroke-width="4" stroke-linecap="round"/>
+    <path d="M88 148L100 162L112 148" fill="none" stroke="#ffd23f" stroke-width="1.5" stroke-dasharray="2 3"/>
+    <g fill="#b83a3a">
+      <path d="M88 148l3 3-3 3-3-3Z"/>
+      <path d="M100 160l3 3-3 3-3-3Z"/>
+      <path d="M112 148l3 3-3 3-3-3Z"/>
+    </g>
+    <g fill="url(#dvGold)" stroke="#0d1030" stroke-width="1.2">
+      <circle cx="140" cy="160" r="3"/>
+      <circle cx="140" cy="170" r="3"/>
+      <circle cx="140" cy="180" r="3"/>
+    </g>
+    <rect x="46" y="178" width="108" height="16" rx="5" fill="#4a2b1e" stroke="#0d1030" stroke-width="4"/>
+    <rect x="92" y="175" width="16" height="22" rx="3" fill="url(#dvGold)" stroke="#0d1030" stroke-width="3"/>
+    <rect x="97" y="180" width="6" height="12" rx="1.5" fill="#5a2a1a"/>
+    <g fill="url(#dvGold)" stroke="#0d1030" stroke-width="1">
+      <circle cx="58" cy="186" r="2.2"/>
+      <circle cx="70" cy="186" r="2.2"/>
+      <circle cx="130" cy="186" r="2.2"/>
+      <circle cx="142" cy="186" r="2.2"/>
+    </g>
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-3 78 190;3 78 190;-3 78 190" dur="3.6s" repeatCount="indefinite"/>
+      <path d="M72 194V201" stroke="#0d1030" stroke-width="2"/>
+      <circle cx="72" cy="194" r="5" fill="none" stroke="url(#dvGold)" stroke-width="3"/>
+      <path d="M72 199V203M72 201H76" stroke="url(#dvGold)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M86 194V201" stroke="#0d1030" stroke-width="2"/>
+      <circle cx="86" cy="194" r="4" fill="none" stroke="#75e4ff" stroke-width="2.5"/>
+      <path d="M86 198V202M86 200H89" stroke="#75e4ff" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- левая рука с угольком -->
+  <g>
+    <path d="M60 146Q42 150 38 168Q36 180 48 184L62 172L72 154Z" fill="url(#dvShirt)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M38 168Q36 180 48 184L54 176L44 160Z" fill="#e8d09a" stroke="#0d1030" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M42 166L48 172M45 163L51 169" stroke="#b83a3a" stroke-width="2"/>
+    <path d="M29 165Q23 159 25 150Q28 142 37 142Q45 143 49 151L53 162Q54 170 46 174Q36 176 31 168Z" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M34 145Q32 139 36 135Q40 133 43 138L45 145" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M42 143Q41 137 45 134Q49 132 51 137L52 144" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M49 146Q49 140 53 138Q57 136 58 141L57 150" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M31 160Q23 156 24 150Q25 144 31 145Q37 146 38 152" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M38 154Q42 152 45 156M41 162Q45 160 48 164" stroke="#b86a4e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- правая рука на поясе -->
+  <g>
+    <path d="M140 146Q158 150 162 168Q164 178 154 182L142 172L132 154Z" fill="url(#dvShirt)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M162 168Q164 178 154 182L148 176L158 160Z" fill="#e8d09a" stroke="#0d1030" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M158 166L152 172M161 163L155 169" stroke="#b83a3a" stroke-width="2"/>
+    <path d="M148 170Q158 168 160 176Q162 182 154 184Q146 184 144 176Z" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="4"/>
+    <path d="M150 176Q154 174 157 177M148 180Q152 178 155 181" stroke="#b86a4e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <circle cx="156" cy="180" r="2.5" fill="url(#dvGold)" stroke="#0d1030" stroke-width="1"/>
+  </g>
+
+  <!-- шея и уши -->
+  <path d="M86 118H114V140Q100 148 86 140Z" fill="url(#dvSkinDark)" stroke="#0d1030" stroke-width="4"/>
+  <path d="M72 84Q60 76 58 88Q57 100 70 102Z" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M67 86Q63 88 64 94" fill="none" stroke="#b86a4e" stroke-width="2" stroke-linecap="round"/>
+  <path d="M128 84Q140 76 142 88Q143 100 130 102Z" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M133 86Q137 88 136 94" fill="none" stroke="#b86a4e" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="63" cy="101" r="5" fill="none" stroke="url(#dvGold)" stroke-width="2.5"/>
+
+  <!-- волосы -->
+  <path d="M64 90Q56 74 64 60Q66 50 76 46Q80 40 88 42Q96 36 104 42Q112 40 118 46Q130 48 134 58Q144 70 136 90L128 78Q120 68 100 68Q80 68 72 78Z" fill="url(#dvHair)" stroke="#0d1030" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M70 54Q78 46 88 48M112 46Q124 48 130 58M66 74Q72 64 82 62M134 70Q130 62 122 60" fill="none" stroke="#e8d8b8" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+  <path d="M78 60Q84 52 92 54M108 52Q118 54 124 62" fill="none" stroke="#5a4a3e" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+
+  <!-- лицо -->
+  <path d="M70 84Q72 60 100 56Q128 60 130 84L127 104Q123 124 100 130Q77 124 73 104Z" fill="url(#dvSkin)" stroke="#0d1030" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M84 76Q92 72 98 76M102 76Q108 72 116 76" fill="none" stroke="#9a7a5e" stroke-width="1.5" stroke-linecap="round" opacity=".55"/>
+  <path d="M74 82Q84 76 94 81" fill="none" stroke="#e8d8b8" stroke-width="5" stroke-linecap="round"/>
+  <path d="M126 82Q116 76 106 81" fill="none" stroke="#e8d8b8" stroke-width="5" stroke-linecap="round"/>
+  <path d="M76 79Q84 74 92 78M124 79Q116 74 108 78" fill="none" stroke="#8a7560" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
+
+  <!-- глаза -->
+  <g class="eyes">
+    <g>
+      <ellipse cx="84" cy="89" rx="7" ry="5.5" fill="#fff8e8" stroke="#0d1030" stroke-width="2.5"/>
+      <ellipse cx="85" cy="90" rx="3.5" ry="3.5" fill="#ffb347"/>
+      <circle cx="85" cy="90" r="2" fill="#0d1030"/>
+      <circle cx="86" cy="89" r=".9" fill="#fff"/>
+      <path d="M77 88Q84 84 91 88" fill="none" stroke="#0d1030" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+    <g>
+      <ellipse cx="116" cy="89" rx="7" ry="5.5" fill="#fff8e8" stroke="#0d1030" stroke-width="2.5"/>
+      <ellipse cx="115" cy="90" rx="3.5" ry="3.5" fill="#ffb347"/>
+      <circle cx="115" cy="90" r="2" fill="#0d1030"/>
+      <circle cx="114" cy="89" r=".9" fill="#fff"/>
+      <path d="M109 88Q116 84 123 88" fill="none" stroke="#0d1030" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+  </g>
+  <path d="M75 94Q72 96 72 99M125 94Q128 96 128 99" fill="none" stroke="#b86a4e" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
+
+  <!-- нос и щёки -->
+  <path d="M94 92Q100 88 106 92Q110 100 106 108Q100 112 94 108Q90 100 94 92Z" fill="url(#dvSkinDark)" stroke="#0d1030" stroke-width="3.5"/>
+  <path d="M100 60Q116 60 126 76Q130 90 126 104Q122 120 108 127Q120 112 120 94Q120 76 100 60Z" fill="#ffb35c" opacity=".14"/>
+  <path d="M100 60Q84 60 74 76Q70 90 74 104Q78 120 92 127Q80 112 80 94Q80 76 100 60Z" fill="#3a7bd5" opacity=".10"/>
+  <path d="M96 104Q98 106 100 105M104 105Q106 106 108 104" fill="none" stroke="#7a3a2e" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M97 95Q99 93 101 94" fill="none" stroke="#ffd9b8" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+  <ellipse cx="78" cy="102" rx="8" ry="5" fill="#e08a6a" opacity=".3"/>
+  <ellipse cx="122" cy="102" rx="8" ry="5" fill="#e08a6a" opacity=".3"/>
+
+  <!-- улыбка и борода -->
+  <path d="M92 121Q100 127 108 121" fill="none" stroke="#5a2a2a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M97 122H103L102 125H98Z" fill="#fff8e8"/>
+  <g>
+    <animateTransform attributeName="transform" type="rotate" values="-1 100 118;1 100 118;-1 100 118" dur="5s" repeatCount="indefinite"/>
+    <path d="M74 112Q86 104 100 111Q114 104 126 112Q120 122 100 119Q80 122 74 112Z" fill="url(#dvBeard)" stroke="#0d1030" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M74 112Q82 108 90 113M126 112Q118 108 110 113" fill="none" stroke="#e8d8b8" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+    <path d="M72 108Q64 128 70 144Q74 154 84 156Q88 164 100 164Q112 164 116 156Q126 154 130 144Q136 128 128 108Q120 120 100 118Q80 120 72 108Z" fill="url(#dvBeard)" stroke="#0d1030" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M78 118Q74 132 80 144M88 120Q84 136 90 150M100 120V154M112 120Q116 136 110 150M122 118Q126 132 120 144" fill="none" stroke="#e8d8b8" stroke-width="2.5" stroke-linecap="round" opacity=".65"/>
+    <path d="M82 146Q90 156 100 158Q110 156 118 146" fill="none" stroke="#6a5848" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+  </g>
+
+  <!-- тёплый отсвет уголька -->
+  <circle cx="52" cy="134" r="34" fill="url(#dvEmberGlow)" opacity=".22" style="mix-blend-mode:screen"/>
+
+  <!-- угольок в руке -->
+  <g>
+    <circle cx="52" cy="134" r="26" fill="url(#dvEmberGlow)" opacity=".7">
+      <animate attributeName="opacity" values=".5;.85;.5" dur="2.2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="23;28;23" dur="2.2s" repeatCount="indefinite"/>
+    </circle>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 -3;0 0" dur="2.4s" repeatCount="indefinite"/>
+      <path d="M52 118Q58 128 56 136Q54 143 52 146Q50 140 48 135Q46 128 52 118Z" fill="url(#dvFlame)" stroke="#ff9f0a" stroke-width="1.5">
+        <animate attributeName="d" values="M52 118Q58 128 56 136Q54 143 52 146Q50 140 48 135Q46 128 52 118Z;M52 118Q60 128 57 137Q54 144 52 147Q49 140 47 134Q45 127 52 118Z;M52 118Q58 128 56 136Q54 143 52 146Q50 140 48 135Q46 128 52 118Z" dur=".9s" repeatCount="indefinite"/>
+      </path>
+      <path d="M52 128Q55 132 54 137Q53 140 52 142Q51 138 50 134Q49 131 52 128Z" fill="#fff3b0"/>
+      <ellipse cx="52" cy="145" rx="6" ry="4" fill="#ff7a1a" stroke="#0d1030" stroke-width="2"/>
+      <ellipse cx="52" cy="145" rx="3" ry="2" fill="#ffd23f"/>
+    </g>
+    <g fill="#ffe88a">
+      <circle r="1.8">
+        <animate attributeName="opacity" values="0;1;0" dur="2.8s" repeatCount="indefinite"/>
+        <animateMotion path="M52 142Q38 120 46 98" dur="2.8s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="1.3">
+        <animate attributeName="opacity" values="0;1;0" dur="3.4s" begin=".7s" repeatCount="indefinite"/>
+        <animateMotion path="M54 144Q64 124 58 102" dur="3.4s" begin=".7s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="1.5">
+        <animate attributeName="opacity" values="0;.9;0" dur="2.2s" begin="1.1s" repeatCount="indefinite"/>
+        <animateMotion path="M50 142Q42 128 40 112" dur="2.2s" begin="1.1s" repeatCount="indefinite"/>
+      </circle>
+      <circle r="1.1">
+        <animate attributeName="opacity" values="0;1;0" dur="3s" begin="1.6s" repeatCount="indefinite"/>
+        <animateMotion path="M56 142Q68 132 70 116" dur="3s" begin="1.6s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+
+  <!-- пылинки в тёплом свете -->
+  <g fill="#ffe9a8" opacity=".75">
+    <circle cx="120" cy="150" r="1.2"><animate attributeName="cy" values="150;138;150" dur="5s" repeatCount="indefinite"/><animate attributeName="opacity" values=".2;.9;.2" dur="3.2s" repeatCount="indefinite"/></circle>
+    <circle cx="150" cy="120" r="1"><animate attributeName="cy" values="120;108;120" dur="4.2s" begin=".8s" repeatCount="indefinite"/><animate attributeName="opacity" values=".1;.8;.1" dur="2.8s" begin=".8s" repeatCount="indefinite"/></circle>
+    <circle cx="96" cy="176" r="1.1"><animate attributeName="cy" values="176;164;176" dur="4.8s" begin="1.4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".2;.8;.2" dur="3.6s" begin="1.4s" repeatCount="indefinite"/></circle>
+    <circle cx="168" cy="168" r="1.3"><animate attributeName="cy" values="168;154;168" dur="5.6s" begin=".4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".1;.7;.1" dur="4s" begin=".4s" repeatCount="indefinite"/></circle>
+  </g>
+
+  <!-- тёплый и холодный контровой свет -->
+  <path d="M66 90Q58 70 70 54" fill="none" stroke="#7fe7ff" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+  <path d="M134 90Q142 70 130 54" fill="none" stroke="#ffd27a" stroke-width="2" stroke-linecap="round" opacity=".45"/>
+  <path d="M52 150Q42 160 40 176" fill="none" stroke="#7fe7ff" stroke-width="2" stroke-linecap="round" opacity=".25"/>
+</svg>

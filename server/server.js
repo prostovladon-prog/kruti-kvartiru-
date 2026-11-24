@@ -2452,7 +2452,9 @@ const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бес
   {n:"Локи",e:"Асгард",d:"Бог обмана. Огонь вместо волос, змей Ёрмунганд на плечах и маска лиса в руке. Моргнёшь — и рядом уже двое Локи. Какой из них настоящий?",o:{p:[8,8,8,8,8],sn:"181118",sn2:"666000"},from:15,to:20.5,stars:2500,ch:.0004,lock:3,one:1}],
   "2026-11-22":[{n:"Сын сёгуна",e:"Япония",d:"Наследник сёгуна. Его первый взмах катаны решает судьбу поединка.",o:{p:[8,7,10,7,9],sn:"111112",sn2:"111113"},from:18,to:22,stars:3311,ch:DSP.ch,guarantee:1}],
   "2026-11-23":[{n:"Зевс",e:"Мифы Греции",d:"Громовержец Олимпа. Молния раскалывает небо рядом с ним.",o:{sn:"555555",sn2:"555565",hue:270},from:14.5,to:20.5,stars:3999,ch:DSP.ch,disabled:1},
-  {n:"Аид",e:"Подземное царство",d:"Владыка подземного царства. Тёмное пламя сопровождает его.",o:{hair:"long",hairc:"#14101c",helm:"crownhell",weapon:"bident",armor:"plate",cape:"#1a0a24",beard:"#14101c",x:["flames"],glow:"#9f6bff",fierce:1,hue:270,skinc:"#b9b2c9",sn:"666667",sn2:"666676"},from:14.75,to:20.5,stars:4111,ch:.000001}]};
+  {n:"Аид",e:"Подземное царство",d:"Владыка подземного царства. Тёмное пламя сопровождает его.",o:{hair:"long",hairc:"#14101c",helm:"crownhell",weapon:"bident",armor:"plate",cape:"#1a0a24",beard:"#14101c",x:["flames"],glow:"#9f6bff",fierce:1,hue:270,skinc:"#b9b2c9",sn:"666667",sn2:"666676"},from:14.75,to:20.5,stars:4111,ch:.000001}],
+  /* 24.11: Домовой — с момента обновления сервера до 00:00 Минска (21:00 UTC), 2 экземпляра, 4999⭐ */
+  "2026-11-24":[{n:"Домовой",e:"Сказки Руси",d:"Хозяин за печью. Дом бережёт.",o:{p:[8,8,7,8,9],sn:"777787",sn2:"777788",hue:20},from:18.55,to:21,stars:4999,ch:DSP.ch}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd)+(P.from!=null?P.from:16)*36e5,until=Date.UTC(y,m-1,dd)+(P.to!=null?P.to:20)*36e5;
