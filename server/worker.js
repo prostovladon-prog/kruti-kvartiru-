@@ -6207,6 +6207,8 @@ async function evState(env, me) {
     shop: EV.shop, starBal: (u && u.star_bal) || 0,
     kvorum: clan ? EV.kvorum : 1,
     clanCap, clanActive: active, clanName, clanMembers, kvorumCount, topContrib,
+    topClans: await evTop(env, season),
+    prizes: { seg: EV_PRIZES.seg.text, done: EV_PRIZES.done.text, top1: EV_PRIZES.top1.text, top2: EV_PRIZES.top2.text, top3: EV_PRIZES.top3.text },
     todayGiven,
     cash: (u && u.cash) || 0,
     shards: (() => { try { const g = (JSON.parse((u && u.state) || "{}").gsh) || {}; return (g.f || 0) + (g.w || 0) + (g.e || 0) + (g.a || 0); } catch (e) { return 0; } })(),
@@ -6236,6 +6238,25 @@ async function evAddPoints(env, season, key, seg, points, day, isClan) {
     if (!(await kvGet(env, ck))) {
       await kvSet(env, ck, 1);
       try { await evSegReward(env, season, key, seg, isClan, day); } catch (e) { console.error("evseg", e); }
+      /* первенство: первый клан, закрывший этот сегмент */
+      if (isClan) {
+        const clan = +String(key).slice(1);
+        try {
+          if (await evFirst(env, season, "seg" + seg, clan)) {
+            const c = await env.DB.prepare("SELECT name FROM clans WHERE id=?").bind(clan).first();
+            const nm = (c && c.name) || "Клан";
+            await evClanGift(env, season, clan, EV_PRIZES.seg.item, "evfirst:seg" + seg, EV_PRIZES.seg.text);
+            try {
+              await chanSend(env, { chan: CHANNEL }, {
+                text: "🏆 ПЕРВЫЙ КЛАН — «" + nm + "»\n\n" +
+                  "Закрыл сегмент " + (seg + 1) + " из 4 в «Поколении Эпох» раньше всех!\n" +
+                  "Каждый участник получил " + EV_PRIZES.seg.text + ".\n\n" +
+                  "Кто следующий? 👉 @VoinyEpohBot"
+              });
+            } catch (e) {}
+          }
+        } catch (e) { console.error("evfirst", e); }
+      }
     }
   }
   return add;
@@ -6300,6 +6321,19 @@ async function evContrib(env, me, p) {
   if (!add) {
     await env.DB.prepare("UPDATE users SET cash=cash+?,ver=ver+1 WHERE id=?").bind(coinsSpent, me.id).run();
     fail("Лимит клана на этот сегмент исчерпан");
+  }
+
+  /* новичок впервые внёс вклад — клану бонусные очки */
+  if (clan) {
+    try {
+      const fk = "evfc:" + season + ":" + me.id;
+      if (!(await kvGet(env, fk))) {
+        await kvSet(env, fk, 1);
+        const segNow = await evCurrentSeg(env, season, key, clan);
+        const bonus = await evAddPoints(env, season, key, segNow, EV_RECRUIT_BONUS, day, true);
+        if (bonus) { try { await notify(env, me.id, "🎉 Ты впервые внёс вклад — клану +" + EV_RECRUIT_BONUS + " очков!", "🏛 Открыть", null); } catch (e) {} }
+      }
+    } catch (e) {}
   }
 
   await env.DB.prepare("INSERT INTO ev_contrib(season,uid,day,used,coins_used,shards_used) VALUES(?,?,?,?,?,?) " +
@@ -6485,6 +6519,53 @@ async function evShop(env, me, p) {
 }
 
 
+
+
+/* ---- гонка кланов и призы за первенство ---- */
+const EV_PRIZES = {
+  seg:  { item: "legend",  text: "Легендарный сундук" },
+  done: { item: "mythic",  text: "Мифический сундук" },
+  top1: { item: "mythic",  text: "Мифический сундук" },
+  top2: { item: "legend",  text: "Легендарный сундук" },
+  top3: { item: "royal",   text: "Королевский сундук" },
+};
+const EV_RECRUIT_BONUS = 300;   // клану за первого нового участника, внёсшего вклад
+
+async function evTop(env, season) {
+  try {
+    const rows = ((await env.DB.prepare(
+      "SELECT s.key AS key, SUM(s.points) AS pts FROM ev_seg s WHERE s.season=? AND s.key LIKE 'c%' GROUP BY s.key ORDER BY pts DESC LIMIT 5")
+      .bind(season).all()).results || []);
+    const out = [];
+    for (const r of rows) {
+      const cid = +String(r.key).slice(1);
+      const c = await env.DB.prepare("SELECT name,(SELECT COUNT(*) FROM users WHERE clan=?) AS n FROM clans WHERE id=?").bind(cid, cid).first();
+      out.push({ id: cid, name: (c && c.name) || "Клан", n: (c && c.n) || 0, points: r.pts | 0 });
+    }
+    return out;
+  } catch (e) { return []; }
+}
+
+/* отметить «первый клан» для вехи; true — мы первые */
+async function evFirst(env, season, milestone, clan) {
+  const k = "evfirst:" + season + ":" + milestone;
+  if (await kvGet(env, k)) return false;
+  await kvSet(env, k, clan);
+  return true;
+}
+
+/* выдать сундук всем, кто вносил вклад в клан сегодня */
+async function evClanGift(env, season, clan, item, pid, label) {
+  try {
+    const rows = ((await env.DB.prepare(
+      "SELECT DISTINCT c.uid FROM ev_contrib c JOIN users u ON u.id=c.uid WHERE c.season=? AND c.day=? AND c.used>0 AND u.clan=?")
+      .bind(season, mskDay(Date.now()), clan).all()).results || []);
+    for (const r of rows) {
+      try { await doAction(env, { id: r.uid, name: "Игрок" }, "grant", { item, pid: pid + ":" + r.uid }, { grant: true }); } catch (e) {}
+      try { await notify(env, r.uid, "🏆 Твой клан первый в «Поколении Эпох»! Награда: " + (label || item), "🏛 Открыть", null); } catch (e) {}
+    }
+  } catch (e) {}
+}
 
 /* сколько человек в клане реально играли за последние 3 дня */
 async function evActive(env, clan) {

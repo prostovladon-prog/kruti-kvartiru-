@@ -92,6 +92,19 @@
       ${segs}
     </div>
     ${clanBox}
+    ${d.topClans && d.topClans.length ? `<div class="ev-box">
+      <div class="ev-row"><span>🏁 Гонка кланов</span><span class="ev-mini">очки за сезон</span></div>
+      ${d.topClans.map((t, i) => `<div class="ev-row" style="margin-top:5px;${t.id === d.clan ? 'color:#ffd23f;font-weight:900' : ''}">
+        <span>${i + 1}. ${esc(t.name)} <span class="ev-mini">${t.n} чел.</span></span><span>${fmt(t.points)}</span></div>`).join('')}
+    </div>` : ''}
+    <div class="ev-box">
+      <div class="ev-row"><span>🎁 Призы</span><span class="ev-mini">видны всем</span></div>
+      <div class="ev-note">🥇 Первый клан, закрывший сегмент — <b style="color:#ffd23f">Легендарный сундук</b> каждому участнику</div>
+      <div class="ev-note">👑 Первый клан, закрывший все 4 сегмента — <b style="color:#ffd23f">Мифический сундук</b> каждому</div>
+      <div class="ev-note">🏆 Топ-1 сезона — Мифический · Топ-2 — Легендарный · Топ-3 — Королевский</div>
+      <div class="ev-note">🤝 Новичок впервые внёс вклад — клану <b style="color:#ffd23f">+300 очков</b></div>
+      <div class="ev-btn ghost" id="ev-invite" style="margin-top:8px">ПОЗВАТЬ ДРУГА В КЛАН</div>
+    </div>
     <div class="ev-box">
       <div class="ev-row"><span>Твой вклад сегодня</span><span>${fmt(d.me.used)} / ${fmt(d.me.cap)}</span></div>
       <div class="ev-row" style="margin-top:6px"><span>Монеты</span><span>${fmt(d.cash || 0)}</span></div>
@@ -237,6 +250,14 @@
       const r = await act('ev_claim', { n });
       if (r) { await load(); paint(); toast('Награда получена'); }
     });
+    const inv = document.getElementById('ev-invite');
+    if (inv) inv.onclick = () => {
+      const uid = (typeof S !== 'undefined' && S && S.uid) || '';
+      const link = 'https://t.me/VoinyEpohBot?startapp=r_' + uid;
+      const text = 'Заходи в «Воины Эпох» — вместе строим Врата Эпох и берём клановые призы!';
+      try { window.open('https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(text), '_blank'); }
+      catch (e) { try { navigator.clipboard.writeText(link); toast('Ссылка скопирована'); } catch (e2) {} }
+    };
     document.querySelectorAll('[data-buy]').forEach(el => el.onclick = async () => {
       const item = el.dataset.buy;
       const r = await act('ev_shop', { item });
