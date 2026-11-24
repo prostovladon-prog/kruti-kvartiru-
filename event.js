@@ -103,6 +103,7 @@
       <div class="ev-note">👑 Первый клан, закрывший все 4 сегмента — <b style="color:#ffd23f">Мифический сундук</b> каждому</div>
       <div class="ev-note">🏆 Топ-1 сезона — Мифический · Топ-2 — Легендарный · Топ-3 — Королевский</div>
       <div class="ev-note">🤝 Новичок впервые внёс вклад — клану <b style="color:#ffd23f">+300 очков</b></div>
+      <div class="ev-note">🎓 Наставнику: за первый вклад друга — <b style="color:#ffd23f">Малый сундук</b>, за 10 000 его вклада — <b style="color:#ffd23f">Легендарный</b></div>
       <div class="ev-btn ghost" id="ev-invite" style="margin-top:8px">ПОЗВАТЬ ДРУГА В КЛАН</div>
     </div>
     <div class="ev-box">
@@ -156,8 +157,8 @@
       <div class="ev-btn ${extra ? '' : 'ghost'}" data-buy="${id}" style="margin-top:8px">Купить</div></div>`;
     return `<div class="ev-box"><div class="ev-row"><span>Баланс</span><b>${fmt(d.starBal)} ⭐</b></div>
       <div class="ev-note">Пасс даёт +200 к дневному лимиту вклада</div></div>
-      ${row('pass', 'Знамя Строителя', '+200 к лимиту вклада на акт', s.pass)}
-      ${row('clanpass', 'Знамя клана', 'пасс всем участникам клана + уведомление', s.clanPass)}
+      ${row('pass', 'Знамя Строителя', '+300 к лимиту, +1000 очков сразу и сундук — на весь сезон', s.pass)}
+      ${row('clanpass', 'Знамя клана', 'пасс всем участникам + 2000 очков клану + пост в канал', s.clanPass)}
       ${row('chest', 'Сундук вклада', '250 очков, до 2 в день', s.chest)}
       ${row('card', 'Карта серии', 'гарантированный экземпляр, 1 на аккаунт', s.card)}
       ${row('named', 'Именной Врат', 'имя на Вратах в финале, 1 на аккаунт', s.named)}`;
