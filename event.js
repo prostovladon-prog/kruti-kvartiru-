@@ -265,7 +265,7 @@
     else body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
     try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) {
       if (typeof ONLINE !== 'undefined' && !ONLINE) { demo(); return; }
-      try { if (typeof toast === 'function') toast('Ивент недоступен: сервер ещё не обновлён (ev1)'); } catch (e3) {}
+      try { if (typeof toast === 'function') toast('Ивент: ' + String((e && e.message) || e || 'ошибка').slice(0, 90) + ' (ev1)'); } catch (e3) {}
       if (legacyOpen) { try { return legacyOpen(); } catch (e2) {} }
       body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>';
     }
