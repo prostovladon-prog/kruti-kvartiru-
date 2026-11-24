@@ -230,6 +230,20 @@
     if (h) h.onclick = intro;
   }
 
+  function demo() {
+    const hp = [40000, 46000, 52000, 58000, 70000, 80000, 90000, 100000, 100000, 110000, 120000, 130000];
+    data = {
+      season: 'demo', start: Date.now() - 1, end: Date.now() + 864e5, open: true, admin: false,
+      clan: 0, solo: true, act: 1,
+      segs: [6000, 8000, 10000, 11000].map((need, i) => ({ i, need, points: [3200, 1500, 0, 0][i], done: false })),
+      nodes: hp.map((h, i) => ({ n: i + 1, hp: h, dmg: i < 2 ? h : (i === 2 ? Math.round(h * 0.4) : 0), closed: i < 2, reward: [3, 6, 9].includes(i + 1) ? 'chest' : [4, 8].includes(i + 1) ? 'epic' : i + 1 === 12 ? 'card' : null })),
+      me: { used: 300, starsUsed: 0, cap: 1500, hasPass: false },
+      claimable: [], shop: { pass: 599, clanPass: 6000, chest: 199, card: 2500, named: 5000 },
+      starBal: 0, kvorum: 1, demo: 1,
+    };
+    paint();
+  }
+
   async function openConq() {
     const sec = document.getElementById('sec-conq');
     const body = document.getElementById('conq-body');
@@ -237,6 +251,7 @@
     sec.hidden = false;
     body.innerHTML = '<div style="padding:20px;color:#c9d1e6">Загрузка ивента…</div>';
     try { await load(); paint(); bindHelp(); if (!localStorage.getItem('ev_intro_v1')) intro(); } catch (e) {
+      if (typeof ONLINE !== 'undefined' && !ONLINE) { demo(); return; }
       try { if (typeof toast === 'function') toast('Ивент недоступен: сервер ещё не обновлён (ev1)'); } catch (e3) {}
       if (legacyOpen) { try { return legacyOpen(); } catch (e2) {} }
       body.innerHTML = '<div style="padding:20px;color:#ff2e63">' + esc(e.message || e) + '</div>';
