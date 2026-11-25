@@ -58,5 +58,12 @@ assert.ok(server.includes("Номер чемпионской карты нель
   "champion serials must be immutable");
 assert.ok(rules.includes("HEROES[c.h]?.[4]?.towerChamp)fail(NOTRADE_MSG)"),
   "champion cards must not be forgeable/fusable into a different trophy");
+assert.ok(server.includes('id:"tower-launch-20261125"') &&
+  server.includes("try{await towerLaunchTick(env)}catch(e){console.error('tower launch',e)}"),
+  "Tower launch announcement must be scheduled in the server tick");
+const poster = readFileSync(path.join(root, "event-assets/tower-launch-2026-11-25.png"));
+assert.equal(poster.toString("hex", 0, 8), "89504e470d0a1a0a");
+assert.equal(poster.readUInt32BE(16), 1080);
+assert.equal(poster.readUInt32BE(20), 1350);
 
-console.log("✅ Башня: лимиты, сброс, 1/1-карты, серийники и защита проверены");
+console.log("✅ Башня: лимиты, сброс, 1/1-карты, защита и запусковая рассылка проверены");
