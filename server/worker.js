@@ -293,7 +293,7 @@ const MYTH_WEIGHT=(()=>{const all=HEROES.filter((H,i)=>(isBase(i)||H[4].dgc)&&H[
 const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h]&&HEROES[h][4].duo), DUO_F=7, DUO_RUN=2;
 const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
-const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one&&!HEROES[i][4].sale), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
+const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one&&!HEROES[i][4].sale), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one&&!HEROES[i][4].towerChamp);
 /* Тор (ошибка печати, 1 из 1) — главный трофей игры: падает только из прокрутки, шанс 1 на миллион. В сундуках и в «Любой карточке» его нет */
 const THOR=HEROES.findIndex(H=>H[0]==="Тор"), THOR_P=.000001;
 /* редкость карточки: у именных (own) — своя, «круче мифической» */
@@ -368,7 +368,7 @@ const RELICS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].relic),RELIC_P=.00001,R
 FIN.push({k:"Мегаредкая",cls:"relic",w:0,m:2000,run:Infinity,col:"#7dfcff",excl:1});
 const relicChest=I=>!!(I.cards||I.goldb||I.collb||I.roul||I.twins||I.errq);
 function rollRelic(ctx){return makeCard(ctx,RELICS[Math.floor(Math.random()*RELICS.length)],RELIC_F)}
-const isDia=h=>!!DIA[h], finRun=c=>c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
+const isDia=h=>!!DIA[h], finRun=c=>HEROES[c.h]?.[4]?.towerChamp?1:c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
 const HW=[10,4.5,1.15,.25,.045];   // при 10 прокрутках раз в 4 часа редкие выпадают чуть реже          // вес выпадения воина по его редкости
@@ -759,7 +759,7 @@ const MYST=[{k:"sp",n:"30 прокруток",ic:"🎴",sp:30},{k:"cash",n:"500 
 SHOP.lott={n:"Билет лотереи",stars:29,lott:1,d:["🎟 билет беспроигрышной лотереи дня"]};
 const CHESTS=["newbie","small","luckbox","promo","royal","riftchest","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
-function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale)fail("Такой карточки нет");const W=HEROES[h][4];
+function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale||HEROES[h][4].towerChamp)fail("Такой карточки нет");const W=HEROES[h][4];
   if(W.relic)fail("Конкретного героя Забытых Эпох нельзя купить: только случайное выпадение");
   if(W.rift)fail("Стражи Разлома собираются только из двух половинок");
   if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
@@ -906,8 +906,8 @@ function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточк
 function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail(/^map:/.test(String(c.dest||""))?"Этот воин охраняет регион на карте мира":"Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 /* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
 /* подарочная карточка «Ошибка печати» № 000010 (приз за 10 друзей): не продаётся, не меняется, не сжигается, в боях «на карточку» не участвует */
-const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f===9||!!(HEROES[c.h]&&HEROES[c.h][4].bro));
-const NOTRADE_MSG="Эта карточка подарена и существует в одном экземпляре: её нельзя продать, обменять или сжечь";
+const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f===9||!!(HEROES[c.h]&&(HEROES[c.h][4].bro||HEROES[c.h][4].towerChamp)));
+const NOTRADE_MSG="Это трофейная карточка: её нельзя продать, обменять, передать или сжечь";
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
 function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(FIN[c.f].collab?"Бесценная карточка коллекционная: в боях не участвует":TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
 function burnable(c){if(birthdayPrint(c))fail("Праздничную карту можно выставить на рынок, но нельзя сжечь или продать системе");if(noTrade(c))fail(NOTRADE_MSG);if(FIN[c.f].collab)fail("Бесценную карточку нельзя продать системе или сжечь. Её можно только выставить на рынок — цену ставишь ты");if(FIN[c.f].excl)fail("«Основателя» нельзя продать системе или сжечь. Его можно выставить на рынок");if(HEROES[c.h][4].one)fail("Легенду 1 из 1 нельзя продать системе или сжечь — только на рынке");return c}
@@ -1317,7 +1317,7 @@ const ACTIONS={
     return {money,xp:D.xp,sp,card}},
 
   train(G){const c=notHalf(own(G,G.p.id));if(c.listed)fail("Карточка на рынке");if(lvl(c)>=LMAX)fail("Максимальный уровень");pay(G.st,trainCost(c));addXp(G.ctx,c,50);return {}},
-  forge(G){const c=notHalf(own(G,G.p.id));if(c.listed)fail("Карточка на рынке");const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");
+  forge(G){const c=notHalf(own(G,G.p.id));if(HEROES[c.h]?.[4]?.towerChamp)fail(NOTRADE_MSG);if(c.listed)fail("Карточка на рынке");const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");
     if(lvl(c)<STAR_LVL[s])fail("Нужен уровень "+STAR_LVL[s]+". Качай воина в боях, походах и у тренера");
     pay(G.st,forgeCost(c));c.stars=s+1;c.v=Math.round(c.v*STAR_V*100)/100;return {stars:c.stars,v:c.v}},
   rage(G){const B=boss(G.st,G.ctx.now);if((B.extra||0)>=2)fail("Лимит зелий на сегодня");pay(G.st,150);B.extra=(B.extra||0)+1;return {}},
@@ -1327,7 +1327,7 @@ const ACTIONS={
   task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;if(T.c)earn(st,T.c);const dgx=st.dg?dgAddXp(st,ctx,DG.taskXp):0;return {r:T.r,c:T.c||0,dgx}},
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;const cashW=STREAK_CASH[(st.streak.n||1)-1]||300;earn(st,cashW);if(st.streak.n===7)st.guar=(st.guar||0)+1;
     const F=st.fire||{n:1},R=fireRew(F.n);st.spins+=R.sp+R.bonus;if(R.frame)st.fireFrame=1;if(R.title)st.fireTitle=1;return {n:st.streak.n,fire:F.n,fsp:R.sp+R.bonus,frame:R.frame?1:0,cash:cashW}},
-  err_up(G){const {st,ctx}=G,c=freeCard(G,G.p.id);if(c.f!==4)fail("Улучшить можно только обычную «Ошибку печати»");if(st.gsock&&st.gsock[c.id]&&st.gsock[c.id].length)fail("Сначала вынь гемы из этой карты");
+  err_up(G){const {st,ctx}=G,c=freeCard(G,G.p.id);if(HEROES[c.h]?.[4]?.towerChamp)fail(NOTRADE_MSG);if(c.f!==4)fail("Улучшить можно только обычную «Ошибку печати»");if(st.gsock&&st.gsock[c.id]&&st.gsock[c.id].length)fail("Сначала вынь гемы из этой карты");
     const fg=FIN.findIndex(F=>F.cls==="error egold");if(fg<0)fail("Скоро");if(ctx.issuedFin&&ctx.issuedFin(fg)>=FIN[fg].cap)fail("Все «Золотые браки» уже в мире — мест нет");if(ctx.issuedOf(c.h,fg)>=1)fail("«Золотой брак» этого воина уже есть");
     if(st.cash<ERR_UP.cost)fail("Нужно "+(ERR_UP.cost/1e6)+" млн 🪙");st.cash=Math.round((st.cash-ERR_UP.cost)*100)/100;
     if(Math.random()>=ERR_UP.ch)return {ok:0};
@@ -1530,7 +1530,7 @@ const ACTIONS={
     if(C.runes<pr)fail("Нужно "+pr.toLocaleString("ru")+" рун — потренируйся в лагере");C.runes-=pr;Q.b++;Q.x++;return {price:pr,left:conqLeft(st,Q),bought:Q.b}},
 
   /* Слияние душ: сжечь копии того же воина вместо уровня и монет. ★1 — 1 копия, ★2 — 2, … ★5 — 5 */
-  fuse(G){const {st,ctx,p}=G;const c=notHalf(own(G,p.id));if(c.listed)fail("Карточка на рынке");if(FIN[c.f].excl)fail("Эту карточку не усилить");
+  fuse(G){const {st,ctx,p}=G;const c=notHalf(own(G,p.id));if(HEROES[c.h]?.[4]?.towerChamp)fail(NOTRADE_MSG);if(c.listed)fail("Карточка на рынке");if(FIN[c.f].excl)fail("Эту карточку не усилить");
     const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");const need=s+1,ids=[...new Set(p.ids||[])].filter(x=>x!==c.id);
     if(ids.length!==need)fail("Для ★"+(s+1)+" нужно "+need+" "+(need===1?"копия":"копии")+" этого воина");
     const don=ids.map(id=>{const d=notHalf(burnable(freeCard(G,id)),"Половинки не сжечь");if(d.h!==c.h)fail("Сжечь можно только копии этого же воина");if(FIN[d.f].excl)fail("Эту карточку нельзя сжечь");return d});
@@ -1792,7 +1792,7 @@ TITLES.champ={n:"Чемпион Башни",ic:"🏆",price:0,ex:1};
 function towerOf(st,now){
   if(!st.tower||typeof st.tower!=="object")st.tower={};
   const t=st.tower,wk=mskWeek(now),d=mskDay(now);
-  if(t.wk!==wk){t.wk=wk;t.wBest=0;t.wSig=0;t.wRuns=0;t.wAt=0;t.run=null;t.tour=null}
+  if(t.wk!==wk){t.wk=wk;t.wBest=0;t.wSig=0;t.wRuns=0;t.wAt=0;t.tour=null}
   const vip=(st.vipUntil||0)>now||(t.passUntil||0)>now;
   if(t.d!==d){t.d=d;t.free=TOWER.free+(vip?1:0);t.paid=0}
   if(t.free==null)t.free=TOWER.free+(vip?1:0);
@@ -1820,9 +1820,12 @@ const TOWER_CHAMP_STATS=[[612,588,534,604,596],[648,612,566,638,624]];
 function towerChampCard(ctx,idx){
   const h=TOWER_CHAMP_IDS[idx];if(h==null)return null;
   const B=cardBody(h,4),stats=(TOWER_CHAMP_STATS[idx]||TOWER_CHAMP_STATS[0]).slice();
-  return {id:ctx.newId(),h,f:4,no:1,sn:idx===0?"900001":"900002",hue:B.hue,stats,v:4999999,xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0,how:"tower_champ",cust:1};
+  const sn=idx===0?"900001":"900002";
+  if(!ctx.snFree(sn))return null;
+  return {id:ctx.newId(),h,f:4,no:1,sn,hue:B.hue,stats,v:4999999,xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0,how:"tower_champ"};
 }
 function towerShards(st,ctx,n){
+  if(st.tower&&(st.tower.passUntil||0)>ctx.now)n=Math.floor(n*1.2);
   const els=["f","w","e","a"];let left=Math.max(0,n|0),got=0;
   for(let i=0;i<4&&left>0;i++){
     const q=i===3?left:Math.floor((n|0)/4);
@@ -1855,7 +1858,6 @@ ACTIONS.tower_start=function(G){
   else if(t.paid<TOWER.paidMax)fail("Попытки на сегодня закончились. Купи Ключ Башни");
   else fail("На сегодня всё: 3 платных забега уже использованы");
   t.wRuns=(t.wRuns||0)+1;
-  t.lastSquad=squad;
   t.run={n:1,squad,power,got:{sh:0,sp:0,xp:0,sig:0,card:0},started:ctx.now};
   return {run:towerView(st,ctx.now).run,free:t.free,paid:t.paid,keys:t.keys};
 };
@@ -1883,11 +1885,11 @@ ACTIONS.tower_fight=function(G){
         catch(e){st.spins=(st.spins||0)+5;out.note="Коллекция полна — вместо карты 5 прокруток"}
       }
     }
-    if(n>t.wBest){t.wBest=n;t.wAt=ctx.now}
+    if(n>t.wBest){t.wBest=n;t.wAt=ctx.now;t.lastSquad=snap(r.squad)}
     if(n>=5){t.run=null;out.done=1;out.end={win:1,best:5}}
     else r.n=n+1;
   }else{
-    t.wBest=Math.max(t.wBest||0,n-1);
+    if(n-1>(t.wBest||0)){t.wBest=n-1;t.wAt=ctx.now;t.lastSquad=snap(r.squad)}
     t.run=null;out.done=1;out.lost=1;out.end={win:0,best:Math.max(0,n-1)};
   }
   out.run=towerView(st,ctx.now).run;out.sig=t.sig;out.wBest=t.wBest;out.free=t.free;out.keys=t.keys;
@@ -1912,7 +1914,8 @@ ACTIONS.tower_shop=function(G){
   }else if(k==="title"){
     (st.titles||(st.titles=[])).push("tower");out.title="tower";
   }else{
-    st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;out.sp=12;out.guar=1;
+    st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;
+    const sh=towerShards(st,ctx,25);out.sp=12;out.guar=1;out.sh=sh;
   }
   out.sig=t.sig;out.shop=t.shop;
   return out;
@@ -1939,24 +1942,23 @@ ACTIONS.tower_week_reward=function(G){
   if(sig)t.sig=(t.sig||0)+sig;
   st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;
   if(place<=6)(st.frames||(st.frames=[]));if(place<=6&&!st.frames.includes("tower"))st.frames.push("tower");
-  if(place===1){(st.titles||(st.titles=[]));if(!st.titles.includes("champ"))st.titles.push("champ");if(!st.frames.includes("champ"))st.frames.push("champ")}
   return {place,sig,sp:12,guar:1};
 };
 ACTIONS.tower_champ_grant=function(G){
   const {st,ctx,p}=G;if(!ctx.grant)fail("Нет доступа");
   const wk=String(p.wk||"");
   const idx=wk==="2026-11-23"?0:wk==="2026-11-30"?1:-1;
-  let c=idx>=0?towerChampCard(ctx,idx):null;
-  if(!c){try{c=rollOne(ctx)}catch(e){}}
-  if(!c)c=rollTier(ctx,3);
-  c.how="tower_champ";c.cust=1;
+  let c=null;
+  if(idx>=0){c=towerChampCard(ctx,idx);if(!c)fail("Серийный номер карты чемпиона уже занят — требуется проверка администратора")}
+  else{try{c=rollOne(ctx)}catch(e){}if(!c)c=rollTier(ctx,3)}
+  c.how="tower_champ";
   (st.titles||(st.titles=[]));if(!st.titles.includes("champ"))st.titles.push("champ");
   (st.frames||(st.frames=[]));if(!st.frames.includes("champ"))st.frames.push("champ");
   addCard(G,c);
   return {card:c};
 };
 
-if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -2450,7 +2452,10 @@ async function towerTopRows(env,wk,limit){
 async function towerTop(env,me){
   const wk=mskWeek(Date.now());
   const all=await cached("tower_top:"+wk,20e3,()=>towerTopRows(env,wk,50));
-  return {wk,top:all.slice(0,10),me:all.find(x=>x.uid===me.id)||null,total:all.length};
+  const pubTop=all.slice(0,10).map(({squad,...p})=>p);
+  const row=all.find(x=>x.uid===me.id);
+  const mine=row?(({squad,...p})=>p)(row):null;
+  return {wk,top:pubTop,me:mine,total:all.length};
 }
 let towerBusy=0;
 const TOWER_TOUR={gap:15*60e3,ready:10*60e3,grace:60e3};
@@ -2496,15 +2501,27 @@ async function towerTourCreate(env,wk,top){
 }
 async function towerTourChampion(env,T){
   if(!T||!T.champion||T.granted)return;
-  T.granted=1;
   const p=towerTourPlayer(T,T.champion);
   if(!p)return;
+  let c=null;
   try{
-    const r=await doAction(env,{id:p.uid,name:p.name},"tower_champ_grant",{wk:T.wk},{grant:true});
-    const c=r.res&&r.res.card;
-    if(c)T.card=c;
-  }catch(e){console.error("tower champion card",e&&e.message)}
-  try{await notify(env,p.uid,"👑 Ты чемпион Башни недели!\n\n"+(T.card?"Карта «Ошибка печати» уже в коллекции.":"Карта чемпиона выдаётся — админ проверит и выдаст вручную.")+"\n\n🏆 Титул и рамка — в профиле.","🏰 Башня",PAGE+"?tower=1")}catch(e){}
+    const sn=T.wk==="2026-11-23"?"900001":T.wk==="2026-11-30"?"900002":null;
+    const existing=sn
+      ?await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND sn=?").bind(p.uid,sn).first()
+      :await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND how='tower_champ' ORDER BY created DESC LIMIT 1").bind(p.uid).first();
+    if(existing)c=rowToCard(existing);
+    else{
+      const r=await doAction(env,{id:p.uid,name:p.name},"tower_champ_grant",{wk:T.wk},{grant:true});
+      c=r.res&&r.res.card||null;
+    }
+  }catch(e){
+    console.error("tower champion card",e&&e.message);
+    for(const a of ADMINS)try{await notify(env,a,"⚠️ Не удалось выдать карту чемпиону Башни "+p.name+" (id "+p.uid+"): "+(e.message||e),"🏰 Проверить")}catch(x){}
+    return;
+  }
+  if(!c){for(const a of ADMINS)try{await notify(env,a,"⚠️ Карта чемпиону Башни не найдена/не создана: "+p.name+" (id "+p.uid+"). Проверь тираж и свободное место.","🏰 Проверить")}catch(e){}return}
+  T.card=c;T.granted=1;T.t=Date.now();
+  try{await notify(env,p.uid,"👑 Ты чемпион Башни недели!\n\nКарта «Ошибка печати» уже в коллекции.\n\n🏆 Титул и рамка — в профиле.","🏰 Башня",PAGE+"?tower=1")}catch(e){}
   if(T.card)try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"🏆 ЧЕМПИОН БАШНИ НЕДЕЛИ — "+p.name+"!\n\nПобедитель турнира топ-6 забирает карту «Ошибка печати» 1 из 1. Поздравляем!",reply_markup:{inline_keyboard:[[{text:"🏰 Башня",url:PAGE+"?tower=1"}]]}})}catch(e){}
 }
 async function towerTourAdvance(env,T,now){
@@ -2562,7 +2579,7 @@ async function towerTourGet(env,me){
   if(!T)return {phase:"none",wk,top:[],T0:towerTourT0(wk)};
   let ch=0;try{ch=await towerTourAdvance(env,T,now)}catch(e){console.error("tower advance",e&&e.message)}
   try{await towerTourRemind(env,T,now)}catch(e){}
-  if(ch)try{await kvSet(env,"tower_tour:"+wk,T)}catch(e){}
+  if(ch||T.t!==T._savedT)try{T._savedT=T.t;await kvSet(env,"tower_tour:"+wk,T)}catch(e){}
   let mine=null;
   for(const id of ["f","s1","s2","p1","p2"]){
     const m=(T.matches||{})[id];if(!m||m.done)continue;
@@ -2624,7 +2641,7 @@ async function towerTick(env,force){  if(towerBusy)return;
     try{await towerWeekRewards(env,wk)}catch(e){console.error("tower week",e&&e.message)}
     const ch=await towerTourAdvance(env,T,now);
     await towerTourRemind(env,T,now);
-    if(ch)await kvSet(env,"tower_tour:"+wk,T);
+    if(ch||T.t!==T._savedT){T._savedT=T.t;await kvSet(env,"tower_tour:"+wk,T)}
   }finally{towerBusy=0}
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
@@ -2947,8 +2964,8 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
 
 /* ---------- рынок: настоящие игроки ---------- */
 async function market(env,me){
-  const rows=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? ORDER BY c.listed_at DESC LIMIT 60").bind(me.id).all()).results;
-  {const dh=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].dgc),seen=new Set(rows.map(r=>r.id));if(dh.length){const more=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h IN ("+dh.join(",")+") ORDER BY c.listed_at DESC LIMIT 40").bind(me.id).all()).results;for(const r of more)if(!seen.has(r.id))rows.push(r)}}
+  const rows=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") ORDER BY c.listed_at DESC LIMIT 60").bind(me.id).all()).results;
+  {const dh=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].dgc),seen=new Set(rows.map(r=>r.id));if(dh.length){const more=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h IN ("+dh.join(",")+") AND c.h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") ORDER BY c.listed_at DESC LIMIT 40").bind(me.id).all()).results;for(const r of more)if(!seen.has(r.id))rows.push(r)}}
   return {items:rows.map(r=>({id:r.id,card:pub(rowToCard(r)),price:r.list_price,seller:r.seller_name||"Игрок"}))};
 }
 /* Общие правила цены и комиссии используются рынком, заказами и обменами. */
@@ -2956,8 +2973,8 @@ const priceCap=c=>c?mktCap(c):1000;
 const feeOf=price=>mktFee(price);
 async function list(env,me,p){
   const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e11))fail("Цена от 1 до 100 000 000 000 🪙");
-  {const c=await env.DB.prepare("SELECT v,f,h FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();const mx=priceCap(c);if(c&&price>mx)fail("Слишком дорого. Максимум для этой карточки — "+fmtD(mx)+" 🪙")}
-  const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND NOT (f=4 AND sn='000010') AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
+  {const c=await env.DB.prepare("SELECT v,f,h FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();if(c&&HEROES[c.h]?.[4]?.towerChamp)fail("Карта чемпиона — несгораемый трофей: рынок закрыт");const mx=priceCap(c);if(c&&price>mx)fail("Слишком дорого. Максимум для этой карточки — "+fmtD(mx)+" 🪙")}
+  const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") AND NOT (f=4 AND sn='000010') AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
     .bind(price,Date.now(),p.id|0,me.id,me.id,MAX_LOTS).run();
   if(r.meta.changes!==1)fail("Карточку нельзя выставить: она в походе, уже на рынке, подарена (подарочные не продаются) или у тебя уже "+MAX_LOTS+" лотов");
   return {price};
@@ -2999,6 +3016,7 @@ async function ordFill(env,me,p){const o=await env.DB.prepare("SELECT * FROM ord
 async function buy(env,me,p){
   const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND list_price IS NOT NULL").bind(p.id|0).first();
   if(!c)fail("Этот лот уже купили или сняли");if(c.owner===me.id)fail("Это твой лот");
+  if(HEROES[c.h]?.[4]?.towerChamp)fail("Карту чемпиона нельзя покупать или продавать");
   if(Math.abs(c.list_price-(+p.price||0))>.001)fail("Продавец изменил цену, обнови рынок");
   const have=await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=?").bind(me.id).first();if(have.n>=await capUid(env,me.id))fail("Коллекция заполнена. Расширь место во вкладке «Карты»");
   const {u:bu}=await loadUser(env,me);
@@ -4687,7 +4705,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       if(B.day){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND created>?").bind(uid,item,Date.now()-864e5).first())||{}).n||0;if(n>=B.day)fail("Королевский сундук гемов — не больше "+B.day+" в сутки. Загляни завтра")}
       data={el};title=(I.n+" · "+GEM.el[el].n).slice(0,32)}
     return {item,stars:I.dayc?dcSt:I.stars,title,desc:(I.any?"Любая карточка в игре: "+title:I.d.map(x=>x.replace(/<[^>]+>/g,"")).join(", ")),data}}
-  if(item==="num"){const sn=checkSn(p.sn),c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(Math.floor(+p.card||0),uid).first();if(!c)fail("Карточка не найдена");
+  if(item==="num"){const sn=checkSn(p.sn),c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(Math.floor(+p.card||0),uid).first();if(!c)fail("Карточка не найдена");if(HEROES[c.h]?.[4]?.towerChamp)fail("Номер чемпионской карты нельзя менять");
     if(c.sn===sn)fail("У этой карточки уже такой номер");
     if(await env.DB.prepare("SELECT 1 FROM cards WHERE sn=?").bind(sn).first())fail("Номер "+fmtSn(sn)+" уже занят. Выбери другой");
     return {item,stars:numPrice(sn),title:"Номер "+fmtSn(sn),desc:"Свой номер "+fmtSn(sn)+" на карточке «"+HEROES[c.h][0]+"»",data:{card:c.id,sn}}}
@@ -4838,7 +4856,7 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         (res.cards&&res.cards.length?"\n\n🎴 Выпали:\n"+lootCardNames(res.cards):"");
       if(I.clanb)try{const cu=await env.DB.prepare("SELECT clan,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(cu&&cu.clan){const mem=(await clanMembers(env,cu.clan)).filter(m=>m.id!==P.uid);
         for(const m of mem){try{await doAction(env,{id:m.id,name:m.name},"grant",{item:"clsp",pid:"cl:"+P.id+":"+m.id},{grant:true});await notify(env,m.id,"🛡 "+cu.n+" открыл Сундук клана — тебе +5 прокруток!","🎴 Крутить")}catch(e){}}msg+=" 🛡 Соклановцы получили по +5 прокруток ("+mem.length+")."}else msg+=" (Ты не в клане — бонус соклановцам некому отдать.)"}catch(e){console.error("clanb",e&&e.message)}}
-    else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");
+    else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");if(HEROES[c.h]?.[4]?.towerChamp)fail("Номер чемпионской карты нельзя менять");
       let r;try{r=await env.DB.prepare("UPDATE cards SET sn=?,nice=2 WHERE id=? AND owner=?").bind(d.sn,c.id,P.uid).run()}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Номер "+fmtSn(d.sn)+" успели занять");throw e}
       if(r.meta.changes!==1)fail("Карточка больше не у тебя, номер не поставлен");res={card:c.id,sn:d.sn,old:c.sn};msg="✍️ Готово! Теперь у твоей карточки номер "+fmtSn(d.sn)+"."}
     else if(P.item==="gift"){const g=await giftMint(env,P.uid,d.k,"star");if(!g)fail("Тираж «"+GIFTS[d.k].n+"» закончился на секунду раньше");
@@ -5445,7 +5463,7 @@ let blastBusy=false;
 const clanBossOf=week=>CLAN.boss[Math.abs(Math.floor(Date.parse(week)/6048e5))%CLAN.boss.length];
 /* ---------- подарить карточку и обмен карточками между игроками ---------- */
 const TR={giftDay:5,offerDay:20,ttl:24*3600e3,age:5};   // age: дарить и меняться можно, только если обоим аккаунтам не меньше 5 дней
-const TR_OK="list_price IS NULL AND away=0 AND room_id IS NULL AND f<>5 AND f<>6 AND NOT (f=4 AND sn='000010')";   // не на рынке, не в походе/бою; «Основатель» и «Бесценная» не передаются
+const TR_OK="list_price IS NULL AND away=0 AND room_id IS NULL AND f<>5 AND f<>6 AND h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") AND NOT (f=4 AND sn='000010')";   // трофеи Башни, «Основатель» и «Бесценная» не передаются
 async function trUser(env,p){if(p.uid)return await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(Math.floor(+p.uid)).first();
   const key=nickKey(String(p.nick||"").trim().replace(/^@/,"").replace(/\s+/g,"_"));if(!key)fail("Напиши ник игрока");return await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE nick_key=?").bind(key).first()}
 async function tradeApi(env,me,a,p){const now=Date.now(),d0=(dayNum(now))*864e5-TZ,one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
@@ -6565,7 +6583,7 @@ async function sonReleaseTick(env){const now=Date.now(),at=Date.UTC(2026,10,22,1
 }
 
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await evAnnounce(env)}catch(e){console.error('evpost',e)}try{await evRewardTick(env)}catch(e){console.error('evreward',e)}try{await evSettle(env)}catch(e){console.error('evsettle',e)}try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await react4Tick(env)}catch(e){console.error("react4",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await evAnnounce(env)}catch(e){console.error('evpost',e)}try{await evRewardTick(env)}catch(e){console.error('evreward',e)}try{await evSettle(env)}catch(e){console.error('evsettle',e)}try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}/* fire30Tick was removed; reaction updates are handled by fire30React. */try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await react4Tick(env)}catch(e){console.error("react4",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };

@@ -291,7 +291,7 @@ const MYTH_WEIGHT=(()=>{const all=HEROES.filter((H,i)=>(isBase(i)||H[4].dgc)&&H[
 const DUO=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].duo), isDuo=h=>!!(HEROES[h]&&HEROES[h][4].duo), DUO_F=7, DUO_RUN=2;
 const DUO_PAIRS=(()=>{const m={};DUO.forEach(h=>{const k=HEROES[h][4].pair;(m[k]=m[k]||[]).push(h)});return Object.keys(m).map(k=>({n:k,h:m[k]}))})();
 const COMP=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].comp), isComp=h=>!!(HEROES[h]&&HEROES[h][4].comp);
-const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one&&!HEROES[i][4].sale), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one);
+const DON=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].don&&!HEROES[i][4].one&&!HEROES[i][4].sale), ONE=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].one&&!HEROES[i][4].towerChamp);
 /* Тор (ошибка печати, 1 из 1) — главный трофей игры: падает только из прокрутки, шанс 1 на миллион. В сундуках и в «Любой карточке» его нет */
 const THOR=HEROES.findIndex(H=>H[0]==="Тор"), THOR_P=.000001;
 /* редкость карточки: у именных (own) — своя, «круче мифической» */
@@ -366,7 +366,7 @@ const RELICS=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].relic),RELIC_P=.00001,R
 FIN.push({k:"Мегаредкая",cls:"relic",w:0,m:2000,run:Infinity,col:"#7dfcff",excl:1});
 const relicChest=I=>!!(I.cards||I.goldb||I.collb||I.roul||I.twins||I.errq);
 function rollRelic(ctx){return makeCard(ctx,RELICS[Math.floor(Math.random()*RELICS.length)],RELIC_F)}
-const isDia=h=>!!DIA[h], finRun=c=>c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
+const isDia=h=>!!DIA[h], finRun=c=>HEROES[c.h]?.[4]?.towerChamp?1:c.f===DIA_F&&DIA[c.h]?DIA[c.h].run:FIN[c.f].run;
 /* три карточки «Основатель»: создаются сервером один раз, лежат в казне игры, пока их не заработают */
 const FOUNDERS=[{h:30,sn:"111111",stats:[640,640,600,620,660]},{h:31,sn:"222222",stats:[560,600,600,640,720]},{h:23,sn:"333333",stats:[620,580,640,600,660]}], FOUNDER_REFS=15;
 const HW=[10,4.5,1.15,.25,.045];   // при 10 прокрутках раз в 4 часа редкие выпадают чуть реже          // вес выпадения воина по его редкости
@@ -757,7 +757,7 @@ const MYST=[{k:"sp",n:"30 прокруток",ic:"🎴",sp:30},{k:"cash",n:"500 
 SHOP.lott={n:"Билет лотереи",stars:29,lott:1,d:["🎟 билет беспроигрышной лотереи дня"]};
 const CHESTS=["newbie","small","luckbox","promo","royal","riftchest","warrior","general","legend","empire","mythic"];
 /* «любая карточка в игре»: игрок сам выбирает воина и отделку (если тираж ещё не закончился) */
-function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale)fail("Такой карточки нет");const W=HEROES[h][4];
+function makeAny(ctx,h,f){if(!HEROES[h]||!FIN[f]||FIN[f].excl||FIN[f].dia||HEROES[h][4].collab||HEROES[h][4].sale||HEROES[h][4].towerChamp)fail("Такой карточки нет");const W=HEROES[h][4];
   if(W.relic)fail("Конкретного героя Забытых Эпох нельзя купить: только случайное выпадение");
   if(W.rift)fail("Стражи Разлома собираются только из двух половинок");
   if(h===THOR)fail("Тора нельзя купить — его можно только выбить в прокрутке");
@@ -904,8 +904,8 @@ function own(G,id){const c=G.cards.find(x=>x.id===id);if(!c)fail("Карточк
 function freeCard(G,id){const c=own(G,id);if(c.lock)fail("Эта карточка сейчас в бою на арене");if(c.away)fail(/^map:/.test(String(c.dest||""))?"Этот воин охраняет регион на карте мира":"Этот воин в походе");if(c.listed)fail("Эта карточка выставлена на рынок");return c}
 /* «Основатель» — трофей: не дерётся и не сгорает, только рынок, витрина и походы */
 /* подарочная карточка «Ошибка печати» № 000010 (приз за 10 друзей): не продаётся, не меняется, не сжигается, в боях «на карточку» не участвует */
-const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f===9||!!(HEROES[c.h]&&HEROES[c.h][4].bro));
-const NOTRADE_MSG="Эта карточка подарена и существует в одном экземпляре: её нельзя продать, обменять или сжечь";
+const PRIZE_SN="000010", noTrade=c=>!!c&&(c.f===4&&String(c.sn)===PRIZE_SN||c.f===9||!!(HEROES[c.h]&&(HEROES[c.h][4].bro||HEROES[c.h][4].towerChamp)));
+const NOTRADE_MSG="Это трофейная карточка: её нельзя продать, обменять, передать или сжечь";
 const TROPHY_MSG="Карточка «Основатель» коллекционная: в боях не участвует";
 function battleCard(G,id){const c=freeCard(G,id);if(FIN[c.f].excl)fail(FIN[c.f].collab?"Бесценная карточка коллекционная: в боях не участвует":TROPHY_MSG);return notHalf(c,"Половинка не воюет. Собери из двух половинок целого воина в Сокровищнице")}
 function burnable(c){if(birthdayPrint(c))fail("Праздничную карту можно выставить на рынок, но нельзя сжечь или продать системе");if(noTrade(c))fail(NOTRADE_MSG);if(FIN[c.f].collab)fail("Бесценную карточку нельзя продать системе или сжечь. Её можно только выставить на рынок — цену ставишь ты");if(FIN[c.f].excl)fail("«Основателя» нельзя продать системе или сжечь. Его можно выставить на рынок");if(HEROES[c.h][4].one)fail("Легенду 1 из 1 нельзя продать системе или сжечь — только на рынке");return c}
@@ -1315,7 +1315,7 @@ const ACTIONS={
     return {money,xp:D.xp,sp,card}},
 
   train(G){const c=notHalf(own(G,G.p.id));if(c.listed)fail("Карточка на рынке");if(lvl(c)>=LMAX)fail("Максимальный уровень");pay(G.st,trainCost(c));addXp(G.ctx,c,50);return {}},
-  forge(G){const c=notHalf(own(G,G.p.id));if(c.listed)fail("Карточка на рынке");const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");
+  forge(G){const c=notHalf(own(G,G.p.id));if(HEROES[c.h]?.[4]?.towerChamp)fail(NOTRADE_MSG);if(c.listed)fail("Карточка на рынке");const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");
     if(lvl(c)<STAR_LVL[s])fail("Нужен уровень "+STAR_LVL[s]+". Качай воина в боях, походах и у тренера");
     pay(G.st,forgeCost(c));c.stars=s+1;c.v=Math.round(c.v*STAR_V*100)/100;return {stars:c.stars,v:c.v}},
   rage(G){const B=boss(G.st,G.ctx.now);if((B.extra||0)>=2)fail("Лимит зелий на сегодня");pay(G.st,150);B.extra=(B.extra||0)+1;return {}},
@@ -1325,7 +1325,7 @@ const ACTIONS={
   task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;if(T.c)earn(st,T.c);const dgx=st.dg?dgAddXp(st,ctx,DG.taskXp):0;return {r:T.r,c:T.c||0,dgx}},
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;const cashW=STREAK_CASH[(st.streak.n||1)-1]||300;earn(st,cashW);if(st.streak.n===7)st.guar=(st.guar||0)+1;
     const F=st.fire||{n:1},R=fireRew(F.n);st.spins+=R.sp+R.bonus;if(R.frame)st.fireFrame=1;if(R.title)st.fireTitle=1;return {n:st.streak.n,fire:F.n,fsp:R.sp+R.bonus,frame:R.frame?1:0,cash:cashW}},
-  err_up(G){const {st,ctx}=G,c=freeCard(G,G.p.id);if(c.f!==4)fail("Улучшить можно только обычную «Ошибку печати»");if(st.gsock&&st.gsock[c.id]&&st.gsock[c.id].length)fail("Сначала вынь гемы из этой карты");
+  err_up(G){const {st,ctx}=G,c=freeCard(G,G.p.id);if(HEROES[c.h]?.[4]?.towerChamp)fail(NOTRADE_MSG);if(c.f!==4)fail("Улучшить можно только обычную «Ошибку печати»");if(st.gsock&&st.gsock[c.id]&&st.gsock[c.id].length)fail("Сначала вынь гемы из этой карты");
     const fg=FIN.findIndex(F=>F.cls==="error egold");if(fg<0)fail("Скоро");if(ctx.issuedFin&&ctx.issuedFin(fg)>=FIN[fg].cap)fail("Все «Золотые браки» уже в мире — мест нет");if(ctx.issuedOf(c.h,fg)>=1)fail("«Золотой брак» этого воина уже есть");
     if(st.cash<ERR_UP.cost)fail("Нужно "+(ERR_UP.cost/1e6)+" млн 🪙");st.cash=Math.round((st.cash-ERR_UP.cost)*100)/100;
     if(Math.random()>=ERR_UP.ch)return {ok:0};
@@ -1528,7 +1528,7 @@ const ACTIONS={
     if(C.runes<pr)fail("Нужно "+pr.toLocaleString("ru")+" рун — потренируйся в лагере");C.runes-=pr;Q.b++;Q.x++;return {price:pr,left:conqLeft(st,Q),bought:Q.b}},
 
   /* Слияние душ: сжечь копии того же воина вместо уровня и монет. ★1 — 1 копия, ★2 — 2, … ★5 — 5 */
-  fuse(G){const {st,ctx,p}=G;const c=notHalf(own(G,p.id));if(c.listed)fail("Карточка на рынке");if(FIN[c.f].excl)fail("Эту карточку не усилить");
+  fuse(G){const {st,ctx,p}=G;const c=notHalf(own(G,p.id));if(HEROES[c.h]?.[4]?.towerChamp)fail(NOTRADE_MSG);if(c.listed)fail("Карточка на рынке");if(FIN[c.f].excl)fail("Эту карточку не усилить");
     const s=c.stars||0;if(s>=STAR_MAX)fail("Уже максимум звёзд");const need=s+1,ids=[...new Set(p.ids||[])].filter(x=>x!==c.id);
     if(ids.length!==need)fail("Для ★"+(s+1)+" нужно "+need+" "+(need===1?"копия":"копии")+" этого воина");
     const don=ids.map(id=>{const d=notHalf(burnable(freeCard(G,id)),"Половинки не сжечь");if(d.h!==c.h)fail("Сжечь можно только копии этого же воина");if(FIN[d.f].excl)fail("Эту карточку нельзя сжечь");return d});
@@ -1790,7 +1790,7 @@ TITLES.champ={n:"Чемпион Башни",ic:"🏆",price:0,ex:1};
 function towerOf(st,now){
   if(!st.tower||typeof st.tower!=="object")st.tower={};
   const t=st.tower,wk=mskWeek(now),d=mskDay(now);
-  if(t.wk!==wk){t.wk=wk;t.wBest=0;t.wSig=0;t.wRuns=0;t.wAt=0;t.run=null;t.tour=null}
+  if(t.wk!==wk){t.wk=wk;t.wBest=0;t.wSig=0;t.wRuns=0;t.wAt=0;t.tour=null}
   const vip=(st.vipUntil||0)>now||(t.passUntil||0)>now;
   if(t.d!==d){t.d=d;t.free=TOWER.free+(vip?1:0);t.paid=0}
   if(t.free==null)t.free=TOWER.free+(vip?1:0);
@@ -1818,9 +1818,12 @@ const TOWER_CHAMP_STATS=[[612,588,534,604,596],[648,612,566,638,624]];
 function towerChampCard(ctx,idx){
   const h=TOWER_CHAMP_IDS[idx];if(h==null)return null;
   const B=cardBody(h,4),stats=(TOWER_CHAMP_STATS[idx]||TOWER_CHAMP_STATS[0]).slice();
-  return {id:ctx.newId(),h,f:4,no:1,sn:idx===0?"900001":"900002",hue:B.hue,stats,v:4999999,xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0,how:"tower_champ",cust:1};
+  const sn=idx===0?"900001":"900002";
+  if(!ctx.snFree(sn))return null;
+  return {id:ctx.newId(),h,f:4,no:1,sn,hue:B.hue,stats,v:4999999,xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0,how:"tower_champ"};
 }
 function towerShards(st,ctx,n){
+  if(st.tower&&(st.tower.passUntil||0)>ctx.now)n=Math.floor(n*1.2);
   const els=["f","w","e","a"];let left=Math.max(0,n|0),got=0;
   for(let i=0;i<4&&left>0;i++){
     const q=i===3?left:Math.floor((n|0)/4);
@@ -1853,7 +1856,6 @@ ACTIONS.tower_start=function(G){
   else if(t.paid<TOWER.paidMax)fail("Попытки на сегодня закончились. Купи Ключ Башни");
   else fail("На сегодня всё: 3 платных забега уже использованы");
   t.wRuns=(t.wRuns||0)+1;
-  t.lastSquad=squad;
   t.run={n:1,squad,power,got:{sh:0,sp:0,xp:0,sig:0,card:0},started:ctx.now};
   return {run:towerView(st,ctx.now).run,free:t.free,paid:t.paid,keys:t.keys};
 };
@@ -1881,11 +1883,11 @@ ACTIONS.tower_fight=function(G){
         catch(e){st.spins=(st.spins||0)+5;out.note="Коллекция полна — вместо карты 5 прокруток"}
       }
     }
-    if(n>t.wBest){t.wBest=n;t.wAt=ctx.now}
+    if(n>t.wBest){t.wBest=n;t.wAt=ctx.now;t.lastSquad=snap(r.squad)}
     if(n>=5){t.run=null;out.done=1;out.end={win:1,best:5}}
     else r.n=n+1;
   }else{
-    t.wBest=Math.max(t.wBest||0,n-1);
+    if(n-1>(t.wBest||0)){t.wBest=n-1;t.wAt=ctx.now;t.lastSquad=snap(r.squad)}
     t.run=null;out.done=1;out.lost=1;out.end={win:0,best:Math.max(0,n-1)};
   }
   out.run=towerView(st,ctx.now).run;out.sig=t.sig;out.wBest=t.wBest;out.free=t.free;out.keys=t.keys;
@@ -1910,7 +1912,8 @@ ACTIONS.tower_shop=function(G){
   }else if(k==="title"){
     (st.titles||(st.titles=[])).push("tower");out.title="tower";
   }else{
-    st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;out.sp=12;out.guar=1;
+    st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;
+    const sh=towerShards(st,ctx,25);out.sp=12;out.guar=1;out.sh=sh;
   }
   out.sig=t.sig;out.shop=t.shop;
   return out;
@@ -1937,21 +1940,20 @@ ACTIONS.tower_week_reward=function(G){
   if(sig)t.sig=(t.sig||0)+sig;
   st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;
   if(place<=6)(st.frames||(st.frames=[]));if(place<=6&&!st.frames.includes("tower"))st.frames.push("tower");
-  if(place===1){(st.titles||(st.titles=[]));if(!st.titles.includes("champ"))st.titles.push("champ");if(!st.frames.includes("champ"))st.frames.push("champ")}
   return {place,sig,sp:12,guar:1};
 };
 ACTIONS.tower_champ_grant=function(G){
   const {st,ctx,p}=G;if(!ctx.grant)fail("Нет доступа");
   const wk=String(p.wk||"");
   const idx=wk==="2026-11-23"?0:wk==="2026-11-30"?1:-1;
-  let c=idx>=0?towerChampCard(ctx,idx):null;
-  if(!c){try{c=rollOne(ctx)}catch(e){}}
-  if(!c)c=rollTier(ctx,3);
-  c.how="tower_champ";c.cust=1;
+  let c=null;
+  if(idx>=0){c=towerChampCard(ctx,idx);if(!c)fail("Серийный номер карты чемпиона уже занят — требуется проверка администратора")}
+  else{try{c=rollOne(ctx)}catch(e){}if(!c)c=rollTier(ctx,3)}
+  c.how="tower_champ";
   (st.titles||(st.titles=[]));if(!st.titles.includes("champ"))st.titles.push("champ");
   (st.frames||(st.frames=[]));if(!st.frames.includes("champ"))st.frames.push("champ");
   addCard(G,c);
   return {card:c};
 };
 
-if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};
+if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};

@@ -46,6 +46,20 @@ if (existsSync(path.join(root, 'server/event-test.mjs'))) {
   }
 }
 
+/* ---------- проверки инвариантов Башни ---------- */
+if (existsSync(path.join(root, 'server/tower-test.mjs'))) {
+  try {
+    const out = execFileSync(process.execPath, ['server/tower-test.mjs'], {
+      cwd: root, stdio: 'pipe', encoding: 'utf8', timeout: 30000,
+    });
+    const last = out.trim().split('\n').filter(Boolean).pop() || 'ok';
+    oks.push(`Башня: ${last.replace(/^✅\s*/, '')}`);
+  } catch (e) {
+    const out = String(e.stdout || '') + String(e.stderr || '');
+    fails.push(`проверки Башни провалены:\n${out.trim().split('\n').slice(-8).join('\n')}`);
+  }
+}
+
 /* ---------- тест фарма карт через бота в бою на карточку ---------- */
 if (existsSync(path.join(root, 'server/stake-test.mjs'))) {
   try {

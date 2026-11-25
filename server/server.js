@@ -489,7 +489,10 @@ async function towerTopRows(env,wk,limit){
 async function towerTop(env,me){
   const wk=mskWeek(Date.now());
   const all=await cached("tower_top:"+wk,20e3,()=>towerTopRows(env,wk,50));
-  return {wk,top:all.slice(0,10),me:all.find(x=>x.uid===me.id)||null,total:all.length};
+  const pubTop=all.slice(0,10).map(({squad,...p})=>p);
+  const row=all.find(x=>x.uid===me.id);
+  const mine=row?(({squad,...p})=>p)(row):null;
+  return {wk,top:pubTop,me:mine,total:all.length};
 }
 let towerBusy=0;
 const TOWER_TOUR={gap:15*60e3,ready:10*60e3,grace:60e3};
@@ -535,15 +538,27 @@ async function towerTourCreate(env,wk,top){
 }
 async function towerTourChampion(env,T){
   if(!T||!T.champion||T.granted)return;
-  T.granted=1;
   const p=towerTourPlayer(T,T.champion);
   if(!p)return;
+  let c=null;
   try{
-    const r=await doAction(env,{id:p.uid,name:p.name},"tower_champ_grant",{wk:T.wk},{grant:true});
-    const c=r.res&&r.res.card;
-    if(c)T.card=c;
-  }catch(e){console.error("tower champion card",e&&e.message)}
-  try{await notify(env,p.uid,"👑 Ты чемпион Башни недели!\n\n"+(T.card?"Карта «Ошибка печати» уже в коллекции.":"Карта чемпиона выдаётся — админ проверит и выдаст вручную.")+"\n\n🏆 Титул и рамка — в профиле.","🏰 Башня",PAGE+"?tower=1")}catch(e){}
+    const sn=T.wk==="2026-11-23"?"900001":T.wk==="2026-11-30"?"900002":null;
+    const existing=sn
+      ?await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND sn=?").bind(p.uid,sn).first()
+      :await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND how='tower_champ' ORDER BY created DESC LIMIT 1").bind(p.uid).first();
+    if(existing)c=rowToCard(existing);
+    else{
+      const r=await doAction(env,{id:p.uid,name:p.name},"tower_champ_grant",{wk:T.wk},{grant:true});
+      c=r.res&&r.res.card||null;
+    }
+  }catch(e){
+    console.error("tower champion card",e&&e.message);
+    for(const a of ADMINS)try{await notify(env,a,"⚠️ Не удалось выдать карту чемпиону Башни "+p.name+" (id "+p.uid+"): "+(e.message||e),"🏰 Проверить")}catch(x){}
+    return;
+  }
+  if(!c){for(const a of ADMINS)try{await notify(env,a,"⚠️ Карта чемпиону Башни не найдена/не создана: "+p.name+" (id "+p.uid+"). Проверь тираж и свободное место.","🏰 Проверить")}catch(e){}return}
+  T.card=c;T.granted=1;T.t=Date.now();
+  try{await notify(env,p.uid,"👑 Ты чемпион Башни недели!\n\nКарта «Ошибка печати» уже в коллекции.\n\n🏆 Титул и рамка — в профиле.","🏰 Башня",PAGE+"?tower=1")}catch(e){}
   if(T.card)try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"🏆 ЧЕМПИОН БАШНИ НЕДЕЛИ — "+p.name+"!\n\nПобедитель турнира топ-6 забирает карту «Ошибка печати» 1 из 1. Поздравляем!",reply_markup:{inline_keyboard:[[{text:"🏰 Башня",url:PAGE+"?tower=1"}]]}})}catch(e){}
 }
 async function towerTourAdvance(env,T,now){
@@ -601,7 +616,7 @@ async function towerTourGet(env,me){
   if(!T)return {phase:"none",wk,top:[],T0:towerTourT0(wk)};
   let ch=0;try{ch=await towerTourAdvance(env,T,now)}catch(e){console.error("tower advance",e&&e.message)}
   try{await towerTourRemind(env,T,now)}catch(e){}
-  if(ch)try{await kvSet(env,"tower_tour:"+wk,T)}catch(e){}
+  if(ch||T.t!==T._savedT)try{T._savedT=T.t;await kvSet(env,"tower_tour:"+wk,T)}catch(e){}
   let mine=null;
   for(const id of ["f","s1","s2","p1","p2"]){
     const m=(T.matches||{})[id];if(!m||m.done)continue;
@@ -663,7 +678,7 @@ async function towerTick(env,force){  if(towerBusy)return;
     try{await towerWeekRewards(env,wk)}catch(e){console.error("tower week",e&&e.message)}
     const ch=await towerTourAdvance(env,T,now);
     await towerTourRemind(env,T,now);
-    if(ch)await kvSet(env,"tower_tour:"+wk,T);
+    if(ch||T.t!==T._savedT){T._savedT=T.t;await kvSet(env,"tower_tour:"+wk,T)}
   }finally{towerBusy=0}
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
@@ -986,8 +1001,8 @@ async function doAction(env,me,name,p,extra){try{await xhLoad(env)}catch(e){}let
 
 /* ---------- рынок: настоящие игроки ---------- */
 async function market(env,me){
-  const rows=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? ORDER BY c.listed_at DESC LIMIT 60").bind(me.id).all()).results;
-  {const dh=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].dgc),seen=new Set(rows.map(r=>r.id));if(dh.length){const more=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h IN ("+dh.join(",")+") ORDER BY c.listed_at DESC LIMIT 40").bind(me.id).all()).results;for(const r of more)if(!seen.has(r.id))rows.push(r)}}
+  const rows=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") ORDER BY c.listed_at DESC LIMIT 60").bind(me.id).all()).results;
+  {const dh=HEROES.map((H,i)=>i).filter(i=>HEROES[i][4].dgc),seen=new Set(rows.map(r=>r.id));if(dh.length){const more=(await env.DB.prepare("SELECT c.*,COALESCE(u.nick,u.name) AS seller_name FROM cards c JOIN users u ON u.id=c.owner WHERE c.list_price IS NOT NULL AND c.owner<>? AND c.h IN ("+dh.join(",")+") AND c.h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") ORDER BY c.listed_at DESC LIMIT 40").bind(me.id).all()).results;for(const r of more)if(!seen.has(r.id))rows.push(r)}}
   return {items:rows.map(r=>({id:r.id,card:pub(rowToCard(r)),price:r.list_price,seller:r.seller_name||"Игрок"}))};
 }
 /* Общие правила цены и комиссии используются рынком, заказами и обменами. */
@@ -995,8 +1010,8 @@ const priceCap=c=>c?mktCap(c):1000;
 const feeOf=price=>mktFee(price);
 async function list(env,me,p){
   const price=Math.round(+p.price||0);if(!(price>=1&&price<=1e11))fail("Цена от 1 до 100 000 000 000 🪙");
-  {const c=await env.DB.prepare("SELECT v,f,h FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();const mx=priceCap(c);if(c&&price>mx)fail("Слишком дорого. Максимум для этой карточки — "+fmtD(mx)+" 🪙")}
-  const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND NOT (f=4 AND sn='000010') AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
+  {const c=await env.DB.prepare("SELECT v,f,h FROM cards WHERE id=? AND owner=?").bind(p.id|0,me.id).first();if(c&&HEROES[c.h]?.[4]?.towerChamp)fail("Карта чемпиона — несгораемый трофей: рынок закрыт");const mx=priceCap(c);if(c&&price>mx)fail("Слишком дорого. Максимум для этой карточки — "+fmtD(mx)+" 🪙")}
+  const r=await env.DB.prepare("UPDATE cards SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") AND NOT (f=4 AND sn='000010') AND (SELECT COUNT(*) FROM cards WHERE owner=? AND list_price IS NOT NULL)<?")
     .bind(price,Date.now(),p.id|0,me.id,me.id,MAX_LOTS).run();
   if(r.meta.changes!==1)fail("Карточку нельзя выставить: она в походе, уже на рынке, подарена (подарочные не продаются) или у тебя уже "+MAX_LOTS+" лотов");
   return {price};
@@ -1038,6 +1053,7 @@ async function ordFill(env,me,p){const o=await env.DB.prepare("SELECT * FROM ord
 async function buy(env,me,p){
   const c=await env.DB.prepare("SELECT * FROM cards WHERE id=? AND list_price IS NOT NULL").bind(p.id|0).first();
   if(!c)fail("Этот лот уже купили или сняли");if(c.owner===me.id)fail("Это твой лот");
+  if(HEROES[c.h]?.[4]?.towerChamp)fail("Карту чемпиона нельзя покупать или продавать");
   if(Math.abs(c.list_price-(+p.price||0))>.001)fail("Продавец изменил цену, обнови рынок");
   const have=await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=?").bind(me.id).first();if(have.n>=await capUid(env,me.id))fail("Коллекция заполнена. Расширь место во вкладке «Карты»");
   const {u:bu}=await loadUser(env,me);
@@ -2726,7 +2742,7 @@ async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[it
       if(B.day){const n=((await env.DB.prepare("SELECT COUNT(*) AS n FROM payments WHERE uid=? AND item=? AND status IN ('paid','done') AND created>?").bind(uid,item,Date.now()-864e5).first())||{}).n||0;if(n>=B.day)fail("Королевский сундук гемов — не больше "+B.day+" в сутки. Загляни завтра")}
       data={el};title=(I.n+" · "+GEM.el[el].n).slice(0,32)}
     return {item,stars:I.dayc?dcSt:I.stars,title,desc:(I.any?"Любая карточка в игре: "+title:I.d.map(x=>x.replace(/<[^>]+>/g,"")).join(", ")),data}}
-  if(item==="num"){const sn=checkSn(p.sn),c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(Math.floor(+p.card||0),uid).first();if(!c)fail("Карточка не найдена");
+  if(item==="num"){const sn=checkSn(p.sn),c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(Math.floor(+p.card||0),uid).first();if(!c)fail("Карточка не найдена");if(HEROES[c.h]?.[4]?.towerChamp)fail("Номер чемпионской карты нельзя менять");
     if(c.sn===sn)fail("У этой карточки уже такой номер");
     if(await env.DB.prepare("SELECT 1 FROM cards WHERE sn=?").bind(sn).first())fail("Номер "+fmtSn(sn)+" уже занят. Выбери другой");
     return {item,stars:numPrice(sn),title:"Номер "+fmtSn(sn),desc:"Свой номер "+fmtSn(sn)+" на карточке «"+HEROES[c.h][0]+"»",data:{card:c.id,sn}}}
@@ -2877,7 +2893,7 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
         (res.cards&&res.cards.length?"\n\n🎴 Выпали:\n"+lootCardNames(res.cards):"");
       if(I.clanb)try{const cu=await env.DB.prepare("SELECT clan,COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();if(cu&&cu.clan){const mem=(await clanMembers(env,cu.clan)).filter(m=>m.id!==P.uid);
         for(const m of mem){try{await doAction(env,{id:m.id,name:m.name},"grant",{item:"clsp",pid:"cl:"+P.id+":"+m.id},{grant:true});await notify(env,m.id,"🛡 "+cu.n+" открыл Сундук клана — тебе +5 прокруток!","🎴 Крутить")}catch(e){}}msg+=" 🛡 Соклановцы получили по +5 прокруток ("+mem.length+")."}else msg+=" (Ты не в клане — бонус соклановцам некому отдать.)"}catch(e){console.error("clanb",e&&e.message)}}
-    else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");
+    else if(P.item==="num"){const c=await env.DB.prepare("SELECT id,h,sn FROM cards WHERE id=? AND owner=?").bind(d.card,P.uid).first();if(!c)fail("Карточка больше не у тебя, номер не поставлен");if(HEROES[c.h]?.[4]?.towerChamp)fail("Номер чемпионской карты нельзя менять");
       let r;try{r=await env.DB.prepare("UPDATE cards SET sn=?,nice=2 WHERE id=? AND owner=?").bind(d.sn,c.id,P.uid).run()}catch(e){if(/UNIQUE/i.test(String(e&&e.message||e)))fail("Номер "+fmtSn(d.sn)+" успели занять");throw e}
       if(r.meta.changes!==1)fail("Карточка больше не у тебя, номер не поставлен");res={card:c.id,sn:d.sn,old:c.sn};msg="✍️ Готово! Теперь у твоей карточки номер "+fmtSn(d.sn)+"."}
     else if(P.item==="gift"){const g=await giftMint(env,P.uid,d.k,"star");if(!g)fail("Тираж «"+GIFTS[d.k].n+"» закончился на секунду раньше");
@@ -3484,7 +3500,7 @@ let blastBusy=false;
 const clanBossOf=week=>CLAN.boss[Math.abs(Math.floor(Date.parse(week)/6048e5))%CLAN.boss.length];
 /* ---------- подарить карточку и обмен карточками между игроками ---------- */
 const TR={giftDay:5,offerDay:20,ttl:24*3600e3,age:5};   // age: дарить и меняться можно, только если обоим аккаунтам не меньше 5 дней
-const TR_OK="list_price IS NULL AND away=0 AND room_id IS NULL AND f<>5 AND f<>6 AND NOT (f=4 AND sn='000010')";   // не на рынке, не в походе/бою; «Основатель» и «Бесценная» не передаются
+const TR_OK="list_price IS NULL AND away=0 AND room_id IS NULL AND f<>5 AND f<>6 AND h NOT IN ("+TOWER_CHAMP_IDS.join(",")+") AND NOT (f=4 AND sn='000010')";   // трофеи Башни, «Основатель» и «Бесценная» не передаются
 async function trUser(env,p){if(p.uid)return await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE id=?").bind(Math.floor(+p.uid)).first();
   const key=nickKey(String(p.nick||"").trim().replace(/^@/,"").replace(/\s+/g,"_"));if(!key)fail("Напиши ник игрока");return await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name FROM users WHERE nick_key=?").bind(key).first()}
 async function tradeApi(env,me,a,p){const now=Date.now(),d0=(dayNum(now))*864e5-TZ,one=async(q,...x)=>(await env.DB.prepare(q).bind(...x).first())||{};
@@ -4604,7 +4620,7 @@ async function sonReleaseTick(env){const now=Date.now(),at=Date.UTC(2026,10,22,1
 }
 
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await evAnnounce(env)}catch(e){console.error('evpost',e)}try{await evRewardTick(env)}catch(e){console.error('evreward',e)}try{await evSettle(env)}catch(e){console.error('evsettle',e)}try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}try{await fire30Tick(env)}catch(e){console.error("f30",e)}try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await react4Tick(env)}catch(e){console.error("react4",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await evAnnounce(env)}catch(e){console.error('evpost',e)}try{await evRewardTick(env)}catch(e){console.error('evreward',e)}try{await evSettle(env)}catch(e){console.error('evsettle',e)}try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}/* fire30Tick was removed; reaction updates are handled by fire30React. */try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await react4Tick(env)}catch(e){console.error("react4",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };

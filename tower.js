@@ -270,7 +270,7 @@
       '<div class="tw-h">Попытки за звёзды</div>' +
       '<div class="tw-sn"><span class="ic">🔑</span><span><b>Ключ Башни · 199⭐</b><small>+1 забег</small></span><button type="button" class="tw-btn sm" data-buy="key">Купить</button></div>' +
       '<div class="tw-sn"><span class="ic">🛡</span><span><b>Набор Стража · 499⭐</b><small>+2 забега и карта</small></span><button type="button" class="tw-btn sm" data-buy="set">Купить</button></div>' +
-      '<div class="tw-sn"><span class="ic">👑</span><span><b>Пропуск 7 дней · 899⭐</b><small>+1 бесплатный забег в день</small></span><button type="button" class="tw-btn sm" data-buy="pass">Купить</button></div>' +
+      '<div class="tw-sn"><span class="ic">👑</span><span><b>Пропуск 7 дней · 899⭐</b><small>+1 бесплатный забег/день · +20% 💠</small></span><button type="button" class="tw-btn sm" data-buy="pass">Купить</button></div>' +
       '<div class="tw-note">Покупки дают только попытки и косметику, не силу. Лимит 3 платных забега в день.</div>';
     $("tw-body").querySelectorAll("[data-shop]").forEach(b => b.onclick = () => twShopBuy(b.dataset.shop));
     $("tw-body").querySelectorAll("[data-buy]").forEach(b => b.onclick = () => twInvoice(b.dataset.buy));
