@@ -50,13 +50,13 @@ regular = lambda n: ImageFont.truetype("C:/Windows/Fonts/arial.ttf", sc(n))
 
 d.rounded_rectangle((sc(48),sc(30),sc(1032),sc(214)), radius=sc(32), fill=(8,12,35,246), outline=(255,204,71,255), width=sc(5))
 d.text((sc(540),sc(43)),"АРЕНА 20:30",font=bold(92),fill=(255,215,89,255),anchor="mt",stroke_width=sc(3),stroke_fill=(74,20,74,255))
-d.text((sc(540),sc(153)),"ТУРНИР НА 30 МЕСТ · ВХОД В 20:30",font=bold(29),fill=(231,242,255,255),anchor="mt")
+d.text((sc(540),sc(153)),"26 НОЯБРЯ · ТУРНИР НА 30 МЕСТ · ВХОД В 20:30",font=bold(27),fill=(231,242,255,255),anchor="mt")
 
 d.rounded_rectangle((sc(66),sc(300),sc(1014),sc(522)), radius=sc(30), fill=(8,12,35,246), outline=(255,90,26,255), width=sc(5))
 d.text((sc(540),sc(322)),"ПЕРВЫЕ 30 — В СЕТКЕ",font=bold(42),fill=(255,221,116,255),anchor="mt")
 d.text((sc(540),sc(383)),"СТОЙКА + ЗАГАДКА + 3 РАУНДА",font=bold(31),fill=(255,120,70,255),anchor="mt")
 d.text((sc(540),sc(432)),"Правильный ответ +25% · стойка +15%",font=regular(25),fill=(240,244,255,255),anchor="mt")
-d.text((sc(540),sc(480)),"МИНИМУМ 20 · ЕСЛИ 30 НЕ НАБЕРЁТСЯ — СТАРТ В 20:45",font=bold(19),fill=(255,221,116,255),anchor="mt")
+d.text((sc(540),sc(480)),"СТАРТ В 20:45 · ТУРНИР СОСТОИТСЯ В ЛЮБОМ СЛУЧАЕ",font=bold(19),fill=(255,221,116,255),anchor="mt")
 
 d.rounded_rectangle((sc(90),sc(780),sc(990),sc(1056)), radius=sc(28), fill=(8,12,35,248), outline=(255,204,71,255), width=sc(4))
 d.text((sc(540),sc(798)),"НАГРАДЫ",font=bold(30),fill=(255,221,116,255),anchor="mt")
@@ -69,5 +69,5 @@ d.rounded_rectangle((sc(85),sc(1194),sc(995),sc(1307)), radius=sc(25), fill=(8,1
 d.text((sc(540),sc(1209)),"ИГРА → БАШНЯ → АРЕНА",font=bold(26),fill=(255,221,116,255),anchor="mt")
 d.text((sc(540),sc(1255)),"@voinyepoh · ВОИНЫ ЭПОХ",font=bold(21),fill=(231,242,255,255),anchor="mt")
 
-im.convert("RGB").resize((W,H),Image.Resampling.LANCZOS).save("event-assets/arena-2026-11-25.png", optimize=True)
+im.convert("RGB").resize((W,H),Image.Resampling.LANCZOS).save("event-assets/arena-2026-11-26.png", optimize=True)
 print("saved arena poster 1080x1350")

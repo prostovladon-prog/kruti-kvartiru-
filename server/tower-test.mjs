@@ -89,19 +89,19 @@ const reactionPoster = readFileSync(path.join(root, "event-assets/reactions-2026
 assert.equal(reactionPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
 assert.equal(reactionPoster.readUInt32BE(16), 1080);
 assert.equal(reactionPoster.readUInt32BE(20), 1350);
-assert.ok(server.includes('id:"arena-20261125"') &&
-  server.includes("max:30,min:20") &&
-  server.includes("A.players.length<ARN.min") &&
+assert.ok(server.includes('id:"arena-20261126"') &&
+  server.includes("max:30,min:1") &&
+  server.includes("A.players.length===1") &&
   server.includes("const ARN_PUZZLES") &&
   server.includes("tower_arena_get") &&
   server.includes("tower_arena_join") &&
   server.includes("tower_arena_pick") &&
   server.includes("try{await arnTick(env)}catch(e){console.error('arena',e)}"),
-  "20:30 arena must support 30 seats, a 20-player minimum, bracket battles, puzzles and scheduled ticks");
-assert.ok(server.includes('id:"arena-announce-20261125",on:false') &&
-  server.includes('id:"arena-open-20261125",on:false') &&
+  "26.11 arena must support 30 seats, no minimum, bracket battles, puzzles and scheduled ticks");
+assert.ok(server.includes('id:"arena-announce-20261126",on:true') &&
+  server.includes('id:"arena-open-20261126",on:true') &&
   server.includes("?tower=1&arena=1"),
-  "arena announcement and opening post must stay prepared but disabled on 25.11");
+  "arena announcement and opening post must be enabled for 26.11");
 assert.ok(rules.includes("ACTIONS.tower_arena_prize") &&
   rules.includes("TITLES.arena={n:\"Чемпион Арены\""),
   "arena rewards must grant keys, spins, shards and the champion cosmetics");
@@ -109,7 +109,7 @@ assert.ok(tower.includes('data-tab="arena"') &&
   tower.includes("tower_arena_pick") &&
   tower.includes("twArenaView"),
   "tower UI must expose the arena tab with stance and puzzle controls");
-const arenaPoster = readFileSync(path.join(root, "event-assets/arena-2026-11-25.png"));
+const arenaPoster = readFileSync(path.join(root, "event-assets/arena-2026-11-26.png"));
 assert.equal(arenaPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
 assert.equal(arenaPoster.readUInt32BE(16), 1080);
 assert.equal(arenaPoster.readUInt32BE(20), 1350);

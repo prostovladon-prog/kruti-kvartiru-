@@ -474,7 +474,7 @@
     let h = '<div class="tw-arena-ban"><b>⚔️ АРЕНА 20:30</b><small>Турнир на 30 мест · стойка + загадка + 3 раунда</small></div>';
     if (D.phase === "wait") {
       h += '<div class="tw-arena-clock">' + twArenaClock(D.open - now) + '<small>ДО ОТКРЫТИЯ</small></div>' +
-        '<div class="tw-note">В 20:30 появятся 30 мест. Первые 30, кто нажмёт «Участвовать», попадут в сетку. Набор закроется в 20:45. Если 30 не наберётся — старт в 20:45 с теми, кто есть, но минимум 20 участников.</div>' +
+        '<div class="tw-note">В 20:30 появятся 30 мест. Первые 30, кто нажмёт «Участвовать», попадут в сетку. Набор закроется в 20:45. Если 30 не наберётся — старт в 20:45 с теми, кто есть. Турнир состоится в любом случае.</div>' +
         twArenaPrizes(D) + twArenaRules();
       $("tw-body").innerHTML = h; twArenaPoll(); return;
     }
@@ -482,11 +482,11 @@
       const left = Math.max(0, D.regClose - now), slots = Math.max(0, D.max - D.count);
       h += '<div class="tw-arena-clock">' + twArenaClock(left) + '<small>ДО ЗАКРЫТИЯ НАБОРА</small></div>' +
         '<div class="tw-note">Свободно мест: <b style="color:#ffd60a">' + slots + '</b> из ' + D.max + ' · уже в турнире: <b>' + D.count + '</b> · сейчас в игре: <b>' + D.online + '</b></div>' +
-        '<div class="tw-note">Минимум для старта — <b>' + (D.min || 20) + '</b> участников. Если 30 не наберётся, турнир начнётся в 20:45 с теми, кто есть.</div>';
+        '<div class="tw-note">Турнир состоится в любом случае. Если 30 не наберётся, старт в 20:45 с теми, кто есть. Минимум нет.</div>';
       if (D.me.joined) {
         const me = (D.players || []).find(p => p.uid === D.me.uid) || {};
         h += '<div class="tw-arena-champ"><b>✅ Ты в турнире</b><small>Место ' + D.count + ' из ' + D.max + ' · сила отряда ' + (me.pow || 0) + '</small></div>' +
-          '<div class="tw-note">Ждём остальных. Когда наберётся 30 или в 20:45 — сетка соберётся автоматически, и твой бой начнётся. Минимум 20 участников.</div>';
+          '<div class="tw-note">Ждём остальных. Когда наберётся 30 или в 20:45 — сетка соберётся автоматически, и твой бой начнётся. Турнир состоится в любом случае.</div>';
       } else {
         h += '<button type="button" class="tw-btn red" id="tw-arena-join"' + (slots <= 0 ? " disabled" : "") + '>⚔️ Участвовать · осталось ' + slots + '</button>' +
           '<div class="tw-note">В турнир берутся 3 твои лучшие карты. Нужно минимум 3 карты в коллекции.</div>';
@@ -497,8 +497,8 @@
       twArenaPoll(); return;
     }
     if (D.phase === "failed") {
-      h += '<div class="tw-arena-champ"><b>⚔️ Арена не состоялась</b><small>Собралось ' + D.count + ' участников, нужно минимум ' + (D.min || 20) + '.</small></div>' +
-        '<div class="tw-note">Взнос не списывался, награды не выдаются. Ждём тебя в следующем турнире!</div>' +
+      h += '<div class="tw-arena-champ"><b>⚔️ Арена не состоялась</b><small>Никто не записался в турнир.</small></div>' +
+        '<div class="tw-note">Награды не выдаются. Ждём тебя в следующем турнире!</div>' +
         twArenaPlayers(D) + twArenaPrizes(D);
       $("tw-body").innerHTML = h;
       twArenaPoll(); return;

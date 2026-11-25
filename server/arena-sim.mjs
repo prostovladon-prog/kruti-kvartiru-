@@ -25,7 +25,7 @@ const env = { DB, DEV: "1", TEST: "1", BOT_TOKEN: "123:TEST", NO_RARE: "1", NOTI
 db.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)");
 db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES('chal',?)").run(JSON.stringify({ id: "off", start: 0, end: 0, prizes: [], slots: [] }));
 
-let NOW = Date.UTC(2026, 10, 25, 17, 31); // 20:31 Minsk
+let NOW = Date.UTC(2026, 10, 26, 17, 31); // 26.11 20:31 Minsk
 Date.now = () => NOW;
 const worker = (await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "worker.js"))).toString("base64"))).default;
 
@@ -35,7 +35,8 @@ const call = async (uid, a, p = {}) => {
 };
 const ok = (cond, msg, extra) => { console.log((cond ? "✓ " : "✗ ") + msg + (cond || !extra ? "" : " → " + JSON.stringify(extra))); if (!cond) process.exitCode = 1; };
 
-const ids = Array.from({ length: 30 }, (_, i) => 5000 + i);
+const N = Math.max(2, +(process.argv[2] || 18));
+const ids = Array.from({ length: N }, (_, i) => 5000 + i);
 for (const id of ids) {
   await call(id, "sync");
   for (let k = 0; k < 3; k++) {
@@ -50,11 +51,16 @@ for (let i = 1; i < ids.length; i++) {
   if (!r.ok) console.log("join fail", ids[i], r);
 }
 let g = await call(ids[0], "tower_arena_get");
-ok(g.ok && g.res.phase === "run", "bracket built after 30 joins", g.res && { phase: g.res.phase, count: g.res.count, matches: Object.keys(g.res.matches || {}).length });
-ok(g.res.count === 30, "30 players");
-const firstRounds = [...new Set(g.res.matches.map(m => m.round))];
-console.log("rounds:", firstRounds);
-ok(g.res.matches.filter(m => m.round === "playin").length === 14, "14 play-in matches");
+if (g.res && g.res.phase === "reg") {
+  NOW = Date.UTC(2026, 10, 26, 17, 45, 1);
+  g = await call(ids[0], "tower_arena_get");
+}
+ok(g.ok && g.res.phase === "run", "bracket built after " + N + " joins", g.res && { phase: g.res.phase, count: g.res.count, matches: Object.keys(g.res.matches || {}).length });
+ok(g.res.count === N, N + " players");
+let size = 1; while (size < N) size *= 2;
+const playin = N - size / 2;
+console.log("rounds:", [...new Set(g.res.matches.map(m => m.round))]);
+if (playin > 0) ok(g.res.matches.filter(m => m.round === "playin").length === playin, playin + " play-in matches");
 
 let guard = 0;
 while (guard++ < 40) {
@@ -82,7 +88,7 @@ while (guard++ < 40) {
 g = await call(ids[0], "tower_arena_get");
 console.log("final phase", g.res.phase, "champion", g.res.champion, "places", g.res.places);
 ok(g.res.phase === "done" && g.res.champion, "tournament finished with champion");
-ok(g.res.places && Object.keys(g.res.places).length === 30, "all 30 places assigned", g.res.places);
+ok(g.res.places && Object.keys(g.res.places).length === N, "all " + N + " places assigned", g.res.places);
 const winner = g.res.champion && g.res.champion.uid;
 const star = db.prepare("SELECT star_bal FROM users WHERE id=?").get(winner);
 console.log("winner stars", star);
