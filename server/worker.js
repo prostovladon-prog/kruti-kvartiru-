@@ -2598,8 +2598,15 @@ async function towerWeekRewards(env,wk){
     try{await notify(env,p.uid,"🏅 Башня: "+place+" место недели!\n\n"+((place===1?"+3 🏅":place===2?"+2 🏅":place===3?"+1 🏅":"")+" · +12 🎴 · гарантированный эпик"+(place<=6?" · рамка «Башня»":"")+(place===1?" · титул и рамка «Чемпион»":"")),"🏰 Башня",PAGE+"?tower=1")}catch(e){}
   }
 }
-async function towerTick(env,force){
-  if(towerBusy)return;
+const TOWER_CARD_REMINDER=Date.UTC(2026,11,9,6);   // 09.12.2026 09:00 Minsk
+async function towerReminderTick(env){
+  const now=Date.now();
+  if(now<TOWER_CARD_REMINDER||now>TOWER_CARD_REMINDER+2*864e5)return;
+  if(await kvGet(env,"tower_card_reminder"))return;
+  await kvSet(env,"tower_card_reminder",{t:now});
+  for(const a of ADMINS)try{await notify(env,a,"🏰 Башня: прошли две недели. Пора нарисовать новую карту для турнира (неделя 3, 13.12). Две карты на 29.11 и 06.12 уже в игре.","🏰 Башня",PAGE+"?tower=1")}catch(e){}
+}
+async function towerTick(env,force){  if(towerBusy)return;
   const now=Date.now(),d=new Date(now+TZ),dow=d.getUTCDay();
   if(!force&&dow!==0)return;   // воскресенье
   const wk=mskWeek(now),T0=towerTourT0(wk);
@@ -6025,7 +6032,7 @@ let eveOk=0;async function eveTick(env){const now=Date.now();if(now<EVE.at||now>
 let sunOk=0;async function sunTick(env){const now=Date.now();if(now<SUN.at||now>SUN.until)return;
   if(!sunOk){await env.DB.prepare("INSERT INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,20,5000,30,?,?,0,0,0,0) ON CONFLICT(code) DO NOTHING").bind(SUN.code,SUN.codeUntil,now).run();sunOk=1}
   await blastRun(env,SUN)}
-async function koloTick(env){const n=Date.now();try{await funSeed(env)}catch(e){console.error("fun",e)}try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await cdvTick(env)}catch(e){console.error("cdv",e)}try{await aktTick(env)}catch(e){console.error("akt",e)}try{await cwwTick(env)}catch(e){console.error("cww",e)}try{await towerTick(env)}catch(e){console.error("tower",e)}try{await folWeekTick(env)}catch(e){console.error("folwk",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
+async function koloTick(env){const n=Date.now();try{await funSeed(env)}catch(e){console.error("fun",e)}try{await sunTick(env)}catch(e){console.error("sun",e)}try{await eveTick(env)}catch(e){console.error("eve",e)}try{await cdvTick(env)}catch(e){console.error("cdv",e)}try{await aktTick(env)}catch(e){console.error("akt",e)}try{await cwwTick(env)}catch(e){console.error("cww",e)}try{await towerTick(env)}catch(e){console.error("tower",e)}try{await towerReminderTick(env)}catch(e){console.error("tower reminder",e)}try{await folWeekTick(env)}catch(e){console.error("folwk",e)}try{await pl250Tick(env)}catch(e){console.error("pl250",e)}if(n>=FINP.at&&n<FINP.until)await blastRun(env,FINP);if(n>=DRB.at&&n<DRB.until)await blastRun(env,DRB);if(n>=N2P.at&&n<N2P.until)await blastRun(env,N2P);if(n>=EPB.at&&n<EPB.until)await blastRun(env,EPB);const now=Date.now();for(const B of KOLB)if(now>=B.at&&now<B.until)await blastRun(env,B)}
 /* 🌙 НОЧНИК (13.11): +200 ⭐ к пополнению от 150 ⭐ — только первым 10 пополнившим (BCAP), потом промокод выключается */
 /* 🎉 17.11 развлекательные коды: 2 поста «30 реакций → промокод» (код публикует админ) + охота: код спрятан во вкладке игры, первые 10 */
 const FUN=[{code:"РЕАКЦИЯ",sp:10,cash:3000,mx:50},{code:"ОГОНЁК30",sp:30,cash:3000,mx:50}],FUN_UNTIL=Date.UTC(2026,10,17,20,59);
