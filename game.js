@@ -2284,7 +2284,7 @@ function renderLavka(){const c=S.cards.find(x=>x.id===lvPick);
   const B=bossS();$("lv-rage").disabled=(B.extra||0)>=2;$("lv-rage").textContent=(B.extra||0)>=2?"Лимит на сегодня":"Купить за 150 🪙";
   $("lv-map").disabled=S.mapDay===todayL();$("lv-map").textContent=S.mapDay===todayL()?"Уже куплена":"Купить за 120 🪙";
   $("lv-prev").innerHTML=c?miniSlot(Object.assign({},c,{frame:lvFrame})):'<span class="lvnone">Выбери воина внизу, и здесь появится превью с рамкой</span>';
-  const frOk=F=>!F.only||(F.only==="season"?(S.frames||[]).includes("season"):S.pioneer);if(!frOk(FRAMES[lvFrame]))lvFrame="bronze";
+  const frOk=F=>!F.only||(F.only==="season"?(S.frames||[]).includes("season"):F.only==="pioneer"?S.pioneer:(S.frames||[]).includes(F.only));if(!frOk(FRAMES[lvFrame]))lvFrame="bronze";
   const fr=$("lv-frames");fr.innerHTML="";Object.entries(FRAMES).filter(([k,F])=>frOk(F)).forEach(([k,F])=>{const b=document.createElement("button");b.type="button";b.style.setProperty("--fb",F.bg);b.setAttribute("aria-pressed",k===lvFrame);
     b.innerHTML=`<i></i><span><b></b><br>${F.only?"только для тебя":fmt(F.cost)}</span>`;b.querySelector("b").textContent=F.k;b.onclick=()=>{lvFrame=k;renderLavka()};fr.appendChild(b)});
   $("lv-fgo").disabled=!c;$("lv-fgo").textContent=c?(c.frame===lvFrame?"Эта рамка уже надета":"Надеть рамку «"+FRAMES[lvFrame].k+"» "+(FRAMES[lvFrame].cost?"за "+fmt(FRAMES[lvFrame].cost):"бесплатно")):"Выбери воина внизу";

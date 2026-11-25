@@ -641,6 +641,323 @@ async function towerTourReady(env,me){
   await kvSet(env,"tower_tour:"+wk,T);
   return {ok:1,id,ready:1};
 }
+/* ===================== ⚔️ АРЕНА 20:30 =====================
+   Вечерний турнир на 20 мест: play-in, сетка на вылет, 3 раунда в бою.
+   В каждом бою игрок выбирает стойку и отвечает на загадку — это даёт бонус к силе. */
+const ARN={
+  id:"arena-20261125",
+  open:Date.UTC(2026,10,25,17,30),      // 20:30 Minsk
+  regClose:Date.UTC(2026,10,25,17,45),  // 20:45 Minsk
+  max:20,gap:45e3,len:7*60e3,
+  prizes:[
+    {p:1,st:200,vip:7,keys:3,txt:"200 ⭐ + VIP 7 дней + 3 ключа + титул и рамка «Чемпион Арены» + 30 🎴"},
+    {p:2,st:100,vip:3,keys:2,txt:"100 ⭐ + VIP 3 дня + 2 ключа + 25 🎴"},
+    {p:3,st:50,vip:0,keys:1,txt:"50 ⭐ + 1 ключ + 25 🎴"},
+    {p:4,st:0,vip:0,keys:1,txt:"1 ключ + 25 🎴"},
+    {p:0,st:0,vip:0,keys:0,txt:"5–8 место: 25 🎴 · 9+ место: 15 🎴 и осколки"}
+  ]
+};
+const ARN_PUZZLES=[
+  {q:"В отряде 3 карты с силой 10, 20 и 30. Какая средняя сила отряда?",o:["15","20","25","60"],a:1},
+  {q:"Продолжи ряд: 1, 1, 2, 3, 5, 8, …",o:["10","11","13","15"],a:2},
+  {q:"Сколько матчей нужно провести в турнире на 16 игроков на вылет?",o:["8","12","15","16"],a:2},
+  {q:"Сколько печатей Башни стоит Хранитель?",o:["4","6","8","10"],a:1},
+  {q:"Сколько этажей в Башне испытаний?",o:["3","4","5","6"],a:2},
+  {q:"Что нельзя делать с картой чемпиона Башни?",o:["Играть ею","Продавать её","Ставить в отряд","Показывать в профиле"],a:1},
+  {q:"Что даёт Пропуск Башни на 7 дней?",o:["+1 бесплатный забег в день","+100% силы карт","Бесконечные ключи","Второй отряд"],a:0},
+  {q:"Сколько стоит Ключ Башни?",o:["99 ⭐","149 ⭐","199 ⭐","299 ⭐"],a:2},
+  {q:"Какая карта существует в единственном экземпляре?",o:["Золотая","Ошибка печати","Алмазная","Мифическая"],a:1},
+  {q:"Если сейчас 20:30, сколько минут до 22:00?",o:["60","75","90","120"],a:2},
+  {q:"Продолжи ряд: 2, 4, 8, 16, …",o:["24","30","32","36"],a:2},
+  {q:"Сколько карт входит в отряд для забега по Башне?",o:["1","2","3","5"],a:2},
+  {q:"Что больше: 2¹⁰ или 1000?",o:["2¹⁰","1000","Равны","Нельзя сравнить"],a:0},
+  {q:"Сколько сторон у шестиугольника?",o:["5","6","7","8"],a:1},
+  {q:"В турнире 20 игроков. В play-in играют 8. Сколько сразу проходят во второй раунд?",o:["4","8","12","16"],a:2}
+];
+const ARN_STANCES=["Натиск","Стена","Обман"];
+function arnKey(){return "tower_arena:"+ARN.id}
+function arnRnd(seed){let s=(seed>>>0)||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}}
+function arnHash(s){let h=2166136261;for(let i=0;i<String(s).length;i++){h^=String(s).charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function arnName(A,uid){const p=(A.players||[]).find(x=>x.uid===uid);return p?p.name:"—"}
+function arnPlayer(A,uid){return (A.players||[]).find(x=>x.uid===uid)||null}
+function arnPow(p){return p?towerSquadPow(p.squad||[]):0}
+function arnSnap(c){return c?JSON.parse(JSON.stringify(c)):null}
+function arnPuzzle(A){const i=(A.puz||0)%ARN_PUZZLES.length;A.puz=(A.puz||0)+1;return i}
+function arnStanceWin(a,b){
+  if(a===0&&b===2)return 1;if(a===1&&b===0)return 1;if(a===2&&b===1)return 1;
+  if(b===0&&a===2)return -1;if(b===1&&a===0)return -1;if(b===2&&a===1)return -1;
+  return 0;
+}
+function arnEvent(rnd){const r=rnd();if(r<.10)return{t:"crit",mul:1.5};if(r<.20)return{t:"block",mul:.75};if(r<.28)return{t:"combo",mul:1.2};return{t:"",mul:1}}
+function arnMatch(id,round,a,b,start,puzzle){
+  return {id,round,a:a?a.uid:null,b:b?b.uid:null,start,deadline:start+ARN.len,picks:{},done:0,winner:null,score:null,dmg:null,log:null,auto:0,puzzle,notified:0};
+}
+function arnShuffle(a){const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
+function arnCreateRound(A,players,now){
+  const size=players.length,key=size===2?"f":"r"+size;
+  for(let i=0;i<size/2;i++){
+    const id=(size===2?"f0":key+"_"+i);
+    A.matches[id]=arnMatch(id,size===2?"final":key,players[i*2],players[i*2+1],now+ARN.gap,arnPuzzle(A));
+  }
+  A.round=size===2?"final":key;A.t=now;
+}
+function arnBracket(A,now){
+  const ps=arnShuffle(A.players.slice(0,ARN.max));
+  A.size=2;while(A.size<ps.length)A.size*=2;
+  A.byes=[];A.matches={};A.puz=A.puz||0;
+  const playin=ps.length-A.size/2,byes=A.size-ps.length;
+  if(playin>0){
+    for(let i=0;i<playin;i++){
+      const id="p"+i;
+      A.matches[id]=arnMatch(id,"playin",ps[byes+i],ps[ps.length-1-i],now+30e3,arnPuzzle(A));
+    }
+    A.byes=ps.slice(0,byes);
+    A.round="playin";
+  }else{
+    arnCreateRound(A,ps,now);
+  }
+  A.phase="run";A.t=now;
+}
+function arnRoundMatches(A){
+  return Object.values(A.matches).filter(m=>m.round===A.round||(A.round==="final"&&m.round==="bronze"));
+}
+function arnRoundDone(A){
+  const ms=arnRoundMatches(A);return ms.length>0&&ms.every(m=>m.done);
+}
+async function arnNextRound(env,A,now){
+  const cur=A.round;
+  if(cur==="playin"){
+    const ws=Object.values(A.matches).filter(m=>m.round==="playin").map(m=>arnPlayer(A,m.winner)).filter(Boolean);
+    arnCreateRound(A,arnShuffle(A.byes.concat(ws)),now);
+    A.byes=[];
+  }else if(cur==="final"){
+    A.phase="done";A.t=now;
+    await arnFinish(env,A);
+  }else if(cur==="r4"){
+    const ms=Object.values(A.matches).filter(m=>m.round==="r4");
+    const ws=ms.map(m=>arnPlayer(A,m.winner)).filter(Boolean);
+    const ls=ms.map(m=>arnPlayer(A,m.winner===m.a?m.b:m.a)).filter(Boolean);
+    if(ws.length<2){A.phase="done";A.champion=ws[0]?{uid:ws[0].uid,name:ws[0].name}:null;A.t=now;await arnFinish(env,A);return}
+    if(ls.length>=2)A.matches["b0"]=arnMatch("b0","bronze",ls[0],ls[1],now+ARN.gap,arnPuzzle(A));
+    A.matches["f0"]=arnMatch("f0","final",ws[0],ws[1],now+ARN.gap,arnPuzzle(A));
+    A.round="final";A.t=now;
+  }else{
+    const ws=arnRoundMatches(A).map(m=>arnPlayer(A,m.winner)).filter(Boolean);
+    arnCreateRound(A,arnShuffle(ws),now);
+  }
+}
+function arnResolve(A,m,now){
+  const AP=arnPlayer(A,m.a),BP=arnPlayer(A,m.b);
+  if(!AP||!BP){
+    m.done=1;m.winner=AP?m.a:BP?m.b:null;m.auto=1;m.resolved=now;
+    m.score=[0,0];m.dmg=[0,0];m.log=[];return 1;
+  }
+  const puz=ARN_PUZZLES[m.puzzle]||ARN_PUZZLES[0];
+  const pa=m.picks[m.a]||{},pb=m.picks[m.b]||{};
+  const ca=pa.q===puz.a,cb=pb.q===puz.a;
+  const sw=arnStanceWin(pa.s,pb.s);
+  let modA=1,modB=1;
+  if(ca)modA*=1.25;if(cb)modB*=1.25;
+  if(sw===1)modA*=1.15;else if(sw===-1)modB*=1.15;
+  const rnd=arnRnd(arnHash(ARN.id+":"+m.id+":"+m.a+":"+m.b));
+  const log=[];let wa=0,wb=0,dmgA=0,dmgB=0;
+  for(let i=0;i<3;i++){
+    const cA=AP.squad[i]||null,cB=BP.squad[i]||null;
+    const evA=arnEvent(rnd),evB=arnEvent(rnd);
+    const da=Math.round(Math.pow(towerCardPow(cA),.7)*100*modA*(.92+.16*rnd())*evA.mul);
+    const db=Math.round(Math.pow(towerCardPow(cB),.7)*100*modB*(.92+.16*rnd())*evB.mul);
+    dmgA+=da;dmgB+=db;
+    const w=da>db?"a":db>da?"b":"d";
+    if(w==="a")wa++;else if(w==="b")wb++;
+    log.push({i:i+1,a:arnSnap(cA),b:arnSnap(cB),da,db,w,evA:evA.t,evB:evB.t});
+  }
+  let winner;
+  if(wa!==wb)winner=wa>wb?m.a:m.b;
+  else if(dmgA!==dmgB)winner=dmgA>dmgB?m.a:m.b;
+  else if(sw!==0)winner=sw>0?m.a:m.b;
+  else if(ca!==cb)winner=ca?m.a:m.b;
+  else winner=rnd()<.5?m.a:m.b;
+  m.done=1;m.winner=winner;m.score=[wa,wb];m.dmg=[dmgA,dmgB];m.log=log;m.resolved=now;
+  m.correct=puz.a;m.mods=[Math.round(modA*100)/100,Math.round(modB*100)/100];
+  const loser=winner===m.a?m.b:m.a;
+  if(loser&&m.round!=="r4"&&m.round!=="final"&&m.round!=="bronze")(A.out||(A.out={}))[loser]=1;
+  m.pickPub={};
+  m.pickPub[m.a]={s:pa.s==null?null:pa.s,q:pa.q==null?null:pa.q,ok:ca};
+  m.pickPub[m.b]={s:pb.s==null?null:pb.s,q:pb.q==null?null:pb.q,ok:cb};
+  return 1;
+}
+async function arnNotify(env,A,now){
+  let changed=0;
+  for(const m of Object.values(A.matches)){
+    if(m.done||m.notified)continue;
+    if(now<m.start-2*60e3)continue;
+    m.notified=1;changed=1;
+    for(const uid of [m.a,m.b])if(uid)try{
+      await notify(env,uid,"⚔️ Твой бой в Арене начался!\n\nСоперник: "+arnName(A,uid===m.a?m.b:m.a)+".\n\nЗайди в «Башню → Арена», выбери стойку и ответь на загадку. На всё 7 минут.","⚔️ В Арену",PAGE+"?tower=1&arena=1");
+    }catch(e){}
+  }
+  return changed;
+}
+async function arnAdvance(env,A,now){
+  let changed=0;
+  A.players=A.players||[];A.matches=A.matches||{};
+  if(A.phase==="wait"&&now>=ARN.open){A.phase="reg";A.t=now;changed=1}
+  if(A.phase==="reg"&&(A.players.length>=ARN.max||now>=ARN.regClose)){
+    if(A.players.length<2){A.phase="done";A.paid=1;A.t=now;changed=1;return changed}
+    arnBracket(A,now);changed=1
+  }
+  if(A.phase==="run"){
+    for(const m of Object.values(A.matches)){
+      if(m.done||now<m.start)continue;
+      const pa=m.picks[m.a],pb=m.picks[m.b];
+      if((pa&&pb)||now>=m.deadline){arnResolve(A,m,now);changed=1}
+    }
+    if(arnRoundDone(A)){await arnNextRound(env,A,now);changed=1}
+    changed|=await arnNotify(env,A,now);
+  }
+  return changed;
+}
+async function arnGet(env,me){
+  const now=Date.now();
+  let A=await kvGet(env,arnKey());
+  if(!A)A={phase:now<ARN.open?"wait":"reg",players:[],matches:{},t:now,puz:0};
+  const changed=await arnAdvance(env,A,now);
+  if(changed)try{await kvSet(env,arnKey(),A)}catch(e){}
+  let mine=null;
+  for(const m of Object.values(A.matches||{}))if(!m.done&&(m.a===me.id||m.b===me.id)){mine=m;break}
+  const pubM=Object.values(A.matches||{}).map(m=>{
+    const my=m.a===me.id||m.b===me.id,puz=ARN_PUZZLES[m.puzzle]||ARN_PUZZLES[0],showLog=my||m.round==="final";
+    return {id:m.id,round:m.round,a:m.a,b:m.b,an:arnName(A,m.a),bn:arnName(A,m.b),start:m.start,deadline:m.deadline,done:m.done,winner:m.winner,score:m.score,dmg:m.dmg,auto:m.auto,log:showLog?m.log:null,correct:showLog?m.correct:null,correctText:showLog&&m.correct!=null?puz.o[m.correct]:null,picks:showLog?m.pickPub:null,myPicked:!!m.picks[me.id],myPick:m.picks[me.id]?{s:m.picks[me.id].s,q:m.picks[me.id].q}:null,puzzle:my&&!m.done?{q:puz.q,o:puz.o}:null};
+  });
+  const online=await cached("arn_online",20e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE seen>?").bind(Date.now()-5*60e3).first())||{}).n||0);
+  const joined=(A.players||[]).some(p=>p.uid===me.id);
+  const myPlayer=(A.players||[]).find(p=>p.uid===me.id)||null;
+  return {phase:A.phase,now,open:ARN.open,regClose:ARN.regClose,max:ARN.max,count:(A.players||[]).length,online,
+    players:(A.players||[]).map(p=>({uid:p.uid,name:p.name,pow:arnPow(p),joined:p.joined})),
+    matches:pubM,round:A.round||"",champion:A.champion||null,places:A.places||null,paid:!!A.paid,
+    me:{joined,uid:me.id,pow:myPlayer?arnPow(myPlayer):0,out:!!((A.out||{})[me.id]),place:(A.places||{})[me.id]||0,active:mine?mine.id:null,puzzle:mine?{q:(ARN_PUZZLES[mine.puzzle]||{}).q,o:(ARN_PUZZLES[mine.puzzle]||{}).o}:null,
+      pick:mine&&mine.picks[me.id]?{s:mine.picks[me.id].s,q:mine.picks[me.id].q}:null,deadline:mine?mine.deadline:0},
+    stances:ARN_STANCES,prizes:ARN.prizes,started:!!A.round};
+}
+async function arnJoin(env,me){
+  const now=Date.now();
+  if(now<ARN.open)fail("Арена откроется в 20:30 по Минску");
+  if(now>ARN.regClose)fail("Набор в Арену уже закрыт");
+  const rows=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND part=0").bind(me.id).all()).results;
+  if(rows.length<3)fail("Для Арены нужно минимум 3 карты в коллекции");
+  const squad=rows.map(r=>rowToCard(r)).sort((a,b)=>towerCardPow(b)-towerCardPow(a)).slice(0,3).map(arnSnap);
+  const name=await nameOf(env,me.id);
+  let lastCount=0,lastPhase="reg";
+  for(let attempt=0;attempt<3;attempt++){
+    let A=await kvGet(env,arnKey());
+    if(!A)A={phase:"reg",players:[],matches:{},t:now,puz:0};
+    if(A.phase==="wait")A.phase="reg";
+    A.players=A.players||[];
+    if(A.players.some(p=>p.uid===me.id))return {ok:1,already:1,count:A.players.length,phase:A.phase};
+    if(A.phase!=="reg")fail("Набор в Арену уже закрыт");
+    if(A.players.length>=ARN.max)fail("Все 20 мест заняты");
+    A.players.push({uid:me.id,name,squad,joined:now});
+    A.t=now;
+    await arnAdvance(env,A,now);
+    await kvSet(env,arnKey(),A);
+    lastCount=A.players.length;lastPhase=A.phase;
+    if(attempt<2)await new Promise(r=>setTimeout(r,60+attempt*80));
+    const chk=await kvGet(env,arnKey());
+    if(chk&&(chk.players||[]).some(p=>p.uid===me.id)){
+      const count=(chk.players||[]).length,phase=chk.phase;
+      try{await notify(env,me.id,"⚔️ Ты в Арене! Место "+count+" из 20.\n\n"+(phase==="reg"?"Ждём остальных. Набор закроется в 20:45 или когда заполнятся все 20 мест.":"Сетка уже собрана — твой бой скоро начнётся.")+"\n\nОткрой «Башня → Арена».","⚔️ В Арену",PAGE+"?tower=1&arena=1")}catch(e){}
+      return {ok:1,count,phase};
+    }
+  }
+  fail("Не удалось записаться из-за одновременных заявок. Попробуй ещё раз");
+}
+async function arnPick(env,me,p){
+  const now=Date.now();
+  const A=await kvGet(env,arnKey());
+  if(!A)fail("Арена ещё не началась");
+  await arnAdvance(env,A,now);
+  let m=null;
+  for(const x of Object.values(A.matches||{}))if(!x.done&&(x.a===me.id||x.b===me.id)){m=x;break}
+  if(!m)fail("У тебя нет активного боя");
+  if(now>m.deadline)fail("Время боя вышло");
+  const st=Math.max(0,Math.min(2,+p.st|0));
+  const q=Math.max(0,Math.min(3,+p.ans|0));
+  m.picks[me.id]={s:st,q,t:now};
+  await arnAdvance(env,A,now);
+  await kvSet(env,arnKey(),A);
+  return {ok:1,id:m.id,done:!!m.done};
+}
+async function arnFinish(env,A){
+  if(A.paid)return;
+  A.paid=1;
+  const now=Date.now();
+  const fm=A.matches["f0"],bm=A.matches["b0"];
+  const champ=fm&&fm.winner;
+  const second=fm&&(fm.winner===fm.a?fm.b:fm.a);
+  const third=bm&&bm.winner;
+  const fourth=bm&&(bm.winner===bm.a?bm.b:bm.a);
+  const places={};
+  if(champ)places[champ]=1;if(second)places[second]=2;if(third)places[third]=3;if(fourth)places[fourth]=4;
+  for(const m of Object.values(A.matches||{}))if(m.round==="r8"&&m.done){const l=m.winner===m.a?m.b:m.a;if(l&&!places[l])places[l]=5}
+  for(const p of A.players||[])if(!places[p.uid])places[p.uid]=9;
+  A.places=places;
+  A.champion=champ?{uid:champ,name:arnName(A,champ)}:null;
+  await kvSet(env,arnKey(),A);
+  for(const p of A.players||[]){
+    const place=places[p.uid]||9,rewardPlace=place<=8?place:0;
+    const stars=place===1?200:place===2?100:place===3?50:0;
+    const vip=place===1?7:place===2?3:0;
+    try{if(stars)await env.DB.prepare("UPDATE users SET star_bal=star_bal+? WHERE id=?").bind(stars,p.uid).run()}catch(e){console.error("arn stars",p.uid,e&&e.message)}
+    try{if(vip)await env.DB.prepare("UPDATE users SET vip_until=MAX(vip_until,?)+?,vip_t=MAX(vip_t,1) WHERE id=?").bind(now,vip*864e5,p.uid).run()}catch(e){console.error("arn vip",p.uid,e&&e.message)}
+    try{await doAction(env,{id:p.uid,name:p.name},"tower_arena_prize",{place:rewardPlace},{grant:true})}catch(e){console.error("arn prize",p.uid,e&&e.message)}
+    const msg=place===1?"👑 ТЫ ЧЕМПИОН АРЕНЫ!\n\n200 ⭐ · VIP на 7 дней · 3 ключа Башни · титул и рамка «Чемпион Арены» · 30 прокруток · 30 осколков.\n\nПоздравляем! Награды уже в профиле."
+      :place===2?"🥈 2 место в Арене!\n\n100 ⭐ · VIP на 3 дня · 2 ключа Башни · 25 прокруток · 20 осколков.\n\nОтличный бой!"
+      :place===3?"🥉 3 место в Арене!\n\n50 ⭐ · 1 ключ Башни · 25 прокруток · 20 осколков.\n\nТы в тройке лучших!"
+      :place===4?"⚔️ 4 место в Арене!\n\n1 ключ Башни · 25 прокруток · 20 осколков.\n\nСовсем рядом с пьедесталом!"
+      :place<=8?"⚔️ Ты в топ-8 Арены!\n\n25 прокруток · 20 осколков.\n\nСильный результат!"
+      :"⚔️ Спасибо за участие в Арене!\n\n15 прокруток · 10 осколков уже начислены.\n\nЖдём тебя в следующем турнире!";
+    try{await notify(env,p.uid,msg,"⚔️ Башня",PAGE+"?tower=1&arena=1")}catch(e){}
+  }
+  try{
+    const lines=(A.players||[]).map(p=>({p,place:places[p.uid]||9})).filter(x=>x.place<=3).sort((a,b)=>a.place-b.place);
+    if(lines.length)await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"⚔️ АРЕНА ЗАВЕРШЕНА!\n\n"+lines.map(x=>(x.place===1?"🥇":x.place===2?"🥈":"🥉")+" "+x.p.name+" — "+(x.place===1?"200 ⭐ + VIP 7 дней":x.place===2?"100 ⭐ + VIP 3 дня":"50 ⭐ + 1 ключ")).join("\n")+"\n\nСпасибо всем участникам! Следующая Арена — скоро.",reply_markup:{inline_keyboard:[[{text:"⚔️ Башня",url:PAGE+"?tower=1&arena=1"}]]}});
+  }catch(e){}
+  for(const a of ADMINS)try{await notify(env,a,"⚔️ Арена завершена. Чемпион: "+(A.champion?A.champion.name:"—")+". Награды выданы "+(A.players||[]).length+" участникам.","⚔️ Арена",PAGE+"?tower=1&arena=1")}catch(e){}
+}
+let arnBusy=0;
+async function arnTick(env){
+  if(arnBusy)return;arnBusy=1;
+  try{
+    const now=Date.now();
+    if(now<ARN.open-36e5)return;
+    let A=await kvGet(env,arnKey());
+    if(!A){if(now<ARN.open)return;A={phase:"reg",players:[],matches:{},t:now,puz:0}}
+    const changed=await arnAdvance(env,A,now);
+    if(changed)await kvSet(env,arnKey(),A);
+  }finally{arnBusy=0}
+}
+function arnPosts(){return [
+  {id:"arena-announce-20261125",at:Date.UTC(2026,10,25,17,15),window:2*36e5,photo:"event-assets/arena-2026-11-25.png",
+   btn:"⚔️ Войти в Арену",url:PAGE+"?tower=1&arena=1",
+   chan:"⚔️ СЕГОДНЯ В 20:30 — АРЕНА НА 20 МЕСТ!\n\nВ Башне откроется вечерний турнир. Первые 20, кто нажмёт «Участвовать», попадут в сетку.\n\nКаждый бой — 3 раунда. Перед боем выбери стойку (Натиск / Стена / Обман) и ответь на загадку: правильный ответ даёт +25% к силе, выигранная стойка — ещё +15%. Сила карт важна, но хитрость решает.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа + титул «Чемпион Арены»\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Все участники: 15 прокруток и осколки\n\n⏰ Набор: 20:30–20:45. Заходи в игру → Башня → Арена!",
+   dm:"⚔️ Сегодня в 20:30 — АРЕНА на 20 мест!\n\nПервые 20, кто нажмёт «Участвовать», попадут в турнир. В каждом бою: стойка + загадка + 3 раунда. Правильный ответ даёт +25% к силе, стойка — ещё +15%.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Всем участникам — 15 прокруток и осколки.\n\nОткрой игру → Башня → Арена. Набор стартует в 20:30!"},
+  {id:"arena-open-20261125",at:Date.UTC(2026,10,25,17,30),window:18*60e3,photo:"event-assets/arena-2026-11-25.png",
+   btn:"⚔️ Участвовать",url:PAGE+"?tower=1&arena=1",
+   chan:"⚔️ АРЕНА ОТКРЫТА! ПЕРВЫЕ 20 МЕСТ!\n\nЗайди в игру → Башня → Арена и жми «Участвовать». Набор закроется в 20:45 или когда закончатся места.\n\nВ бою: стойка + загадка + 3 раунда. Побеждает не только сильнейший, но и самый хитрый.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Всем участникам — 15 прокруток и осколки."}
+]}
+let arnPostBusy=0;
+async function arnPostsTick(env){
+  if(arnPostBusy)return;
+  const now=Date.now();
+  for(const P of arnPosts()){
+    if(now<P.at||now>P.at+P.window)continue;
+    const st=await kvGet(env,"blast:"+P.id);
+    if(st&&st.done&&st.ch)continue;
+    arnPostBusy=1;
+    try{await blastRun(env,P)}finally{arnPostBusy=0}
+    return;
+  }
+}
 async function towerWeekRewards(env,wk){
   const key="tower_week_reward:"+wk;
   if(await kvGet(env,key))return;
@@ -4681,7 +4998,7 @@ async function sonReleaseTick(env){const now=Date.now(),at=Date.UTC(2026,10,22,1
 }
 
 export default {
-  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await evAnnounce(env)}catch(e){console.error('evpost',e)}try{await towerLaunchTick(env)}catch(e){console.error('tower launch',e)}try{await friendContestPostsTick(env)}catch(e){console.error('friend contest posts',e)}try{await towerReactTick(env)}catch(e){console.error('tower reactions',e)}try{await evRewardTick(env)}catch(e){console.error('evreward',e)}try{await evSettle(env)}catch(e){console.error('evsettle',e)}try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}/* fire30Tick was removed; reaction updates are handled by fire30React. */try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await react4Tick(env)}catch(e){console.error("react4",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
+  async tick(env){await ensureSchema(env);if(await maintenance(env))return;try{await evAnnounce(env)}catch(e){console.error('evpost',e)}try{await towerLaunchTick(env)}catch(e){console.error('tower launch',e)}try{await friendContestPostsTick(env)}catch(e){console.error('friend contest posts',e)}try{await arnTick(env)}catch(e){console.error('arena',e)}try{await arnPostsTick(env)}catch(e){console.error('arena posts',e)}try{await towerReactTick(env)}catch(e){console.error('tower reactions',e)}try{await evRewardTick(env)}catch(e){console.error('evreward',e)}try{await evSettle(env)}catch(e){console.error('evsettle',e)}try{await comebackTick(env)}catch(e){console.error("comeback",e)}try{await riftReleaseTick(env)}catch(e){console.error("rift release",e)}try{await relicReleaseTick(env)}catch(e){console.error("relic release",e)}try{await sonReleaseTick(env)}catch(e){console.error("son release",e)}try{await recruitComms(env)}catch(e){console.error("recruit media",e)}try{await recruitTick(env)}catch(e){console.error("recruit",e)}try{await birthdayQuizTick(env)}catch(e){console.error("birthday quiz",e)}try{await birthdayPrintTick(env)}catch(e){console.error("birthday prints",e)}try{await birthdayMediaTick(env)}catch(e){console.error("birthday media",e)}try{await admGrants(env)}catch(e){console.error("grants",e)}try{await catSnFix(env)}catch(e){console.error("catsn",e)}try{await blast2Tick(env)}catch(e){console.error("blast2",e)}/* fire30Tick was removed; reaction updates are handled by fire30React. */try{await dcAnnTick(env)}catch(e){console.error("dca",e)}try{await dcLiveTick(env)}catch(e){console.error("dcl",e)}try{await fun18Tick(env)}catch(e){console.error("f18",e)}try{await react4Tick(env)}catch(e){console.error("react4",e)}try{await upd18Tick(env)}catch(e){console.error("u18",e)}try{await p200nTick(env)}catch(e){console.error("p2n",e)}try{await abnTick(env)}catch(e){console.error("abn",e)}try{if(!(await kvGet(env,"drfix1811"))){await kvSet(env,"drfix1811",1);const L=(await env.DB.prepare("SELECT id,stats FROM cards WHERE h=104").all()).results;const M=[1,.86,.86,.72,.79];for(const c of L){const st=JSON.parse(c.stats).map((v,i)=>Math.round(v*M[i]));await env.DB.prepare("UPDATE cards SET stats=? WHERE id=?").bind(JSON.stringify(st),c.id).run()}console.log("drfix: Дракула ослаблен",L.length)}}catch(e){console.error("drfix",e)}try{const k=Math.floor(Date.now()/6e5);if(k!==mapFixK){mapFixK=k;const r=await env.DB.prepare("UPDATE cards SET away=0,dest=NULL WHERE dest LIKE 'map:%' AND NOT EXISTS(SELECT 1 FROM map_reg r WHERE r.card=cards.id)").run();if(r.meta&&r.meta.changes)console.log("mapfix: освобождено карточек",r.meta.changes)}}catch(e){console.error("mapfix",e)}try{await st3xTick(env)}catch(e){console.error("st3x",e)}try{await pmFixTick(env)}catch(e){console.error("pmfix",e)}try{await vcBlastTick(env)}catch(e){console.error("vcb",e)}try{await vcCancel(env)}catch(e){console.error("vcc",e)}try{await casBlastTick(env)}catch(e){console.error("casb",e)}try{await k2000Tick(env)}catch(e){console.error("k2000",e)}try{await p250Tick(env)}catch(e){console.error("p250",e)}try{await p150Tick(env)}catch(e){console.error("p150",e)}try{await trackSeed(env)}catch(e){console.error("trk",e)}try{await nochSeed(env)}catch(e){console.error("noch",e)}try{await banOnce(env)}catch(e){console.error("ban",e)}try{await d2Tick(env)}catch(e){console.error("d2",e)}try{await f3Tick(env)}catch(e){console.error("f3",e)}try{await koloTick(env)}catch(e){console.error("kolo",e)}try{await pollSeed(env)}catch(e){console.error("pollseed",e)}try{await upTick(env)}catch(e){console.error("upv",e)}try{await up2Tick(env)}catch(e){console.error("upv2",e)}try{await n2Tick(env)}catch(e){console.error("n2",e)}try{await kotNerf(env)}catch(e){console.error("kot",e)}try{await cwTick(env)}catch(e){console.error("cw",e)}try{await p300Tick(env)}catch(e){console.error("p300",e)}try{await ftAuto(env)}catch(e){console.error("ftauto",e)}try{await profileContestTick(env)}catch(e){console.error("profile contest",e)}try{await tkFinish(env)}catch(e){console.error("tkfin",e)}try{await lotTick(env)}catch(e){console.error("lot",e)}try{await blastLotTick(env)}catch(e){console.error("blot",e)}try{await chPostOnce(env)}catch(e){console.error("chpost",e)}try{await p200Tick(env)}catch(e){console.error("p200",e)}try{await dgaWeekTick(env)}catch(e){console.error("dgaw",e)}try{await kingTick(env)}catch(e){console.error("king",e)}try{await ref3Tick(env)}catch(e){console.error("ref3",e)}try{await dmBlast(env)}catch(e){console.error("dmb",e)}await tourTick(env);try{await chalTick(env)}catch(e){console.error("chal",e)}try{await fixTsar(env)}catch(e){console.error("fix",e)}try{await resendWinners(env)}catch(e){console.error("rsw",e)}try{await payTick(env)}catch(e){console.error("pay",e)}try{await lotBlast(env)}catch(e){console.error("blast",e)}try{await updBlast(env)}catch(e){console.error("upd",e)}try{await cbTick(env)}catch(e){console.error("cb",e)}try{await clanWeekTick(env)}catch(e){console.error("clanw",e)}try{await dtopTick(env)}catch(e){console.error("dtop",e)}try{await rkTick(env);await rkSeasonTick(env)}catch(e){console.error("rk",e)}try{await aucTick(env)}catch(e){console.error("auc",e)}},
   async scheduled(event,env,ctx){ctx.waitUntil(reminders(env).catch(e=>console.error("reminders",e)))},
   async fetch(req,env){try{const resp=await handle(req,env);try{await tkAfter(req,env,resp)}catch(e){console.error("tk",e)}return resp}catch(e){console.error("fatal "+String(e&&e.stack||e).replace(/data:text\/javascript;base64,[A-Za-z0-9+\/=]+/g,"worker.js").slice(0,700));return J({ok:false,err:"Сервер перегружен, попробуй через минуту"},503)}}
 };
@@ -5680,6 +5997,9 @@ async function handle(req,env){{
       if(a==="tower_admin_tick"){if(!isAdmin(env,me.id))fail("Нет доступа");await towerTick(env,true);return J({ok:true,res:{ok:1}})}
       if(a==="tower_tour_get"){const r=await towerTourGet(env,me);return J({ok:true,res:r})}
       if(a==="tower_tour_ready"){const r=await towerTourReady(env,me);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="tower_arena_get"){const r=await arnGet(env,me);return J({ok:true,res:r})}
+      if(a==="tower_arena_join"){const r=await arnJoin(env,me);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="tower_arena_pick"){const r=await arnPick(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}

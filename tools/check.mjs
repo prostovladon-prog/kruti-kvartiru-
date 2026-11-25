@@ -75,6 +75,21 @@ if (existsSync(path.join(root, 'server/stake-test.mjs'))) {
   }
 }
 
+/* ---------- симуляция вечерней Арены: 20 игроков, сетка, загадки, награды ---------- */
+if (existsSync(path.join(root, 'server/arena-sim.mjs'))) {
+  try {
+    const out = execFileSync(process.execPath, ['server/arena-sim.mjs'], {
+      cwd: root, stdio: 'pipe', encoding: 'utf8', timeout: 120000,
+    });
+    const last = out.trim().split('\n').filter(Boolean).pop() || 'ok';
+    oks.push(`Арена 20:30: ${last.replace(/^✓\\s*/, '')}`);
+  } catch (e) {
+    const out = String(e.stdout || '') + String(e.stderr || '');
+    const bad = out.split('\n').filter(l => l.includes('✗')).slice(0, 6).join('\n');
+    fails.push(`симуляция Арены провалена${bad ? ':\n' + bad : ''}`);
+  }
+}
+
 /* ---------- тест порога реакций и выдачи промокода ---------- */
 if (existsSync(path.join(root, 'server/reaction-test.mjs'))) {
   try {

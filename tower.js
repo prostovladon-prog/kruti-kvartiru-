@@ -67,6 +67,7 @@
   .tw-nav{position:absolute;left:0;right:0;bottom:0;display:flex;gap:6px;padding:7px 10px calc(7px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(12,18,48,.6),#0c1230 40%);border-top:2px solid #2a3260}
   .tw-nav button{flex:1;border:2px solid #3a447a;border-radius:10px;background:#0a0f28;color:#aeb8e0;font-weight:900;font-size:11px;padding:7px 4px}
   .tw-nav button.on{border-color:#ffd60a;color:#ffd60a;background:#1a2250}
+  .tw-nav button{font-size:10px;white-space:nowrap;padding:7px 2px}
   .tw-load{text-align:center;color:#9aa6d0;font-size:12px;padding:20px}
   .tw-m{background:#0c1230;border:1.5px solid #2a3260;border-radius:11px;padding:8px;margin:6px 0}
   .tw-mh{font-size:10px;font-weight:900;color:#ffd60a;display:flex;justify-content:space-between;gap:6px}
@@ -87,10 +88,43 @@
   .tw-sn .ic{font-size:24px}
   .tw-sn b{display:block;font-size:12px}.tw-sn small{display:block;color:#9aa6d0;font-size:10px}
   .tw-sn .tw-btn{margin:0;flex:0 0 auto;width:auto;padding:6px 10px;font-size:11px}
+  .tw-arena-ban{position:relative;background:linear-gradient(135deg,#3a1a8a,#b3122f 60%,#ff7a1a);border:2px solid #ffd60a;border-radius:14px;padding:10px;margin-bottom:9px;text-align:center;overflow:hidden}
+  .tw-arena-ban b{display:block;font-family:var(--display);font-size:22px;letter-spacing:.5px;color:#ffd60a;text-shadow:0 2px 0 #3a0a12}
+  .tw-arena-ban small{display:block;color:#ffe9b0;font-size:11px;font-weight:800;margin-top:2px}
+  .tw-arena-clock{font-family:var(--display);font-size:30px;color:#fff;line-height:1.1;margin:4px 0}
+  .tw-arena-clock small{font-family:inherit;font-size:10px;color:#ffd8a0;font-weight:800;letter-spacing:1px}
+  .tw-arena-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0}
+  .tw-arena-pl{display:flex;align-items:center;gap:5px;background:#0c1230;border:1.5px solid #2a3260;border-radius:8px;padding:4px 6px;font-size:11px;min-width:0}
+  .tw-arena-pl.me{border-color:#ffd60a;background:#1a2250}
+  .tw-arena-pl .n{flex:1;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tw-arena-pl .p{color:#9aa6d0;font-size:10px;white-space:nowrap}
+  .tw-arena-pl .i{width:16px;text-align:center;color:#7a86b8;font-size:10px;font-weight:900}
+  .tw-arena-my{background:linear-gradient(135deg,#1a2250,#2a0a12);border:2px solid #ffd60a;border-radius:12px;padding:9px;margin:7px 0}
+  .tw-arena-my h3{font-family:var(--display);font-size:16px;color:#ffd60a;margin:0 0 4px}
+  .tw-arena-my .vs{font-size:12px;color:#dfe6ff;margin-bottom:5px}
+  .tw-stance{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:5px 0}
+  .tw-stance button{border:2px solid #3a447a;background:#0a0f28;color:#dfe6ff;border-radius:9px;padding:7px 3px;font-size:11px;font-weight:900;cursor:pointer}
+  .tw-stance button.on{border-color:#ffd60a;background:#3a2a10;color:#ffd60a;box-shadow:0 0 0 2px #ffd60a inset}
+  .tw-pq{display:grid;gap:5px;margin:5px 0}
+  .tw-pq button{text-align:left;border:2px solid #2a3260;background:#0a0f28;color:#dfe6ff;border-radius:9px;padding:7px 8px;font-size:11px;font-weight:800;cursor:pointer;line-height:1.25}
+  .tw-pq button.on{border-color:#7ec8ff;background:#102a4a;color:#fff}
+  .tw-arena-log{margin-top:5px;border-top:1px dashed #2a3260;padding-top:5px}
+  .tw-arena-log .lr{display:flex;align-items:center;gap:4px;font-size:10px;color:#aeb8e0;margin:3px 0}
+  .tw-arena-log .lr .minic{width:34px;flex:0 0 auto}
+  .tw-arena-log .lr .d{font-family:var(--display);font-size:12px;color:#ffd60a;min-width:34px;text-align:center}
+  .tw-arena-log .lr .ev{font-size:9px;color:#ff9a5a;font-weight:900}
+  .tw-arena-prize{font-size:11px;color:#dfe6ff;line-height:1.4;padding:4px 6px;border-left:3px solid #ffd60a;background:#0c1230;border-radius:6px;margin:4px 0}
+  .tw-arena-champ{background:linear-gradient(135deg,#3a1a8a,#b64024);border:2px solid #ffd60a;border-radius:12px;padding:10px;margin:8px 0;text-align:center}
+  .tw-arena-champ b{display:block;font-family:var(--display);font-size:18px;color:#ffd60a}
+  .tw-arena-champ small{color:#ffe9b0;font-size:11px;font-weight:800}
+  .tw-arena-tag{display:inline-block;font-size:9px;font-weight:900;border-radius:5px;padding:1px 4px;background:#2a3260;color:#aeb8e0;margin-left:4px}
+  .tw-arena-tag.live{background:#b3122f;color:#fff}
+  .tw-arena-tag.win{background:#157a35;color:#fff}
   @media(max-width:380px){.tw-cards{grid-template-columns:repeat(2,1fr)}}
   `;
 
   let twSel = [], twTab = "main", twRes = null, twTop = null, twBusy = false, twTourData = null, twTourTimer = 0;
+  let twArena = null, twArenaTimer = 0, twArenaSel = { id: "", st: null, q: null }, twArenaBusy = false;
 
   function ensure() {
     let el = $("tower");
@@ -112,10 +146,10 @@
 
   function twOpen() {
     if (!S || !S.tower) { toast("Башня ещё не подключена. Обнови игру"); return; }
-    const el = ensure(); el.hidden = false; twTab = "main"; twRes = null; twTop = null; twTourData = null; twRender();
+    const el = ensure(); el.hidden = false; twTab = "main"; twRes = null; twTop = null; twTourData = null; twArena = null; twArenaSel = { id: "", st: null, q: null }; twRender();
     try { hap("light"); } catch (e) {}
   }
-  function twClose() { const el = $("tower"); if (el) el.hidden = true; twStopTour(); }
+  function twClose() { const el = $("tower"); if (el) el.hidden = true; twStopTour(); twStopArena(); }
   window.twOpen = twOpen;
   window.twClose = twClose;
 
@@ -125,6 +159,7 @@
       '<button type="button" data-tab="shop" class="' + (twTab === "shop" ? "on" : "") + '">🏅 Магазин</button>' +
       '<button type="button" data-tab="top" class="' + (twTab === "top" ? "on" : "") + '">📊 Топ</button>' +
       '<button type="button" data-tab="tour" class="' + (twTab === "tour" ? "on" : "") + '">🏆 Турнир</button>' +
+      '<button type="button" data-tab="arena" class="' + (twTab === "arena" ? "on" : "") + '">⚔️ Арена</button>' +
       '<button type="button" data-tab="rules">📖 Правила</button>';
   }
 
@@ -135,10 +170,13 @@
     if (!T) { $("tw-body").innerHTML = '<p class="tw-note">Башня не подключена. Обнови игру.</p>'; return; }
     $("tw-sig").innerHTML = "🏅 <b>" + (T.sig | 0) + "</b>";
     $("tw-nav").innerHTML = twNav();
+    if (twTab !== "tour") twStopTour();
+    if (twTab !== "arena") twStopArena();
     if (twTab === "rules") { try { twClose(); openTowerRules(); } catch (e) {} twTab = "main"; return; }
     if (twTab === "shop") { twShop(T); return; }
     if (twTab === "top") { twTopView(T); return; }
     if (twTab === "tour") { twTourView(T); return; }
+    if (twTab === "arena") { twArenaView(T); return; }
     twStopTour();
     if (twRes && twRes.done) { twEnd(T); return; }
     if (T.run) { twRun(T); return; }
@@ -321,6 +359,162 @@
     if (twTab === "top") twRender();
   }
 
+  /* ⚔️ Арена 20:30 */
+  function twStopArena() { if (twArenaTimer) { clearInterval(twArenaTimer); twArenaTimer = 0; } }
+  function twArenaClock(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+  function twArenaLoad() {
+    act("tower_arena_get", {}).then(r => { if (r) { twArena = r; if (twTab === "arena") twRender(); } })
+      .catch(e => toast(e.message || "Арена не загрузилась"));
+  }
+  function twArenaPoll() {
+    if (twArenaTimer) return;
+    twArenaTimer = setInterval(async () => {
+      if (twTab !== "arena") { twStopArena(); return; }
+      try { const r = await act("tower_arena_get", {}); if (r) { twArena = r; twRender(); } } catch (e) {}
+    }, 2500);
+  }
+  async function twArenaJoin() {
+    if (twArenaBusy) return; twArenaBusy = true;
+    try {
+      const r = await act("tower_arena_join", {});
+      if (r) { toast("⚔️ Ты в Арене!"); try { hapN("success"); } catch (e) {} twArena = null; await new Promise(z => setTimeout(z, 250)); twArenaLoad(); }
+    } catch (e) { toast(e.message || "Не получилось"); }
+    finally { twArenaBusy = false; }
+  }
+  async function twArenaPick() {
+    const D = twArena; if (!D || !D.me.active || twArenaBusy) return;
+    if (twArenaSel.st == null || twArenaSel.q == null) { toast("Выбери стойку и ответ"); return; }
+    twArenaBusy = true;
+    try {
+      const r = await act("tower_arena_pick", { match: D.me.active, st: twArenaSel.st, ans: twArenaSel.q });
+      if (r) { toast("✅ Выбор принят"); try { hapN("success"); } catch (e) {} twArena = null; twArenaSel = { id: "", st: null, q: null }; await new Promise(z => setTimeout(z, 250)); twArenaLoad(); }
+    } catch (e) { toast(e.message || "Не получилось"); }
+    finally { twArenaBusy = false; }
+  }
+  function twArenaPrizes(D) {
+    const med = ["🥇", "🥈", "🥉", "4️⃣"];
+    let h = '<div class="tw-h">Награды</div>';
+    for (const p of (D.prizes || [])) h += '<div class="tw-arena-prize">' + (p.p ? med[p.p - 1] : "🎴") + " " + esc(p.txt) + '</div>';
+    return h;
+  }
+  function twArenaRules() {
+    return '<div class="tw-h">Как проходит бой</div><div class="tw-note">' +
+      '1. Отряд — 3 твои лучшие карты, выбираются автоматически.<br>' +
+      '2. Перед боем выбери стойку: 🔥 Натиск бьёт 🌀 Обман, 🛡 Стена бьёт 🔥 Натиск, 🌀 Обман бьёт 🛡 Стену.<br>' +
+      '3. Ответь на загадку: верный ответ даёт +25% к силе, победа в стойке — ещё +15%.<br>' +
+      '4. Бой идёт 3 раунда. Побеждает тот, кто выиграл больше раундов; при равенстве — по общему урону.<br>' +
+      '5. Не успел выбрать до дедлайна — бой решится по силе карт без бонусов.</div>';
+  }
+  function twArenaPlayers(D) {
+    if (!D.players || !D.players.length) return "";
+    let h = '<div class="tw-h">Участники · ' + D.count + '/' + D.max + '</div><div class="tw-arena-grid">';
+    for (let i = 0; i < D.max; i++) {
+      const p = D.players[i];
+      h += p ? '<div class="tw-arena-pl' + (p.uid === D.me.uid ? " me" : "") + '"><span class="i">' + (i + 1) + '</span><span class="n">' + esc(p.name) + '</span><span class="p">' + p.pow + '</span></div>'
+        : '<div class="tw-arena-pl" style="opacity:.45"><span class="i">' + (i + 1) + '</span><span class="n">свободно</span><span class="p">—</span></div>';
+    }
+    return h + '</div>';
+  }
+  function twArenaActive(D, m, now) {
+    const opp = m.a === D.me.uid ? m.bn : m.an;
+    let h = '<div class="tw-arena-my"><h3>⚔️ Твой бой</h3><div class="vs">Ты против <b>' + esc(opp) + '</b></div>' +
+      '<div class="tw-note">До конца боя: <b style="color:#ffd60a">' + twArenaClock(m.deadline - now) + '</b>. Не успел — бой решится по силе карт.</div>';
+    if (D.me.pick) {
+      h += '<div class="tw-note" style="color:#9ff7b6">✅ Выбор принят: ' + esc((D.stances || [])[D.me.pick.s] || "—") + ' · ответ ' + ((D.me.pick.q | 0) + 1) + '. Ждём соперника…</div>';
+    } else if (D.me.puzzle) {
+      h += '<div class="tw-h" style="margin:6px 0 2px">Стойка</div><div class="tw-stance">' +
+        (D.stances || []).map((s, i) => '<button type="button" data-st="' + i + '" class="' + (twArenaSel.st === i ? "on" : "") + '">' + (i === 0 ? "🔥" : i === 1 ? "🛡" : "🌀") + " " + esc(s) + '</button>').join("") + '</div>' +
+        '<div class="tw-h" style="margin:8px 0 2px">Загадка</div><div class="tw-note">' + esc(D.me.puzzle.q) + '</div><div class="tw-pq">' +
+        D.me.puzzle.o.map((o, i) => '<button type="button" data-q="' + i + '" class="' + (twArenaSel.q === i ? "on" : "") + '">' + String.fromCharCode(65 + i) + ') ' + esc(o) + '</button>').join("") + '</div>' +
+        '<button type="button" class="tw-btn red" id="tw-arena-go"' + (twArenaSel.st == null || twArenaSel.q == null ? " disabled" : "") + '>⚔️ Подтвердить выбор</button>';
+    }
+    return h + '<div class="tw-note">Правильный ответ: +25% к силе. Победа в стойке: +15%.</div></div>';
+  }
+  function twArenaMatch(D, m) {
+    const my = m.a === D.me.uid || m.b === D.me.uid;
+    const aw = m.done && m.winner === m.a, bw = m.done && m.winner === m.b;
+    const score = m.score ? m.score[0] + ":" + m.score[1] : "—";
+    let st = "";
+    if (m.done) st = m.winner ? (m.auto ? "авто" : "победа") : "нет игроков";
+    else if (Date.now() < m.start) st = "старт " + twHM(m.start);
+    else st = "идёт · " + twArenaClock(m.deadline - Date.now());
+    let h = '<div class="tw-m"' + (my ? ' style="border-color:#ffd60a"' : '') + '><div class="tw-mh"><span>' + (m.round === "final" ? "🏆 Финал" : m.round === "bronze" ? "🥉 За 3 место" : m.round === "playin" ? "Play-in" : "Бой") + (my ? ' <span class="tw-arena-tag live">ТЫ</span>' : '') + '</span><small>' + st + '</small></div>' +
+      '<div class="tw-vs"><span class="nm ' + (aw ? "win" : m.done && m.a ? "lose" : "") + '">' + esc(m.an) + '</span><span class="sc">' + score + '</span><span class="nm ' + (bw ? "win" : m.done && m.b ? "lose" : "") + '" style="text-align:right">' + esc(m.bn) + '</span></div>';
+    if (m.dmg) h += '<div class="tw-note" style="text-align:center;margin:2px 0 0">урон ' + m.dmg[0] + ' : ' + m.dmg[1] + '</div>';
+    if (m.log && m.log.length) {
+      h += '<div class="tw-arena-log">' + m.log.map(r => {
+        const ea = r.evA === "crit" ? "💥" : r.evA === "block" ? "🛡" : r.evA === "combo" ? "⚡" : "";
+        const eb = r.evB === "crit" ? "💥" : r.evB === "block" ? "🛡" : r.evB === "combo" ? "⚡" : "";
+        return '<div class="lr">' + (r.a ? miniSlot(r.a) : "") + '<span class="d">' + r.da + '</span><span style="color:#7a86b8">:</span><span class="d">' + r.db + '</span>' + (r.b ? miniSlot(r.b) : "") + '<span class="ev">' + ea + eb + '</span></div>';
+      }).join("") + '</div>';
+    }
+    if (m.done && m.correctText) h += '<div class="tw-note" style="margin:3px 0 0">Загадка: верный ответ — ' + esc(m.correctText) + '</div>';
+    return h + '</div>';
+  }
+  function twArenaBracket(D) {
+    const order = ["playin", "r32", "r16", "r8", "r4", "final", "bronze"];
+    const labels = { playin: "Play-in", r32: "1/16 финала", r16: "1/8 финала", r8: "1/4 финала", r4: "Полуфиналы", final: "Финал", bronze: "За 3 место" };
+    let h = '<div class="tw-h">Сетка</div>', any = false;
+    for (const key of order) {
+      const ms = (D.matches || []).filter(m => m.round === key);
+      if (!ms.length) continue;
+      any = true;
+      h += '<div class="tw-note" style="margin:8px 0 3px;color:#ffd60a;font-weight:900">' + labels[key] + '</div>';
+      for (const m of ms) h += twArenaMatch(D, m);
+    }
+    if (!any) h += '<div class="tw-note">Сетка появится после закрытия набора.</div>';
+    return h;
+  }
+  function twArenaView(T) {
+    if (!twArena) {
+      $("tw-body").innerHTML = '<div class="tw-arena-ban"><b>⚔️ АРЕНА</b><small>Турнир на 20 мест</small></div><div class="tw-load">Загружаю…</div>';
+      twArenaLoad(); return;
+    }
+    const D = twArena, now = Date.now();
+    let h = '<div class="tw-arena-ban"><b>⚔️ АРЕНА 20:30</b><small>Турнир на 20 мест · стойка + загадка + 3 раунда</small></div>';
+    if (D.phase === "wait") {
+      h += '<div class="tw-arena-clock">' + twArenaClock(D.open - now) + '<small>ДО ОТКРЫТИЯ</small></div>' +
+        '<div class="tw-note">В 20:30 появятся 20 мест. Первые 20, кто нажмёт «Участвовать», попадут в сетку. Набор закроется в 20:45 или когда места закончатся.</div>' +
+        twArenaPrizes(D) + twArenaRules();
+      $("tw-body").innerHTML = h; twArenaPoll(); return;
+    }
+    if (D.phase === "reg") {
+      const left = Math.max(0, D.regClose - now), slots = Math.max(0, D.max - D.count);
+      h += '<div class="tw-arena-clock">' + twArenaClock(left) + '<small>ДО ЗАКРЫТИЯ НАБОРА</small></div>' +
+        '<div class="tw-note">Свободно мест: <b style="color:#ffd60a">' + slots + '</b> из ' + D.max + ' · сейчас в игре: <b>' + D.online + '</b></div>';
+      if (D.me.joined) {
+        const me = (D.players || []).find(p => p.uid === D.me.uid) || {};
+        h += '<div class="tw-arena-champ"><b>✅ Ты в турнире</b><small>Место ' + D.count + ' из ' + D.max + ' · сила отряда ' + (me.pow || 0) + '</small></div>' +
+          '<div class="tw-note">Ждём остальных. Когда наберётся 20 или в 20:45 — сетка соберётся автоматически, и твой бой начнётся.</div>';
+      } else {
+        h += '<button type="button" class="tw-btn red" id="tw-arena-join"' + (slots <= 0 ? " disabled" : "") + '>⚔️ Участвовать · осталось ' + slots + '</button>' +
+          '<div class="tw-note">В турнир берутся 3 твои лучшие карты. Нужно минимум 3 карты в коллекции.</div>';
+      }
+      h += twArenaPlayers(D) + twArenaPrizes(D) + twArenaRules();
+      $("tw-body").innerHTML = h;
+      if ($("tw-arena-join")) $("tw-arena-join").onclick = twArenaJoin;
+      twArenaPoll(); return;
+    }
+    if (D.champion) {
+      h += '<div class="tw-arena-champ"><b>👑 ' + esc(D.champion.name) + '</b><small>Чемпион Арены</small></div>';
+      if (D.me.place) h += '<div class="tw-note" style="text-align:center">Твоё место: <b style="color:#ffd60a">' + D.me.place + '</b></div>';
+    }
+    const mine = (D.matches || []).find(m => m.id === D.me.active);
+    if (mine && !mine.done) {
+      if (twArenaSel.id !== mine.id) twArenaSel = { id: mine.id, st: null, q: null };
+      h += twArenaActive(D, mine, now);
+    } else if (D.phase === "run" && D.me.joined && !D.champion) {
+      h += '<div class="tw-note" style="text-align:center">' + (D.me.place ? "Ты занял " + D.me.place + " место." : D.me.out ? "Ты выбыл. Смотри, чем закончится турнир!" : "Ты в игре. Ждём твой следующий бой…") + '</div>';
+    }
+    h += twArenaBracket(D);
+    if (D.phase === "done") h += twArenaPrizes(D);
+    $("tw-body").innerHTML = h;
+    if ($("tw-arena-go")) $("tw-arena-go").onclick = twArenaPick;
+    $("tw-body").querySelectorAll("[data-st]").forEach(b => b.onclick = () => { twArenaSel.st = +b.dataset.st; twRender(); });
+    $("tw-body").querySelectorAll("[data-q]").forEach(b => b.onclick = () => { twArenaSel.q = +b.dataset.q; twRender(); });
+    twArenaPoll();
+  }
+
   function twStopTour() { if (twTourTimer) { clearInterval(twTourTimer); twTourTimer = 0; } }
   function twTourName(D, uid) { const p = (D.top || []).find(x => x.uid === uid); return p ? p.name : "—"; }
   function twHM(ts) { try { return new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Minsk" }); } catch (e) { return ""; } }
@@ -409,10 +603,15 @@
       return _mg.apply(this, arguments);
     };
   }
-  // deep link ?tower=1
+  // deep link ?tower=1 / ?tower=1&arena=1
   try {
-    if (new URLSearchParams(location.search).has("tower") || location.hash === "#tower") {
-      setTimeout(() => { if (window.S) twOpen(); }, 900);
+    const q = new URLSearchParams(location.search);
+    if (q.has("tower") || location.hash === "#tower") {
+      setTimeout(() => {
+        if (!window.S) return;
+        twOpen();
+        if (q.has("arena")) { twTab = "arena"; twArena = null; twRender(); }
+      }, 900);
     }
   } catch (e) {}
 })();

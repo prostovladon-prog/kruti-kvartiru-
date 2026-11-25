@@ -1320,7 +1320,7 @@ const ACTIONS={
     pay(G.st,forgeCost(c));c.stars=s+1;c.v=Math.round(c.v*STAR_V*100)/100;return {stars:c.stars,v:c.v}},
   rage(G){const B=boss(G.st,G.ctx.now);if((B.extra||0)>=2)fail("Лимит зелий на сегодня");pay(G.st,150);B.extra=(B.extra||0)+1;return {}},
   map(G){if(G.st.mapDay===today(G.ctx.now))fail("Карта уже куплена");pay(G.st,120);G.st.mapDay=today(G.ctx.now);return {}},
-  frame(G){const c=notHalf(own(G,G.p.id)),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(F.only==="season"){if(!(G.st.frames||[]).includes("season"))fail("Рамка сезона — награда боевого пропуска")}else if(F.only&&!G.ctx.pioneer)fail("Эта рамка только для первых "+PIONEERS+" игроков");if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
+  frame(G){const c=notHalf(own(G,G.p.id)),F=FRAMES[G.p.frame];if(!F)fail("Нет такой рамки");if(F.only==="season"){if(!(G.st.frames||[]).includes("season"))fail("Рамка сезона — награда боевого пропуска")}else if(F.only==="pioneer"){if(!G.ctx.pioneer)fail("Эта рамка только для первых "+PIONEERS+" игроков")}else if(F.only){if(!(G.st.frames||[]).includes(F.only))fail("Сначала получи рамку «"+F.k+"»")}if(c.listed)fail("Карточка на рынке");if(c.frame===G.p.frame)fail("Эта рамка уже надета");pay(G.st,F.cost);c.frame=G.p.frame;return {}},
 
   task(G){const {st,ctx}=G;const D=day(st,ctx.now),i=G.p.i|0,T=TASKS[i];if(!T)fail("Нет такого задания");if(D.got.includes(i))fail("Уже получено");if(D[T.k]<T.n)fail("Задание ещё не выполнено");D.got.push(i);st.spins+=T.r;if(T.c)earn(st,T.c);const dgx=st.dg?dgAddXp(st,ctx,DG.taskXp):0;return {r:T.r,c:T.c||0,dgx}},
   streak(G){const st=G.st;checkStreak(st,G.ctx.now);if(st.streak.claimed)fail("Уже получено сегодня");st.streak.claimed=true;st.spins+=1;const cashW=STREAK_CASH[(st.streak.n||1)-1]||300;earn(st,cashW);if(st.streak.n===7)st.guar=(st.guar||0)+1;
@@ -1787,6 +1787,8 @@ FRAMES.tower={k:"Башня",cost:0,only:"tower",bg:"linear-gradient(135deg,#ffd
 TITLES.tower={n:"Покоритель Башни",ic:"🏰",price:0,ex:1};
 FRAMES.champ={k:"Чемпион Башни",cost:0,only:"champ",bg:"conic-gradient(from 30deg,#ffd60a,#b3122f,#3a1a8a,#ffd60a)"};
 TITLES.champ={n:"Чемпион Башни",ic:"🏆",price:0,ex:1};
+FRAMES.arena={k:"Арена",cost:0,only:"arena",bg:"conic-gradient(from 90deg,#ff5a1a,#ffd60a,#7a2cff,#ff5a1a)"};
+TITLES.arena={n:"Чемпион Арены",ic:"⚔️",price:0,ex:1};
 function towerOf(st,now){
   if(!st.tower||typeof st.tower!=="object")st.tower={};
   const t=st.tower,wk=mskWeek(now),d=mskDay(now);
@@ -1954,6 +1956,24 @@ ACTIONS.tower_champ_grant=function(G){
   (st.frames||(st.frames=[]));if(!st.frames.includes("champ"))st.frames.push("champ");
   addCard(G,c);
   return {card:c};
+};
+/* ⚔️ Арена 20:30: награды турнира на 20 мест */
+ACTIONS.tower_arena_prize=function(G){
+  const {st,ctx,p}=G;if(!ctx.grant)fail("Нет доступа");
+  const place=Math.max(0,Math.min(8,p.place|0)),t=towerOf(st,ctx.now);
+  const out={place,keys:0,sp:0,sh:0,title:0,frame:0};
+  if(place===1){
+    t.keys=(t.keys||0)+3;out.keys=3;
+    (st.titles||(st.titles=[]));if(!st.titles.includes("arena"))st.titles.push("arena");
+    (st.frames||(st.frames=[]));if(!st.frames.includes("arena"))st.frames.push("arena");
+    if(!st.title)st.title="arena";
+    out.title=1;out.frame=1;
+  }else if(place===2){t.keys=(t.keys||0)+2;out.keys=2}
+  else if(place===3||place===4){t.keys=(t.keys||0)+1;out.keys=1}
+  out.sp=place===0?15:place<=8?25:30;
+  st.spins=(st.spins||0)+out.sp;
+  out.sh=towerShards(st,ctx,place<=3?30:place<=8?20:10);
+  return out;
 };
 
 if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};

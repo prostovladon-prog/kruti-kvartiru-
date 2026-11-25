@@ -47,6 +47,7 @@ const server = readFileSync(path.join(root, "server", "server.js"), "utf8");
 const rules = readFileSync(path.join(root, "rules.js"), "utf8");
 const menu = readFileSync(path.join(root, "menu.js"), "utf8");
 const game = readFileSync(path.join(root, "game.js"), "utf8");
+const tower = readFileSync(path.join(root, "tower.js"), "utf8");
 const wow = readFileSync(path.join(root, "wow.js"), "utf8");
 const css = readFileSync(path.join(root, "style.css"), "utf8");
 for (const action of ["tower_tour_get", "tower_tour_ready", "tower_admin_tick"]) {
@@ -87,6 +88,28 @@ const reactionPoster = readFileSync(path.join(root, "event-assets/reactions-2026
 assert.equal(reactionPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
 assert.equal(reactionPoster.readUInt32BE(16), 1080);
 assert.equal(reactionPoster.readUInt32BE(20), 1350);
+assert.ok(server.includes('id:"arena-20261125"') &&
+  server.includes("const ARN_PUZZLES") &&
+  server.includes("tower_arena_get") &&
+  server.includes("tower_arena_join") &&
+  server.includes("tower_arena_pick") &&
+  server.includes("try{await arnTick(env)}catch(e){console.error('arena',e)}"),
+  "20:30 arena must support joining, bracket battles, puzzle picks and scheduled ticks");
+assert.ok(server.includes('id:"arena-announce-20261125"') &&
+  server.includes('id:"arena-open-20261125"') &&
+  server.includes("?tower=1&arena=1"),
+  "arena announcement and 20:30 opening post must be scheduled");
+assert.ok(rules.includes("ACTIONS.tower_arena_prize") &&
+  rules.includes("TITLES.arena={n:\"Чемпион Арены\""),
+  "arena rewards must grant keys, spins, shards and the champion cosmetics");
+assert.ok(tower.includes('data-tab="arena"') &&
+  tower.includes("tower_arena_pick") &&
+  tower.includes("twArenaView"),
+  "tower UI must expose the arena tab with stance and puzzle controls");
+const arenaPoster = readFileSync(path.join(root, "event-assets/arena-2026-11-25.png"));
+assert.equal(arenaPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
+assert.equal(arenaPoster.readUInt32BE(16), 1080);
+assert.equal(arenaPoster.readUInt32BE(20), 1350);
 assert.ok(menu.includes("const profileContestVisible=()=>false"), "the expired nickname contest must stay hidden");
 assert.ok(game.includes("ПРИГЛАСИТЬ ДРУГА — ПОЛУЧИТЬ БИЛЕТ") &&
   game.includes("подписаться на канал @voinyepoh и чат @voinyepohchat"),
