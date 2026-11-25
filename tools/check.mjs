@@ -97,7 +97,8 @@ if (existsSync(path.join(root, 'index.html'))) {
   for (const m of html.matchAll(/(?:src|href)="([\w.-]+\.(?:js|css))\?v=([0-9a-f]+)"/g)) {
     const [, file, ver] = m;
     if (!existsSync(path.join(root, file))) continue;
-    const h = createHash('md5').update(readFileSync(path.join(root, file))).digest('hex').slice(0, 8);
+    const normalized = readFileSync(path.join(root, file), 'utf8').replace(/\r\n?/g, '\n');
+    const h = createHash('md5').update(normalized).digest('hex').slice(0, 8);
     if (h !== ver) stale.push(file);
   }
   if (stale.length) fails.push(`устаревшие версии в index.html (запусти python tools/bump.py): ${stale.join(', ')}`);

@@ -3,7 +3,9 @@ import hashlib, re, pathlib
 root = pathlib.Path(__file__).resolve().parent.parent
 idx = root / "index.html"; s = idx.read_text(encoding="utf-8")
 for f in ["style.css", "rules.js", "game.js", "event.js", "wow.js", "menu.js", "dragon.js", "teach.js", "turnir.js", "zvezda.js", "enc.js", "ref.js", "tutor.js", "admin.js", "gems.js", "community.js", "tower-rules.js", "tower.js"]:
-    h = hashlib.md5((root / f).read_bytes()).hexdigest()[:8]
+    # Normalize line endings so cache hashes are identical on Windows and Linux.
+    data = (root / f).read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    h = hashlib.md5(data).hexdigest()[:8]
     s = re.sub(re.escape(f) + r'(\?v=[0-9a-f]+)?"', f + "?v=" + h + '"', s)
 ver = hashlib.md5("".join(re.findall(r'\?v=[0-9a-f]+', s)).encode()).hexdigest()[:10]
 s = re.sub(r'<meta name="app-ver" content="[^"]*">', '', s)
