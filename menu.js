@@ -178,14 +178,14 @@ function cGo(){menuClose();setTab("spin");setTimeout(()=>{const e=$("chal");if(e
 function cStrip(){const b=$("cstrip");if(!b)return;const on=cOn();b.hidden=!on;if(!on)return;const C=chData;
   if(C.gift){const fd=C.frOk>=C.fr;b.innerHTML='<i>🐉</i><span><b>Розыгрыш NFT-подарка</b><small>'+(C.me&&fd?"✅ ты участвуешь":(fd?"✅ друзья есть":"друзья "+C.frOk+"/"+C.fr)+" · "+(C.me?"✅ история":"📸 выложи историю"))+'</small></span><em>'+tleft(cLeft())+'</em>';return}
   const M=C.me,inn=M.n>=C.min;
-  b.classList.toggle("sk-myst",C.sk==="myst");b.innerHTML='<i>'+(C.sk==="myst"?"❓":C.vip?"👑":C.chest?"💎":"🎟")+'</i><span><b>'+(C.vip?"Розыгрыш 3 VIP на месяц":C.chest?(C.sk==="myst"?"Тайный розыгрыш за друзей":C.ttl?"Розыгрыш сундуков за друзей":"Розыгрыш сундуков · $70"):"Розыгрыш "+C.prizes[0])+'</b><small>'+(inn?"🎟 у тебя "+M.n+" "+plural(M.n,"билет","билета","билетов"):C.min===1?"позови друга — получи билет":"пригласи "+C.min+" "+plural(C.min,"друга","друзей","друзей")+" — и ты в игре ("+M.n+"/"+C.min+")")+'</small></span><em>'+tleft(cLeft())+'</em>'}
+  b.classList.toggle("sk-myst",C.sk==="myst");b.innerHTML='<i>'+(C.invite?"🎟":C.sk==="myst"?"❓":C.vip?"👑":C.chest?"💎":"🎟")+'</i><span><b>'+(C.invite?"Розыгрыш за друзей":C.vip?"Розыгрыш 3 VIP на месяц":C.chest?(C.sk==="myst"?"Тайный розыгрыш за друзей":C.ttl?"Розыгрыш сундуков за друзей":"Розыгрыш сундуков · $70"):"Розыгрыш "+C.prizes[0])+'</b><small>'+(C.invite?"🎟 билетов у тебя: "+M.n+" · 700/500/300 ⭐ + VIP":inn?"🎟 у тебя "+M.n+" "+plural(M.n,"билет","билета","билетов"):C.min===1?"позови друга — получи билет":"пригласи "+C.min+" "+plural(C.min,"друга","друзей","друзей")+" — и ты в игре ("+M.n+"/"+C.min+")")+'</small></span><em>'+tleft(cLeft())+'</em>'}
 setInterval(()=>{try{cStrip()}catch(e){}},1000);
 {const _dch=drawChal;drawChal=function(){_dch();try{cStrip();qTiles()}catch(e){}}}
 /* большая плитка розыгрыша на главной */
 {const _qt=qTiles;qTiles=function(){_qt();const el=$("qtiles");if(!el)return;let w=$("qt-c");if(!cOn()){if(w)w.remove();return}
   if(!w){w=document.createElement("button");w.type="button";w.id="qt-c";w.className="qt qtc";w.onclick=cGo}
   if(el.firstChild!==w)el.prepend(w);const C=chData,M=C.me;
-  if(C.gift){w.innerHTML='<i>🐉</i><span><b>Разыгрываем NFT-подарок!</b><small>«Дракончик» с ошибкой печати · пригласи '+C.fr+' друзей + история · итоги '+cDM(C.end)+'</small></span><em></em>';return}w.classList.toggle("sk-myst",C.sk==="myst");if(C.sk==="myst"){w.innerHTML='<i>❓</i><span><b>Тайный розыгрыш · $54</b><small>'+(M.n>=C.min?"🎟 у тебя билетов: "+M.n:"позови друга — получи билет")+' · итоги в '+new Date(C.end+3*3600e3).toISOString().slice(11,16)+'</small></span><em></em>';return}w.innerHTML='<i>'+(C.vip?"👑":"🎟")+'</i><span><b>'+(C.vip?"Разыгрываем 3 VIP на месяц!":"Розыгрыш "+C.prizes[0])+'</b><small>'+(M.n>=C.min?"ты участвуешь · билетов: "+M.n:"пригласи "+C.min+" друзей · у тебя "+M.n)+' · итоги '+cDM(C.end)+'</small></span><em></em>'}}
+  if(C.gift){w.innerHTML='<i>🐉</i><span><b>Разыгрываем NFT-подарок!</b><small>«Дракончик» с ошибкой печати · пригласи '+C.fr+' друзей + история · итоги '+cDM(C.end)+'</small></span><em></em>';return}w.classList.toggle("sk-myst",C.sk==="myst");if(C.sk==="myst"){w.innerHTML='<i>❓</i><span><b>Тайный розыгрыш · $54</b><small>'+(M.n>=C.min?"🎟 у тебя билетов: "+M.n:"позови друга — получи билет")+' · итоги в '+new Date(C.end+3*3600e3).toISOString().slice(11,16)+'</small></span><em></em>';return}w.innerHTML='<i>'+(C.invite?"🎟":C.vip?"👑":"🎟")+'</i><span><b>'+(C.invite?"Розыгрыш за друзей":C.vip?"Разыгрываем 3 VIP на месяц!":"Розыгрыш "+C.prizes[0])+'</b><small>'+(C.invite?"твоих билетов: "+M.n+" · призы 700/500/300 ⭐ + VIP":M.n>=C.min?"ты участвуешь · билетов: "+M.n:"пригласи "+C.min+" друзей · у тебя "+M.n)+' · итоги '+cDM(C.end)+'</small></span><em></em>'}}
 /* ---------- обязательная подписка на канал: через пару минут в игре окно не закрыть, пока не подпишется ---------- */
 const SUBP_K="we-subpop",SUBP_GAP=12*36e5,SUBP_AFTER=80e3,subpT0=Date.now();
 function subpLS(v){try{if(v===undefined)return +localStorage.getItem(SUBP_K)||0;localStorage.setItem(SUBP_K,String(v))}catch(e){return 0}}
@@ -1265,7 +1265,7 @@ async function warFight(r){const sh=$("msheet"),w=ms=>new Promise(z=>setTimeout(
 if(new URLSearchParams(location.search).get("war")){const t=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(t);setTimeout(()=>warOpen(),500)},500)}
 /* ===================== 🎟 БИЛЕТНАЯ ГОНКА ===================== */
 const profileContestStart=Date.UTC(2026,10,23,5),profileContestEnd=Date.UTC(2026,10,24,19);
-const profileContestVisible=()=>Date.now()<profileContestEnd+7*864e5||!!S?.admin;
+const profileContestVisible=()=>false;   // завершённый конкурс профилей убран с главного экрана и из меню
 let profileContestCount=null,profileContestRefreshAt=0;
 function profileContestCountText(){return profileContestCount===null?"Счётчик загружается…":"Участников: "+fmtN(profileContestCount)}
 function profileContestUpdateCount(t){
@@ -1320,7 +1320,7 @@ async function profileContestOpen(action="get",payload={}){
 
 }
 setInterval(profileContestBar,3000);
-if(new URLSearchParams(location.search).has("profilecontest")){
+if(new URLSearchParams(location.search).has("profilecontest")&&profileContestVisible()){
   const timer=setInterval(()=>{if(!S||!ONLINE||$("boot"))return;clearInterval(timer);profileContestOpen()},500);
 }
 

@@ -45,6 +45,10 @@ assert.equal(vip.tower.free, 3, "VIP/Pass grants one extra free run");
 
 const server = readFileSync(path.join(root, "server", "server.js"), "utf8");
 const rules = readFileSync(path.join(root, "rules.js"), "utf8");
+const menu = readFileSync(path.join(root, "menu.js"), "utf8");
+const game = readFileSync(path.join(root, "game.js"), "utf8");
+const wow = readFileSync(path.join(root, "wow.js"), "utf8");
+const css = readFileSync(path.join(root, "style.css"), "utf8");
 for (const action of ["tower_tour_get", "tower_tour_ready", "tower_admin_tick"]) {
   assert.ok(server.includes(action), `missing server action ${action}`);
 }
@@ -65,5 +69,19 @@ const poster = readFileSync(path.join(root, "event-assets/tower-launch-2026-11-2
 assert.equal(poster.toString("hex", 0, 8), "89504e470d0a1a0a");
 assert.equal(poster.readUInt32BE(16), 1080);
 assert.equal(poster.readUInt32BE(20), 1350);
-
-console.log("✅ Башня: лимиты, сброс, 1/1-карты, защита и запусковая рассылка проверены");
+assert.ok(server.includes('id:"2026-11-25-invite"') &&
+  server.includes("needOpen:20,requireCommunity:1") &&
+  server.includes("vipDays:7"), "friend-ticket contest must require 20 opens + both subscriptions and award week VIP");
+assert.ok(server.includes("try{await friendContestLaunchTick(env)}catch(e){console.error('friend contest launch',e)}"),
+  "09:00 referral-contest photo post and DM must be scheduled");
+assert.ok(menu.includes("const profileContestVisible=()=>false"), "the expired nickname contest must stay hidden");
+assert.ok(game.includes("ПРИГЛАСИТЬ ДРУГА — ПОЛУЧИТЬ БИЛЕТ") &&
+  game.includes("подписаться на канал @voinyepoh и чат @voinyepohchat"),
+  "the challenge card must show eligibility and an explicit invite CTA");
+assert.ok(wow.includes("C.invite") && css.includes(".chal-link div{display:grid"),
+  "invite information and copy-link button must have a non-overlapping responsive layout");
+const friendPoster = readFileSync(path.join(root, "event-assets/friend-ticket-2026-11-25.png"));
+assert.equal(friendPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
+assert.equal(friendPoster.readUInt32BE(16), 1080);
+assert.equal(friendPoster.readUInt32BE(20), 1350);
+console.log("✅ Башня: лимиты, 1/1-карты, invite draw, постеры и рассылки проверены");

@@ -1574,11 +1574,11 @@ let chData=null,chAt=0;
 const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
 async function loadChal(){if(!ONLINE||document.hidden)return;chAt=NOW();const r=await act("chal_get");chData=r&&r.id?r:null;if(chData)chData._t=NOW();drawChal()}
 function drawChal(){const C=chData,box=$("chal");if(!box)return;box.hidden=!C;if(!C)return;
-  {const go=$("chal-go");if(go&&S&&S.uid){go.textContent="📨 Отправить другу мою ссылку";let L=$("chal-link");if(!L){L=document.createElement("div");L.id="chal-link";L.className="chal-link";go.after(L)}
-    const url=linkFor("r_"+S.uid);if(L.dataset.u!==url){L.dataset.u=url;L.innerHTML='<small>Билет дают только за <b>новых</b> игроков, которые зайдут по <b>твоей</b> ссылке и откроют '+(C.need||3)+' карточки:</small><div><code>'+escH(url.replace(/^https:\/\//,""))+'</code><button type="button" class="mini2">📋 Копировать</button></div>';
+  {const go=$("chal-go");if(go&&S&&S.uid){go.textContent=C.invite?"👥 ПРИГЛАСИТЬ ДРУГА — ПОЛУЧИТЬ БИЛЕТ":"📨 Отправить другу мою ссылку";let L=$("chal-link");if(!L){L=document.createElement("div");L.id="chal-link";L.className="chal-link";go.after(L)}
+    const url=linkFor("r_"+S.uid);if(L.dataset.u!==url||L.dataset.c!==C.id){L.dataset.u=url;L.dataset.c=C.id;const how=C.invite?"новый друг должен открыть 20 карт и подписаться на канал @voinyepoh и чат @voinyepohchat":"новый игрок должен открыть "+(C.need||3)+" карты";L.innerHTML='<small>Билет начислим, если '+how+'.</small><div><code>'+escH(url.replace(/^https:\/\//,""))+'</code><button type="button" class="mini2">📋 Копировать ссылку</button></div>';
       L.querySelector("button").onclick=()=>{try{navigator.clipboard.writeText(url);toast("📋 Ссылка скопирована — отправь её другу")}catch(e){toast(url)}}}}}
   const left=Math.max(0,C.left-(NOW()-C._t)),hm=t=>new Date(t+3*3600e3).toISOString().slice(11,16);
-  box.querySelector(".chal-h span").textContent=C.secret?"🤫 СЕКРЕТНЫЙ ПРИЗ":C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";box.classList.toggle("secret",!!C.secret);
+  box.querySelector(".chal-h span").textContent=C.invite?"🎟 РОЗЫГРЫШ ЗА ДРУЗЕЙ":C.secret?"🤫 СЕКРЕТНЫЙ ПРИЗ":C.lot?"🎟 РОЗЫГРЫШ "+C.prizes[0]:"👥 ЧЕЛЛЕНДЖ ДНЯ";box.classList.toggle("secret",!!C.secret);box.classList.toggle("invitec",!!C.invite);
   if(C.lot)return drawLot(C,left,hm);
   $("chal-left").textContent=C.phase==="done"?"ИТОГИ":C.phase==="soon"?"через "+tleft(left):tleft(left);
   $("chal-t").textContent=C.phase==="done"?"Челлендж завершён! Победители получат призы, напиши @voinyepohbotadmn, если ты в топ-3.":C.phase==="soon"?"Сегодня с "+hm(C.start)+" до "+hm(C.end)+" — кто пригласит больше друзей, получит подарок Telegram!":(C.x2?"🔥 До "+hm(C.end)+" награда ×2: +20 прокруток за друга, а другу — гарантированная эпическая! ":"Зови друзей до "+hm(C.end)+". ")+"Топ-3 получают подарки Telegram или звёзды ⭐";
@@ -1606,7 +1606,7 @@ function drawLot(C,left,hm){const M=C.me,inn=M.n>=C.min,T=C.tickets||0;
   const Tb=$("chal-top");Tb.innerHTML="";const P=C.top.filter(r=>r.n>=C.min);
   if(C.phase!=="soon"){if(!P.length)Tb.innerHTML='<div class="empty">Пока никто не набрал '+C.min+' друзей — стань первым участником!</div>';
     for(const r of P){const d=document.createElement("div");d.className="cr"+(r.me?" me":"");d.innerHTML="<i></i><span></span><b></b>";d.children[0].textContent="🎟";d.children[1].textContent=(r.vip?"👑 ":"")+r.name;d.children[2].textContent=r.n+" · "+(T?Math.round(r.n/T*100):0)+"%";Tb.append(d)}}
-  $("chal-go").hidden=C.phase!=="on";
+  const go=$("chal-go");go.hidden=C.phase!=="on";go.textContent=C.invite?"👥 ПРИГЛАСИТЬ ДРУГА — ПОЛУЧИТЬ БИЛЕТ":"📨 Отправить другу мою ссылку";go.onclick=()=>$("ref-go").click();
   $("chal-rules").textContent="Считаются только новые игроки, которые пришли сегодня с "+hm(C.start)+" до "+hm(C.end)+" по твоей ссылке и открыли хотя бы "+C.need+" карточки. Друг твоего друга тоже засчитывается тебе. От "+C.min+" друзей ты участник, каждый друг — 1 билет. В "+hm(C.end)+" бот случайно выбирает победителя: чем больше билетов, тем выше шанс. Время — минское. Приз выдаёт @voinyepohbotadmn: подарок Telegram на "+C.prizes[0]+" или звёзды."}
 setInterval(()=>{if(chData&&!$("chal").hidden){const l=Math.max(0,chData.left-(NOW()-chData._t));if(l<=0&&chData.phase!=="done"&&NOW()-chAt>5000)loadChal();else if(chData.phase!=="done")$("chal-left").textContent=(chData.phase==="soon"?"через ":"")+tleft(l)}},1000);
 setInterval(loadChal,30000);setTimeout(loadChal,1500);
