@@ -642,13 +642,13 @@ async function towerTourReady(env,me){
   return {ok:1,id,ready:1};
 }
 /* ===================== ⚔️ АРЕНА 20:30 =====================
-   Вечерний турнир на 20 мест: play-in, сетка на вылет, 3 раунда в бою.
+   Вечерний турнир на 30 мест (минимум 20): play-in, сетка на вылет, 3 раунда в бою.
    В каждом бою игрок выбирает стойку и отвечает на загадку — это даёт бонус к силе. */
 const ARN={
   id:"arena-20261125",
   open:Date.UTC(2026,10,25,17,30),      // 20:30 Minsk
   regClose:Date.UTC(2026,10,25,17,45),  // 20:45 Minsk
-  max:20,gap:45e3,len:7*60e3,
+  max:30,min:20,gap:45e3,len:7*60e3,
   prizes:[
     {p:1,st:200,vip:7,keys:3,txt:"200 ⭐ + VIP 7 дней + 3 ключа + титул и рамка «Чемпион Арены» + 30 🎴"},
     {p:2,st:100,vip:3,keys:2,txt:"100 ⭐ + VIP 3 дня + 2 ключа + 25 🎴"},
@@ -672,7 +672,7 @@ const ARN_PUZZLES=[
   {q:"Сколько карт входит в отряд для забега по Башне?",o:["1","2","3","5"],a:2},
   {q:"Что больше: 2¹⁰ или 1000?",o:["2¹⁰","1000","Равны","Нельзя сравнить"],a:0},
   {q:"Сколько сторон у шестиугольника?",o:["5","6","7","8"],a:1},
-  {q:"В турнире 20 игроков. В play-in играют 8. Сколько сразу проходят во второй раунд?",o:["4","8","12","16"],a:2}
+  {q:"В турнире 30 игроков. Двое сразу проходят дальше, остальные играют play-in парами. Сколько матчей в play-in?",o:["12","13","14","15"],a:2}
 ];
 const ARN_STANCES=["Натиск","Стена","Обман"];
 function arnKey(){return "tower_arena:"+ARN.id}
@@ -803,7 +803,15 @@ async function arnAdvance(env,A,now){
   A.players=A.players||[];A.matches=A.matches||{};
   if(A.phase==="wait"&&now>=ARN.open){A.phase="reg";A.t=now;changed=1}
   if(A.phase==="reg"&&(A.players.length>=ARN.max||now>=ARN.regClose)){
-    if(A.players.length<2){A.phase="done";A.paid=1;A.t=now;changed=1;return changed}
+    if(A.players.length<ARN.min){
+      A.phase="failed";A.t=now;changed=1;
+      if(!A.failedNotified){
+        A.failedNotified=1;
+        for(const p of A.players)try{await notify(env,p.uid,"⚔️ Арена не состоялась: собралось "+A.players.length+" участников, а нужно минимум 20.\n\nВзнос не списывался, награды не выдаются. Ждём тебя в следующем турнире!","⚔️ Башня",PAGE+"?tower=1&arena=1")}catch(e){}
+        for(const a of ADMINS)try{await notify(env,a,"⚔️ Арена 20:30 не состоялась: "+A.players.length+" участников, минимум 20.","⚔️ Арена",PAGE+"?tower=1&arena=1")}catch(e){}
+      }
+      return changed;
+    }
     arnBracket(A,now);changed=1
   }
   if(A.phase==="run"){
@@ -832,7 +840,7 @@ async function arnGet(env,me){
   const online=await cached("arn_online",20e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE seen>?").bind(Date.now()-5*60e3).first())||{}).n||0);
   const joined=(A.players||[]).some(p=>p.uid===me.id);
   const myPlayer=(A.players||[]).find(p=>p.uid===me.id)||null;
-  return {phase:A.phase,now,open:ARN.open,regClose:ARN.regClose,max:ARN.max,count:(A.players||[]).length,online,
+  return {phase:A.phase,now,open:ARN.open,regClose:ARN.regClose,max:ARN.max,min:ARN.min,count:(A.players||[]).length,online,
     players:(A.players||[]).map(p=>({uid:p.uid,name:p.name,pow:arnPow(p),joined:p.joined})),
     matches:pubM,round:A.round||"",champion:A.champion||null,places:A.places||null,paid:!!A.paid,
     me:{joined,uid:me.id,pow:myPlayer?arnPow(myPlayer):0,out:!!((A.out||{})[me.id]),place:(A.places||{})[me.id]||0,active:mine?mine.id:null,puzzle:mine?{q:(ARN_PUZZLES[mine.puzzle]||{}).q,o:(ARN_PUZZLES[mine.puzzle]||{}).o}:null,
@@ -855,7 +863,7 @@ async function arnJoin(env,me){
     A.players=A.players||[];
     if(A.players.some(p=>p.uid===me.id))return {ok:1,already:1,count:A.players.length,phase:A.phase};
     if(A.phase!=="reg")fail("Набор в Арену уже закрыт");
-    if(A.players.length>=ARN.max)fail("Все 20 мест заняты");
+    if(A.players.length>=ARN.max)fail("Все 30 мест заняты");
     A.players.push({uid:me.id,name,squad,joined:now});
     A.t=now;
     await arnAdvance(env,A,now);
@@ -865,7 +873,7 @@ async function arnJoin(env,me){
     const chk=await kvGet(env,arnKey());
     if(chk&&(chk.players||[]).some(p=>p.uid===me.id)){
       const count=(chk.players||[]).length,phase=chk.phase;
-      try{await notify(env,me.id,"⚔️ Ты в Арене! Место "+count+" из 20.\n\n"+(phase==="reg"?"Ждём остальных. Набор закроется в 20:45 или когда заполнятся все 20 мест.":"Сетка уже собрана — твой бой скоро начнётся.")+"\n\nОткрой «Башня → Арена».","⚔️ В Арену",PAGE+"?tower=1&arena=1")}catch(e){}
+      try{await notify(env,me.id,"⚔️ Ты в Арене! Место "+count+" из 30.\n\n"+(phase==="reg"?"Ждём остальных. Набор закроется в 20:45 или когда заполнятся все 30 мест. Минимум для старта — 20 участников.":"Сетка уже собрана — твой бой скоро начнётся.")+"\n\nОткрой «Башня → Арена».","⚔️ В Арену",PAGE+"?tower=1&arena=1")}catch(e){}
       return {ok:1,count,phase};
     }
   }
@@ -937,19 +945,20 @@ async function arnTick(env){
   }finally{arnBusy=0}
 }
 function arnPosts(){return [
-  {id:"arena-announce-20261125",at:Date.UTC(2026,10,25,17,15),window:2*36e5,photo:"event-assets/arena-2026-11-25.png",
+  {id:"arena-announce-20261125",on:false,at:Date.UTC(2026,10,25,17,15),window:2*36e5,photo:"event-assets/arena-2026-11-25.png",
    btn:"⚔️ Войти в Арену",url:PAGE+"?tower=1&arena=1",
-   chan:"⚔️ СЕГОДНЯ В 20:30 — АРЕНА НА 20 МЕСТ!\n\nВ Башне откроется вечерний турнир. Первые 20, кто нажмёт «Участвовать», попадут в сетку.\n\nКаждый бой — 3 раунда. Перед боем выбери стойку (Натиск / Стена / Обман) и ответь на загадку: правильный ответ даёт +25% к силе, выигранная стойка — ещё +15%. Сила карт важна, но хитрость решает.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа + титул «Чемпион Арены»\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Все участники: 15 прокруток и осколки\n\n⏰ Набор: 20:30–20:45. Заходи в игру → Башня → Арена!",
-   dm:"⚔️ Сегодня в 20:30 — АРЕНА на 20 мест!\n\nПервые 20, кто нажмёт «Участвовать», попадут в турнир. В каждом бою: стойка + загадка + 3 раунда. Правильный ответ даёт +25% к силе, стойка — ещё +15%.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Всем участникам — 15 прокруток и осколки.\n\nОткрой игру → Башня → Арена. Набор стартует в 20:30!"},
-  {id:"arena-open-20261125",at:Date.UTC(2026,10,25,17,30),window:18*60e3,photo:"event-assets/arena-2026-11-25.png",
+   chan:"⚔️ СЕГОДНЯ В 20:30 — АРЕНА НА 30 МЕСТ!\n\nВ Башне откроется вечерний турнир. Первые 30, кто нажмёт «Участвовать», попадут в сетку.\n\nКаждый бой — 3 раунда. Перед боем выбери стойку (Натиск / Стена / Обман) и ответь на загадку: правильный ответ даёт +25% к силе, выигранная стойка — ещё +15%. Сила карт важна, но хитрость решает.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа + титул «Чемпион Арены»\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Все участники: 15 прокруток и осколки\n\n⏰ Набор: 20:30–20:45. Если 30 не наберётся — старт в 20:45 с теми, кто есть, но минимум 20 участников. Заходи в игру → Башня → Арена!",
+   dm:"⚔️ Сегодня в 20:30 — АРЕНА на 30 мест!\n\nПервые 30, кто нажмёт «Участвовать», попадут в турнир. В каждом бою: стойка + загадка + 3 раунда. Правильный ответ даёт +25% к силе, стойка — ещё +15%.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Всем участникам — 15 прокруток и осколки.\n\nОткрой игру → Башня → Арена. Набор стартует в 20:30! Минимум 20 участников."},
+  {id:"arena-open-20261125",on:false,at:Date.UTC(2026,10,25,17,30),window:18*60e3,photo:"event-assets/arena-2026-11-25.png",
    btn:"⚔️ Участвовать",url:PAGE+"?tower=1&arena=1",
-   chan:"⚔️ АРЕНА ОТКРЫТА! ПЕРВЫЕ 20 МЕСТ!\n\nЗайди в игру → Башня → Арена и жми «Участвовать». Набор закроется в 20:45 или когда закончатся места.\n\nВ бою: стойка + загадка + 3 раунда. Побеждает не только сильнейший, но и самый хитрый.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Всем участникам — 15 прокруток и осколки."}
+   chan:"⚔️ АРЕНА ОТКРЫТА! ПЕРВЫЕ 30 МЕСТ!\n\nЗайди в игру → Башня → Арена и жми «Участвовать». Набор закроется в 20:45 или когда закончатся места. Если 30 не наберётся — старт в 20:45 с теми, кто есть, но минимум 20 участников.\n\nВ бою: стойка + загадка + 3 раунда. Побеждает не только сильнейший, но и самый хитрый.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа\n🥈 100 ⭐ + VIP 3 дня + 2 ключа\n🥉 50 ⭐ + 1 ключ\n🎴 Всем участникам — 15 прокруток и осколки."}
 ]}
 let arnPostBusy=0;
 async function arnPostsTick(env){
   if(arnPostBusy)return;
   const now=Date.now();
   for(const P of arnPosts()){
+    if(P.on===false)continue;
     if(now<P.at||now>P.at+P.window)continue;
     const st=await kvGet(env,"blast:"+P.id);
     if(st&&st.done&&st.ch)continue;
@@ -3477,15 +3486,6 @@ const CHAL_INVITE={id:"2026-11-25-invite",lot:1,multi:1,invite:1,needOpen:20,req
 const FRIEND_POST_PRIZES="🥇 700 ⭐ + VIP на 7 дней\n🥈 500 ⭐ + VIP на 7 дней\n🥉 300 ⭐ + VIP на 7 дней";
 const FRIEND_POST_HOW="Каждый новый друг по твоей ссылке = 1 билет. Друг должен открыть 20 карт и подписаться на канал @voinyepoh и чат @voinyepohchat. Накрутка и пустые аккаунты не засчитываются.";
 const FRIEND_CONTEST_POSTS=[
-  {id:"friend-ticket-20261125-09",at:Date.UTC(2026,10,25,6),window:2*36e5,photo:"event-assets/friend-ticket-2026-11-25.png",btn:"🎟 Участвовать",url:PAGE,
-    chan:"🎟 РОЗЫГРЫШ ЗА ДРУЗЕЙ — СТАРТ!\n\nС 08:00 сегодня до 22:00 завтра по Минску.\n\n"+FRIEND_POST_HOW+"\n\n"+FRIEND_POST_PRIZES+"\n\nТри разных победителя выбираются случайно по билетам. Участвовать можно уже с одним подтверждённым другом.\n\nПриглашай друзей и следи за билетами в игре!",
-    dm:"🎟 Стартовал розыгрыш за приглашённых друзей!\n\nДо 22:00 26 ноября по Минску каждый новый друг по твоей ссылке = 1 билет. Он должен открыть 20 карт и подписаться на @voinyepoh и @voinyepohchat.\n\n"+FRIEND_POST_PRIZES+"\n\nТри победителя выбираются случайно по билетам. Открой игру и смотри конкурс на главном экране."},
-  {id:"friend-ticket-20261125-14",at:Date.UTC(2026,10,25,11),window:2*36e5,photo:"event-assets/friend-ticket-2026-11-25.png",btn:"🎟 Мои билеты",url:PAGE,
-    chan:"🎟 РОЗЫГРЫШ ЗА ДРУЗЕЙ ИДЁТ!\n\nДо 22:00 завтра. "+FRIEND_POST_HOW+"\n\n"+FRIEND_POST_PRIZES+"\n\nКаждый друг = ещё один билет. Приглашай и проверяй свой счёт в игре!",
-    dm:"🎟 Напоминаем: розыгрыш за друзей идёт до 22:00 26 ноября!\n\nКаждый новый друг = 1 билет. Друг должен открыть 20 карт и подписаться на @voinyepoh и @voinyepohchat.\n\n"+FRIEND_POST_PRIZES+"\n\nОткрой игру → конкурс на главном экране."},
-  {id:"friend-ticket-20261125-20",at:Date.UTC(2026,10,25,17),window:2*36e5,photo:"event-assets/friend-ticket-2026-11-25.png",btn:"🎟 Мои билеты",url:PAGE,
-    chan:"🌙 ВЕЧЕРНИЙ ШАНС В РОЗЫГРЫШЕ ЗА ДРУЗЕЙ!\n\nДо 22:00 завтра. "+FRIEND_POST_HOW+"\n\n"+FRIEND_POST_PRIZES+"\n\nВечер — лучшее время звать друзей. Каждый друг = +1 билет!",
-    dm:"🌙 Вечерний шанс: розыгрыш за друзей идёт до 22:00 26 ноября!\n\nКаждый новый друг = 1 билет (20 карт + подписка на канал и чат).\n\n"+FRIEND_POST_PRIZES+"\n\nПроверь свои билеты в игре."},
   {id:"friend-ticket-20261126-09",at:Date.UTC(2026,10,26,6),window:2*36e5,photo:"event-assets/friend-ticket-2026-11-25.png",btn:"🎟 Участвовать",url:PAGE,
     chan:"🎟 ПОСЛЕДНИЙ ДЕНЬ РОЗЫГРЫША ЗА ДРУЗЕЙ!\n\nДо 22:00 сегодня. "+FRIEND_POST_HOW+"\n\n"+FRIEND_POST_PRIZES+"\n\nУспей пригласить друга — каждый даёт билет!",
     dm:"🎟 Последний день розыгрыша за друзей — до 22:00!\n\nКаждый новый друг = 1 билет (20 карт + подписка на канал и чат).\n\n"+FRIEND_POST_PRIZES+"\n\nОткрой игру и проверь свои билеты."},

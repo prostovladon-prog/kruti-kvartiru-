@@ -75,8 +75,9 @@ assert.ok(server.includes('id:"2026-11-25-invite"') &&
   server.includes("vipDays:7"), "friend-ticket contest must require 20 opens + both subscriptions and award week VIP");
 assert.ok(server.includes("FRIEND_CONTEST_POSTS") &&
   server.includes("friend-ticket-20261126-20") &&
+  !server.includes("friend-ticket-20261125-") &&
   server.includes("try{await friendContestPostsTick(env)}catch(e){console.error('friend contest posts',e)}"),
-  "six contest photo posts (09/14/20 on both days) must be scheduled");
+  "three contest photo posts on 26.11 must be scheduled, today's posts must stay disabled");
 assert.ok(server.includes('id:"tower-react-20261125"') &&
   server.includes('code:"БАШНЯ30"') &&
   server.includes("mx:20") &&
@@ -89,16 +90,18 @@ assert.equal(reactionPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
 assert.equal(reactionPoster.readUInt32BE(16), 1080);
 assert.equal(reactionPoster.readUInt32BE(20), 1350);
 assert.ok(server.includes('id:"arena-20261125"') &&
+  server.includes("max:30,min:20") &&
+  server.includes("A.players.length<ARN.min") &&
   server.includes("const ARN_PUZZLES") &&
   server.includes("tower_arena_get") &&
   server.includes("tower_arena_join") &&
   server.includes("tower_arena_pick") &&
   server.includes("try{await arnTick(env)}catch(e){console.error('arena',e)}"),
-  "20:30 arena must support joining, bracket battles, puzzle picks and scheduled ticks");
-assert.ok(server.includes('id:"arena-announce-20261125"') &&
-  server.includes('id:"arena-open-20261125"') &&
+  "20:30 arena must support 30 seats, a 20-player minimum, bracket battles, puzzles and scheduled ticks");
+assert.ok(server.includes('id:"arena-announce-20261125",on:false') &&
+  server.includes('id:"arena-open-20261125",on:false') &&
   server.includes("?tower=1&arena=1"),
-  "arena announcement and 20:30 opening post must be scheduled");
+  "arena announcement and opening post must stay prepared but disabled on 25.11");
 assert.ok(rules.includes("ACTIONS.tower_arena_prize") &&
   rules.includes("TITLES.arena={n:\"Чемпион Арены\""),
   "arena rewards must grant keys, spins, shards and the champion cosmetics");

@@ -35,7 +35,7 @@ const call = async (uid, a, p = {}) => {
 };
 const ok = (cond, msg, extra) => { console.log((cond ? "✓ " : "✗ ") + msg + (cond || !extra ? "" : " → " + JSON.stringify(extra))); if (!cond) process.exitCode = 1; };
 
-const ids = Array.from({ length: 20 }, (_, i) => 5000 + i);
+const ids = Array.from({ length: 30 }, (_, i) => 5000 + i);
 for (const id of ids) {
   await call(id, "sync");
   for (let k = 0; k < 3; k++) {
@@ -50,11 +50,11 @@ for (let i = 1; i < ids.length; i++) {
   if (!r.ok) console.log("join fail", ids[i], r);
 }
 let g = await call(ids[0], "tower_arena_get");
-ok(g.ok && g.res.phase === "run", "bracket built after 20 joins", g.res && { phase: g.res.phase, count: g.res.count, matches: Object.keys(g.res.matches || {}).length });
-ok(g.res.count === 20, "20 players");
+ok(g.ok && g.res.phase === "run", "bracket built after 30 joins", g.res && { phase: g.res.phase, count: g.res.count, matches: Object.keys(g.res.matches || {}).length });
+ok(g.res.count === 30, "30 players");
 const firstRounds = [...new Set(g.res.matches.map(m => m.round))];
 console.log("rounds:", firstRounds);
-ok(g.res.matches.filter(m => m.round === "playin").length === 4, "4 play-in matches");
+ok(g.res.matches.filter(m => m.round === "playin").length === 14, "14 play-in matches");
 
 let guard = 0;
 while (guard++ < 40) {
@@ -82,7 +82,7 @@ while (guard++ < 40) {
 g = await call(ids[0], "tower_arena_get");
 console.log("final phase", g.res.phase, "champion", g.res.champion, "places", g.res.places);
 ok(g.res.phase === "done" && g.res.champion, "tournament finished with champion");
-ok(g.res.places && Object.keys(g.res.places).length === 20, "all 20 places assigned", g.res.places);
+ok(g.res.places && Object.keys(g.res.places).length === 30, "all 30 places assigned", g.res.places);
 const winner = g.res.champion && g.res.champion.uid;
 const star = db.prepare("SELECT star_bal FROM users WHERE id=?").get(winner);
 console.log("winner stars", star);

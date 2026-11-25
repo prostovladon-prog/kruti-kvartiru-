@@ -467,25 +467,26 @@
   }
   function twArenaView(T) {
     if (!twArena) {
-      $("tw-body").innerHTML = '<div class="tw-arena-ban"><b>⚔️ АРЕНА</b><small>Турнир на 20 мест</small></div><div class="tw-load">Загружаю…</div>';
+      $("tw-body").innerHTML = '<div class="tw-arena-ban"><b>⚔️ АРЕНА</b><small>Турнир на 30 мест</small></div><div class="tw-load">Загружаю…</div>';
       twArenaLoad(); return;
     }
     const D = twArena, now = Date.now();
-    let h = '<div class="tw-arena-ban"><b>⚔️ АРЕНА 20:30</b><small>Турнир на 20 мест · стойка + загадка + 3 раунда</small></div>';
+    let h = '<div class="tw-arena-ban"><b>⚔️ АРЕНА 20:30</b><small>Турнир на 30 мест · стойка + загадка + 3 раунда</small></div>';
     if (D.phase === "wait") {
       h += '<div class="tw-arena-clock">' + twArenaClock(D.open - now) + '<small>ДО ОТКРЫТИЯ</small></div>' +
-        '<div class="tw-note">В 20:30 появятся 20 мест. Первые 20, кто нажмёт «Участвовать», попадут в сетку. Набор закроется в 20:45 или когда места закончатся.</div>' +
+        '<div class="tw-note">В 20:30 появятся 30 мест. Первые 30, кто нажмёт «Участвовать», попадут в сетку. Набор закроется в 20:45. Если 30 не наберётся — старт в 20:45 с теми, кто есть, но минимум 20 участников.</div>' +
         twArenaPrizes(D) + twArenaRules();
       $("tw-body").innerHTML = h; twArenaPoll(); return;
     }
     if (D.phase === "reg") {
       const left = Math.max(0, D.regClose - now), slots = Math.max(0, D.max - D.count);
       h += '<div class="tw-arena-clock">' + twArenaClock(left) + '<small>ДО ЗАКРЫТИЯ НАБОРА</small></div>' +
-        '<div class="tw-note">Свободно мест: <b style="color:#ffd60a">' + slots + '</b> из ' + D.max + ' · сейчас в игре: <b>' + D.online + '</b></div>';
+        '<div class="tw-note">Свободно мест: <b style="color:#ffd60a">' + slots + '</b> из ' + D.max + ' · уже в турнире: <b>' + D.count + '</b> · сейчас в игре: <b>' + D.online + '</b></div>' +
+        '<div class="tw-note">Минимум для старта — <b>' + (D.min || 20) + '</b> участников. Если 30 не наберётся, турнир начнётся в 20:45 с теми, кто есть.</div>';
       if (D.me.joined) {
         const me = (D.players || []).find(p => p.uid === D.me.uid) || {};
         h += '<div class="tw-arena-champ"><b>✅ Ты в турнире</b><small>Место ' + D.count + ' из ' + D.max + ' · сила отряда ' + (me.pow || 0) + '</small></div>' +
-          '<div class="tw-note">Ждём остальных. Когда наберётся 20 или в 20:45 — сетка соберётся автоматически, и твой бой начнётся.</div>';
+          '<div class="tw-note">Ждём остальных. Когда наберётся 30 или в 20:45 — сетка соберётся автоматически, и твой бой начнётся. Минимум 20 участников.</div>';
       } else {
         h += '<button type="button" class="tw-btn red" id="tw-arena-join"' + (slots <= 0 ? " disabled" : "") + '>⚔️ Участвовать · осталось ' + slots + '</button>' +
           '<div class="tw-note">В турнир берутся 3 твои лучшие карты. Нужно минимум 3 карты в коллекции.</div>';
@@ -493,6 +494,13 @@
       h += twArenaPlayers(D) + twArenaPrizes(D) + twArenaRules();
       $("tw-body").innerHTML = h;
       if ($("tw-arena-join")) $("tw-arena-join").onclick = twArenaJoin;
+      twArenaPoll(); return;
+    }
+    if (D.phase === "failed") {
+      h += '<div class="tw-arena-champ"><b>⚔️ Арена не состоялась</b><small>Собралось ' + D.count + ' участников, нужно минимум ' + (D.min || 20) + '.</small></div>' +
+        '<div class="tw-note">Взнос не списывался, награды не выдаются. Ждём тебя в следующем турнире!</div>' +
+        twArenaPlayers(D) + twArenaPrizes(D);
+      $("tw-body").innerHTML = h;
       twArenaPoll(); return;
     }
     if (D.champion) {
