@@ -277,6 +277,9 @@ const HEROES=[
  ["Харальд Суровый","Скандинавия, XI век",4,"Последний викинг: воевал в Византии, правил Норвегией, пал при Стэмфорде.",{"base":1,"myth26":1,"helm":"viking","weapon":"axe","shield":"round","armor":"mail","beard":"#a87a3a","hue":212,"p":[6,5,3,6,4]}],
  ["Евпатий Коловрат","Русь, XIII век",4,"Вернулся на пепелище и ударил по орде с горсткой воинов.",{"base":1,"myth26":1,"helm":"shishak","weapon":"sword","shield":"kite","armor":"mail","beard":"#6a4a22","hue":204,"p":[6,5,4,5,4]}],
  ["Зенобия","Пальмира, III век",4,"Царица Востока, бросившая вызов Риму и захватившая Египет.",{"base":1,"myth26":1,"female":1,"hair":"curls","hairc":"#1d1420","helm":"tiara","weapon":"spear","armor":"scale","cape":"#4a1a5a","gold":1,"glow":"#e8b3ff","hue":286,"p":[4,4,5,5,5]}],
+  /* 🏰 Трофеи турнира Башни: не входят в альбом, прокрутки и рынок. 1 из 1. */
+  ["Страж Сумеречных Врат","Башня испытаний",4,"Стоит на границе сумерек. За его спиной — врата, из которых никто не возвращался.",{"towerChamp":1,"one":1,"helm":"winged","weapon":"spear","armor":"mail","beardL":"#d8e0e9","cape":"#263d63","hue":220,"glow":"#7ad8ff","p":[9,8,7,8,8]}],
+  ["Владыка Башни","Башня испытаний",4,"Последний этаж — его трон. Победитель турнира получает право подняться.",{"towerChamp":1,"one":1,"helm":"crownhell","weapon":"bident","armor":"plate","cape":"#1a0a24","beard":"#14101c","x":["flames"],"glow":"#9f6bff","fierce":1,"hue":270,"skinc":"#b9b2c9","p":[9,9,7,9,9]}],
 ];
 const COLLAB=HEROES.findIndex(H=>H[4].collab), isCollab=c=>!!(c&&HEROES[c.h]&&HEROES[c.h][4].collab);
 const NBASE=32;          // первые 32 воина + новые с флагом base — это альбом и прокрутки
@@ -1782,6 +1785,8 @@ const TOWER={
 };
 FRAMES.tower={k:"Башня",cost:0,only:"tower",bg:"linear-gradient(135deg,#ffd60a,#c4100a 45%,#3a1a8a)"};
 TITLES.tower={n:"Покоритель Башни",ic:"🏰",price:0,ex:1};
+FRAMES.champ={k:"Чемпион Башни",cost:0,only:"champ",bg:"conic-gradient(from 30deg,#ffd60a,#b3122f,#3a1a8a,#ffd60a)"};
+TITLES.champ={n:"Чемпион Башни",ic:"🏆",price:0,ex:1};
 function towerOf(st,now){
   if(!st.tower||typeof st.tower!=="object")st.tower={};
   const t=st.tower,wk=mskWeek(now),d=mskDay(now);
@@ -1807,6 +1812,13 @@ function towerCardPow(c){
 }
 function towerSquadPow(squad){
   let p=0;for(const c of squad||[])p+=towerCardPow(c);return p;
+}
+const TOWER_CHAMP_IDS=HEROES.map((H,i)=>H[4]&&H[4].towerChamp?i:-1).filter(i=>i>=0);
+const TOWER_CHAMP_STATS=[[612,588,534,604,596],[648,612,566,638,624]];
+function towerChampCard(ctx,idx){
+  const h=TOWER_CHAMP_IDS[idx];if(h==null)return null;
+  const B=cardBody(h,4),stats=(TOWER_CHAMP_STATS[idx]||TOWER_CHAMP_STATS[0]).slice();
+  return {id:ctx.newId(),h,f:4,no:1,sn:idx===0?"900001":"900002",hue:B.hue,stats,v:4999999,xp:0,wins:0,stars:0,frame:null,away:0,dest:null,listed:0,listPrice:0,how:"tower_champ",cust:1};
 }
 function towerShards(st,ctx,n){
   const els=["f","w","e","a"];let left=Math.max(0,n|0),got=0;
@@ -1841,6 +1853,7 @@ ACTIONS.tower_start=function(G){
   else if(t.paid<TOWER.paidMax)fail("Попытки на сегодня закончились. Купи Ключ Башни");
   else fail("На сегодня всё: 3 платных забега уже использованы");
   t.wRuns=(t.wRuns||0)+1;
+  t.lastSquad=squad;
   t.run={n:1,squad,power,got:{sh:0,sp:0,xp:0,sig:0,card:0},started:ctx.now};
   return {run:towerView(st,ctx.now).run,free:t.free,paid:t.paid,keys:t.keys};
 };
@@ -1916,6 +1929,29 @@ ACTIONS.tower_grant=function(G){
     return {passUntil:t.passUntil,free:t.free};
   }
   fail("Нет такого товара");
+};
+ACTIONS.tower_week_reward=function(G){
+  const {st,ctx,p}=G;if(!ctx.grant)fail("Нет доступа");
+  const place=Math.max(1,Math.min(10,p.place|0)),t=towerOf(st,ctx.now);
+  const sig=place===1?3:place===2?2:place===3?1:0;
+  if(sig)t.sig=(t.sig||0)+sig;
+  st.spins=(st.spins||0)+12;st.guar=(st.guar||0)+1;
+  if(place<=6)(st.frames||(st.frames=[]));if(place<=6&&!st.frames.includes("tower"))st.frames.push("tower");
+  if(place===1){(st.titles||(st.titles=[]));if(!st.titles.includes("champ"))st.titles.push("champ");if(!st.frames.includes("champ"))st.frames.push("champ")}
+  return {place,sig,sp:12,guar:1};
+};
+ACTIONS.tower_champ_grant=function(G){
+  const {st,ctx,p}=G;if(!ctx.grant)fail("Нет доступа");
+  const wk=String(p.wk||"");
+  const idx=wk==="2026-11-23"?0:wk==="2026-11-30"?1:-1;
+  let c=idx>=0?towerChampCard(ctx,idx):null;
+  if(!c){try{c=rollOne(ctx)}catch(e){}}
+  if(!c)c=rollTier(ctx,3);
+  c.how="tower_champ";c.cust=1;
+  (st.titles||(st.titles=[]));if(!st.titles.includes("champ"))st.titles.push("champ");
+  (st.frames||(st.frames=[]));if(!st.frames.includes("champ"))st.frames.push("champ");
+  addCard(G,c);
+  return {card:c};
 };
 
 if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK};

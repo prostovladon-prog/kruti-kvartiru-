@@ -68,6 +68,21 @@
   .tw-nav button{flex:1;border:2px solid #3a447a;border-radius:10px;background:#0a0f28;color:#aeb8e0;font-weight:900;font-size:11px;padding:7px 4px}
   .tw-nav button.on{border-color:#ffd60a;color:#ffd60a;background:#1a2250}
   .tw-load{text-align:center;color:#9aa6d0;font-size:12px;padding:20px}
+  .tw-m{background:#0c1230;border:1.5px solid #2a3260;border-radius:11px;padding:8px;margin:6px 0}
+  .tw-mh{font-size:10px;font-weight:900;color:#ffd60a;display:flex;justify-content:space-between;gap:6px}
+  .tw-mh small{color:#9aa6d0;font-weight:700}
+  .tw-vs{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12px}
+  .tw-vs .nm{flex:1;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tw-vs .nm.win{color:#34c759}.tw-vs .nm.lose{color:#6a76a0}
+  .tw-vs .sc{font-family:var(--display);font-size:14px;color:#ffd60a;min-width:28px;text-align:center}
+  .tw-rd{display:grid;grid-template-columns:54px 1fr 54px;gap:5px;align-items:center;margin-top:5px;font-size:10px;color:#aeb8e0}
+  .tw-rd .minic{width:54px}
+  .tw-rd .mid{text-align:center;font-weight:900;color:#ffd60a}
+  .tw-rd .pa{text-align:right}.tw-rd .pb{text-align:left}
+  .tw-champ{background:linear-gradient(135deg,#3a1a8a,#b64024);border:2px solid #ffd60a;border-radius:12px;padding:8px;margin:8px 0;text-align:center}
+  .tw-champ b{font-family:var(--display);font-size:16px;color:#ffd60a}
+  .tw-champ .minic{width:120px;margin:6px auto}
+  .tw-btn.ready{background:linear-gradient(135deg,#34c759,#157a35);color:#fff;border-color:#9ff7b6}
   .tw-sn{display:flex;gap:8px;align-items:center;background:#0c1230;border:1.5px solid #2a3260;border-radius:11px;padding:8px;margin-bottom:8px}
   .tw-sn .ic{font-size:24px}
   .tw-sn b{display:block;font-size:12px}.tw-sn small{display:block;color:#9aa6d0;font-size:10px}
@@ -75,7 +90,7 @@
   @media(max-width:380px){.tw-cards{grid-template-columns:repeat(2,1fr)}}
   `;
 
-  let twSel = [], twTab = "main", twRes = null, twTop = null, twBusy = false;
+  let twSel = [], twTab = "main", twRes = null, twTop = null, twBusy = false, twTourData = null, twTourTimer = 0;
 
   function ensure() {
     let el = $("tower");
@@ -97,10 +112,10 @@
 
   function twOpen() {
     if (!S || !S.tower) { toast("Башня ещё не подключена. Обнови игру"); return; }
-    const el = ensure(); el.hidden = false; twTab = "main"; twRes = null; twTop = null; twRender();
+    const el = ensure(); el.hidden = false; twTab = "main"; twRes = null; twTop = null; twTourData = null; twRender();
     try { hap("light"); } catch (e) {}
   }
-  function twClose() { const el = $("tower"); if (el) el.hidden = true; }
+  function twClose() { const el = $("tower"); if (el) el.hidden = true; twStopTour(); }
   window.twOpen = twOpen;
   window.twClose = twClose;
 
@@ -109,6 +124,7 @@
     return '<button type="button" data-tab="main" class="' + (twTab === "main" ? "on" : "") + '">🏰 Забег</button>' +
       '<button type="button" data-tab="shop" class="' + (twTab === "shop" ? "on" : "") + '">🏅 Магазин</button>' +
       '<button type="button" data-tab="top" class="' + (twTab === "top" ? "on" : "") + '">📊 Топ</button>' +
+      '<button type="button" data-tab="tour" class="' + (twTab === "tour" ? "on" : "") + '">🏆 Турнир</button>' +
       '<button type="button" data-tab="rules">📖 Правила</button>';
   }
 
@@ -122,6 +138,8 @@
     if (twTab === "rules") { try { twClose(); openTowerRules(); } catch (e) {} twTab = "main"; return; }
     if (twTab === "shop") { twShop(T); return; }
     if (twTab === "top") { twTopView(T); return; }
+    if (twTab === "tour") { twTourView(T); return; }
+    twStopTour();
     if (twRes && twRes.done) { twEnd(T); return; }
     if (T.run) { twRun(T); return; }
     twStart(T);
@@ -301,6 +319,81 @@
     try { const r = await act("tower_top", {}); twTop = r || { top: [] }; }
     catch (e) { twTop = { top: [] }; toast(e.message || "Топ не загрузился"); }
     if (twTab === "top") twRender();
+  }
+
+  function twStopTour() { if (twTourTimer) { clearInterval(twTourTimer); twTourTimer = 0; } }
+  function twTourName(D, uid) { const p = (D.top || []).find(x => x.uid === uid); return p ? p.name : "—"; }
+  function twHM(ts) { try { return new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Minsk" }); } catch (e) { return ""; } }
+
+  function twTourView(T) {
+    if (!twTourData) {
+      $("tw-body").innerHTML = '<div class="tw-h">🏆 Турнир топ-6</div><div class="tw-load">Загружаю…</div>';
+      twLoadTour(); return;
+    }
+    const D = twTourData, now = Date.now(), top = D.top || [];
+    if (D.phase === "none") {
+      twStopTour();
+      $("tw-body").innerHTML = '<div class="tw-h">🏆 Турнир топ-6</div>' +
+        '<div class="tw-note">Топ-6 фиксируется в воскресенье в <b>20:00</b> по Минску. Турнир: 21:00 play-in, 21:15 полуфиналы, 21:30 финал.</div>' +
+        (top.length ? '<div class="tw-note">Сейчас в топе: ' + top.slice(0, 6).map((p, i) => (i + 1) + ". " + esc(p.name)).join(" · ") + '</div>' : '') +
+        '<div class="tw-note">Сыграй забег, чтобы попасть в топ недели.</div>';
+      return;
+    }
+    const labels = { p1: "Play-in · 3 vs 6", p2: "Play-in · 4 vs 5", s1: "Полуфинал 1", s2: "Полуфинал 2", f: "Финал" };
+    const order = ["p1", "p2", "s1", "s2", "f"];
+    const rows = order.map(id => {
+      const m = (D.matches || {})[id]; if (!m) return "";
+      const a = twTourName(D, m.a), b = twTourName(D, m.b);
+      const aw = m.done && m.winner && m.winner === m.a, bw = m.done && m.winner && m.winner === m.b;
+      const score = m.score ? m.score[0] + ":" + m.score[1] : (m.done && m.winner ? "✓" : "—");
+      let st = "";
+      if (m.done) st = m.winner ? "победил " + twTourName(D, m.winner) + (m.auto === 1 ? " · неявка" : m.auto === 2 ? " · неявка" : m.auto === 3 ? " · оба не пришли" : "") : "нет игроков";
+      else if (now < m.start) st = "старт " + twHM(m.start);
+      else if (now <= m.deadline) st = "готовность · " + Math.max(0, Math.ceil((m.deadline - now) / 1000)) + "с";
+      else st = "ждём результат";
+      const rounds = m.rounds ? m.rounds.map(r => '<div class="tw-rd"><div>' + (r.a ? miniSlot(r.a) : "") + '</div><div class="mid">' + r.pa + " : " + r.pb + '</div><div>' + (r.b ? miniSlot(r.b) : "") + '</div></div>').join("") : "";
+      return '<div class="tw-m"><div class="tw-mh"><span>' + labels[id] + '</span><small>' + st + '</small></div>' +
+        '<div class="tw-vs"><span class="nm ' + (aw ? "win" : m.done && m.a ? "lose" : "") + '">' + esc(a) + '</span>' +
+        '<span class="sc">' + score + '</span>' +
+        '<span class="nm ' + (bw ? "win" : m.done && m.b ? "lose" : "") + '" style="text-align:right">' + esc(b) + '</span></div>' + rounds + '</div>';
+    }).join("");
+    let mine = "";
+    if (D.mine) {
+      const m = D.mine;
+      if (m.ready) mine = '<div class="tw-note" style="color:#9ff7b6">✅ Ты готов. Ждём соперника…</div>';
+      else if (now >= m.start - 10 * 60e3 && now <= m.deadline) mine = '<button type="button" class="tw-btn ready" id="tw-ready">✅ Я готов</button>';
+      else if (now < m.start - 10 * 60e3) mine = '<div class="tw-note">Готовность откроется за 10 минут до матча.</div>';
+      else mine = '<div class="tw-note">Время готовности вышло. Ждём результат.</div>';
+    } else if (D.champion) mine = '<div class="tw-note" style="color:#ffd60a">🏆 Турнир завершён.</div>';
+    const champ = D.champion ? '<div class="tw-champ"><b>👑 Чемпион: ' + esc(twTourName(D, D.champion)) + '</b>' +
+      (D.card ? miniSlot(D.card) : '<div class="tw-note">Карта выдаётся…</div>') + '</div>' : "";
+    const phase = { fixed: "Топ-6 зафиксирован", playin: "Play-in", semi: "Полуфиналы", final: "Финал", done: "Завершён", empty: "Нет игроков" }[D.phase] || D.phase;
+    $("tw-body").innerHTML = '<div class="tw-h">🏆 Турнир топ-6 <span style="font-size:11px;color:#aeb8e0">' + esc(phase) + '</span></div>' +
+      '<div class="tw-note">Воскресенье, Minsk: 20:00 фиксация · 21:00 play-in · 21:15 полуфиналы · 21:30 финал. Не нажал «Готов» до старта +60 секунд — авто-поражение.</div>' +
+      mine + champ + rows +
+      '<button type="button" class="tw-btn ghost" id="tw-trefresh">Обновить</button>';
+    if ($("tw-trefresh")) $("tw-trefresh").onclick = () => { twTourData = null; twRender(); };
+    if ($("tw-ready")) $("tw-ready").onclick = () => twTourReady();
+    if (D.phase !== "done" && D.phase !== "empty") twStartTourPoll(); else twStopTour();
+  }
+
+  async function twLoadTour() {
+    try { twTourData = await act("tower_tour_get", {}); }
+    catch (e) { twTourData = { phase: "none", top: [] }; toast(e.message || "Турнир не загрузился"); }
+    if (twTab === "tour") twRender();
+  }
+  function twStartTourPoll() {
+    if (twTourTimer) return;
+    twTourTimer = setInterval(async () => {
+      if (twTab !== "tour") { twStopTour(); return; }
+      try { const r = await act("tower_tour_get", {}); if (r) { twTourData = r; twRender(); } } catch (e) {}
+    }, 2500);
+  }
+  async function twTourReady() {
+    if (twBusy) return; twBusy = true;
+    try { await act("tower_tour_ready", {}); toast("✅ Ты готов"); twTourData = null; await twLoadTour(); }
+    catch (e) { toast(e.message || "Не получилось"); }
+    finally { twBusy = false; }
   }
 
   // меню: «Башня» в первой группе

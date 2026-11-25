@@ -483,8 +483,8 @@ async function stateFor(env,me){
 }
 /* ---------- 🏰 Башня: недельный топ и фиксация топ-6 ---------- */
 async function towerTopRows(env,wk,limit){
-  const rows=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,json_extract(state,'$.tower.wBest') AS best,json_extract(state,'$.tower.wSig') AS sig,json_extract(state,'$.tower.wRuns') AS runs,json_extract(state,'$.tower.wAt') AS at FROM users WHERE json_extract(state,'$.tower.wk')=? AND json_extract(state,'$.tower.wBest')>0 ORDER BY best DESC,sig DESC,runs ASC,at ASC LIMIT ?").bind(wk,limit|0).all()).results;
-  return rows.map((r,i)=>({place:i+1,uid:r.id,name:r.name||"Игрок",best:r.best|0,sig:r.sig|0,runs:r.runs|0,at:r.at|0}));
+  const rows=(await env.DB.prepare("SELECT id,COALESCE(nick,name) AS name,json_extract(state,'$.tower.wBest') AS best,json_extract(state,'$.tower.wSig') AS sig,json_extract(state,'$.tower.wRuns') AS runs,json_extract(state,'$.tower.wAt') AS at,json_extract(state,'$.tower.lastSquad') AS squad FROM users WHERE json_extract(state,'$.tower.wk')=? AND json_extract(state,'$.tower.wBest')>0 ORDER BY best DESC,sig DESC,runs ASC,at ASC LIMIT ?").bind(wk,limit|0).all()).results;
+  return rows.map((r,i)=>{let sq=null;try{sq=r.squad?JSON.parse(r.squad):null}catch(e){}return {place:i+1,uid:r.id,name:r.name||"Игрок",best:r.best|0,sig:r.sig|0,runs:r.runs|0,at:r.at|0,squad:sq}});
 }
 async function towerTop(env,me){
   const wk=mskWeek(Date.now());
@@ -492,19 +492,171 @@ async function towerTop(env,me){
   return {wk,top:all.slice(0,10),me:all.find(x=>x.uid===me.id)||null,total:all.length};
 }
 let towerBusy=0;
-async function towerTick(env){
-  if(towerBusy)return;
-  const now=Date.now(),d=new Date(now+TZ),dow=d.getUTCDay(),h=d.getUTCHours();
-  if(dow!==0||h<20)return;   // воскресенье, после 20:00 Minsk
-  const wk=mskWeek(now),key="tower_fix:"+wk;
+const TOWER_TOUR={gap:15*60e3,ready:10*60e3,grace:60e3};
+function towerTourT0(wk){return Date.parse(wk+"T00:00:00Z")-TZ+6*864e5+21*36e5}
+function towerTourPlayer(T,uid){return T&&Array.isArray(T.top)?T.top.find(x=>x.uid===uid)||null:null}
+function towerTourSeed(T,uid){const p=towerTourPlayer(T,uid);return p?p.place:99}
+function towerTourRnd(seed){let s=(seed>>>0)||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296}}
+function towerTourStats(c){if(!c||!Array.isArray(c.stats))return 0;return c.stats.reduce((a,x)=>a+(+x||0),0)}
+function towerTourPow(sq){return towerSquadPow(sq||[])}
+function towerTourDuel(A,B,seed){
+  const rnd=towerTourRnd(seed),rounds=[];let wa=0,wb=0;
+  for(let i=0;i<3;i++){
+    const ca=A.squad&&A.squad[i]||null,cb=B.squad&&B.squad[i]||null;
+    const pa=ca?towerCardPow(ca)*(1+gemVs(ca,cb)):0,pb=cb?towerCardPow(cb)*(1+gemVs(cb,ca)):0;
+    const ra=pa*(.92+.16*rnd()),rb=pb*(.92+.16*rnd());
+    const w=ra>rb?"a":rb>ra?"b":"d";if(w==="a")wa++;else if(w==="b")wb++;
+    rounds.push({n:i+1,a:ca?{id:ca.id,h:ca.h,f:ca.f,no:ca.no,sn:ca.sn,stats:ca.stats,stars:ca.stars,gm:ca.gm,hue:ca.hue,v:ca.v,cust:ca.cust}:null,b:cb?{id:cb.id,h:cb.h,f:cb.f,no:cb.no,sn:cb.sn,stats:cb.stats,stars:cb.stars,gm:cb.gm,hue:cb.hue,v:cb.v,cust:cb.cust}:null,pa:Math.round(ra),pb:Math.round(rb),w});
+  }
+  let winner;
+  if(wa>wb)winner=A.uid;else if(wb>wa)winner=B.uid;else{
+    const pa=towerTourPow(A.squad),pb=towerTourPow(B.squad);
+    if(pa!==pb)winner=pa>pb?A.uid:B.uid;else{
+      const sa=(A.squad||[]).reduce((s,c)=>s+towerTourStats(c),0),sb=(B.squad||[]).reduce((s,c)=>s+towerTourStats(c),0);
+      if(sa!==sb)winner=sa>sb?A.uid:B.uid;else winner=rnd()<.5?A.uid:B.uid;
+    }
+  }
+  return {winner,score:[wa,wb],rounds};
+}
+function towerTourMatch(id,a,b,start){
+  return {id,a:a?a.uid:null,b:b?b.uid:null,start,deadline:start+TOWER_TOUR.grace,ready:{},done:0,winner:null,rounds:null,auto:0};
+}
+async function towerTourCreate(env,wk,top){
+  const T={wk,phase:"fixed",top:top.slice(0,6),matches:{},champion:null,card:null,granted:0,note10:{},t:Date.now(),T0:towerTourT0(wk)};
+  const P=i=>T.top[i]||null;
+  if(!T.top.length){T.phase="empty";return T}
+  if(T.top.length===1){T.phase="done";T.champion=T.top[0].uid;return T}
+  T.matches.p1=towerTourMatch("p1",P(2),P(5),T.T0);
+  T.matches.p2=towerTourMatch("p2",P(3),P(4),T.T0);
+  T.matches.s1=towerTourMatch("s1",P(0),null,T.T0+TOWER_TOUR.gap);
+  T.matches.s2=towerTourMatch("s2",P(1),null,T.T0+TOWER_TOUR.gap);
+  T.matches.f=towerTourMatch("f",null,null,T.T0+2*TOWER_TOUR.gap);
+  return T;
+}
+async function towerTourChampion(env,T){
+  if(!T||!T.champion||T.granted)return;
+  T.granted=1;
+  const p=towerTourPlayer(T,T.champion);
+  if(!p)return;
+  try{
+    const r=await doAction(env,{id:p.uid,name:p.name},"tower_champ_grant",{wk:T.wk},{grant:true});
+    const c=r.res&&r.res.card;
+    if(c)T.card=c;
+  }catch(e){console.error("tower champion card",e&&e.message)}
+  try{await notify(env,p.uid,"👑 Ты чемпион Башни недели!\n\n"+(T.card?"Карта «Ошибка печати» уже в коллекции.":"Карта чемпиона выдаётся — админ проверит и выдаст вручную.")+"\n\n🏆 Титул и рамка — в профиле.","🏰 Башня",PAGE+"?tower=1")}catch(e){}
+  if(T.card)try{await tgApi(env,"sendMessage",{chat_id:CHANNEL,text:"🏆 ЧЕМПИОН БАШНИ НЕДЕЛИ — "+p.name+"!\n\nПобедитель турнира топ-6 забирает карту «Ошибка печати» 1 из 1. Поздравляем!",reply_markup:{inline_keyboard:[[{text:"🏰 Башня",url:PAGE+"?tower=1"}]]}})}catch(e){}
+}
+async function towerTourAdvance(env,T,now){
+  let changed=0;
+  const M=T.matches||{};
+  for(const id of ["p1","p2","s1","s2","f"]){
+    const m=M[id];if(!m||m.done)continue;
+    if(id==="s1"&&!(M.p2&&M.p2.done))continue;
+    if(id==="s2"&&!(M.p1&&M.p1.done))continue;
+    if(id==="f"&&!(M.s1&&M.s1.done&&M.s2&&M.s2.done))continue;
+    if(m.a==null&&m.b==null){m.done=1;m.winner=null;changed=1;continue}
+    if(m.a==null||m.b==null){m.done=1;m.winner=m.a||m.b;m.auto=4;changed=1;continue}
+    if(now<m.start)continue;
+    const ra=!!m.ready[m.a],rb=!!m.ready[m.b];
+    if(!(ra&&rb)&&now<m.deadline)continue;
+    let winner=null,rounds=null,score=null,auto=0;
+    if(ra&&rb){
+      const A=towerTourPlayer(T,m.a),B=towerTourPlayer(T,m.b);
+      if(A&&B){const d=towerTourDuel(A,B,m.start);winner=d.winner;rounds=d.rounds;score=d.score}
+      else winner=ra?m.a:m.b;
+    }else if(ra&&!rb){winner=m.a;auto=1}
+    else if(rb&&!ra){winner=m.b;auto=2}
+    else{winner=towerTourSeed(T,m.a)<towerTourSeed(T,m.b)?m.a:m.b;auto=3}
+    m.winner=winner;m.done=1;m.rounds=rounds;m.score=score;m.auto=auto;changed=1;
+    if(id==="p1")M.s2.b=winner;
+    if(id==="p2")M.s1.b=winner;
+    if(id==="s1")M.f.a=winner;
+    if(id==="s2")M.f.b=winner;
+    for(const uid of [m.a,m.b])if(uid)try{
+      const win=uid===winner;
+      await notify(env,uid,(win?"✅ Ты прошёл дальше в турнире Башни!":"❌ Ты выбыл из турнира Башни.")+(auto===1||auto===2?"\n\nСоперник не пришёл — авто-поражение.":auto===3?"\n\nОба не пришли — прошёл игрок с лучшим сидом.":""),"🏰 Турнир",PAGE+"?tower=1");
+    }catch(e){}
+  }
+  if(T.champion)T.phase="done";
+  else if(M.f&&M.f.done){T.phase="done";if(!T.champion)T.champion=M.f.winner}
+  else if(M.s1&&M.s1.done&&M.s2&&M.s2.done)T.phase="final";
+  else if(M.p1&&M.p1.done&&M.p2&&M.p2.done)T.phase="semi";
+  else if(T.top&&T.top.length)T.phase="playin";
+  if(changed)T.t=now;
+  if(T.phase==="done")await towerTourChampion(env,T);
+  return changed;
+}
+async function towerTourRemind(env,T,now){
+  for(const id of ["p1","p2","s1","s2","f"]){
+    const m=(T.matches||{})[id];if(!m||m.done||!m.a||!m.b)continue;
+    if(!T.note10[id]&&now>=m.start-TOWER_TOUR.ready&&now<m.start){
+      T.note10[id]=1;T.t=now;
+      for(const uid of [m.a,m.b])try{await notify(env,uid,"🏰 Турнир Башни начнётся через 10 минут!\n\nЗайди в «Башню → Турнир» и нажми «Я готов». Нет готовности к старту +60 секунд — авто-поражение.","🏰 Турнир",PAGE+"?tower=1")}catch(e){}
+    }
+  }
+}
+async function towerTourGet(env,me){
+  const now=Date.now(),wk=mskWeek(now);
+  let T=await kvGet(env,"tower_tour:"+wk);
+  if(!T)return {phase:"none",wk,top:[],T0:towerTourT0(wk)};
+  let ch=0;try{ch=await towerTourAdvance(env,T,now)}catch(e){console.error("tower advance",e&&e.message)}
+  try{await towerTourRemind(env,T,now)}catch(e){}
+  if(ch)try{await kvSet(env,"tower_tour:"+wk,T)}catch(e){}
+  let mine=null;
+  for(const id of ["f","s1","s2","p1","p2"]){
+    const m=(T.matches||{})[id];if(!m||m.done)continue;
+    if(m.a===me.id||m.b===me.id){mine={id,start:m.start,deadline:m.deadline,a:m.a,b:m.b,ready:!!m.ready[me.id]};break}
+  }
+  return {phase:T.phase,wk,T0:T.T0,top:T.top,matches:T.matches,champion:T.champion,card:T.card,mine,now};
+}
+async function towerTourReady(env,me){
+  const now=Date.now(),wk=mskWeek(now);
+  const T=await kvGet(env,"tower_tour:"+wk);
+  if(!T)fail("Турнир ещё не начался. Топ-6 фиксируется в воскресенье в 20:00");
+  let m=null,id=null;
+  for(const k of ["p1","p2","s1","s2","f"]){
+    const x=(T.matches||{})[k];if(!x||x.done)continue;
+    if(x.a===me.id||x.b===me.id){m=x;id=k;break}
+  }
+  if(!m)fail("У тебя нет активного матча");
+  if(now<m.start-TOWER_TOUR.ready)fail("Готовность откроется за 10 минут до матча");
+  if(now>m.deadline)fail("Время готовности вышло");
+  m.ready[me.id]=1;
+  await towerTourAdvance(env,T,now);
+  await kvSet(env,"tower_tour:"+wk,T);
+  return {ok:1,id,ready:1};
+}
+async function towerWeekRewards(env,wk){
+  const key="tower_week_reward:"+wk;
   if(await kvGet(env,key))return;
+  await kvSet(env,key,{t:Date.now()});
+  const top=await towerTopRows(env,wk,10);
+  for(let i=0;i<top.length;i++){
+    const p=top[i],place=i+1;
+    try{await doAction(env,{id:p.uid,name:p.name},"tower_week_reward",{place},{grant:true})}catch(e){console.error("tower week reward",p.uid,e&&e.message)}
+    try{await notify(env,p.uid,"🏅 Башня: "+place+" место недели!\n\n"+((place===1?"+3 🏅":place===2?"+2 🏅":place===3?"+1 🏅":"")+" · +12 🎴 · гарантированный эпик"+(place<=6?" · рамка «Башня»":"")+(place===1?" · титул и рамка «Чемпион»":"")),"🏰 Башня",PAGE+"?tower=1")}catch(e){}
+  }
+}
+async function towerTick(env,force){
+  if(towerBusy)return;
+  const now=Date.now(),d=new Date(now+TZ),dow=d.getUTCDay();
+  if(!force&&dow!==0)return;   // воскресенье
+  const wk=mskWeek(now),T0=towerTourT0(wk);
+  if(!force&&now<T0-36e5)return;   // до 20:00 Minsk
   towerBusy=1;
   try{
-    await kvSet(env,key,{t:now});
-    const top=await towerTopRows(env,wk,6);
-    await kvSet(env,"tower_tour:"+wk,{top,t:now});
-    for(const p of top)try{await notify(env,p.uid,"🏰 Ты в топ-6 Башни!\n\nТурнир сегодня в 21:00 (Minsk). Зайди в «Башню → Турнир» и нажми «Я готов». Если не готов к старту +60 секунд — авто-поражение.","🏰 Турнир",PAGE+"?tower=1")}catch(e){}
-    if(top.length)for(const a of ADMINS)try{await notify(env,a,"🏰 Башня: топ-6 недели зафиксирован.\n\n"+top.map((p,i)=>(i+1)+". "+p.name+" — этаж "+p.best+", 🏅 "+p.sig).join("\n"),"🏰 Турнир",PAGE+"?tower=1")}catch(e){}
+    let T=await kvGet(env,"tower_tour:"+wk);
+    if(!T){
+      const top=await towerTopRows(env,wk,6);
+      T=await towerTourCreate(env,wk,top);
+      await kvSet(env,"tower_tour:"+wk,T);
+      for(const p of T.top)try{await notify(env,p.uid,"🏰 Ты в топ-6 Башни!\n\nТурнир сегодня в 21:00 (Minsk). Зайди в «Башню → Турнир» и нажми «Я готов». Если не готов к старту +60 секунд — авто-поражение.","🏰 Турнир",PAGE+"?tower=1")}catch(e){}
+      if(T.top.length)for(const a of ADMINS)try{await notify(env,a,"🏰 Башня: топ-6 недели зафиксирован.\n\n"+T.top.map((p,i)=>(i+1)+". "+p.name+" — этаж "+p.best+", 🏅 "+p.sig).join("\n"),"🏰 Турнир",PAGE+"?tower=1")}catch(e){}
+    }
+    try{await towerWeekRewards(env,wk)}catch(e){console.error("tower week",e&&e.message)}
+    const ch=await towerTourAdvance(env,T,now);
+    await towerTourRemind(env,T,now);
+    if(ch)await kvSet(env,"tower_tour:"+wk,T);
   }finally{towerBusy=0}
 }
 /* новые карточки получают номер в базе только при записи: подставляем его в ответ */
@@ -5421,6 +5573,9 @@ async function handle(req,env){{
       if(a==="ev_shop"){const r=await evShop(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(a==="ev_admin"){const r=await evAdmin(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(a==="tower_top"){const r=await towerTop(env,me);return J({ok:true,res:r})}
+      if(a==="tower_admin_tick"){if(!isAdmin(env,me.id))fail("Нет доступа");await towerTick(env,true);return J({ok:true,res:{ok:1}})}
+      if(a==="tower_tour_get"){const r=await towerTourGet(env,me);return J({ok:true,res:r})}
+      if(a==="tower_tour_ready"){const r=await towerTourReady(env,me);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
