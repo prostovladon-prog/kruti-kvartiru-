@@ -5733,14 +5733,68 @@ async function evClanGift(env, season, clan, seg, item, pid, label) {
 }
 
 /* Повторно обрабатываем закрытые сегменты после временной ошибки выдачи награды. */
+let evRewardTickRunning = false;
 async function evRewardTick(env) {
-  await evEnsure(env);
-  const rows = (await env.DB.prepare("SELECT key,seg FROM ev_seg WHERE season=?").bind(EV.id).all()).results || [];
-  for (const r of rows) {
-    const isClan = String(r.key).startsWith("c");
-    const active = isClan ? await evActive(env, +String(r.key).slice(1)) : 1;
-    try { await evProcessSegment(env, EV.id, r.key, r.seg, isClan, active); }
-    catch (e) { console.error("evreward retry", r.key, r.seg, e); }
+  if (evRewardTickRunning) return;
+  evRewardTickRunning = true;
+  try {
+    await evEnsure(env);
+    const season = EV.id;
+    const now = Date.now();
+    const rows = (await env.DB.prepare(
+      "SELECT s.key,s.seg,s.points,ordinary.v AS ordinary " +
+      "FROM ev_seg s LEFT JOIN kv ordinary ON ordinary.k='evseg:'||s.season||':'||s.key||':'||s.seg " +
+      "WHERE s.season=? ORDER BY s.key,s.seg"
+    ).bind(season).all()).results || [];
+    const clanActivity = new Map((await env.DB.prepare(
+      "SELECT clan,COUNT(*) AS n FROM users WHERE clan>0 AND seen>=? GROUP BY clan"
+    ).bind(now - 3 * 864e5).all()).results.map(r => [r.clan, r.n]));
+    const prefix = "evfirst:" + season + ":";
+    const milestones = [...EV.segments.map((_, i) => "seg" + i), "done"];
+    const status = new Map();
+    for (const milestone of milestones) {
+      const winner = +(await kvGet(env, prefix + milestone) || 0);
+      const posted = winner && await kvGet(env, prefix + milestone + ":post");
+      status.set(milestone, { winner, posted });
+    }
+    const needsMilestone = (milestone, clan) => {
+      const { winner, posted } = status.get(milestone);
+      return !winner || (winner === clan && !posted);
+    };
+    const qualified = new Map();
+    for (const r of rows) {
+      if (!r.key.startsWith("c")) continue;
+      const clan = +r.key.slice(1);
+      const active = clanActivity.get(clan) || 1;
+      if (r.points < Math.round(EV.segments[r.seg] * evScale(active))) continue;
+      if (r.seg < 0 || r.seg >= EV.segments.length) continue;
+      if (!qualified.has(clan)) qualified.set(clan, new Set());
+      qualified.get(clan).add(r.seg);
+    }
+    let sliceStarted = Date.now();
+    for (const r of rows) {
+      if (Date.now() - sliceStarted >= 15) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+        sliceStarted = Date.now();
+      }
+      const isClan = r.key.startsWith("c");
+      const clan = isClan ? +r.key.slice(1) : 0;
+      const active = clanActivity.get(clan) || 1;
+      const segments = qualified.get(clan);
+      const ordinaryDone = r.ordinary === "1";
+      if (isClan) {
+        if (!segments?.has(r.seg)) continue;
+        const retrySegment = needsMilestone("seg" + r.seg, clan);
+        const retryDone = segments.size === EV.segments.length && needsMilestone("done", clan);
+        if (ordinaryDone && !retrySegment && !retryDone) continue;
+      } else if (ordinaryDone || r.points < EV_SOLO.segments[r.seg]) {
+        continue;
+      }
+      try { await evProcessSegment(env, season, r.key, r.seg, isClan, active); }
+      catch (e) { console.error("evreward retry", r.key, r.seg, e); }
+    }
+  } finally {
+    evRewardTickRunning = false;
   }
 }
 
