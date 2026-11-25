@@ -72,8 +72,21 @@ assert.equal(poster.readUInt32BE(20), 1350);
 assert.ok(server.includes('id:"2026-11-25-invite"') &&
   server.includes("needOpen:20,requireCommunity:1") &&
   server.includes("vipDays:7"), "friend-ticket contest must require 20 opens + both subscriptions and award week VIP");
-assert.ok(server.includes("try{await friendContestLaunchTick(env)}catch(e){console.error('friend contest launch',e)}"),
-  "09:00 referral-contest photo post and DM must be scheduled");
+assert.ok(server.includes("FRIEND_CONTEST_POSTS") &&
+  server.includes("friend-ticket-20261126-20") &&
+  server.includes("try{await friendContestPostsTick(env)}catch(e){console.error('friend contest posts',e)}"),
+  "six contest photo posts (09/14/20 on both days) must be scheduled");
+assert.ok(server.includes('id:"tower-react-20261125"') &&
+  server.includes('code:"БАШНЯ30"') &&
+  server.includes("mx:20") &&
+  server.includes("try{await towerReactTick(env)}catch(e){console.error('tower reactions',e)}"),
+  "10:30 reaction campaign must auto-publish a 30-spin promo for the first 20 players");
+assert.ok(server.includes("[TOWER_REACT,REACT4,REACT3,REACT2,FIRE30]"),
+  "reaction webhook must watch the new campaign post");
+const reactionPoster = readFileSync(path.join(root, "event-assets/reactions-2026-11-25.png"));
+assert.equal(reactionPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
+assert.equal(reactionPoster.readUInt32BE(16), 1080);
+assert.equal(reactionPoster.readUInt32BE(20), 1350);
 assert.ok(menu.includes("const profileContestVisible=()=>false"), "the expired nickname contest must stay hidden");
 assert.ok(game.includes("ПРИГЛАСИТЬ ДРУГА — ПОЛУЧИТЬ БИЛЕТ") &&
   game.includes("подписаться на канал @voinyepoh и чат @voinyepohchat"),
