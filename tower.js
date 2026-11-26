@@ -6,7 +6,7 @@
   const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   const css = `
-  #tower{position:fixed;inset:0;z-index:90;display:flex;justify-content:center;background:rgba(4,6,20,.74);backdrop-filter:blur(3px)}
+  #tower{position:fixed;inset:0;z-index:90;display:flex;justify-content:center;box-sizing:border-box;padding-top:max(var(--st,0px),env(safe-area-inset-top,0px),calc(var(--tg-safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px)));background:rgba(4,6,20,.74);backdrop-filter:blur(3px)}
   #tower[hidden]{display:none}
   .tw-sh{width:100%;max-width:540px;display:flex;flex-direction:column;position:relative;background:linear-gradient(180deg,#111738,#070a1c 60%,#050714);color:#e8ecff;overflow:hidden;border-left:2px solid #2a3260;border-right:2px solid #2a3260}
   .tw-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(180deg,#1b2250,#121638);border-bottom:2px solid #ffd60a;flex:0 0 auto}
@@ -448,12 +448,11 @@
     return h;
   }
   function twArenaRules() {
-    return '<div class="tw-h">Как проходит бой</div><div class="tw-note">' +
-      '1. Отряд — 3 твои лучшие карты, выбираются автоматически.<br>' +
-      '2. Перед боем выбери стойку: 🔥 Натиск бьёт 🌀 Обман, 🛡 Стена бьёт 🔥 Натиск, 🌀 Обман бьёт 🛡 Стену.<br>' +
-      '3. Ответь на загадку: верный ответ даёт +25% к силе, победа в стойке — ещё +15%.<br>' +
-      '4. Бой идёт 3 раунда. Побеждает тот, кто выиграл больше раундов; при равенстве — по общему урону.<br>' +
-      '5. Не успел выбрать до дедлайна — бой решится по силе карт без бонусов.</div>';
+    return '<div class="tw-h">Правила Арены</div>' +
+      '<p class="tw-note"><b>Запись.</b> Подтверди состав, чтобы занять одно из 30 мест. Если все места заняты, сетка соберётся в 20:30 по Минску или сразу после заполнения, если оно произошло позже. Иначе набор закроется в 20:45.</p>' +
+      '<p class="tw-note"><b>Состав.</b> Выбери три разные карты или нажми «Выбрать сильнейших». Состав можно изменить до закрытия набора. Порядок определяет раунды: первая карта играет против первой, вторая против второй, третья против третьей. Гемы на Арене не учитываются.</p>' +
+      '<p class="tw-note"><b>Тактика.</b> Выбери стойку и ответь на загадку до окончания таймера. 🔥 Натиск побеждает 🌀 Обман, 🌀 Обман побеждает 🛡 Стену, 🛡 Стена побеждает 🔥 Натиск. Верная загадка даёт +25% к урону, выигрышная стойка — +15%. Бонусы перемножаются. Если пропустить выбор, бонусы за него не начислятся.</p>' +
+      '<p class="tw-note"><b>Результат.</b> Урон зависит от силы карт, тактики и случайных боевых эффектов. Побеждает тот, кто выиграл больше раундов. При равном счёте сравнивается суммарный урон, затем стойки и ответы на загадку. Если всё равно ничья, победителя определяет жребий.</p>';
   }
   function twArenaPlayers(D) {
     if (!D.players || !D.players.length) return "";
@@ -545,7 +544,7 @@
       } else {
         h += '<button type="button" class="tw-btn red" id="tw-arena-join"' + (slots <= 0 ? " disabled" : "") + '>⚔️ Выбрать состав · осталось ' + slots + '</button>';
       }
-      h += twArenaPlayers(D) + twArenaPrizes(D) + twArenaRules();
+      h += twArenaRules() + twArenaPlayers(D) + twArenaPrizes(D);
       $("tw-body").innerHTML = h;
       $("tw-arena-join").onclick = twArenaEdit;
       twArenaPoll(); return;
@@ -553,7 +552,7 @@
     if (D.phase === "failed") {
       h += '<div class="tw-arena-champ"><b>⚔️ Арена не состоялась</b><small>Никто не записался в турнир.</small></div>' +
         '<div class="tw-note">Награды не выдаются. Ждём тебя в следующем турнире!</div>' +
-        twArenaPlayers(D) + twArenaPrizes(D);
+        twArenaRules() + twArenaPlayers(D) + twArenaPrizes(D);
       $("tw-body").innerHTML = h;
       twArenaPoll(); return;
     }
@@ -570,6 +569,7 @@
     }
     h += twArenaBracket(D);
     if (D.phase === "done") h += twArenaPrizes(D);
+    h += twArenaRules();
     $("tw-body").innerHTML = h;
     if ($("tw-arena-go")) $("tw-arena-go").onclick = twArenaPick;
     $("tw-body").querySelectorAll("[data-st]").forEach(b => b.onclick = () => { twArenaSel.st = +b.dataset.st; twRender(); });
