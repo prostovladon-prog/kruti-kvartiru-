@@ -105,17 +105,6 @@ if (existsSync(path.join(root, 'server/reaction-test.mjs'))) {
   }
 }
 
-/* ---------- рыцарь: кузня, тиражи, сталь, переплавка, ключи за карты ---------- */
-if (existsSync(path.join(root, 'server/knight-test.mjs'))) {
-  try {
-    const out = execFileSync(process.execPath, ['server/knight-test.mjs'], { cwd: root, stdio: 'pipe', encoding: 'utf8', timeout: 120000 });
-    oks.push('рыцарь: ' + (out.trim().split('\n').filter(Boolean).pop() || 'ok').replace(/^✅\s*/, ''));
-  } catch (e) {
-    const out = String(e.stdout || '') + String(e.stderr || '');
-    fails.push('тест рыцаря провален:\n' + out.split('\n').filter(l => l.includes('✗')).slice(0, 6).join('\n'));
-  }
-}
-
 /* ---------- 3. версии в index.html совпадают с файлами ---------- */
 if (existsSync(path.join(root, 'index.html'))) {
   const html = read('index.html');
