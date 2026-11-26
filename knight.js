@@ -4,6 +4,12 @@
 if(window.__KN_UI__)return;window.__KN_UI__=1;
 const O="#0d1020";
 const KSETS={
+ drake:{p:{a:"#2e8a3a",ad:"#0f4a1a",al:"#9cf0a0",t:"#ff5a1a",td:"#8a2400",c:"#1a3a12",cd:"#0a1a06",pl:"#ff7a1a",gem:"#ff3b1a",bl:"#e8ffe0"},v:{helm:"horns",shoulders:"dragon",chest:"scales",legs:"scale",boots:"claw",weapon:"flamb"}},
+ champ:{p:{a:"#e8ecf4",ad:"#8a92a6",al:"#ffffff",t:"#b45aff",td:"#4a1a8a",c:"#2a1450",cd:"#120828",pl:"#ffd60a",gem:"#b45aff",bl:"#f4f0ff"},v:{helm:"wings",shoulders:"royal",chest:"crown",legs:"gem",boots:"point",weapon:"royal"}},
+ glad:{p:{a:"#a8a8b0",ad:"#55555e",al:"#ececf2",t:"#c8102e",td:"#5a0814",c:"#6a3a1a",cd:"#2e180a",pl:"#c8873a",gem:"#ffd60a",bl:"#eef0f4",fur:"#7a4a20",furd:"#3a2008"},v:{helm:"crest",shoulders:"fur",chest:"lamellar",legs:"strap",boots:"fur",weapon:"broad"}},
+ banner:{p:{a:"#2a5ad8",ad:"#102a70",al:"#a8c4ff",t:"#ffffff",td:"#9aa6c0",c:"#d81a2a",cd:"#6a0a12",pl:"#ffd60a",gem:"#ffffff",bl:"#eef4ff"},v:{helm:"plume",shoulders:"plates",chest:"cross",legs:"fan",boots:"plain",weapon:"sword"}},
+ laurel:{p:{a:"#e8c86a",ad:"#8a6a1a",al:"#fff4c0",t:"#3aa84a",td:"#145a1e",c:"#7a0a3a",cd:"#3a0418",pl:"#3aa84a",gem:"#8a0a4a",bl:"#fff8e8"},v:{helm:"crown",shoulders:"royal",chest:"sun",legs:"strap",boots:"point",weapon:"sword"}},
+ keeper:{p:{a:"#1a2a4a",ad:"#0a1226",al:"#6a8ac8",t:"#2ee6ff",td:"#0a6a8a",c:"#0a1a3a",cd:"#040a1a",pl:"#2ee6ff",gem:"#ffd60a",bl:"#e0faff"},v:{helm:"wings",shoulders:"spikes",chest:"rune",legs:"gem",boots:"spike",weapon:"dark"}},
  samurai:{p:{a:"#2a2a30",ad:"#121216",al:"#6a6a78",t:"#c8102e",td:"#6a0814",c:"#8a1018",cd:"#3a0408",pl:"#ffd60a",gem:"#ffd60a",bl:"#eef0f4",fur:"#c8102e",furd:"#6a0814"},v:{helm:"horns",shoulders:"plates",chest:"lamellar",legs:"strap",boots:"plain",weapon:"royal"}},
  legion:{p:{a:"#c8873a",ad:"#7a4a18",al:"#ffe0a8",t:"#c8102e",td:"#6a0814",c:"#a81a24",cd:"#4a0a0e",pl:"#d8202e",gem:"#ffd60a",bl:"#e8e8ee"},v:{helm:"crest",shoulders:"plates",chest:"sun",legs:"strap",boots:"plain",weapon:"broad"}},
  bogatyr:{p:{a:"#c0c6d0",ad:"#5a6070",al:"#ffffff",t:"#ffc21a",td:"#8a5a00",c:"#a81a24",cd:"#4a0a0e",pl:"#ffc21a",gem:"#e0102a",bl:"#f0f2f6"},v:{helm:"spikes",shoulders:"plates",chest:"scales",legs:"fan",boots:"plain",weapon:"broad"}},
@@ -336,7 +342,7 @@ const pw=it=>knPartPow(it);
 const nf=n=>Math.round(n).toLocaleString("ru-RU").replace(/[  ,]/g," ");
 const K={sub:"knight",d:null,busy:false,fl:-1,sel:new Set(),selMode:"",top:null,reveal:null};
 const css=`
-#kn-tabs{display:flex;gap:4px;margin:2px 0 10px;overflow-x:auto}
+#kn-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:2px 0 10px}
 #kn-tabs button i{display:block;font-style:normal;font-size:17px;line-height:1.1}
 #kn-tabs button{flex:1 1 0;min-width:0;padding:5px 1px;border-radius:11px;border:1.5px solid #2a3260;background:#0c1230;color:#aab4dc;font-weight:900;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #kn-tabs button.on{border-color:#ffd60a;color:#ffd60a;background:#16204a}
@@ -368,6 +374,7 @@ const css=`
 .kn-row.sel{border-color:#ff7a4a;background:#2a1010}
 .kn-odds td{font-size:11px;padding:2px 6px;color:#cfd7f8}.kn-odds{border-collapse:collapse;width:100%}
 .kn-off{padding:30px 14px;text-align:center;color:#aab4dc}
+.kn-row .t b{color:#fff}.kn-th{background:#141a3a}
 .kn-scn{position:relative;border:3px solid #ffc21a;border-radius:18px;overflow:hidden;box-shadow:0 0 28px rgba(255,194,26,.25);background:#070a1c}
 .kn-wall{position:absolute;width:20%;z-index:2;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6))}.kn-wall .minic{display:block;width:100%}
 .kn-wall.l1{left:2%;top:24%;transform:rotate(-4deg)}.kn-wall.l2{left:2%;top:50%;transform:rotate(-2deg)}.kn-wall.r1{right:2%;top:24%;transform:rotate(4deg)}.kn-wall.r2{right:2%;top:50%;transform:rotate(2deg)}
@@ -391,13 +398,13 @@ function knCss(){if($("kn-css"))return;const st=document.createElement("style");
 function ensure(){knCss();const sec=$("sec-dragon");if(!sec||$("kn-root"))return;
  const tabs=document.createElement("div");tabs.id="kn-tabs";const root=document.createElement("div");root.id="kn-root";sec.prepend(root);sec.prepend(tabs);
  tabs.onclick=e=>{const b=e.target.closest("[data-k]");if(!b)return;hap("light");K.sub=b.dataset.k;show()}}
-function tabsHTML(){return [["knight","⚔️","Рыцарь"],["forge","🔨","Кузня"],["ars","🛡","Арсенал"],["mkt","🛒","Рынок"],["show","🏛","Витрина"],["top","🏆","Топ"],["dragon","🐉","Дракон"]].map(([k,ic,n])=>`<button type="button" data-k="${k}" class="${K.sub===k?"on":""}"><i>${ic}</i>${k==="forge"&&K.d&&K.d.keys>0?K.d.keys+"🔑":n}</button>`).join("")}
+function tabsHTML(){return [["knight","⚔️","Рыцарь"],["forge","🔨","Кузня"],["ars","🛡","Арсенал"],["mkt","🛒","Рынок"],["show","🏛","Витрина"],["duel","🤺","Бой"],["top","🏆","Топ"],["dragon","🐉","Дракон"]].map(([k,ic,n])=>`<button type="button" data-k="${k}" class="${K.sub===k?"on":""}"><i>${ic}</i>${k==="forge"&&K.d&&K.d.keys>0?K.d.keys+"🔑":n}</button>`).join("")}
 function show(){ensure();const t=$("kn-tabs"),root=$("kn-root"),dg=$("dg-root");if(!t)return;t.innerHTML=tabsHTML();
  if(K.sub==="dragon"){root.hidden=true;dg.hidden=false;try{renderDragon()}catch(e){}return}
  root.hidden=false;dg.hidden=true;
  if(!ONLINE){root.innerHTML='<div class="kn-off">⚔️ Рыцарь работает в игре через Telegram</div>';return}
  if(!K.d){root.innerHTML='<div class="kn-off">⚔️ Кузнец раздувает горн…</div>';load();return}
- ({knight:drawKnight,forge:drawForge,ars:drawArs,mkt:drawMkt,show:drawShow,top:drawTop})[K.sub]()}
+ ({knight:drawKnight,forge:drawForge,ars:drawArs,mkt:drawMkt,show:drawShow,duel:drawDuel,top:drawTop})[K.sub]()}
 async function load(){const r=await act("kn_get");if(r){K.d=r;show()}}
 async function call(a,p){if(K.busy)return null;K.busy=true;try{const r=await act(a,p||{});if(r&&r.items){K.d=Object.assign(K.d||{},r)}return r}finally{K.busy=false}}
 const eqItems=()=>SLK.map((_,i)=>K.d.items.find(x=>x.id===K.d.eq[i])||null);
@@ -449,10 +456,11 @@ function drawArs(){const d=K.d,root=$("kn-root"),worn=new Set(Object.values(d.eq
  root.querySelectorAll(".kn-row[data-id]").forEach(r=>r.onclick=()=>{const id=+r.dataset.id;if(K.selMode){if(worn.has(id))return toast("Надетую часть разобрать нельзя");K.sel.has(id)?K.sel.delete(id):K.sel.add(id);r.classList.toggle("sel")}else itemMenu(id)})}
 async function drawTop(){const root=$("kn-root"),kd=K.topK||"pow";K.tops=K.tops||{};let T=K.tops[kd];if(!T||Date.now()-T.t>60e3){root.innerHTML='<div class="kn-off">🏆 Загружаю топ…</div>';const r=await act("kn_top",kd==="pow"?{}:{kind:kd});if(!r)return;T=K.tops[kd]={t:Date.now(),r}}
  if(K.sub!=="top")return;const r=T.r,isR=kd==="resp";
- root.innerHTML=`<div class="kn-btns" style="margin:0 0 8px"><div class="kn-btn ${isR?"g":""}" data-tk="pow">⚔ По силе</div><div class="kn-btn ${isR?"":"g"}" data-tk="resp">👍 По уважению</div></div>
- <div class="kn-box"><h4>${isR?"САМЫЕ УВАЖАЕМЫЕ ВИТРИНЫ":"ТОП РЫЦАРЕЙ ПО СИЛЕ"}${r.me&&!isR?" · ТВОЁ МЕСТО: "+(r.me.place||"—"):""}</h4>${r.items.length?"":'<div class="kn-off">Пока пусто — заходи на витрины и жми 👍</div>'}${r.items.map((x,i)=>`<div class="kn-row" data-u="${x.uid}"><div class="kn-th" style="font-weight:900;color:#ffd60a">${i<3?["🥇","🥈","🥉"][i]:i+1}</div>${i<10?`<div class="kn-th">${knDraw(eqOf(x.look),{vb:"120 0 180 330",u:"t"+kd+i})}</div>`:""}<div class="t"><b>${x.vip?"👑 ":""}${esc(x.name)}</b><small>${x.rank}</small></div><div class="kn-p">${isR?"👍":"⚔"} ${nf(x.pow)}</div></div>`).join("")}</div>`;
+ const TK={pow:["⚔ Сила","ТОП РЫЦАРЕЙ ПО СИЛЕ","⚔"],honor:["⚜️ Честь","ЧЕСТЬ ЗА НЕДЕЛЮ · ТОП-10 ПОЛУЧАТ КЛЮЧИ «ГЛАДИАТОР»","⚜️"],resp:["👍 Уважение","САМЫЕ УВАЖАЕМЫЕ ВИТРИНЫ","👍"],clan:["🏴 Ордена","СИЛА РЫЦАРЕЙ КЛАНОВ","⚔"]};
+ root.innerHTML=`<div class="kn-btns" style="margin:0 0 8px;grid-template-columns:repeat(4,1fr)">${Object.keys(TK).map(k=>`<div class="kn-btn ${k===kd?"":"g"}" style="font-size:11.5px;padding:9px 2px" data-tk="${k}">${TK[k][0]}</div>`).join("")}</div>
+ <div class="kn-box"><h4>${TK[kd][1]}${r.me&&kd==="pow"?" · ТВОЁ МЕСТО: "+(r.me.place||"—"):""}</h4>${r.items.length?"":'<div class="kn-off">Пока пусто — заходи на витрины и жми 👍</div>'}${r.items.map((x,i)=>`<div class="kn-row" data-u="${x.uid||0}"><div class="kn-th" style="font-weight:900;color:#ffd60a">${i<3?["🥇","🥈","🥉"][i]:i+1}</div>${i<10&&x.uid?`<div class="kn-th">${knDraw(eqOf(x.look),{vb:"120 0 180 330",u:"t"+kd+i})}</div>`:""}<div class="t"><b>${x.vip?"👑 ":""}${esc(x.name)}</b><small>${x.rank}</small></div><div class="kn-p">${TK[kd][2]} ${nf(x.pow)}</div></div>`).join("")}</div>`;
  root.querySelectorAll("[data-tk]").forEach(b=>b.onclick=()=>{K.topK=b.dataset.tk;drawTop()});
- root.querySelectorAll("[data-u]").forEach(e=>e.onclick=async()=>{if(isR){const u=+e.dataset.u,pr=await act("profile",{uid:u});if(pr)openShowcase(Object.assign(pr,{uid:u}))}else openInv(+e.dataset.u)})}
+ root.querySelectorAll("[data-u]").forEach(e=>e.onclick=async()=>{if(!+e.dataset.u)return;if(isR||kd==="honor"){const u=+e.dataset.u,pr=await act("profile",{uid:u});if(pr)openShowcase(Object.assign(pr,{uid:u}))}else openInv(+e.dataset.u)})}
 const confirmMoney=n=>{const c=S&&S.cash||0;if(c<n){toast("Не хватает монет: нужно "+nf(n)+" 🪙");return false}return true};
 const moneyUpd=()=>{try{updCash()}catch(e){}};
 function modal(html){const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML=`<button type="button" class="x" id="kn-x">Закрыть</button><div class="box">${html}</div>`;$("kn-x").onclick=closeModal;return sh}
@@ -556,10 +564,11 @@ async function drawShow(){const root=$("kn-root");if(!K.show){root.innerHTML='<d
  const box=document.createElement("div");box.id="kn-sc";box.innerHTML='<div class="kn-off">⚔️ Рыцарь выходит на свет…</div>';const who=sh.querySelector(".who");(who&&who.nextSibling?sh.insertBefore(box,who.nextSibling):sh.prepend(box));
  act("kn_show_get",{uid:F.uid}).then(r=>{if(!r||!document.body.contains(box))return;if(!r.has){box.remove();return}const me=S&&r.uid===S.uid;
   const gifts=Object.entries(r.gifts||{}).map(([k,n])=>`<span class="kn-chip">🎁 ${esc(KN_COS[k]?KN_COS[k].n:k)} — от ${esc(n)}</span>`).join("");
-  box.innerHTML=sceneHTML(r,"g")+`<div class="kn-btns">${me?"":`<div class="kn-btn" id="kn-rs">👍 Уважение · ${r.resp}</div><div class="kn-btn b" id="kn-ai">🛡 Арсенал</div><div class="kn-btn g" id="kn-gd" style="grid-column:1/-1">🎁 Подарить декор</div>`}</div>${gifts?`<div class="kn-chips">${gifts}</div>`:""}`;
+  box.innerHTML=sceneHTML(r,"g")+`<div class="kn-btns">${me?"":`<div class="kn-btn" id="kn-rs">👍 Уважение · ${r.resp}</div><div class="kn-btn b" id="kn-ai">🛡 Арсенал</div><div class="kn-btn b" id="kn-gdu">⚔ Поединок</div><div class="kn-btn g" id="kn-gfd">🍖 Провиант</div><div class="kn-btn g" id="kn-gbr">🤝 В побратимы</div><div class="kn-btn g" id="kn-gd">🎁 Подарить декор</div>`}</div>${gifts?`<div class="kn-chips">${gifts}</div>`:""}`;
   if(me)return;const rs=$("kn-rs");if(r.resped){rs.textContent="👍 Уважение · "+r.resp+" ✓";rs.classList.add("g")}
   rs.onclick=async()=>{if(r.resped)return toast("Сегодня ты уже выразил уважение");const x=await act("kn_respect",{uid:r.uid});if(x){r.resped=true;rs.textContent="👍 Уважение · "+x.resp+" ✓";rs.classList.add("g");hap("medium")}};
-  $("kn-ai").onclick=()=>openInv(r.uid);$("kn-gd").onclick=()=>giftMenu(r.uid,r.name)})}}
+  $("kn-ai").onclick=()=>openInv(r.uid);$("kn-gdu").onclick=async()=>{if(!K.du)K.du=await act("kn_duel_get");if(K.du)duelPick(r.uid,r.name)};
+  $("kn-gfd").onclick=async()=>{if(await act("kn_food",{uid:r.uid}))toast("🍖 Провиант отправлен — у друга +1 поединок")};$("kn-gbr").onclick=async()=>{if(await act("kn_bro_ask",{uid:r.uid}))toast("🤝 Приглашение отправлено")};$("kn-gd").onclick=()=>giftMenu(r.uid,r.name)})}}
 /* Аллея героев и фейерверк на главном экране */
 async function alley(){if(!ONLINE||!S)return;knCss();const sec=$("sec-spin");if(!sec||sec.hidden)return;const r=await act("kn_alley");if(!r)return;let el=$("kn-alley");
  if(!r.statues.length){if(el)el.remove()}else{if(!el){el=document.createElement("div");el.id="kn-alley";sec.prepend(el)}
@@ -570,6 +579,71 @@ function firework(name){let o=$("kn-fwo");if(!o){o=document.createElement("div")
  for(let b=0;b<6;b++)setTimeout(()=>{const cx=15+Math.random()*70,cy=15+Math.random()*45;for(let i=0;i<26;i++){const a=i/26*Math.PI*2,d=60+Math.random()*80,e=document.createElement("i");e.style.cssText=`left:${cx}%;top:${cy}%;background:${cols[(b+i)%6]};--x:${Math.cos(a)*d}px;--y:${Math.sin(a)*d}px`;o.appendChild(e);setTimeout(()=>e.remove(),1700)}},b*450);
  hap("heavy");toast("🎆 "+name+" устроил салют для всех игроков!")}
 setTimeout(alley,6000);setInterval(alley,120000);
+
+/* ---------- этап 4: поединки, подвиги, орден ---------- */
+const MV=["s","d","c"],MVI={s:"🗡",d:"🛡",c:"🎭"};
+const knMini=(look,u)=>knDraw(eqOf(look||[]),{vb:"120 0 180 330",u});
+async function drawDuel(){const root=$("kn-root"),ds=K.dsub||"duel";
+ const head=`<div class="kn-btns" style="margin:0 0 8px;grid-template-columns:repeat(3,1fr)">${[["duel","🤺 Поединки"],["feat","🏅 Подвиги"],["order","🏴 Орден"]].map(([k,n])=>`<div class="kn-btn ${k===ds?"":"g"}" data-ds="${k}">${n}</div>`).join("")}</div>`;
+ const bind=()=>root.querySelectorAll("[data-ds]").forEach(b=>b.onclick=()=>{K.dsub=b.dataset.ds;drawDuel()});
+ root.innerHTML=head+'<div class="kn-off">⏳ Загружаю…</div>';bind();
+ if(ds==="duel"){const r=await act("kn_duel_get");if(!r||K.sub!=="duel"||(K.dsub||"duel")!=="duel")return;K.du=r;root.innerHTML=head+duelHTML(r);bind();duelBind(r)}
+ else if(ds==="feat"){const r=await act("kn_feats");if(!r||K.sub!=="duel"||K.dsub!=="feat")return;root.innerHTML=head+featHTML(r);bind();featBind(r)}
+ else{const [r,b]=await Promise.all([act("kn_raid_get"),act("kn_board_get")]);if(!r||!b||K.sub!=="duel"||K.dsub!=="order")return;root.innerHTML=head+orderHTML(r,b);bind();orderBind(r,b)}}
+function duelHTML(r){const tac=r.tac||[];
+ return `<div class="kn-box"><h4>⚜️ ЧЕСТЬ ${nf(r.hon)} · ${esc(r.title).toUpperCase()}</h4><div class="kn-chips"><span class="kn-chip">За неделю: ${nf(r.hw)}</span><span class="kn-chip">Бесплатно: ${r.free}${r.dx?" (🍖+"+r.dx+")":""}</span><span class="kn-chip">Дальше ${nf(r.price)} 🪙 · осталось ${r.left}</span></div>
+ <small style="display:block;color:#8e9ac8;font-size:10.5px;margin-top:6px">3 раунда. 🗡 Удар бьёт 🎭 Хитрость, 🎭 Хитрость обходит 🛡 Защиту, 🛡 Защита держит 🗡 Удар. Угадаешь все 3 хода защиты — честь ×1.5. Победа: +10 чести и +2 ⚙️ стали, над сильнейшим ещё +5.</small></div>
+ ${r.brq?`<div class="kn-box"><h4>🤝 ${esc(r.brq.name)} ЗОВЁТ В ПОБРАТИМЫ</h4><div class="kn-btns"><div class="kn-btn" id="kn-bok">Принять</div><div class="kn-btn g" id="kn-bno">Отказать</div></div></div>`:""}
+ <div class="kn-box"><h4>🤝 ПОБРАТИМ</h4>${r.bro?`<div class="kn-row" style="cursor:default"><div class="t"><b>${esc(r.bro.name)}</b><small>${r.bro.today?"сегодня бился — тебе +20% чести ✓":"ещё не бился сегодня — бонус +20% чести, когда бьётесь оба"}</small></div><div class="kn-btn g" id="kn-bl" style="padding:8px">Разорвать</div></div>`:'<small style="color:#8e9ac8">Позови друга в побратимы (кнопка 🤝 у соперника или на его витрине). Когда оба бьётесь в один день — каждому +20% чести.</small>'}</div>
+ <div class="kn-box"><h4>🛡 ТВОЯ ЗАЩИТА — ТАК ХОДИТ РЫЦАРЬ, КОГДА НАПАДАЮТ НА ТЕБЯ</h4><div class="kn-btns" style="grid-template-columns:repeat(3,1fr)">${[0,1,2].map(i=>`<div class="kn-btn b" data-tc="${i}" data-m="${tac[i]||""}">${i+1}: ${tac[i]?KN_MOVES[tac[i]]:"🎲 случайно"}</div>`).join("")}</div><div class="kn-btns" style="grid-template-columns:1fr"><div class="kn-btn g" id="kn-ts">Сохранить защиту</div></div></div>
+ <div class="kn-box"><h4>⚔ СОПЕРНИКИ ТВОЕЙ СИЛЫ (⚔ ${nf(r.pow)})</h4>${r.opp.length?"":'<div class="kn-off">Пока никого — загляни позже</div>'}${r.opp.map((o,i)=>`<div class="kn-row" style="cursor:default"><div class="kn-th">${knMini(o.look,"o"+i)}</div><div class="t"><b>${esc(o.name)}</b><small>⚔ ${nf(o.pow)} · ⚜️ ${esc(o.title)}</small></div><div style="display:flex;gap:4px"><div class="kn-btn g" style="padding:8px 6px" data-fd="${o.uid}">🍖</div>${r.bro?"":`<div class="kn-btn g" style="padding:8px 6px" data-ba="${o.uid}">🤝</div>`}<div class="kn-btn" style="padding:8px 10px" data-at="${o.uid}" data-n="${esc(o.name)}">${o.left>0?"В бой":"✓"}</div></div></div>`).join("")}<div class="kn-btns" style="grid-template-columns:1fr"><div class="kn-btn g" id="kn-rf">🔄 Других соперников</div></div></div>
+ <div class="kn-box"><h4>📜 ЖУРНАЛ ПОЕДИНКОВ · 🍖 ПРОВИАНТА ОСТАЛОСЬ ${r.fsLeft}</h4>${r.log.length?r.log.map(l=>`<div class="kn-row" style="cursor:default"><div class="t"><b>${l.win?"🏆":"💢"} ${l.me==="a"?"Ты напал на":"На тебя напал"} ${esc(l.who)}</b><small>${l.win?"победа":"поражение"}${l.h?" · +"+l.h+" чести":""}${l.combo?" · угадал защиту":""}</small></div>${l.me==="b"&&!l.win?`<div class="kn-btn" style="padding:8px" data-at="${l.uid}" data-n="${esc(l.who)}">Реванш</div>`:""}</div>`).join(""):'<div class="kn-off">Здесь будут твои бои</div>'}</div>`}
+function duelBind(r){const root=$("kn-root"),tac=(r.tac||[]).slice();
+ root.querySelectorAll("[data-tc]").forEach(b=>b.onclick=()=>{const i=+b.dataset.tc,cur=tac[i],nx=cur?MV[(MV.indexOf(cur)+1)%3]:"s";tac[i]=nx;b.textContent=(i+1)+": "+KN_MOVES[nx]});
+ $("kn-ts").onclick=async()=>{if(tac.filter(Boolean).length<3)return toast("Выбери все 3 хода");const x=await act("kn_tactic",{moves:tac});if(x)toast("🛡 Защита сохранена")};
+ $("kn-rf").onclick=()=>drawDuel();
+ if($("kn-bok"))$("kn-bok").onclick=async()=>{if(await act("kn_bro_ok")){toast("🤝 Теперь вы побратимы!");drawDuel()}};
+ if($("kn-bno"))$("kn-bno").onclick=async()=>{if(await act("kn_bro_no"))drawDuel()};
+ if($("kn-bl"))$("kn-bl").onclick=async()=>{if(confirm("Разорвать братство?")&&await act("kn_bro_leave"))drawDuel()};
+ root.querySelectorAll("[data-fd]").forEach(b=>b.onclick=async()=>{if(await act("kn_food",{uid:+b.dataset.fd})){toast("🍖 Провиант отправлен — у друга +1 поединок");drawDuel()}});
+ root.querySelectorAll("[data-ba]").forEach(b=>b.onclick=async()=>{if(await act("kn_bro_ask",{uid:+b.dataset.ba}))toast("🤝 Приглашение отправлено")});
+ root.querySelectorAll("[data-at]").forEach(b=>b.onclick=()=>duelPick(+b.dataset.at,b.dataset.n))}
+function duelPick(uid,name){const mv=[null,null,null],r=K.du||{};
+ const sh=modal(`<h3>⚔ Поединок с ${esc(name)}</h3><p>Угадай, как он защищается. Выбери ход на каждый раунд.</p>${[0,1,2].map(i=>`<div style="margin:6px 0"><small style="color:#8e9ac8;font-weight:900">РАУНД ${i+1}</small><div class="kn-btns" style="grid-template-columns:repeat(3,1fr);margin-top:4px">${MV.map(m=>`<div class="kn-btn g" data-r="${i}" data-mv="${m}">${KN_MOVES[m]}</div>`).join("")}</div></div>`).join("")}
+ <div class="kn-btns" style="grid-template-columns:1fr"><div class="kn-btn" id="kn-go">⚔ В бой${r.free>0?" · бесплатно":" · "+nf(r.price||0)+" 🪙"}</div></div>`);
+ sh.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const i=+b.dataset.r;mv[i]=b.dataset.mv;sh.querySelectorAll(`[data-r="${i}"]`).forEach(x=>x.classList.toggle("g",x!==b))});
+ $("kn-go").onclick=async()=>{if(mv.some(x=>!x))return toast("Выбери ход на все 3 раунда");if(r.free<=0&&!confirmMoney(r.price))return;const x=await act("kn_duel",{uid,moves:mv});if(!x)return;K.du=x;moneyUpd();duelResult(x.res)}}
+function duelResult(R){hap(R.win?"heavy":"medium");
+ const sh=modal(`<h3>${R.win?"🏆 ПОБЕДА!":"💢 Поражение"}</h3><div style="display:flex;justify-content:space-around;align-items:flex-end"><div style="width:42%;text-align:center"><div class="kn-th" style="width:100%;height:140px">${knMini(R.mlook,"dm")}</div><b>Ты · ⚔ ${nf(R.mpow)}</b></div><b style="font-size:22px">VS</b><div style="width:42%;text-align:center"><div class="kn-th" style="width:100%;height:140px">${knMini(R.look,"dr")}</div><b>${esc(R.name)} · ⚔ ${nf(R.pow)}</b></div></div>
+ ${R.rounds.map((x,i)=>`<div class="kn-row" style="cursor:default;opacity:0;transition:opacity .4s" data-rr="${i}"><div class="t"><b>Раунд ${i+1}: ${MVI[x.a]} против ${MVI[x.b]}</b><small>${nf(x.sa)} : ${nf(x.sb)}${knBeats(x.a,x.b)?" · твой ход сильнее!":knBeats(x.b,x.a)?" · его ход сильнее":""}</small></div><div class="kn-p">${x.w?"✅":"❌"}</div></div>`).join("")}
+ <div class="kn-chips" id="kn-dres" style="opacity:0;transition:opacity .4s">${R.h?`<span class="kn-chip">⚜️ +${R.h} чести</span>`:""}${R.combo&&R.win?'<span class="kn-chip">🎯 Разгадал защиту ×1.5</span>':""}${R.bro?'<span class="kn-chip">🤝 Побратим +20%</span>':""}${R.steel?`<span class="kn-chip">⚙️ +${R.steel} стали</span>`:""}${R.paid?`<span class="kn-chip">−${nf(KN_DUEL.price)} 🪙</span>`:""}</div>
+ <div class="kn-btns" style="grid-template-columns:1fr"><div class="kn-btn" id="kn-dok">Дальше</div></div>`);
+ R.rounds.forEach((_,i)=>setTimeout(()=>{const e=sh.querySelector(`[data-rr="${i}"]`);if(e)e.style.opacity=1},350+i*550));setTimeout(()=>{const e=$("kn-dres");if(e)e.style.opacity=1},350+3*550);
+ $("kn-dok").onclick=()=>{closeModal();if(K.sub==="duel"&&(K.dsub||"duel")==="duel")drawDuel()}}
+function featHTML(r){const aw=Object.keys(KN_SETS).filter(k=>KN_SETS[k].src==="award");
+ return `<div class="kn-box"><h4>🗝 КЛЮЧИ НАГРАДНЫХ СЕТОВ</h4>${aw.some(k=>r.ak[k])?aw.filter(k=>r.ak[k]).map(k=>`<div class="kn-row" style="cursor:default"><div class="t"><b>${esc(KN_SETS[k].n)} ×${r.ak[k]}</b><small>случайная часть сета, обычные шансы ковки</small></div><div class="kn-btn" style="padding:8px 12px" data-ao="${k}">Открыть</div></div>`).join(""):'<small style="color:#8e9ac8">Наградные сеты не куются и не продаются у Оружейника — только за подвиги ниже. Части можно продать на рынке.</small>'}</div>
+ <div class="kn-box"><h4>🏅 ПОДВИГИ</h4>${r.feats.map(f=>`<div class="kn-row" style="cursor:default"><div class="t"><b>${esc(f.n)}</b><small>${f.week?"каждую неделю/сезон · ":""}сейчас ${nf(f.val)}${f.next?" · следующая ступень "+nf(f.next)+" "+f.u:" · все ступени пройдены"} · 🗝 «${esc(KN_SETS[f.set].n)}»</small></div>${f.ready?`<div class="kn-btn" style="padding:8px 10px" data-fc="${f.id}">Забрать ${f.ready>1?"×"+f.ready:""}</div>`:""}</div>`).join("")}</div>
+ <div class="kn-box"><h4>НАГРАДНЫЕ СЕТЫ</h4><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${aw.map((k,i)=>`<div style="text-align:center;font-size:10.5px;color:#cfd7f8;font-weight:900"><div class="kn-th" style="width:100%;height:120px">${knMini(Array(6).fill(k),"aw"+i)}</div>${esc(KN_SETS[k].n)}<small style="display:block;color:#8e9ac8;font-weight:700">${esc(KN_SETS[k].from)}</small></div>`).join("")}</div></div>`}
+function featBind(r){const root=$("kn-root");
+ root.querySelectorAll("[data-fc]").forEach(b=>b.onclick=async()=>{const x=await act("kn_feat_claim",{id:b.dataset.fc});if(x){hap("medium");toast("🗝 +"+x.got+" ключ «"+KN_SETS[x.set].n+"»");drawDuel()}});
+ root.querySelectorAll("[data-ao]").forEach(b=>b.onclick=async()=>{const x=await act("kn_award_open",{set:b.dataset.ao});if(!x)return;K.d=Object.assign(K.d||{},x);hap("heavy");
+  modal(`<h3>🏅 Наградная часть!</h3><div style="display:flex;justify-content:center">${x.got.map(revCard).join("")}</div><div class="kn-btns" style="grid-template-columns:1fr"><div class="kn-btn" id="kn-aok">Отлично</div></div>`);$("kn-aok").onclick=()=>{closeModal();drawDuel()}})}
+function orderHTML(r,b){const board=`<div class="kn-box"><h4>📯 ДОСКА НАБОРА ОРДЕНОВ</h4>${b.lead?`<div style="display:grid;grid-template-columns:90px 1fr;gap:6px;margin-bottom:8px"><input id="kn-bmin" type="number" inputmode="numeric" placeholder="сила от" value="${b.mine?b.mine.min:""}" style="padding:9px;border-radius:10px;border:1.5px solid #3a447a;background:#0a0f28;color:#fff"><input id="kn-btxt" maxlength="80" placeholder="Кого ищете? Например: «В рейд, каждый день»" value="${esc(b.mine?b.mine.txt:"")}" style="padding:9px;border-radius:10px;border:1.5px solid #3a447a;background:#0a0f28;color:#fff"></div><div class="kn-btns"><div class="kn-btn" id="kn-bp">📯 ${b.mine?"Обновить":"Дать объявление"}</div>${b.mine?'<div class="kn-btn g" id="kn-boff">Снять</div>':""}</div>`:""}
+ ${b.list.length?b.list.map(x=>`<div class="kn-row" style="cursor:default"><div class="t"><b>🏴 ${esc(x.name)}</b><small>${x.kn} рыцарей · ${x.mem}/${x.max} в клане · ⚔ ${nf(x.cp)}${x.min?" · сила от "+x.min:""}</small>${x.txt?`<small style="display:block;color:#e8c890">«${esc(x.txt)}»</small>`:""}</div>${!b.inClan&&x.mem<x.max?`<div class="kn-btn" style="padding:8px 10px" data-jn="${x.clan}" data-min="${x.min}">Вступить</div>`:""}</div>`).join(""):'<div class="kn-off">Объявлений пока нет</div>'}</div>`;
+ if(r.noclan)return `<div class="kn-box"><h4>🏴 РЕЙД ОРДЕНА</h4><small style="color:#8e9ac8">Раз в неделю орден из ${KN_RAID.min}+ рыцарей бьёт Чёрного рыцаря. Каждый — один удар в день силой своего рыцаря. Поверг — все, кто бил, получают 🗝 «Знамя ордена» и +${KN_RAID.steel} ⚙️. Найди клан на доске ниже.</small></div>`+board;
+ if(r.locked)return `<div class="kn-box"><h4>🏴 РЕЙД ОРДЕНА «${esc(r.cname)}»</h4><div class="kn-off">Рыцарей в клане: ${r.knights} из ${r.need}. Позови соклановцев выковать доспех или дай объявление на доске — рейд откроется сам.</div></div>`+board;
+ const pc=Math.round(100*r.dmg/r.hp);
+ return `<div class="kn-box"><h4>🏴 РЕЙД ОРДЕНА «${esc(r.cname)}» · ⚔ ${nf(r.cpow)}</h4><div style="text-align:center"><div class="kn-th" style="width:150px;height:180px;margin:0 auto;filter:${r.killed?"grayscale(1) brightness(.6)":"brightness(.55) saturate(.4) drop-shadow(0 0 12px #ff2a2a)"}">${knMini(["obsid","obsid","obsid","obsid","obsid","obsid"],"rb")}</div><b style="color:#ff6a6a">ЧЁРНЫЙ РЫЦАРЬ${r.killed?" — ПОВЕРЖЕН":""}</b></div>
+ <div style="height:14px;border-radius:8px;background:#2a0a10;border:2px solid #0b0f24;overflow:hidden;margin:8px 0"><div style="height:100%;width:${100-pc}%;background:linear-gradient(90deg,#ff2a3a,#ff8a2a)"></div></div><small style="color:#cfd7f8">❤️ ${nf(Math.max(0,r.hp-r.dmg))} / ${nf(r.hp)}</small>
+ <div class="kn-btns" style="grid-template-columns:1fr">${r.killed?'<div class="kn-chip">Повержен! Новый Чёрный рыцарь — в понедельник</div>':r.hitToday?'<div class="kn-chip">Сегодня ты уже бил — приходи завтра</div>':'<div class="kn-btn" id="kn-rh">⚔ Ударить всей силой</div>'}</div>
+ ${r.hits.length?`<h4 style="margin-top:10px">УРОН ОРДЕНА ЗА НЕДЕЛЮ</h4>${r.hits.map((h,i)=>`<div class="kn-row" style="cursor:default"><div class="t"><b>${i+1}. ${esc(h.name)}</b></div><div class="kn-p">⚔ ${nf(h.d)}</div></div>`).join("")}`:""}</div>`+board}
+function orderBind(r,b){const root=$("kn-root");
+ if($("kn-rh"))$("kn-rh").onclick=async()=>{const x=await act("kn_raid_hit");if(!x)return;hap("heavy");toast(x.kill?"🏴 Чёрный рыцарь повержен! Ключи «Знамя ордена» у всех, кто бил":"⚔ −"+nf(x.hit)+" здоровья Чёрному рыцарю");drawDuel()};
+ if($("kn-bp"))$("kn-bp").onclick=async()=>{const x=await act("kn_board_set",{min:+$("kn-bmin").value||0,txt:$("kn-btxt").value});if(x){toast("📯 Объявление на доске");drawDuel()}};
+ if($("kn-boff"))$("kn-boff").onclick=async()=>{if(await act("kn_board_set",{off:1}))drawDuel()};
+ root.querySelectorAll("[data-jn]").forEach(e=>e.onclick=async()=>{if(b.pow<+e.dataset.min)return toast("Орден ищет рыцарей от ⚔ "+e.dataset.min+" — у тебя "+b.pow);if(!confirm("Вступить в клан?"))return;const x=await act("clan_join",{id:+e.dataset.jn});if(x){toast("🏴 Ты в ордене!");drawDuel()}})}
+/* по ссылке из уведомления: ?kn=duel */
+try{const q=new URLSearchParams(location.search).get("kn");if(q)setTimeout(()=>{if(q==="duel")K.dsub="duel";window.knOpen(q==="duel"?"duel":q)},3500)}catch(e){}
 /* вкладка внизу: «Рыцарь» вместо «Дракона», дракон — подвкладка */
 const _dgNav=typeof dgNav==="function"?dgNav:null;
 if(_dgNav)dgNav=function(){_dgNav.apply(this,arguments);const i=$("tab-dragon-i"),t=$("tab-dragon-t");if(i)i.textContent="⚔️";if(t)t.textContent="Рыцарь"};

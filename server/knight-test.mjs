@@ -204,5 +204,59 @@ ok(al.ok && al.res.fw && al.res.statues.length === 1 && al.res.statues[0].uid ==
 const rt = await call(A, "kn_top", { kind: "resp" });
 ok(rt.ok && rt.res.items[0].uid === A, "топ уважения");
 
+// ---------- этап 4: поединки, честь, провиант, побратимы, подвиги, рейд ----------
+db.prepare("UPDATE kn_users SET pow=100").run();
+let dv = await call(A, "kn_duel_get");
+ok(dv.ok && dv.res.free === 10 && dv.res.opp.length >= 2, "поединки: 10 бесплатных, есть соперники", dv);
+ok((await call(B, "kn_tactic", { moves: ["s", "s", "s"] })).ok, "защиту можно настроить");
+ok(!(await call(A, "kn_duel", { uid: B, moves: ["x", "s"] })).ok, "кривые ходы не принимаются");
+let d1 = await call(A, "kn_duel", { uid: B, moves: ["d", "d", "d"] });
+ok(d1.ok && d1.res.res.win && d1.res.res.combo && d1.res.res.h === 15 && d1.res.hon === 15 && d1.res.free === 9, "угадал защиту — победа и честь ×1.5", d1.res && d1.res.res);
+await call(A, "kn_duel", { uid: B, moves: ["d", "d", "d"] }); await call(A, "kn_duel", { uid: B, moves: ["d", "d", "d"] });
+ok(!(await call(A, "kn_duel", { uid: B, moves: ["d", "d", "d"] })).ok, "с одним рыцарем — не больше 3 поединков в день");
+db.prepare("UPDATE kn_users SET dn=10 WHERE uid=?").run(A); setCash(A, 10);
+ok(!(await call(A, "kn_duel", { uid: C, moves: ["s", "d", "c"] })).ok && db.prepare("SELECT dn FROM kn_users WHERE uid=?").get(A).dn === 10, "платный поединок без монет не проходит и не съедает попытку");
+setCash(A, 100000); const cd = await call(A, "kn_duel", { uid: C, moves: ["s", "d", "c"] });
+ok(cd.ok && cd.res.res.paid && db.prepare("SELECT cash FROM users WHERE id=?").get(A).cash === 70000, "11-й поединок за 30 000 🪙", cd);
+const f1 = await call(B, "kn_food", { uid: A }), f2 = await call(B, "kn_food", { uid: A });
+ok(f1.ok && !f2.ok && db.prepare("SELECT dx FROM kn_users WHERE uid=?").get(A).dx === 1, "провиант: +1 бесплатный поединок, одному другу раз в день");
+ok((await call(A, "kn_bro_ask", { uid: C })).ok && (await call(C, "kn_bro_ok")).ok, "побратимы: позвал и принял");
+const br = db.prepare("SELECT uid,bro FROM kn_users WHERE uid IN (?,?)").all(A, C);
+ok(br.every(x => x.bro === (x.uid === A ? C : A)), "братство записано у обоих");
+ok(!(await call(B, "kn_bro_ask", { uid: A })).ok, "занятого побратима не переманить");
+db.prepare("UPDATE users SET state=json_set(COALESCE(state,'{}'),'$.totalWins',60,'$.eras',json('{\"a\":1,\"b\":1}')) WHERE id=?").run(A);
+let fe = await call(A, "kn_feats");
+const fa = fe.res.feats.find(f => f.id === "arena"), fr = fe.res.feats.find(f => f.id === "eras");
+ok(fa.ready === 2 && fr.ready === 2, "подвиги считаются по настоящим достижениям (60 побед → 2, 2 эпохи → 2)", fe.res.feats);
+const fc = await call(A, "kn_feat_claim", { id: "arena" });
+ok(fc.ok && fc.res.got === 2 && fc.res.ak.glad === 2 && !(await call(A, "kn_feat_claim", { id: "arena" })).ok, "награда за подвиг — один раз", fc);
+const ao = await call(A, "kn_award_open", { set: "glad" });
+ok(ao.ok && ao.res.got[0].set === "glad" && ao.res.ak.glad === 1, "ключ награды → часть сета «Гладиатор»", ao);
+ok(!(await call(A, "kn_award_open", { set: "keeper" })).ok, "без ключа наградный сет не открыть");
+ok(!(await call(A, "kn_craft", { set: "glad", slot: 0 })).ok, "наградный сет не крафтится из стали");
+// рейд ордена
+db.prepare("INSERT INTO clans(id,name,name_key,owner,created) VALUES(77,'Орден','орден',?,0)").run(A);
+const extra = [72011, 72012, 72013];
+for (const u of extra) { await call(u, "sync"); await call(u, "kn_get"); }
+db.prepare("UPDATE users SET clan=77 WHERE id IN (?,?,?,?)").run(A, ...extra);
+db.prepare("UPDATE kn_users SET pow=100").run();
+let rg = await call(A, "kn_raid_get");
+ok(rg.ok && rg.res.locked && rg.res.knights === 4, "рейд закрыт, пока в клане меньше 5 рыцарей", rg);
+ok((await call(A, "kn_board_set", { min: 50, txt: "Ищем рыцарей в рейд!" })).ok, "глава даёт объявление на доску набора");
+const bd = await call(B, "kn_board_get");
+ok(bd.ok && bd.res.list[0].name === "Орден" && bd.res.list[0].kn === 4, "доска набора видна всем", bd);
+ok((await call(B, "clan_join", { id: 77 })).ok, "с доски можно вступить в клан");
+rg = await call(A, "kn_raid_get");
+ok(rg.ok && !rg.res.locked && rg.res.hp === 500 * 14, "5 рыцарей — рейд открыт, у босса здоровье по силе клана", rg.res);
+db.prepare("UPDATE kn_raid SET hp=150").run();
+const h1 = await call(A, "kn_raid_hit"), h1b = await call(A, "kn_raid_hit");
+ok(h1.ok && !h1.res.kill && !h1b.ok, "удар по рейду — раз в день", h1);
+const ak0 = db.prepare("SELECT n FROM kn_ak WHERE uid=? AND set_id='banner'").get(72011);
+const h2 = await call(B, "kn_raid_hit");
+ok(h2.ok && h2.res.kill && db.prepare("SELECT n FROM kn_ak WHERE uid=? AND set_id='banner'").get(A).n === 1 && !ak0, "босс повержен — ключ «Знамя ордена» только тем, кто бил", h2.res);
+ok(!(await call(72011, "kn_raid_hit")).ok, "по поверженному боссу больше не бьют");
+const ht = await call(A, "kn_top", { kind: "honor" }), ct = await call(A, "kn_top", { kind: "clan" });
+ok(ht.ok && ht.res.items[0].uid === A && ct.ok && ct.res.items[0].name === "Орден", "топ чести недели и топ орденов");
+
 if (process.exitCode) console.log("\n❌ ПРОВЕРКА РЫЦАРЯ НЕ ПРОЙДЕНА");
-else console.log("\n✅ РЫЦАРЬ РАБОТАЕТ: кузня, тиражи, сталь, переплавка, ключи за карты, рынок, заказы, обмен, подарки, витрина, косметика");
+else console.log("\n✅ РЫЦАРЬ РАБОТАЕТ: кузня, тиражи, сталь, переплавка, ключи за карты, рынок, заказы, обмен, подарки, витрина, косметика, поединки, честь, подвиги, рейд ордена");

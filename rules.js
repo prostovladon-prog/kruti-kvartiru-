@@ -2005,7 +2005,10 @@ const KN_SETS={
  obsid:{n:"Обсидиан",r:3,src:"forge",night:1},imper:{n:"Император",r:3,src:"forge"},
  gold:{n:"Золотой лев",r:4,src:"forge"},
  /* Оружейник: за монеты, без случайности, только обычная ковка */
- samurai:{n:"Сёгунат",r:2,src:"smith"},legion:{n:"Легион",r:2,src:"smith"},bogatyr:{n:"Богатырь",r:3,src:"smith"},pharaoh:{n:"Фараон",r:3,src:"smith"}};
+ samurai:{n:"Сёгунат",r:2,src:"smith"},legion:{n:"Легион",r:2,src:"smith"},bogatyr:{n:"Богатырь",r:3,src:"smith"},pharaoh:{n:"Фараон",r:3,src:"smith"},
+ /* наградные сеты: не куются и не продаются у Оружейника — только за подвиги в игре (ключ награды) */
+ drake:{n:"Чешуя Горыныча",r:3,src:"award",from:"Босс недели"},champ:{n:"Чемпион Башни",r:3,src:"award",from:"Башня"},glad:{n:"Гладиатор",r:2,src:"award",from:"Арена и поединки"},
+ banner:{n:"Знамя ордена",r:2,src:"award",from:"Клан и рейд ордена"},laurel:{n:"Лавры Рима",r:3,src:"award",from:"Ивент"},keeper:{n:"Хранитель эпох",r:4,src:"award",from:"Альбом эпох"}};
 /* торговля: комиссия рынка, потолок цены, быстрая продажа, лимиты, заточка */
 const KN_TRADE={fee:.08,lots:5,lotsVip:8,orders:5,quick:.7,capX:10,giftsDay:5,ageDays:3,minForged:20};
 const KN_SMITH={price:[150000,400000,1500000,6000000],perWeek:2};   // цена части по редкости сета (обычный…мифический); шлем ×1.3, оружие ×1.5
@@ -2059,4 +2062,30 @@ function knRoll(rnd,ctx){const now=ctx.now,night=knNight(now),week=knWeekSet(now
  const fw=KN_FORGE.map((f,i)=>i&&ctx.hour?f.w*2:f.w);
  return {set,slot:knPick(KN_SLOT_W,rnd),forge:knPick(fw,rnd),q:knRollQ(rnd),pity}}
 
-if(typeof module!=="undefined")module.exports={KN_COS,KN_GCOLS,KN_TRADE,KN_SMITH,knSmithWeek,knSmithPrice,knSharpCost,KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
+/* ⚔️ этап 4: поединки рыцарей, честь, провиант, побратимы, подвиги, рейд ордена */
+/* ходы: s — удар силой, d — защита, c — хитрость. Сила бьёт хитрость, хитрость обходит защиту, защита держит силу */
+const KN_MOVES={s:"🗡 Удар",d:"🛡 Защита",c:"🎭 Хитрость"};
+const knBeats=(a,b)=>(a==="s"&&b==="c")||(a==="c"&&b==="d")||(a==="d"&&b==="s");
+const KN_DUEL={free:10,price:30000,max:40,perOpp:3,win:10,lose:2,def:3,upset:5,combo:1.5,bro:1.2,foodMax:5,foodSend:3};
+const KN_HONOR=[[5000,"Хранитель чести"],[2000,"Рыцарь чести"],[800,"Благородный"],[200,"Достойный"],[0,"Новобранец"]];
+const knHonorT=h=>KN_HONOR.find(x=>(h|0)>=x[0])[1];
+const KN_HONOR_TOP=[[3,50],[2,35],[1,25],[0,15],[0,15],[0,10],[0,10],[0,10],[0,10],[0,10]];   // [ключи «Гладиатор», сталь] за места 1–10 недели
+const knMoves=m=>Array.isArray(m)&&m.length===3&&m.every(x=>KN_MOVES[x])?m.slice():null;
+/* бой: 3 раунда. Раунд = сила × удача 0.8–1.2 × 1.6 если твой ход бьёт ход врага. combo — угадал все 3 хода защиты */
+function knDuel(rnd,pa,pb,ma,mb){const R=[];let wa=0,wb=0,hit=0;
+ for(let i=0;i<3;i++){const ka=knBeats(ma[i],mb[i])?1.6:1,kb=knBeats(mb[i],ma[i])?1.6:1;if(ka>1)hit++;
+  const a=Math.max(1,pa)*(.8+.4*rnd())*ka,b=Math.max(1,pb)*(.8+.4*rnd())*kb,w=a>=b?1:0;w?wa++:wb++;R.push({a:ma[i],b:mb[i],w,sa:Math.round(a),sb:Math.round(b)})}
+ return {win:wa>wb,rounds:R,combo:hit===3}}
+/* подвиги → ключи наградных сетов. per: week — заново каждую неделю, life — навсегда, ступени по порядку */
+const KN_FEATS=[
+ {id:"boss",set:"drake",n:"Босс недели: нанеси урон Горынычу",steps:[12500,25000],u:"урона"},
+ {id:"tower",set:"champ",n:"Башня: лучший этаж недели",steps:[10,25],u:"этаж"},
+ {id:"arena",set:"glad",n:"Победы в боях карт",steps:Array.from({length:40},(_,i)=>(i+1)*25),u:"побед"},
+ {id:"clan",set:"banner",n:"Удары по клановому боссу за неделю",steps:[10,30],u:"ударов"},
+ {id:"event",set:"laurel",n:"Вклад в ивент за сезон",steps:[30,150],u:"вклада"},
+ {id:"eras",set:"keeper",n:"Собранные эпохи альбома",steps:Array.from({length:30},(_,i)=>i+1),u:"эпох"}];
+const KN_RAID={min:5,hpX:14,steel:15};
+/* открыть ключ награды: случайная часть сета, обычные шансы ковки */
+function knAwardRoll(rnd,set){return {set,slot:knPick(KN_SLOT_W,rnd),forge:knPick(KN_FORGE.map(f=>f.w),rnd),q:knRollQ(rnd)}}
+
+if(typeof module!=="undefined")module.exports={KN_MOVES,knBeats,KN_DUEL,KN_HONOR,knHonorT,KN_HONOR_TOP,knMoves,knDuel,KN_FEATS,KN_RAID,knAwardRoll,KN_COS,KN_GCOLS,KN_TRADE,KN_SMITH,knSmithWeek,knSmithPrice,knSharpCost,KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
