@@ -647,7 +647,8 @@ async function towerTourReady(env,me){
    В каждом бою игрок выбирает стойку и отвечает на загадку — это даёт бонус к силе. */
 const ARN={
   id:"arena-20261126",
-  open:Date.UTC(2026,10,26,17,30),      // 26.11 20:30 Minsk
+  regOpen:Date.UTC(2026,10,25,21,0),    // 26.11 00:00 Minsk — регистрация открыта заранее
+  open:Date.UTC(2026,10,26,17,30),      // 26.11 20:30 Minsk — плановое открытие турнира
   regClose:Date.UTC(2026,10,26,17,45),  // 26.11 20:45 Minsk
   max:30,min:1,gap:45e3,len:7*60e3,
   prizes:[
@@ -802,8 +803,8 @@ async function arnNotify(env,A,now){
 async function arnAdvance(env,A,now){
   let changed=0;
   A.players=A.players||[];A.matches=A.matches||{};
-  if(A.phase==="wait"&&now>=ARN.open){A.phase="reg";A.t=now;changed=1}
-  if(A.phase==="reg"&&(A.players.length>=ARN.max||now>=ARN.regClose)){
+  if(A.phase==="wait"&&now>=ARN.regOpen){A.phase="reg";A.t=now;changed=1}
+  if(A.phase==="reg"&&(now>=ARN.regClose||(A.players.length>=ARN.max&&now>=ARN.open))){
     if(A.players.length===0){A.phase="failed";A.t=now;changed=1;return changed}
     if(A.players.length===1){
       const p=A.players[0];
@@ -827,7 +828,7 @@ async function arnAdvance(env,A,now){
 async function arnGet(env,me){
   const now=Date.now();
   let A=await kvGet(env,arnKey());
-  if(!A)A={phase:now<ARN.open?"wait":"reg",players:[],matches:{},t:now,puz:0};
+  if(!A)A={phase:now<ARN.regOpen?"wait":"reg",players:[],matches:{},t:now,puz:0};
   const changed=await arnAdvance(env,A,now);
   if(changed)try{await kvSet(env,arnKey(),A)}catch(e){}
   let mine=null;
@@ -839,7 +840,7 @@ async function arnGet(env,me){
   const online=await cached("arn_online",20e3,async()=>((await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE seen>?").bind(Date.now()-5*60e3).first())||{}).n||0);
   const joined=(A.players||[]).some(p=>p.uid===me.id);
   const myPlayer=(A.players||[]).find(p=>p.uid===me.id)||null;
-  return {phase:A.phase,now,open:ARN.open,regClose:ARN.regClose,max:ARN.max,min:ARN.min,count:(A.players||[]).length,online,
+  return {phase:A.phase,now,open:ARN.open,regOpen:ARN.regOpen,regClose:ARN.regClose,max:ARN.max,min:ARN.min,count:(A.players||[]).length,online,
     players:(A.players||[]).map(p=>({uid:p.uid,name:p.name,pow:arnPow(p),joined:p.joined})),
     matches:pubM,round:A.round||"",champion:A.champion||null,places:A.places||null,paid:!!A.paid,
     me:{joined,uid:me.id,pow:myPlayer?arnPow(myPlayer):0,out:!!((A.out||{})[me.id]),place:(A.places||{})[me.id]||0,active:mine?mine.id:null,puzzle:mine?{q:(ARN_PUZZLES[mine.puzzle]||{}).q,o:(ARN_PUZZLES[mine.puzzle]||{}).o}:null,
@@ -848,7 +849,7 @@ async function arnGet(env,me){
 }
 async function arnJoin(env,me){
   const now=Date.now();
-  if(now<ARN.open)fail("Арена откроется в 20:30 по Минску");
+  if(now<ARN.regOpen)fail("Регистрация в Арену ещё не открыта");
   if(now>ARN.regClose)fail("Набор в Арену уже закрыт");
   const rows=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND part=0").bind(me.id).all()).results;
   if(rows.length<3)fail("Для Арены нужно минимум 3 карты в коллекции");
