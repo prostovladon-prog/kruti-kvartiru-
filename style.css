@@ -2809,7 +2809,7 @@ header{gap:6px}.hdr-r{min-width:0;flex:1 1 auto;justify-content:flex-end}
 .vtbox{position:relative;overflow:hidden;text-align:center}.vtbox>*{position:relative}
 .vt-opts{display:flex;flex-direction:column;gap:6px;margin:10px 0}
 .vt-o{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 12px;border-radius:18px;border:0;font:inherit;color:#fff;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.35)}
-.vt-o0{background:linear-gradient(135deg,#7a3ad0,#3a1080)}.vt-o1{background:linear-gradient(135deg,#ff5a2a,#a01a0a)}
+.vt-o0{background:linear-gradient(135deg,#7a3ad0,#3a1080)}.vt-o1{background:linear-gradient(135deg,#ff5a2a,#a01a0a)}.vt-o2{background:linear-gradient(135deg,#c89a1a,#6a4a06)}.vtbox .vt-opts.n3{grid-template-columns:1fr 1fr 1fr;gap:8px}.vtbox .vt-opts.n3 .vt-o{min-height:140px;padding:10px 4px 12px}.vtbox .vt-opts.n3 .vt-o b{font-size:15px}.vtbox .vt-opts.n3 .vt-o small{font-size:11px}
 .vt-o i{font-style:normal;font-size:36px}.vt-o b{font-size:18px;font-weight:900}.vt-o small{font-size:12px;opacity:.9}
 .vt-o:disabled{cursor:default;opacity:1}.vt-o.on{outline:4px solid #ffd75a;outline-offset:-4px}
 .vt-o u{position:absolute;left:0;bottom:0;height:6px;background:#ffd75a;text-decoration:none}.vt-o em{position:absolute;right:14px;top:12px;font-style:normal;font-weight:900;font-size:22px;color:#ffe58a}
