@@ -2017,6 +2017,21 @@ const knSmithPrice=(set,slot)=>Math.round(KN_SMITH.price[KN_SETS[set].r]*(slot==
 const KN_SHARP={max:10,base:100000};
 const knSharpCost=sh=>KN_SHARP.base*Math.pow(2,sh);
 const KN_ENGR=1000000;
+/* 💎 косметика рыцаря и витрины за ⭐ — только внешний вид, любую можно подарить другу */
+const KN_COS={
+ bg_citadel:{n:"Фон «Цитадель на закате»",kind:"bg",v:"citadel",stars:899},bg_ice:{n:"Фон «Ледяной перевал»",kind:"bg",v:"ice",stars:899},
+ bg_lava:{n:"Фон «Лавовая кузня»",kind:"bg",v:"lava",stars:1299},bg_throne:{n:"Фон «Тронный зал»",kind:"bg",v:"throne",stars:1999},
+ fx_fireflies:{n:"Светлячки",kind:"fx",v:"fireflies",stars:899},fx_snow:{n:"Снегопад",kind:"fx",v:"snow",stars:899},
+ fx_embers:{n:"Искры кузни",kind:"fx",v:"embers",stars:1299},fx_goldrain:{n:"Золотой дождь",kind:"fx",v:"goldrain",stars:1499},
+ gr_flame:{n:"Граффити «Пламя»",kind:"gr",v:"flame",stars:899},gr_bolt:{n:"Граффити «Молния»",kind:"gr",v:"bolt",stars:899},gr_tag:{n:"Граффити «Тег»",kind:"gr",v:"tag",stars:899},
+ gr_tiger:{n:"Граффити «Тигр»",kind:"gr",v:"tiger",stars:899},gr_stars:{n:"Граффити «Звёзды»",kind:"gr",v:"stars",stars:899},gr_splat:{n:"Граффити «Брызги»",kind:"gr",v:"splat",stars:899},
+ pl_marble:{n:"Табличка «Мрамор»",kind:"plate",v:"marble",stars:899},pl_neon:{n:"Табличка «Неон»",kind:"plate",v:"neon",stars:899},pl_gold:{n:"Табличка «Золото»",kind:"plate",v:"gold",stars:1299},
+ ent_royal:{n:"Королевский выход",kind:"ent",v:"royal",stars:1499},
+ fw:{n:"Фейерверк для всех",kind:"fw",stars:899,once:1},
+ statue:{n:"Статуя на Аллее героев · 7 дней",kind:"statue",stars:4999,once:1},
+ chest_imp:{n:"Сундук Императора",kind:"bundle",stars:3999,items:["bg_throne","fx_goldrain","pl_gold","gr_stars"]}};
+const KN_GCOLS=["#ff3b6b","#ff8a00","#39ff9a","#2ee6ff","#b45aff","#fff04a","#ffffff"];
+const KN_STATUES=3,KN_WALL=6;
 const KN_PITY={e:40,m:160};
 const KN_KEYS={start:10,refill:4*3600e3,stock:3,perSpins:10};
 const KN_SET_BONUS=[[6,.15],[4,.08],[2,.03]];
@@ -2046,7 +2061,7 @@ function knRoll(rnd,ctx){const now=ctx.now,night=knNight(now),week=knWeekSet(now
  const fw=KN_FORGE.map((f,i)=>i&&ctx.hour?f.w*2:f.w);
  return {set,slot:knPick(KN_SLOT_W,rnd),forge:knPick(fw,rnd),q:knRollQ(rnd),pity}}
 
-if(typeof module!=="undefined")module.exports={KN_TRADE,KN_SMITH,knSmithWeek,knSmithPrice,knSharpCost,KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
+if(typeof module!=="undefined")module.exports={KN_COS,KN_GCOLS,KN_TRADE,KN_SMITH,knSmithWeek,knSmithPrice,knSharpCost,KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -2080,7 +2095,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=84;const NEWB_MS=3*864e5;
+const SCHEMA_V=85;const NEWB_MS=3*864e5;
 const MIGRATIONS=[
  "CREATE TABLE IF NOT EXISTS recruit_entries (event TEXT NOT NULL,uid INTEGER NOT NULL,inviter INTEGER NOT NULL,opened_at INTEGER NOT NULL,checked_at INTEGER NOT NULL DEFAULT 0,qualified_at INTEGER NOT NULL DEFAULT 0,qualified INTEGER NOT NULL DEFAULT 0,reason TEXT NOT NULL DEFAULT 'pending',retry_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,uid))",
  "CREATE TABLE IF NOT EXISTS recruit_awards (event TEXT NOT NULL,place INTEGER NOT NULL,uid INTEGER NOT NULL,n INTEGER NOT NULL,spins INTEGER NOT NULL,paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,place),UNIQUE(event,uid))",
@@ -2189,7 +2204,7 @@ const MIGRATIONS=[
  "CREATE TABLE IF NOT EXISTS pair_got (uid INTEGER NOT NULL, other INTEGER NOT NULL, card INTEGER, t INTEGER, PRIMARY KEY(uid,other))",
  "CREATE TABLE IF NOT EXISTS clan_ww (clan INTEGER NOT NULL, wk TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,wk))",
  "CREATE INDEX IF NOT EXISTS friends_f ON friends(fid)","CREATE TABLE IF NOT EXISTS fol_got (uid INTEGER NOT NULL, tier INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,tier))",
- "CREATE TABLE IF NOT EXISTS kn_users (uid INTEGER PRIMARY KEY, keys INTEGER NOT NULL DEFAULT 0, kt INTEGER NOT NULL DEFAULT 0, steel INTEGER NOT NULL DEFAULT 0, pe INTEGER NOT NULL DEFAULT 0, pm INTEGER NOT NULL DEFAULT 0, sp INTEGER NOT NULL DEFAULT 0, eq TEXT NOT NULL DEFAULT '{}', look TEXT, pow INTEGER NOT NULL DEFAULT 0, forged INTEGER NOT NULL DEFAULT 0, gd TEXT, gn INTEGER NOT NULL DEFAULT 0, engr TEXT, created INTEGER)","CREATE INDEX IF NOT EXISTS kn_users_pow ON kn_users(pow)","CREATE TABLE IF NOT EXISTS kn_items (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL DEFAULT 0, no INTEGER NOT NULL, q INTEGER NOT NULL, v REAL NOT NULL DEFAULT 0, sh INTEGER NOT NULL DEFAULT 0, list_price REAL, listed_at INTEGER, created INTEGER, UNIQUE(set_id,slot,forge,no))","CREATE INDEX IF NOT EXISTS kn_items_mkt ON kn_items(listed_at) WHERE list_price IS NOT NULL","CREATE TABLE IF NOT EXISTS kn_orders (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL, price REAL NOT NULL, created INTEGER)","CREATE TABLE IF NOT EXISTS kn_trades (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, ai INTEGER, bi INTEGER, extra REAL NOT NULL DEFAULT 0, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE INDEX IF NOT EXISTS kn_trades_b ON kn_trades(b,st)","CREATE TABLE IF NOT EXISTS kn_sales (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER, set_id TEXT, slot INTEGER, forge INTEGER, no INTEGER, seller INTEGER, buyer INTEGER, price REAL, how TEXT, t INTEGER)","ALTER TABLE kn_items ADD COLUMN list_price REAL","ALTER TABLE kn_items ADD COLUMN listed_at INTEGER","ALTER TABLE kn_users ADD COLUMN gd TEXT","ALTER TABLE kn_users ADD COLUMN gn INTEGER NOT NULL DEFAULT 0","ALTER TABLE kn_users ADD COLUMN engr TEXT","CREATE INDEX IF NOT EXISTS kn_items_owner ON kn_items(owner)","CREATE INDEX IF NOT EXISTS kn_items_rare ON kn_items(forge,id)"];
+ "CREATE TABLE IF NOT EXISTS kn_users (uid INTEGER PRIMARY KEY, keys INTEGER NOT NULL DEFAULT 0, kt INTEGER NOT NULL DEFAULT 0, steel INTEGER NOT NULL DEFAULT 0, pe INTEGER NOT NULL DEFAULT 0, pm INTEGER NOT NULL DEFAULT 0, sp INTEGER NOT NULL DEFAULT 0, eq TEXT NOT NULL DEFAULT '{}', look TEXT, pow INTEGER NOT NULL DEFAULT 0, forged INTEGER NOT NULL DEFAULT 0, gd TEXT, gn INTEGER NOT NULL DEFAULT 0, engr TEXT, created INTEGER)","CREATE INDEX IF NOT EXISTS kn_users_pow ON kn_users(pow)","CREATE TABLE IF NOT EXISTS kn_items (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL DEFAULT 0, no INTEGER NOT NULL, q INTEGER NOT NULL, v REAL NOT NULL DEFAULT 0, sh INTEGER NOT NULL DEFAULT 0, list_price REAL, listed_at INTEGER, created INTEGER, UNIQUE(set_id,slot,forge,no))","CREATE INDEX IF NOT EXISTS kn_items_mkt ON kn_items(listed_at) WHERE list_price IS NOT NULL","CREATE TABLE IF NOT EXISTS kn_orders (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL, price REAL NOT NULL, created INTEGER)","CREATE TABLE IF NOT EXISTS kn_trades (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, ai INTEGER, bi INTEGER, extra REAL NOT NULL DEFAULT 0, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE INDEX IF NOT EXISTS kn_trades_b ON kn_trades(b,st)","CREATE TABLE IF NOT EXISTS kn_sales (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER, set_id TEXT, slot INTEGER, forge INTEGER, no INTEGER, seller INTEGER, buyer INTEGER, price REAL, how TEXT, t INTEGER)","ALTER TABLE kn_items ADD COLUMN list_price REAL","ALTER TABLE kn_items ADD COLUMN listed_at INTEGER","ALTER TABLE kn_users ADD COLUMN gd TEXT","ALTER TABLE kn_users ADD COLUMN gn INTEGER NOT NULL DEFAULT 0","ALTER TABLE kn_users ADD COLUMN engr TEXT","CREATE TABLE IF NOT EXISTS kn_cos (uid INTEGER NOT NULL, k TEXT NOT NULL, from_uid INTEGER, t INTEGER, PRIMARY KEY(uid,k))","CREATE TABLE IF NOT EXISTS kn_show (uid INTEGER PRIMARY KEY, cards TEXT, bg TEXT, fx TEXT, ga TEXT, gw TEXT, plate TEXT, ent INTEGER NOT NULL DEFAULT 0, resp INTEGER NOT NULL DEFAULT 0)","CREATE INDEX IF NOT EXISTS kn_show_resp ON kn_show(resp)","CREATE TABLE IF NOT EXISTS kn_resp (day TEXT NOT NULL, a INTEGER NOT NULL, b INTEGER NOT NULL, PRIMARY KEY(day,a,b))","CREATE TABLE IF NOT EXISTS kn_statues (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, until INTEGER NOT NULL)","CREATE INDEX IF NOT EXISTS kn_items_owner ON kn_items(owner)","CREATE INDEX IF NOT EXISTS kn_items_rare ON kn_items(forge,id)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -5081,6 +5096,12 @@ async function dcApi(env,me,a,p){await xhLoad(env,1);
   fail("Неизвестное действие")}
 const GAME_GIFT={min:1};
 async function payItem(env,uid,p,except){const item=String(p.item||""),I=SHOP[item];
+  if(item==="kncos"){const k=String(p.k||""),C=KN_COS[k];if(!C)fail("Нет такого товара");let to=Math.floor(+p.to||0)||uid;
+   if(!+p.to&&p.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE nick_key=?").bind(nickKey(String(p.nick).trim().replace(/^@/,""))).first();if(!r)fail("Игрок с таким ником не найден");to=r.id}
+   if(to!==uid&&!(await env.DB.prepare("SELECT 1 FROM users WHERE id=?").bind(to).first()))fail("Игрок не найден");
+   if(!C.once){const keys=C.kind==="bundle"?C.items:[k];const have=(await env.DB.prepare("SELECT k FROM kn_cos WHERE uid=? AND k IN ("+keys.map(()=>"?").join(",")+")").bind(to,...keys).all()).results;if(have.length===keys.length)fail(to===uid?"У тебя это уже есть":"У игрока это уже есть")}
+   if(C.kind==="statue"){const n=(await env.DB.prepare("SELECT COUNT(*) AS n FROM kn_statues WHERE until>?").bind(Date.now()).first()).n;if(n>=KN_STATUES&&!except)fail("На Аллее героев сейчас "+KN_STATUES+" статуи — место освободится позже")}
+   return {item,stars:C.stars,title:C.n,desc:(to===uid?"":"Подарок другу · ")+"Внешний вид рыцаря и витрины. Силы не даёт.",data:{k,to}}}
   if(item==="tower_key")return {item,stars:199,title:"Ключ Башни",desc:"+1 забег в Башне испытаний",data:{}};
   if(item==="tower_set")return {item,stars:499,title:"Набор Стража",desc:"+2 забега в Башне и карточка",data:{}};
   if(item==="tower_pass")return {item,stars:899,title:"Пропуск Башни · 7 дней",desc:"+1 бесплатный забег в день и +20% осколков",data:{}};
@@ -5218,6 +5239,13 @@ async function payApply(env,pid){const P=await env.DB.prepare("SELECT * FROM pay
     }
     return;
   }
+  if(P.item==="kncos"){const d=JSON.parse(P.p||"{}"),C=KN_COS[d.k];const to=d.to||P.uid,now=Date.now();
+   const done=await env.DB.prepare("UPDATE payments SET status='done',res=? WHERE id=? AND status='paid'").bind(JSON.stringify({k:d.k,to}),P.id).run();if(done.meta.changes!==1)return;
+   if(C.kind==="fw"){const nm=await nameOf(env,P.uid);await kvSet(env,"kn_fw",{id:P.id,name:nm,until:now+15*6e4});delete topCache.knalley}
+   else if(C.kind==="statue"){await knUser(env,to);await env.DB.prepare("INSERT INTO kn_statues(uid,until) VALUES(?,?)").bind(to,now+7*864e5).run();delete topCache.knalley}
+   else for(const k of (C.kind==="bundle"?C.items:[d.k]))await env.DB.prepare("INSERT OR IGNORE INTO kn_cos(uid,k,from_uid,t) VALUES(?,?,?,?)").bind(to,k,P.uid===to?null:P.uid,now).run();
+   if(to!==P.uid)await notify(env,to,"🎁 "+(await nameOf(env,P.uid))+" подарил тебе «"+C.n+"» для рыцаря! Открой «Рыцарь» → «Витрина»").catch(()=>{});
+   return}
   const d=JSON.parse(P.p||"{}"),I=SHOP[P.item];let res,msg="";
   if(String(P.item).startsWith("tower_")){
     const u=await env.DB.prepare("SELECT COALESCE(nick,name) AS n FROM users WHERE id=?").bind(P.uid).first();
@@ -8067,6 +8095,35 @@ async function knApi(env,me,a,p){const uid=me.id,now=Date.now();
  if(a==="kn_engrave"){const txt=String(p.text||"").replace(/\s+/g," ").trim().slice(0,14);if(txt.length<2)fail("Надпись от 2 до 14 символов");if(/https?:|t\.me|@/i.test(txt))fail("Без ссылок");await knUser(env,uid);
   const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(KN_ENGR,uid,KN_ENGR).run();if(pay.meta.changes!==1)fail("Не хватает монет: нужно "+KN_ENGR.toLocaleString("ru")+" 🪙");
   await env.DB.prepare("UPDATE kn_users SET engr=? WHERE uid=?").bind(txt,uid).run();return knView(env,uid)}
+
+ /* ---------- этап 3: витрина, косметика, уважение, Аллея героев ---------- */
+ const cosOf=async who=>(await env.DB.prepare("SELECT k,from_uid FROM kn_cos WHERE uid=?").bind(who).all()).results;
+ const showOf=async who=>(await env.DB.prepare("SELECT * FROM kn_show WHERE uid=?").bind(who).first())||{uid:who,cards:"[]",bg:null,fx:null,ga:null,gw:null,plate:null,ent:0,resp:0};
+ if(a==="kn_show_get"){const who=Math.floor(+p.uid||0)||uid;const ku=await env.DB.prepare("SELECT k.*,COALESCE(u.nick,u.name) AS name,u.state AS st FROM kn_users k JOIN users u ON u.id=k.uid WHERE k.uid=?").bind(who).first();
+  const sh=await showOf(who);let ids=[];try{ids=JSON.parse(sh.cards||"[]").map(x=>x|0).slice(0,KN_WALL)}catch(e){}
+  let cards=ids.length?(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND id IN ("+ids.map(()=>"?").join(",")+")").bind(who,...ids).all()).results:[];
+  if(!ids.length)cards=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? ORDER BY v DESC LIMIT 3").bind(who).all()).results;
+  cards=cards.sort((x,y)=>(ids.indexOf(x.id)+1||99)-(ids.indexOf(y.id)+1||99)).map(r=>pub(rowToCard(r)));
+  const today=mskDay(now),me2=uid!==who?!!(await env.DB.prepare("SELECT 1 FROM kn_resp WHERE day=? AND a=? AND b=?").bind(today,uid,who).first()):true;
+  const cos=await cosOf(who),gifts=cos.filter(c=>c.from_uid);let gnames={};for(const g of gifts.slice(0,10))gnames[g.k]=await nameOf(env,g.from_uid);
+  let dg=false;try{dg=!!JSON.parse((ku&&ku.st)||"{}").dg}catch(e){}
+  return {uid:who,name:ku?ku.name:await nameOf(env,who),has:!!ku,look:ku?JSON.parse(ku.look||"[]"):[],engr:ku?ku.engr||"":"",pow:ku?ku.pow:0,rank:knRank(ku?ku.pow:0),
+   set:{bg:sh.bg,fx:sh.fx,ga:sh.ga?JSON.parse(sh.ga):null,gw:sh.gw?JSON.parse(sh.gw):null,plate:sh.plate,ent:sh.ent?1:0},cards,wall:ids,resp:sh.resp|0,resped:me2,dg,cos:who===uid?cos.map(c=>c.k):undefined,gifts:gnames}}
+ if(a==="kn_show_set"){await knUser(env,uid);const have=new Set((await cosOf(uid)).map(c=>c.k)),own=(kind,v)=>!v||Object.keys(KN_COS).some(k=>KN_COS[k].kind===kind&&KN_COS[k].v===v&&have.has(k));
+  const sh=await showOf(uid);const nx={cards:sh.cards,bg:sh.bg,fx:sh.fx,ga:sh.ga,gw:sh.gw,plate:sh.plate,ent:sh.ent};
+  if(p.cards){const ids=[...new Set(p.cards.map(x=>x|0))].slice(0,KN_WALL);if(ids.length){const n=(await env.DB.prepare("SELECT COUNT(*) AS n FROM cards WHERE owner=? AND id IN ("+ids.map(()=>"?").join(",")+")").bind(uid,...ids).first()).n;if(n!==ids.length)fail("Некоторых карт у тебя уже нет")}nx.cards=JSON.stringify(ids)}
+  for(const [f,kind] of [["bg","bg"],["fx","fx"],["plate","plate"]])if(f in p){const v=p[f]||null;if(!own(kind,v))fail("Это ещё не куплено");nx[f]=v}
+  for(const f of ["ga","gw"])if(f in p){const g=p[f];if(!g||g.t==="none")nx[f]=null;else{if(!own("gr",g.t))fail("Это граффити ещё не куплено");nx[f]=JSON.stringify({t:g.t,c:KN_GCOLS.includes(g.c)?g.c:KN_GCOLS[0]})}}
+  if("ent" in p){if(p.ent&&!own("ent","royal"))fail("Это ещё не куплено");nx.ent=p.ent?1:0}
+  await env.DB.prepare("INSERT INTO kn_show(uid,cards,bg,fx,ga,gw,plate,ent) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(uid) DO UPDATE SET cards=excluded.cards,bg=excluded.bg,fx=excluded.fx,ga=excluded.ga,gw=excluded.gw,plate=excluded.plate,ent=excluded.ent").bind(uid,nx.cards||"[]",nx.bg,nx.fx,nx.ga,nx.gw,nx.plate,nx.ent|0).run();
+  return {ok:1}}
+ if(a==="kn_respect"){const who=Math.floor(+p.uid||0);if(!who||who===uid)fail("Себе уважение не дают 🙂");const r=await env.DB.prepare("INSERT OR IGNORE INTO kn_resp(day,a,b) VALUES(?,?,?)").bind(mskDay(now),uid,who).run();
+  if(r.meta.changes!==1)fail("Сегодня ты уже выразил уважение этому рыцарю");await env.DB.prepare("INSERT INTO kn_show(uid,cards,resp) VALUES(?,'[]',1) ON CONFLICT(uid) DO UPDATE SET resp=resp+1").bind(who).run();
+  if(Math.random()<.02)await env.DB.prepare("DELETE FROM kn_resp WHERE day<?").bind(mskDay(now-3*864e5)).run();return {resp:((await showOf(who)).resp)|0}}
+ if(a==="kn_alley")return cached("knalley",20e3,async()=>{const st=(await env.DB.prepare("SELECT s.uid,s.until,k.look,COALESCE(u.nick,u.name) AS name FROM kn_statues s JOIN users u ON u.id=s.uid LEFT JOIN kn_users k ON k.uid=s.uid WHERE s.until>? ORDER BY s.id DESC LIMIT ?").bind(Date.now(),KN_STATUES).all()).results.map(r=>({uid:r.uid,name:r.name||"Игрок",look:JSON.parse(r.look||"[]"),until:r.until}));
+  const fw=await kvGet(env,"kn_fw");return {statues:st,fw:fw&&fw.until>Date.now()?fw:null}});
+ if(a==="kn_top"&&p.kind==="resp"){const items=await cached("knresp",60e3,async()=>(await env.DB.prepare("SELECT s.uid,s.resp,k.look,k.pow,COALESCE(u.nick,u.name) AS name FROM kn_show s JOIN users u ON u.id=s.uid LEFT JOIN kn_users k ON k.uid=s.uid WHERE s.resp>0 ORDER BY s.resp DESC LIMIT 50").all()).results.map(r=>({uid:r.uid,name:r.name||"Игрок",pow:r.resp,rank:"👍 уважение",look:JSON.parse(r.look||"[]")})));
+  const mr=(await showOf(uid)).resp|0;return {items,me:{pow:mr,place:mr?(await env.DB.prepare("SELECT COUNT(*)+1 AS n FROM kn_show WHERE resp>?").bind(mr).first()).n:null}}}
  if(a==="kn_top"){const items=await cached("kntop",60e3,async()=>(await env.DB.prepare("SELECT k.uid,k.pow,k.look,COALESCE(u.nick,u.name) AS name,u.vip_until AS vu FROM kn_users k JOIN users u ON u.id=k.uid WHERE k.pow>0 ORDER BY k.pow DESC LIMIT 50").all()).results
    .map(r=>({uid:r.uid,name:r.name||"Игрок",pow:r.pow,rank:knRank(r.pow),look:JSON.parse(r.look||"[]"),vip:(r.vu||0)>Date.now()?1:0})));
   const me2=await env.DB.prepare("SELECT pow FROM kn_users WHERE uid=?").bind(uid).first(),pw=me2?me2.pow:0;

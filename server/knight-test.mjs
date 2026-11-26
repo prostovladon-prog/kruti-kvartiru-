@@ -174,5 +174,35 @@ setCash(A, 0); ok(!(await call(A, "kn_sharpen", { id: sb.res.got[0].id })).ok, "
 const total = db.prepare("SELECT SUM(cash) s FROM users").get().s;
 ok(Number.isFinite(total), "балансы в порядке");
 
+// ---------- этап 3: косметика за ⭐, подарок, витрина, уважение, Аллея ----------
+env.PAY_SIM = "1";
+const pay = async (uid, k, extra = {}) => { const inv = await call(uid, "invoice", { item: "kncos", k, ...extra }); if (!inv.ok) return inv; return call(uid, "pay_sim", { pid: inv.res.pid }); };
+const own = (uid, k) => !!db.prepare("SELECT 1 FROM kn_cos WHERE uid=? AND k=?").get(uid, k);
+ok(!(await call(A, "kn_show_set", { bg: "throne" })).ok, "некупленный фон поставить нельзя");
+let pz = await pay(A, "bg_throne");
+ok(pz.ok && pz.res.status === "done" && own(A, "bg_throne"), "фон куплен за звёзды", pz);
+ok(!(await call(A, "invoice", { item: "kncos", k: "bg_throne" })).ok, "второй раз тот же фон не продаётся");
+pz = await pay(A, "fx_snow", { to: B });
+ok(pz.ok && own(B, "fx_snow") && !own(A, "fx_snow"), "фон/эффект можно подарить другу", pz);
+const gs = await call(B, "kn_show_get", {});
+ok(gs.ok && gs.res.gifts.fx_snow, "у друга видно, от кого подарок", gs);
+pz = await pay(A, "chest_imp");
+ok(own(A, "fx_goldrain") && own(A, "pl_gold") && own(A, "gr_stars"), "Сундук Императора выдаёт всё содержимое");
+const myCards = db.prepare("SELECT id FROM cards WHERE owner=? ORDER BY v DESC LIMIT 4").all(A).map(r => r.id);
+const ss = await call(A, "kn_show_set", { bg: "throne", fx: "goldrain", plate: "gold", ga: { t: "stars", c: "#2ee6ff" }, cards: myCards });
+ok(ss.ok, "витрина настроена: фон, эффект, табличка, граффити, карты на стене", ss);
+ok(!(await call(A, "kn_show_set", { ga: { t: "flame", c: "#fff" } })).ok, "некупленное граффити нельзя");
+ok(!(await call(A, "kn_show_set", { cards: [bItem.id + 999999] })).ok, "чужие карты на стену не повесить");
+const sg = await call(B, "kn_show_get", { uid: A });
+ok(sg.ok && sg.res.set.bg === "throne" && sg.res.cards.length === myCards.length && sg.res.cards[0].id === myCards[0], "гость видит витрину и настоящие карты игрока", sg);
+const r1 = await call(B, "kn_respect", { uid: A }), r2 = await call(B, "kn_respect", { uid: A });
+ok(r1.ok && r1.res.resp === 1 && !r2.ok, "уважение — раз в день от одного игрока");
+ok(!(await call(A, "kn_respect", { uid: A })).ok, "себе уважение не дать");
+await pay(A, "fw"); await pay(A, "statue");
+const al = await call(C, "kn_alley");
+ok(al.ok && al.res.fw && al.res.statues.length === 1 && al.res.statues[0].uid === A, "фейерверк и статуя на Аллее героев видны всем", al);
+const rt = await call(A, "kn_top", { kind: "resp" });
+ok(rt.ok && rt.res.items[0].uid === A, "топ уважения");
+
 if (process.exitCode) console.log("\n❌ ПРОВЕРКА РЫЦАРЯ НЕ ПРОЙДЕНА");
-else console.log("\n✅ РЫЦАРЬ РАБОТАЕТ: кузня, тиражи, сталь, переплавка, ключи за карты, рынок, заказы, обмен, подарки");
+else console.log("\n✅ РЫЦАРЬ РАБОТАЕТ: кузня, тиражи, сталь, переплавка, ключи за карты, рынок, заказы, обмен, подарки, витрина, косметика");

@@ -28,7 +28,7 @@
 7. После пуша сказать владельцу: «клиент обновится сам; для сервера выполни `voiny-update`» (если трогал rules.js/server.js/worker.js).
 
 Новый клиентский JS-файл: добавить `<script>` в `index.html` **и** имя в список в `tools/bump.py`.
-Новая таблица/колонка БД: добавить SQL в массив `MIGRATIONS` в `server/server.js` и **увеличить `SCHEMA_V`** (сейчас 84). `ALTER TABLE ... ADD COLUMN` и `CREATE TABLE IF NOT EXISTS` применяются автоматически при старте. `server/schema.sql` — только базовые таблицы.
+Новая таблица/колонка БД: добавить SQL в массив `MIGRATIONS` в `server/server.js` и **увеличить `SCHEMA_V`** (сейчас 85). `ALTER TABLE ... ADD COLUMN` и `CREATE TABLE IF NOT EXISTS` применяются автоматически при старте. `server/schema.sql` — только базовые таблицы.
 
 ## Ключевая архитектура (коротко)
 
