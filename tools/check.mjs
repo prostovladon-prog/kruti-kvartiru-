@@ -116,6 +116,17 @@ if (existsSync(path.join(root, 'server/knight-test.mjs'))) {
   }
 }
 
+/* ---------- конкурс TikTok: заявки, ссылка, авторозыгрыш, именная карта ---------- */
+if (existsSync(path.join(root, 'server/contest-test.mjs'))) {
+  try {
+    const out = execFileSync(process.execPath, ['server/contest-test.mjs'], { cwd: root, stdio: 'pipe', encoding: 'utf8', timeout: 120000 });
+    oks.push('конкурс: ' + (out.trim().split('\n').filter(l => /✅|❌/.test(l)).pop() || 'ok').replace(/^✅\s*/, ''));
+  } catch (e) {
+    const out = String(e.stdout || '') + String(e.stderr || '');
+    fails.push('тест конкурса провален:\n' + out.split('\n').filter(l => l.includes('✗')).slice(0, 6).join('\n'));
+  }
+}
+
 /* ---------- 3. версии в index.html совпадают с файлами ---------- */
 if (existsSync(path.join(root, 'index.html'))) {
   const html = read('index.html');

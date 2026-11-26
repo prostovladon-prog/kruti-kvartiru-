@@ -408,7 +408,7 @@ const EP1=["Гроза","Тень","Сердце","Клинок","Щит","Гн�
 const EP2=["Севера","Пустошей","Бездны","Рассвета","Заката","Гор","Морей","Степей","Пепла","Грома","Крови","Льда","Тьмы","Огня","Ветров","Курганов","Вальхаллы","Империи","Арены","Ночи","Драконов","Королей","Мёртвых","Звёзд"];
 function snHash(sn){let h=2166136261;for(const ch of String(sn))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0}
 /* у каждой карточки своё прозвище, оно открывается на ★3 */
-function epithet(c){const h=snHash(c.sn+"-"+c.h);return EP1[h%EP1.length]+" "+EP2[(h>>>8)%EP2.length]}
+function epithet(c){if(c&&c.nick)return c.nick;const h=snHash(c.sn+"-"+c.h);return EP1[h%EP1.length]+" "+EP2[(h>>>8)%EP2.length]}
 const away=c=>!!c.away||!!c.listed||!!c.lock;   // lock: карточка сейчас в бою на арене
 const targetPrice=(h,f)=>{const [a,b]=HT[HEROES[h][2]].b;return Math.round((a+b)/2*FIN[f].m*100)/100};
 /* крафт: «Ошибку печати» скрафтить нельзя (только выбить), у золота шанс не больше 30%.
@@ -1497,6 +1497,11 @@ const ACTIONS={
     const got=Math.round(c.v*T.k*100)/100;burn(G,[c.id]);earn(G.st,got);return {got}},
   title_buy(G){const T=TITLES[G.p.k];if(!T)fail("Нет такого титула");if(T.ex)fail("Этот титул — награда конкурса «Звезда Эпох»");if(T.pass)fail("Этот титул — награда сезонного пропуска");if(T.sup)fail("Этот титул дают за поддержку проекта от "+SUP.title+" ⭐");if(T.stars)fail("Этот титул покупается за ⭐ в Сокровищнице");const st=G.st;st.titles=st.titles||[];if(st.titles.includes(G.p.k))fail("Этот титул уже твой");
     pay(st,T.price);st.titles.push(G.p.k);st.title=G.p.k;return {k:G.p.k}},
+  ttk_prize(G){if(!G.ctx.grant)fail("Неизвестное действие");const st=G.st,out={};
+    st.titles=st.titles||[];st.frames=st.frames||[];
+    if(G.p.card){const c=rollTier(G.ctx,4);c.how="ttk_named";c.cust=1;c.frame="legend";G.cards.push(c);noteCard(st,c);out.h=c.h}
+    if(G.p.title){if(!st.titles.includes("legend"))st.titles.push("legend");if(!st.frames.includes("legend"))st.frames.push("legend");if(!st.title)st.title="legend";out.title=1}
+    return out},
   title_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const k=G.p.k,st=G.st;if(!TITLES[k])fail("Нет такого титула");st.titles=st.titles||[];const newT=!st.titles.includes(k);if(newT)st.titles.push(k);if(!G.p.keep||!st.title)st.title=k;return {k,newT}},
   cos_grant(G){if(!G.ctx.grant)fail("Неизвестное действие");const {st,p}=G,t=p.t==="pbg"?"pbg":"dfx",L=t==="pbg"?PBG:DFX;if(!L[p.k])fail("Нет такого");st[t]=st[t]||[];const nw=!st[t].includes(p.k);if(nw)st[t].push(p.k);st[t+"On"]=p.k;return {t,k:p.k,nw}},
   cos_set(G){const {st,p}=G,t=p.t==="pbg"?"pbg":"dfx",k=String(p.k||"");if(k&&!(st[t]||[]).includes(k))fail("Сначала купи");st[t+"On"]=k;return {t,k}},
@@ -1789,6 +1794,9 @@ FRAMES.champ={k:"Чемпион Башни",cost:0,only:"champ",bg:"conic-gradie
 TITLES.champ={n:"Чемпион Башни",ic:"🏆",price:0,ex:1};
 FRAMES.arena={k:"Арена",cost:0,only:"arena",bg:"conic-gradient(from 90deg,#ff5a1a,#ffd60a,#7a2cff,#ff5a1a)"};
 TITLES.arena={n:"Чемпион Арены",ic:"⚔️",price:0,ex:1};
+/* 🏆 конкурс TikTok 27–28.11: рамка и титул «Легенда» — только призы */
+FRAMES.legend={k:"Легенда",cost:0,only:"legend",bg:"conic-gradient(from 45deg,#fff3b0,#ffd23a,#ff3d8b,#8a2ae0,#ffd23a,#fff3b0)"};
+TITLES.legend={n:"Легенда",ic:"🌟",price:0,ex:1};
 function towerOf(st,now){
   if(!st.tower||typeof st.tower!=="object")st.tower={};
   const t=st.tower,wk=mskWeek(now),d=mskDay(now);
@@ -2008,7 +2016,7 @@ const KN_SETS={
  samurai:{n:"Сёгунат",r:2,src:"smith"},legion:{n:"Легион",r:2,src:"smith"},bogatyr:{n:"Богатырь",r:3,src:"smith"},pharaoh:{n:"Фараон",r:3,src:"smith"},
  /* наградные сеты: не куются и не продаются у Оружейника — только за подвиги в игре (ключ награды) */
  drake:{n:"Чешуя Горыныча",r:3,src:"award",from:"Босс недели"},champ:{n:"Чемпион Башни",r:3,src:"award",from:"Башня"},glad:{n:"Гладиатор",r:2,src:"award",from:"Арена и поединки"},
- banner:{n:"Знамя ордена",r:2,src:"award",from:"Клан и рейд ордена"},laurel:{n:"Лавры Рима",r:3,src:"award",from:"Ивент"},keeper:{n:"Хранитель эпох",r:4,src:"award",from:"Альбом эпох"}};
+ banner:{n:"Знамя ордена",r:2,src:"award",from:"Клан и рейд ордена"},flag:{n:"Знаменосец",r:3,src:"prize",from:"Конкурс TikTok"},laurel:{n:"Лавры Рима",r:3,src:"award",from:"Ивент"},keeper:{n:"Хранитель эпох",r:4,src:"award",from:"Альбом эпох"}};
 /* торговля: комиссия рынка, потолок цены, быстрая продажа, лимиты, заточка */
 const KN_TRADE={fee:.08,lots:5,lotsVip:8,orders:5,quick:.7,capX:10,giftsDay:5,ageDays:3,minForged:20};
 const KN_SMITH={price:[150000,400000,1500000,6000000],perWeek:2};   // цена части по редкости сета (обычный…мифический); шлем ×1.3, оружие ×1.5
