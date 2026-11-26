@@ -224,6 +224,11 @@ sec("7. Клан: динамический лимит, приглашение и
 
   const finish = await call(ADMIN, "ev_contrib", { coins: 100000 });
   const clanState = await call(ADMIN, "ev_state");
+  const roster = clanState.res.segmentMembers;
+  ok(roster.length === clanState.res.clanMembers &&
+    roster.some(member => member.points[0] === 500 && member.points[1] === 0) &&
+    roster.some(member => member.points.every(points => points === 0)),
+    "видны все текущие участники клана, их вклад по сегментам и нулевой вклад");
   ok(finish.ok && finish.res.added === 100 && clanState.res.clanCap === 45000 &&
     clanState.res.segs[0].points === 18000, "клан из 30 активных не упирается в старый лимит 6000", clanState.res && {
       added: finish.res && finish.res.added, cap: clanState.res.clanCap, points: clanState.res.segs[0].points,

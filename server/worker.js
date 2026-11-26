@@ -7250,7 +7250,19 @@ async function evState(env, me) {
   });
 
   let clanName = null, clanMembers = 0, kvorumCount = 0, topContrib = [], todayGiven = 0;
+  let segmentMembers;
   if (clan) {
+    const rows = (await env.DB.prepare(
+      "SELECT u.id,COALESCE(u.nick,u.name,'Игрок') AS name,c.seg,c.points " +
+      "FROM users u LEFT JOIN ev_seg_contrib c ON c.season=? AND c.key=? AND c.uid=u.id " +
+      "WHERE u.clan=? ORDER BY name COLLATE NOCASE,u.id"
+    ).bind(season, key, clan).all()).results;
+    const members = new Map();
+    for (const row of rows) {
+      if (!members.has(row.id)) members.set(row.id, { name: row.name, points: segOut.map(() => 0) });
+      if (row.seg != null && segOut[row.seg]) members.get(row.id).points[row.seg] = row.points;
+    }
+    segmentMembers = [...members.values()];
     try {
       const C = await env.DB.prepare("SELECT name,(SELECT COUNT(*) FROM users WHERE clan=clans.id) AS n FROM clans WHERE id=?").bind(clan).first();
       if (C) { clanName = C.name; clanMembers = C.n || 0; }
@@ -7289,7 +7301,7 @@ async function evState(env, me) {
     claimable: nodeOut.filter(n => n.closed && n.reward && !claimed.has(n.n) && !stateClaims.includes(n.n)).map(n => n.n),
     shop: EV.shop, starBal: (u && u.star_bal) || 0,
     kvorum: clan ? EV.kvorum : 1,
-    clanCap, clanActive: active, clanName, clanMembers, kvorumCount, topContrib,
+    clanCap, clanActive: active, clanName, clanMembers, kvorumCount, topContrib, segmentMembers,
     topClans: await evTop(env, season),
     namedGates,
     prizes: { seg: EV_PRIZES.seg.text, done: EV_PRIZES.done.text, top1: EV_PRIZES.top1.text, top2: EV_PRIZES.top2.text, top3: EV_PRIZES.top3.text },

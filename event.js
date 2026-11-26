@@ -71,8 +71,18 @@
     const d = data;
     const segs = d.segs.map(s => {
       const p = Math.min(100, Math.round(s.points / s.need * 100));
+      const members = (d.segmentMembers || []).map(m => ({ name: m.name, points: m.points[s.i] || 0 }))
+        .sort((a, b) => b.points - a.points);
+      const contributed = members.filter(m => m.points > 0).length;
+      const details = members.length ? `<details style="margin-top:4px">
+        <summary class="ev-note">Вклад участников · ${contributed} из ${members.length}</summary>
+        ${members.map(m => `<div class="ev-row" style="gap:8px;margin-top:4px">
+          <span style="min-width:0;overflow-wrap:anywhere">${esc(m.name)}</span>
+          <span style="flex-shrink:0">${m.points > 0 ? fmt(m.points) : 'Нет вклада'}</span>
+        </div>`).join('')}
+      </details>` : '';
       return `<div class="ev-row" style="margin-top:8px"><span>${['🔥 Огонь', '❄️ Лёд', '⚡ Буря', '☠️ Яд'][s.i]}</span><span>${p}%</span></div>
-        <div class="ev-bar"><i style="width:${p}%"></i></div>`;
+        <div class="ev-bar"><i style="width:${p}%"></i></div>${details}`;
     }).join('');
     const cur = d.segs.find(s => !s.done) || d.segs[d.segs.length - 1];
     const clanBox = d.solo
@@ -85,7 +95,7 @@
           <div class="ev-row" style="margin-top:4px"><span>Клан сегодня</span><span>${fmt(d.todayGiven || 0)} / ${fmt(d.clanCap || 6000)}</span></div>
           <div class="ev-bar"><i style="width:${Math.min(100, Math.round((d.todayGiven || 0) / (d.clanCap || 6000) * 100))}%"></i></div>
           <div class="ev-note">${(d.kvorumCount || 0) >= 5 ? '✅ Кворум ' + d.kvorumCount + '/5 — полный урон' : '⚠️ Кворум ' + (d.kvorumCount || 0) + '/5 — урон вполсилы'}</div>
-          ${(d.topContrib && d.topContrib.length) ? '<div class="ev-note">Вклад: ' + d.topContrib.map(t => esc(t.name) + ' ' + fmt(t.used)).join(' · ') + '</div>' : ''}
+          ${(d.topContrib && d.topContrib.length) ? '<div class="ev-note">Лидеры сегодня: ' + d.topContrib.map(t => esc(t.name) + ' ' + fmt(t.used)).join(' · ') + '</div>' : ''}
         </div>`;
     return `<div class="ev-box">
       <div class="ev-row"><span>Врата Эпох</span><b style="font-size:22px">${fmt(cur.points)} / ${fmt(cur.need)}</b></div>
