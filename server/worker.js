@@ -2741,10 +2741,10 @@ async function towerTourReady(env,me){
    Вечерний турнир на 30 мест (минимум 20): play-in, сетка на вылет, 3 раунда в бою.
    В каждом бою игрок выбирает стойку и отвечает на загадку — это даёт бонус к силе. */
 const ARN={
-  id:"arena-20261126",
-  regOpen:Date.UTC(2026,10,25,21,0),    // 26.11 00:00 Minsk — регистрация открыта заранее
-  open:Date.UTC(2026,10,26,17,30),      // 26.11 20:30 Minsk — плановое открытие турнира
-  regClose:Date.UTC(2026,10,26,17,45),  // 26.11 20:45 Minsk
+  id:"arena-20261127",
+  regOpen:Date.UTC(2026,10,26,21,0),    // 27.11 00:00 Minsk — регистрация открыта заранее
+  open:Date.UTC(2026,10,27,17,30),      // 27.11 20:30 Minsk — плановое открытие турнира
+  regClose:Date.UTC(2026,10,27,17,45),  // 27.11 20:45 Minsk
   max:30,min:1,gap:45e3,len:7*60e3,
   prizes:[
     {p:1,st:200,vip:7,keys:3,txt:"200 ⭐ + VIP 7 дней + 3 ключа + титул и рамка «Чемпион Арены» + 30 🎴"},
@@ -2938,41 +2938,61 @@ async function arnGet(env,me){
   return {phase:A.phase,now,open:ARN.open,regOpen:ARN.regOpen,regClose:ARN.regClose,max:ARN.max,min:ARN.min,count:(A.players||[]).length,online,
     players:(A.players||[]).map(p=>({uid:p.uid,name:p.name,pow:arnPow(p),joined:p.joined})),
     matches:pubM,round:A.round||"",champion:A.champion||null,places:A.places||null,paid:!!A.paid,
-    me:{joined,uid:me.id,pow:myPlayer?arnPow(myPlayer):0,out:!!((A.out||{})[me.id]),place:(A.places||{})[me.id]||0,active:mine?mine.id:null,puzzle:mine?{q:(ARN_PUZZLES[mine.puzzle]||{}).q,o:(ARN_PUZZLES[mine.puzzle]||{}).o}:null,
+    me:{joined,uid:me.id,pow:myPlayer?arnPow(myPlayer):0,squad:myPlayer?myPlayer.squad.map(c=>({id:c.id,h:c.h,sn:c.sn,pow:towerCardPow(c)})):[],out:!!((A.out||{})[me.id]),place:(A.places||{})[me.id]||0,active:mine?mine.id:null,puzzle:mine?{q:(ARN_PUZZLES[mine.puzzle]||{}).q,o:(ARN_PUZZLES[mine.puzzle]||{}).o}:null,
       pick:mine&&mine.picks[me.id]?{s:mine.picks[me.id].s,q:mine.picks[me.id].q}:null,deadline:mine?mine.deadline:0},
     stances:ARN_STANCES,prizes:ARN.prizes,started:!!A.round};
 }
-async function arnJoin(env,me){
+async function arnCards(env,me){
+  const rows=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND part=0").bind(me.id).all()).results;
+  return rows.map(rowToCard).map(card=>({card,pow:towerCardPow(card)}))
+    .sort((a,b)=>b.pow-a.pow||a.card.id-b.card.id);
+}
+async function arnRoster(env,me){
+  if(Date.now()<ARN.regOpen||Date.now()>=ARN.regClose)fail("Регистрация закрыта");
+  const cards=await arnCards(env,me);
+  return {cards:cards.map(({card,pow})=>({id:card.id,h:card.h,sn:card.sn,pow}))};
+}
+async function arnJoin(env,me,p){
   const now=Date.now();
   if(now<ARN.regOpen)fail("Регистрация в Арену ещё не открыта");
-  if(now>ARN.regClose)fail("Набор в Арену уже закрыт");
-  const rows=(await env.DB.prepare("SELECT * FROM cards WHERE owner=? AND list_price IS NULL AND away=0 AND room_id IS NULL AND part=0").bind(me.id).all()).results;
-  if(rows.length<3)fail("Для Арены нужно минимум 3 карты в коллекции");
-  const squad=rows.map(r=>rowToCard(r)).sort((a,b)=>towerCardPow(b)-towerCardPow(a)).slice(0,3).map(arnSnap);
+  if(now>=ARN.regClose)fail("Набор в Арену уже закрыт");
+  const cards=await arnCards(env,me);
+  if(cards.length<3)fail("Для Арены нужно минимум 3 доступные карты");
+  let squad=cards.slice(0,3).map(x=>x.card);
+  if(p.cards!==undefined){
+    if(!Array.isArray(p.cards)||p.cards.length!==3||new Set(p.cards).size!==3||
+        p.cards.some(id=>!Number.isSafeInteger(id)))fail("Выбери три разные карты");
+    const byId=new Map(cards.map(x=>[x.card.id,x.card]));
+    squad=p.cards.map(id=>byId.get(id));
+    if(squad.some(card=>!card))fail("Одна из карт больше недоступна для Арены");
+  }
   const name=await nameOf(env,me.id);
-  let lastCount=0,lastPhase="reg";
-  for(let attempt=0;attempt<3;attempt++){
-    let A=await kvGet(env,arnKey());
-    if(!A)A={phase:"reg",players:[],matches:{},t:now,puz:0};
+  const key=arnKey();
+  for(let attempt=0;attempt<5;attempt++){
+    const t=Date.now();
+    const row=await env.DB.prepare("SELECT v FROM kv WHERE k=?").bind(key).first();
+    const A=row?JSON.parse(row.v):{phase:"reg",players:[],matches:{},t,puz:0};
     if(A.phase==="wait")A.phase="reg";
     A.players=A.players||[];
-    if(A.players.some(p=>p.uid===me.id))return {ok:1,already:1,count:A.players.length,phase:A.phase};
-    if(A.phase!=="reg")fail("Набор в Арену уже закрыт");
-    if(A.players.length>=ARN.max)fail("Все 30 мест заняты");
-    A.players.push({uid:me.id,name,squad,joined:now});
-    A.t=now;
-    await arnAdvance(env,A,now);
-    await kvSet(env,arnKey(),A);
-    lastCount=A.players.length;lastPhase=A.phase;
-    if(attempt<2)await new Promise(r=>setTimeout(r,60+attempt*80));
-    const chk=await kvGet(env,arnKey());
-    if(chk&&(chk.players||[]).some(p=>p.uid===me.id)){
-      const count=(chk.players||[]).length,phase=chk.phase;
-      try{await notify(env,me.id,"⚔️ Ты в Арене! Место "+count+" из 30.\n\n"+(phase==="reg"?"Ждём остальных. Набор закроется в 20:45 или когда заполнятся все 30 мест. Турнир состоится в любом случае.":"Сетка уже собрана — твой бой скоро начнётся.")+"\n\nОткрой «Башня → Арена».","⚔️ В Арену",PAGE+"?tower=1&arena=1")}catch(e){}
-      return {ok:1,count,phase};
-    }
+    if(A.phase!=="reg"||t>=ARN.regClose||
+        (A.players.length>=ARN.max&&t>=ARN.open))fail("Набор в Арену уже закрыт");
+    const player=arnPlayer(A,me.id);
+    if(player&&p.cards===undefined)return {ok:1,already:1,count:A.players.length,phase:A.phase};
+    if(!player&&A.players.length>=ARN.max)fail("Все 30 мест заняты");
+    if(player) player.squad=squad;
+    else A.players.push({uid:me.id,name,squad,joined:t});
+    A.t=t;
+    const next=JSON.stringify(A);
+    const saved=row
+      ? await env.DB.prepare("UPDATE kv SET v=? WHERE k=? AND v=?").bind(next,key,row.v).run()
+      : await env.DB.prepare("INSERT OR IGNORE INTO kv(k,v) VALUES(?,?)").bind(key,next).run();
+    if(saved.meta.changes!==1)continue;
+    if(!player)try{
+      await notify(env,me.id,"⚔️ Ты в Арене! Состав можно изменить до закрытия набора. Сетка соберётся в 20:45 по Минску или раньше, если после 20:30 заполнятся все 30 мест.","⚔️ В Арену",PAGE+"?tower=1&arena=1");
+    }catch(e){}
+    return {ok:1,updated:!!player,count:A.players.length,phase:A.phase};
   }
-  fail("Не удалось записаться из-за одновременных заявок. Попробуй ещё раз");
+  fail("Не удалось сохранить состав из-за одновременных заявок. Попробуй ещё раз");
 }
 async function arnPick(env,me,p){
   const now=Date.now();
@@ -8495,7 +8515,8 @@ async function handle(req,env){{
       if(a==="tower_tour_get"){const r=await towerTourGet(env,me);return J({ok:true,res:r})}
       if(a==="tower_tour_ready"){const r=await towerTourReady(env,me);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(a==="tower_arena_get"){const r=await arnGet(env,me);return J({ok:true,res:r})}
-      if(a==="tower_arena_join"){const r=await arnJoin(env,me);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(a==="tower_arena_roster")return J({ok:true,res:await arnRoster(env,me)});
+      if(a==="tower_arena_join")return J({ok:true,res:await arnJoin(env,me,p)});
       if(a==="tower_arena_pick"){const r=await arnPick(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(/^kn_/.test(a)){const res=await knApi(env,me,a,p);return J({ok:true,res,S:/^kn_(buy|sell|ord_|trade_answer|smith_buy|sharpen|engrave|duel$)/.test(a)?await stateFor(env,me):undefined})}
       if(!ACTIONS[a])fail("Неизвестное действие");

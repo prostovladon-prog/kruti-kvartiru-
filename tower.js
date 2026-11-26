@@ -146,7 +146,7 @@
 
   function twOpen() {
     if (!S || !S.tower) { toast("Башня ещё не подключена. Обнови игру"); return; }
-    const el = ensure(); el.hidden = false; twTab = "main"; twRes = null; twTop = null; twTourData = null; twArena = null; twArenaSel = { id: "", st: null, q: null }; twRender();
+    const el = ensure(); el.hidden = false; twTab = "main"; twRes = null; twTop = null; twTourData = null; twArena = null; twArenaRoster = null; twArenaSel = { id: "", st: null, q: null }; twRender();
     try { hap("light"); } catch (e) {}
   }
   function twClose() { const el = $("tower"); if (el) el.hidden = true; twStopTour(); twStopArena(); }
@@ -360,6 +360,7 @@
   }
 
   /* ⚔️ Арена 20:30 */
+  let twArenaRoster = null, twArenaCards = [];
   function twStopArena() { if (twArenaTimer) { clearInterval(twArenaTimer); twArenaTimer = 0; } }
   function twArenaClock(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
   function twArenaLoad() {
@@ -370,16 +371,65 @@
     if (twArenaTimer) return;
     twArenaTimer = setInterval(async () => {
       if (twTab !== "arena") { twStopArena(); return; }
+      if (twArenaRoster || twArenaBusy) return;
       try { const r = await act("tower_arena_get", {}); if (r) { twArena = r; twRender(); } } catch (e) {}
     }, 2500);
   }
-  async function twArenaJoin() {
-    if (twArenaBusy) return; twArenaBusy = true;
+  async function twArenaEdit() {
+    if (twArenaBusy) return;
+    twArenaBusy = true;
     try {
-      const r = await act("tower_arena_join", {});
-      if (r) { toast("⚔️ Ты в Арене!"); try { hapN("success"); } catch (e) {} twArena = null; await new Promise(z => setTimeout(z, 250)); twArenaLoad(); }
-    } catch (e) { toast(e.message || "Не получилось"); }
-    finally { twArenaBusy = false; }
+      const r = await act("tower_arena_roster", {});
+      if (!r || twTab !== "arena") return;
+      twArenaRoster = r.cards;
+      const available = new Set(r.cards.map(c => c.id));
+      twArenaCards = (twArena.me.squad || []).map(c => c.id).filter(id => available.has(id));
+      twRender();
+    } finally { twArenaBusy = false; }
+  }
+  async function twArenaJoin() {
+    if (twArenaBusy || twArenaCards.length !== 3) return;
+    twArenaBusy = true;
+    try {
+      const r = await act("tower_arena_join", { cards: twArenaCards });
+      if (r) {
+        toast(r.updated ? "✅ Состав сохранён" : "⚔️ Ты в Арене!");
+        twArenaRoster = null;
+        twArenaLoad();
+      }
+    } finally { twArenaBusy = false; }
+  }
+  function twArenaCardLabel(c) {
+    return esc((HEROES[c.h] || ["Карта"])[0]) + " №" + esc(c.sn) + " · " + c.pow;
+  }
+  function twArenaEditor() {
+    if (twArenaRoster.length < 3) return '<div class="tw-note">Для Арены нужны 3 доступные карты.</div>' +
+      '<button type="button" class="tw-btn ghost" id="tw-arena-cancel">Назад</button>';
+    const selected = new Set(twArenaCards);
+    const byId = new Map(twArenaRoster.map(c => [c.id, c]));
+    return '<div class="tw-note">Выбери 3 карты в порядке раундов. Число рядом с картой — её сила на Арене.</div>' +
+      twArenaCards.map((id, i) => '<div class="tw-row"><span class="nm">' + (i + 1) + '. ' + twArenaCardLabel(byId.get(id)) +
+        '</span><button type="button" class="tw-btn ghost" data-arena-remove="' + i + '">Убрать</button></div>').join("") +
+      (twArenaCards.length < 3 ? '<select id="tw-arena-card" aria-label="Добавить карту" style="max-width:100%;width:100%;min-height:44px">' +
+        '<option value="">Добавить карту</option>' + twArenaRoster.filter(c => !selected.has(c.id))
+          .map(c => '<option value="' + c.id + '">' + twArenaCardLabel(c) + '</option>').join("") + '</select>' : '') +
+      '<button type="button" class="tw-btn ghost" id="tw-arena-auto"' + (twArenaRoster.length < 3 ? ' disabled' : '') + '>Выбрать сильнейших</button>' +
+      '<button type="button" class="tw-btn red" id="tw-arena-save"' + (twArenaCards.length !== 3 ? ' disabled' : '') + '>Подтвердить состав</button>' +
+      '<button type="button" class="tw-btn ghost" id="tw-arena-cancel">Назад</button>';
+  }
+  function twBindArenaEditor() {
+    $("tw-arena-cancel").onclick = () => { twArenaRoster = null; twArenaLoad(); };
+    if (!$("tw-arena-auto")) return;
+    const select = $("tw-arena-card");
+    if (select) select.onchange = () => {
+      if (select.value) { twArenaCards.push(Number(select.value)); twRender(); }
+    };
+    $("tw-body").querySelectorAll("[data-arena-remove]").forEach(button => button.onclick = () => {
+      twArenaCards.splice(Number(button.dataset.arenaRemove), 1);
+      twRender();
+    });
+    $("tw-arena-auto").onclick = () => { twArenaCards = twArenaRoster.slice(0, 3).map(c => c.id); twRender(); };
+    $("tw-arena-save").onclick = twArenaJoin;
   }
   async function twArenaPick() {
     const D = twArena; if (!D || !D.me.active || twArenaBusy) return;
@@ -473,8 +523,8 @@
     const D = twArena, now = Date.now();
     let h = '<div class="tw-arena-ban"><b>⚔️ АРЕНА 20:30</b><small>Турнир на 30 мест · стойка + загадка + 3 раунда</small></div>';
     if (D.phase === "wait") {
-      h += '<div class="tw-arena-clock">' + twArenaClock(D.open - now) + '<small>ДО ОТКРЫТИЯ</small></div>' +
-        '<div class="tw-note">В 20:30 появятся 30 мест. Первые 30, кто нажмёт «Участвовать», попадут в сетку. Набор закроется в 20:45. Если 30 не наберётся — старт в 20:45 с теми, кто есть. Турнир состоится в любом случае.</div>' +
+      h += '<div class="tw-arena-clock">' + twArenaClock(D.regOpen - now) + '<small>ДО ОТКРЫТИЯ</small></div>' +
+        '<div class="tw-note">В сетку попадут первые 30 игроков, подтвердивших состав. Набор закроется в 20:45. Если 30 не наберётся — старт в 20:45 с теми, кто есть. Турнир состоится в любом случае.</div>' +
         twArenaPrizes(D) + twArenaRules();
       $("tw-body").innerHTML = h; twArenaPoll(); return;
     }
@@ -483,17 +533,21 @@
       h += '<div class="tw-arena-clock">' + twArenaClock(left) + '<small>ДО ЗАКРЫТИЯ НАБОРА</small></div>' +
         '<div class="tw-note">Свободно мест: <b style="color:#ffd60a">' + slots + '</b> из ' + D.max + ' · уже в турнире: <b>' + D.count + '</b> · сейчас в игре: <b>' + D.online + '</b></div>' +
         '<div class="tw-note">Турнир состоится в любом случае. Если 30 не наберётся, старт в 20:45 с теми, кто есть. Минимум нет.</div>';
+      if (twArenaRoster) {
+        $("tw-body").innerHTML = h + twArenaEditor();
+        twBindArenaEditor();
+        return;
+      }
       if (D.me.joined) {
-        const me = (D.players || []).find(p => p.uid === D.me.uid) || {};
-        h += '<div class="tw-arena-champ"><b>✅ Ты в турнире</b><small>Место ' + D.count + ' из ' + D.max + ' · сила отряда ' + (me.pow || 0) + '</small></div>' +
-          '<div class="tw-note">Ждём остальных. Когда наберётся 30 или в 20:45 — сетка соберётся автоматически, и твой бой начнётся. Турнир состоится в любом случае.</div>';
+        h += '<div class="tw-arena-champ"><b>✅ Ты в турнире</b><small>Сила отряда ' + D.me.pow + '</small></div>' +
+          (D.me.squad || []).map((c, i) => '<div class="tw-note">' + (i + 1) + '. ' + twArenaCardLabel(c) + '</div>').join('') +
+          '<button type="button" class="tw-btn ghost" id="tw-arena-join">Изменить состав</button>';
       } else {
-        h += '<button type="button" class="tw-btn red" id="tw-arena-join"' + (slots <= 0 ? " disabled" : "") + '>⚔️ Участвовать · осталось ' + slots + '</button>' +
-          '<div class="tw-note">В турнир берутся 3 твои лучшие карты. Нужно минимум 3 карты в коллекции.</div>';
+        h += '<button type="button" class="tw-btn red" id="tw-arena-join"' + (slots <= 0 ? " disabled" : "") + '>⚔️ Выбрать состав · осталось ' + slots + '</button>';
       }
       h += twArenaPlayers(D) + twArenaPrizes(D) + twArenaRules();
       $("tw-body").innerHTML = h;
-      if ($("tw-arena-join")) $("tw-arena-join").onclick = twArenaJoin;
+      $("tw-arena-join").onclick = twArenaEdit;
       twArenaPoll(); return;
     }
     if (D.phase === "failed") {

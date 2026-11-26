@@ -89,7 +89,7 @@ const reactionPoster = readFileSync(path.join(root, "event-assets/reactions-2026
 assert.equal(reactionPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
 assert.equal(reactionPoster.readUInt32BE(16), 1080);
 assert.equal(reactionPoster.readUInt32BE(20), 1350);
-assert.ok(server.includes('id:"arena-20261126"') &&
+assert.ok(server.includes('id:"arena-20261127"') &&
   server.includes("max:30,min:1") &&
   server.includes("A.players.length===1") &&
   server.includes("const ARN_PUZZLES") &&
@@ -97,7 +97,7 @@ assert.ok(server.includes('id:"arena-20261126"') &&
   server.includes("tower_arena_join") &&
   server.includes("tower_arena_pick") &&
   server.includes("try{await arnTick(env)}catch(e){console.error('arena',e)}"),
-  "26.11 arena must support 30 seats, no minimum, bracket battles, puzzles and scheduled ticks");
+  "27.11 arena must support 30 seats, no minimum, bracket battles, puzzles and scheduled ticks");
 assert.ok(server.includes('id:"arena-announce-20261126",on:true') &&
   server.includes('id:"arena-open-20261126",on:true') &&
   server.includes("?tower=1&arena=1"),

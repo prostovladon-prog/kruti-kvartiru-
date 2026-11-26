@@ -25,7 +25,7 @@ const env = { DB, DEV: "1", TEST: "1", BOT_TOKEN: "123:TEST", NO_RARE: "1", NOTI
 db.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)");
 db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES('chal',?)").run(JSON.stringify({ id: "off", start: 0, end: 0, prizes: [], slots: [] }));
 
-let NOW = Date.UTC(2026, 10, 26, 17, 31); // 26.11 20:31 Minsk
+let NOW = Date.UTC(2026, 10, 26, 21, 1); // 27.11 00:01 Minsk
 Date.now = () => NOW;
 const worker = (await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "worker.js"))).toString("base64"))).default;
 
@@ -44,19 +44,31 @@ for (const id of ids) {
       .run(id, k + 1, 0, 1000 + id * 10 + k, "a" + id + "_" + k, 0, 100 + id + k * 10, JSON.stringify([20 + id % 5, 20, 20, 20, 20]), NOW);
   }
 }
-const j = await call(ids[0], "tower_arena_join");
-ok(j.ok, "first join", j);
+const roster = await call(ids[0], "tower_arena_roster");
+const chosen = roster.res.cards.map(c => c.id).reverse();
+const otherRoster = await call(ids[1], "tower_arena_roster");
+ok(!(await call(ids[0], "tower_arena_join", { cards: [chosen[0], chosen[0], chosen[1]] })).ok, "duplicate cards rejected");
+ok(!(await call(ids[0], "tower_arena_join", { cards: [chosen[0], chosen[1], otherRoster.res.cards[0].id] })).ok, "foreign card rejected");
+const j = await call(ids[0], "tower_arena_join", { cards: chosen });
+ok(j.ok, "early registration accepts manual order", j);
+let initial = await call(ids[0], "tower_arena_get");
+ok(initial.res.me.squad.map(c => c.id).join() === chosen.join(), "manual round order preserved");
+const edited = chosen.slice().reverse();
+ok((await call(ids[0], "tower_arena_join", { cards: edited })).res.updated, "registered player can edit their squad");
+initial = await call(ids[0], "tower_arena_get");
+ok(initial.res.count === 1 && initial.res.me.squad.map(c => c.id).join() === edited.join(), "editing preserves seat and replaces order");
 for (let i = 1; i < ids.length; i++) {
   const r = await call(ids[i], "tower_arena_join");
   if (!r.ok) console.log("join fail", ids[i], r);
 }
 let g = await call(ids[0], "tower_arena_get");
 if (g.res && g.res.phase === "reg") {
-  NOW = Date.UTC(2026, 10, 26, 17, 45, 1);
+  NOW = Date.UTC(2026, 10, 27, 17, 45, 1);
   g = await call(ids[0], "tower_arena_get");
 }
 ok(g.ok && g.res.phase === "run", "bracket built after " + N + " joins", g.res && { phase: g.res.phase, count: g.res.count, matches: Object.keys(g.res.matches || {}).length });
 ok(g.res.count === N, N + " players");
+ok(!(await call(ids[0], "tower_arena_join", { cards: chosen })).ok, "squad frozen after registration closes");
 let size = 1; while (size < N) size *= 2;
 const playin = N - size / 2;
 console.log("rounds:", [...new Set(g.res.matches.map(m => m.round))]);
