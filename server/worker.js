@@ -6713,8 +6713,8 @@ async function reactionCodePost(env,B,st){
     if(!claim.meta||claim.meta.changes!==1)return false;
   }
   st.rev=lockValue;await kvSet(env,k,st);
-  await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,?,?,?,?,?,0,0,0,0)")
-    .bind(promoKey(code),SP,CA,MX,B.codeUntil||now+864e5,now).run();
+  await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,40,0,0,?,?,0,0,0,0)")
+    .bind(promoKey(code),B.codeUntil||now+864e5,now).run();
   const cap="🎉 "+G+" РЕАКЦИЙ ЕСТЬ — ДЕРЖИТЕ!\n\n🎟 Промокод: "+code+"\n🎴 "+SP+" прокруток"+
     (CA?" + 💰 "+CA.toLocaleString("ru")+" монет":"")+
     (MX?"\n\n⚠️ Только первые "+MX+" активаций — бегом! 🏃":"\n\nАктивируй сегодня до 23:59 по Минску.")+
@@ -6733,7 +6733,7 @@ async function reactionCodePost(env,B,st){
 
 async function fire30React(env,R){
   if(!R||!R.chat||String(R.chat.username||"").toLowerCase()!==CHANNEL.slice(1))return;
-  const now=Date.now(),B=[KN_REACT,TOWER_REACT,REACT4,REACT3,REACT2,FIRE30].find(C=>C.on&&C.at!=null&&now>=C.at&&now<(C.until||C.at+6*36e5));
+  const now=Date.now(),B=[TOWER_REACT,REACT4,REACT3,REACT2,FIRE30].concat([KN_REACT]).find(C=>C.on&&C.at!=null&&now>=C.at&&now<(C.until||C.at+6*36e5));
   if(!B)return;
   const G=B.goal||30,k="blast:"+B.id,st=await kvGet(env,k);
   console.log("react upd",R.message_id,st&&st.mid,(R.reactions||[]).length);
