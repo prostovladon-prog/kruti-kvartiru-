@@ -1978,7 +1978,64 @@ ACTIONS.tower_arena_prize=function(G){
   return out;
 };
 
-if(typeof module!=="undefined")module.exports={EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
+
+/* ===================== ⚔️ РЫЦАРЬ: части доспеха как карточки =====================
+   Сила рыцаря действует только у рыцаря (поединки, рейд, топ рыцарей) — на карты не влияет.
+   Ключи кузни только бесплатные. Шансы считает сервер. */
+const KN_SLOTS=["helm","shoulders","chest","legs","boots","weapon"];
+const KN_SLOT_N=["Шлем","Наплечники","Нагрудник","Ноги","Сапоги","Оружие"];
+const KN_SLOT_IC=["🪖","🛡","🎽","🦵","🥾","🗡"];
+const KN_SLOT_W=[10,21,21,21,21,6];           // шлем и оружие реже
+const KN_SLOT_M=[1.1,1,1.3,1,.9,1.4];         // вклад слота в силу
+const KN_RAR=[
+ {k:"Обычный",c:"#8f9bb3",w:56,base:20,steel:8,craft:30,v:2000},
+ {k:"Редкий",c:"#3a8aff",w:28,base:28,steel:12,craft:60,v:6000},
+ {k:"Эпический",c:"#bf5af2",w:12.5,base:36,steel:20,craft:150,v:20000},
+ {k:"Мифический",c:"#ff7a00",w:3.2,base:46,steel:32,craft:400,v:80000},
+ {k:"Легендарный",c:"#ffd60a",w:.3,base:56,steel:50,craft:0,v:300000}];
+const KN_FORGE=[
+ {k:"Обычная",w:89.5,cap:0,m:1,pv:1},
+ {k:"Закалённая",w:8,cap:1000,m:1.06,pv:3},
+ {k:"Гравированная",w:2,cap:100,m:1.12,pv:15},
+ {k:"Золотая",w:.45,cap:10,m:1.25,pv:100},
+ {k:"Ошибка ковки",w:.05,cap:1,m:1.4,pv:1000}];
+/* сеты: r — редкость, src — откуда (forge — кузня), night — только ночью по Минску */
+const KN_SETS={
+ bronze:{n:"Бронзовый век",r:0,src:"forge"},iron:{n:"Железная рать",r:0,src:"forge"},
+ steel:{n:"Стальной страж",r:1,src:"forge"},moon:{n:"Лунный страж",r:1,src:"forge"},sapph:{n:"Сапфировый паладин",r:1,src:"forge"},
+ emer:{n:"Изумрудный дракон",r:2,src:"forge"},viking:{n:"Варяг",r:2,src:"forge"},ruby:{n:"Рубиновый клинок",r:2,src:"forge"},frost:{n:"Морозный",r:2,src:"forge"},
+ obsid:{n:"Обсидиан",r:3,src:"forge",night:1},imper:{n:"Император",r:3,src:"forge"},
+ gold:{n:"Золотой лев",r:4,src:"forge"}};
+const KN_PITY={e:40,m:160};
+const KN_KEYS={start:10,refill:4*3600e3,stock:3,perSpins:10};
+const KN_SET_BONUS=[[6,.15],[4,.08],[2,.03]];
+const KN_RANKS=[[420,"Легенда"],[320,"Гранд-мастер"],[230,"Паладин"],[150,"Рыцарь"],[0,"Оруженосец"]];
+const KN_MERGE=3;
+const knSetIds=()=>Object.keys(KN_SETS);
+const knForgeSets=()=>knSetIds().filter(k=>KN_SETS[k].src==="forge");
+const knNight=now=>new Date(now+3*3600e3).getUTCHours()<6;
+const knWeekSet=now=>{const L=knForgeSets().filter(k=>KN_SETS[k].r<4&&!KN_SETS[k].night);return L[Math.floor((now+3*3600e3+3*864e5)/6048e5)%L.length]};
+/* сила одной части */
+function knPartPow(it){const S=KN_SETS[it.set];if(!S)return 0;return Math.round(KN_RAR[S.r].base*KN_SLOT_M[it.slot]*(it.q/100)*KN_FORGE[it.forge].m*(1+.02*(it.sh||0)))}
+/* сила рыцаря: сумма частей + бонусы за 2/4/6 частей одного сета */
+function knPower(items){let s=0;const c={};for(const it of items){if(!it)continue;s+=knPartPow(it);c[it.set]=(c[it.set]||0)+1}
+ let b=0;for(const k in c){const t=KN_SET_BONUS.find(x=>c[k]>=x[0]);if(t)b+=t[1]}return {pow:Math.round(s*(1+b)),bonus:b,counts:c}}
+const knRank=p=>KN_RANKS.find(x=>p>=x[0])[1];
+/* оценка в монетах */
+function knValue(it){const S=KN_SETS[it.set];if(!S)return 0;const sm=it.slot===5?1.5:it.slot===0?1.3:1;const nice=it.no===1?3:(it.no===777||it.no===100||it.no===1000)?1.5:1;
+ return Math.round(KN_RAR[S.r].v*KN_FORGE[it.forge].pv*(.6+.4*it.q/100)*sm*nice)}
+/* качество 70–100: чаще 80–90, 99–100 примерно 1 из 100 */
+function knRollQ(rnd){if(rnd()<.01)return rnd()<.3?100:99;return Math.min(98,70+Math.round(30*(rnd()+rnd()+rnd())/3))}
+function knPick(W,rnd){const t=W.reduce((a,b)=>a+b,0);let r=rnd()*t;for(let i=0;i<W.length;i++){r-=W[i];if(r<0)return i}return W.length-1}
+/* одна прокрутка кузни: ctx {now,pe,pm,hour} → {set,slot,forge,q,pity:"e"|"m"|null} */
+function knRoll(rnd,ctx){const now=ctx.now,night=knNight(now),week=knWeekSet(now);let r,pity=null;
+ if((ctx.pm|0)+1>=KN_PITY.m){r=3;pity="m"}else if((ctx.pe|0)+1>=KN_PITY.e){r=2+knPick([KN_RAR[2].w,KN_RAR[3].w,KN_RAR[4].w],rnd);pity="e"}else r=knPick(KN_RAR.map(x=>x.w),rnd);
+ let L=knForgeSets().filter(k=>KN_SETS[k].r===r&&(!KN_SETS[k].night||night));if(!L.length)L=knForgeSets().filter(k=>KN_SETS[k].r===r);
+ const set=L[knPick(L.map(k=>k===week?3:1),rnd)];
+ const fw=KN_FORGE.map((f,i)=>i&&ctx.hour?f.w*2:f.w);
+ return {set,slot:knPick(KN_SLOT_W,rnd),forge:knPick(fw,rnd),q:knRollQ(rnd),pity}}
+
+if(typeof module!=="undefined")module.exports={KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -2012,7 +2069,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=82;const NEWB_MS=3*864e5;
+const SCHEMA_V=83;const NEWB_MS=3*864e5;
 const MIGRATIONS=[
  "CREATE TABLE IF NOT EXISTS recruit_entries (event TEXT NOT NULL,uid INTEGER NOT NULL,inviter INTEGER NOT NULL,opened_at INTEGER NOT NULL,checked_at INTEGER NOT NULL DEFAULT 0,qualified_at INTEGER NOT NULL DEFAULT 0,qualified INTEGER NOT NULL DEFAULT 0,reason TEXT NOT NULL DEFAULT 'pending',retry_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,uid))",
  "CREATE TABLE IF NOT EXISTS recruit_awards (event TEXT NOT NULL,place INTEGER NOT NULL,uid INTEGER NOT NULL,n INTEGER NOT NULL,spins INTEGER NOT NULL,paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,place),UNIQUE(event,uid))",
@@ -2120,7 +2177,8 @@ const MIGRATIONS=[
  "CREATE TABLE IF NOT EXISTS trophies (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, k TEXT NOT NULL, ic TEXT, txt TEXT, t INTEGER, UNIQUE(uid,k))","CREATE INDEX IF NOT EXISTS trophies_u ON trophies(uid,t)",
  "CREATE TABLE IF NOT EXISTS pair_got (uid INTEGER NOT NULL, other INTEGER NOT NULL, card INTEGER, t INTEGER, PRIMARY KEY(uid,other))",
  "CREATE TABLE IF NOT EXISTS clan_ww (clan INTEGER NOT NULL, wk TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,wk))",
- "CREATE INDEX IF NOT EXISTS friends_f ON friends(fid)","CREATE TABLE IF NOT EXISTS fol_got (uid INTEGER NOT NULL, tier INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,tier))"];
+ "CREATE INDEX IF NOT EXISTS friends_f ON friends(fid)","CREATE TABLE IF NOT EXISTS fol_got (uid INTEGER NOT NULL, tier INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,tier))",
+ "CREATE TABLE IF NOT EXISTS kn_users (uid INTEGER PRIMARY KEY, keys INTEGER NOT NULL DEFAULT 0, kt INTEGER NOT NULL DEFAULT 0, steel INTEGER NOT NULL DEFAULT 0, pe INTEGER NOT NULL DEFAULT 0, pm INTEGER NOT NULL DEFAULT 0, sp INTEGER NOT NULL DEFAULT 0, eq TEXT NOT NULL DEFAULT '{}', look TEXT, pow INTEGER NOT NULL DEFAULT 0, forged INTEGER NOT NULL DEFAULT 0, created INTEGER)","CREATE INDEX IF NOT EXISTS kn_users_pow ON kn_users(pow)","CREATE TABLE IF NOT EXISTS kn_items (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL DEFAULT 0, no INTEGER NOT NULL, q INTEGER NOT NULL, v REAL NOT NULL DEFAULT 0, sh INTEGER NOT NULL DEFAULT 0, created INTEGER, UNIQUE(set_id,slot,forge,no))","CREATE INDEX IF NOT EXISTS kn_items_owner ON kn_items(owner)","CREATE INDEX IF NOT EXISTS kn_items_rare ON kn_items(forge,id)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -7839,6 +7897,86 @@ async function evAdmin(env, me, p) {
 
 /* =============== /ИВЕНТ =============== */
 
+/* ===================== ⚔️ РЫЦАРЬ (этап 1): кузня, части с номерами, надеть, сталь, переплавка, топ =====================
+   Карты не затрагиваются: отдельные таблицы kn_users и kn_items. Ключи только бесплатные. */
+const knRnd=()=>crypto.getRandomValues(new Uint32Array(1))[0]/4294967296;
+const knPub=r=>({id:r.id,set:r.set_id,slot:r.slot,forge:r.forge,no:r.no,q:r.q,v:r.v,sh:r.sh||0});
+async function knInsert(env,uid,x,strict){for(let f=x.forge;f>=(strict?x.forge:0);f--){const cap=KN_FORGE[f].cap;
+  for(let t=0;t<6;t++){let no;
+   if(cap){const used=new Set((await env.DB.prepare("SELECT no FROM kn_items WHERE set_id=? AND slot=? AND forge=?").bind(x.set,x.slot,f).all()).results.map(r=>r.no));no=0;for(let i=1;i<=cap;i++)if(!used.has(i)){no=i;break}if(!no)break}
+   else no=(((await env.DB.prepare("SELECT MAX(no) AS m FROM kn_items WHERE set_id=? AND slot=? AND forge=0").bind(x.set,x.slot).first())||{}).m|0)+1+t;
+   const it={set:x.set,slot:x.slot,forge:f,no,q:x.q};it.v=knValue(it);
+   try{const r=await env.DB.prepare("INSERT INTO kn_items(owner,set_id,slot,forge,no,q,v,created) VALUES(?,?,?,?,?,?,?,?)").bind(uid,it.set,it.slot,f,no,it.q,it.v,Date.now()).run();
+    it.id=r.meta.last_row_id||(await env.DB.prepare("SELECT id FROM kn_items WHERE set_id=? AND slot=? AND forge=? AND no=?").bind(it.set,it.slot,f,no).first()).id;return it}catch(e){if(!/UNIQUE/i.test(String(e&&e.message)))throw e}}}
+ if(strict)fail("Тираж ковки «"+KN_FORGE[x.forge].k+"» для этой части закончился");fail("Кузня перегружена, попробуй ещё раз")}
+async function knUser(env,uid){const now=Date.now();let u=await env.DB.prepare("SELECT * FROM kn_users WHERE uid=?").bind(uid).first();
+ if(!u){const ins=await env.DB.prepare("INSERT OR IGNORE INTO kn_users(uid,keys,kt,created) VALUES(?,?,?,?)").bind(uid,KN_KEYS.start,now,now).run();
+  if(ins.meta.changes===1){const eq={};for(let sl=0;sl<6;sl++){const it=await knInsert(env,uid,{set:"bronze",slot:sl,forge:0,q:80});eq[sl]=it.id}
+   const P=knPower(KN_SLOTS.map((_,sl)=>({set:"bronze",slot:sl,forge:0,q:80})));
+   await env.DB.prepare("UPDATE kn_users SET eq=?,look=?,pow=? WHERE uid=?").bind(JSON.stringify(eq),JSON.stringify(Array(6).fill("bronze")),P.pow,uid).run()}
+  u=await env.DB.prepare("SELECT * FROM kn_users WHERE uid=?").bind(uid).first()}
+ if(u.keys<KN_KEYS.stock){const n=Math.floor((now-u.kt)/KN_KEYS.refill);if(n>0){const add=Math.min(n,KN_KEYS.stock-u.keys),kt=u.keys+add>=KN_KEYS.stock?now:u.kt+add*KN_KEYS.refill;
+   const r=await env.DB.prepare("UPDATE kn_users SET keys=keys+?,kt=? WHERE uid=? AND kt=?").bind(add,kt,uid,u.kt).run();if(r.meta.changes){u.keys+=add;u.kt=kt}}}
+ else if(now-u.kt>KN_KEYS.refill){await env.DB.prepare("UPDATE kn_users SET kt=? WHERE uid=?").bind(now,uid).run();u.kt=now}
+ u.eq=JSON.parse(u.eq||"{}");return u}
+async function knItems(env,uid){return (await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? ORDER BY forge DESC,v DESC LIMIT 600").bind(uid).all()).results.map(knPub)}
+async function knRecalc(env,uid,eq){const ids=Object.values(eq).filter(Boolean);const rows=ids.length?(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND id IN ("+ids.map(()=>"?").join(",")+")").bind(uid,...ids).all()).results.map(knPub):[];
+ const by={};rows.forEach(r=>by[r.id]=r);const clean={},look=[],parts=[];for(let sl=0;sl<6;sl++){const it=by[eq[sl]];if(it&&it.slot===sl){clean[sl]=it.id;parts.push(it);look[sl]=it.set}else look[sl]=null}
+ const P=knPower(parts);await env.DB.prepare("UPDATE kn_users SET eq=?,look=?,pow=? WHERE uid=?").bind(JSON.stringify(clean),JSON.stringify(look),P.pow,uid).run();return {eq:clean,pow:P.pow}}
+async function knHour(env){return cached("knhour",15e3,async()=>{const h=await kvGet(env,"kn_hour");return h&&h.until>Date.now()?h.until:0})}
+async function knView(env,uid,extra){const u=await knUser(env,uid),items=await knItems(env,uid),now=Date.now();
+ const eqd=await knRecalc(env,uid,u.eq);
+ return Object.assign({keys:u.keys,next:u.keys<KN_KEYS.stock?u.kt+KN_KEYS.refill:0,steel:u.steel,pe:u.pe,pm:u.pm,sp:u.sp%KN_KEYS.perSpins,eq:eqd.eq,pow:eqd.pow,rank:knRank(eqd.pow),items,forged:u.forged,
+  week:knWeekSet(now),night:knNight(now)?1:0,hour:await knHour(env),now},extra||{})}
+const knRareTxt=it=>{const S=KN_SETS[it.set],F=KN_FORGE[it.forge];if(it.forge>=3)return (it.forge===4?"💥 выковал ОШИБКУ КОВКИ":"🔱 выковал ЗОЛОТУЮ часть")+" · "+KN_SLOT_N[it.slot]+" «"+S.n+"» №"+it.no+(F.cap?"/"+F.cap:"");
+ if(S.r===4)return "🦁 выковал ЛЕГЕНДАРНУЮ часть · "+KN_SLOT_N[it.slot]+" «"+S.n+"»";if(it.q>=99)return "⭐ выковал идеальную часть "+it.q+"% · "+KN_SLOT_N[it.slot]+" «"+S.n+"»";return ""};
+/* ключи за прокрутки карт: каждые 10 прокруток +1, редкая карта +1 сверху. Карты при этом не меняются */
+async function knOnSpins(env,uid,res){const cards=res&&(res.cards||(res.card?[res.card]:[]))||[];const n=cards.length;if(!n)return 0;
+ const rare=cards.filter(c=>{const H=HEROES[c.h];return (H&&H[2]>=3)||c.f>=2}).length;
+ const q="UPDATE kn_users SET keys=keys+((sp+?)/"+KN_KEYS.perSpins+")-(sp/"+KN_KEYS.perSpins+")+?,sp=sp+? WHERE uid=?";
+ let r=await env.DB.prepare(q).bind(n,rare,n,uid).run();if(!r.meta.changes){await knUser(env,uid);r=await env.DB.prepare(q).bind(n,rare,n,uid).run()}
+ return rare}
+async function knApi(env,me,a,p){const uid=me.id,now=Date.now();
+ if(a==="kn_get")return knView(env,uid);
+ if(a==="kn_forge"){const n=p.n===10?10:1;await knUser(env,uid);
+  const r=await env.DB.prepare("UPDATE kn_users SET keys=keys-? WHERE uid=? AND keys>=?").bind(n,uid,n).run();if(!r.meta.changes)fail("Не хватает ключей 🔑");
+  const u=await env.DB.prepare("SELECT pe,pm FROM kn_users WHERE uid=?").bind(uid).first();let pe=u.pe,pm=u.pm;const hour=!!(await knHour(env)),got=[];
+  for(let i=0;i<n;i++){const x=knRoll(knRnd,{now,pe,pm,hour});const it=await knInsert(env,uid,x);const R=KN_SETS[it.set].r;pe=R>=2?0:pe+1;pm=R>=3?0:pm+1;it.pity=x.pity;got.push(it);
+   const t=knRareTxt(it);if(t)await hypeAdd(env,uid,t,it.forge>=3||R===4)}
+  await env.DB.prepare("UPDATE kn_users SET pe=?,pm=?,forged=forged+? WHERE uid=?").bind(pe,pm,n,uid).run();
+  return knView(env,uid,{got})}
+ if(a==="kn_equip"){const u=await knUser(env,uid);const it=await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND owner=?").bind(p.id|0,uid).first();if(!it)fail("Этой части у тебя нет");
+  u.eq[it.slot]=it.id;await knRecalc(env,uid,u.eq);return knView(env,uid)}
+ if(a==="kn_equip_set"){const u=await knUser(env,uid);const best=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND set_id=? ORDER BY slot,forge DESC,q DESC").bind(uid,String(p.set||"")).all()).results;
+  if(!best.length)fail("Этого сета у тебя нет");const seen=new Set();for(const it of best)if(!seen.has(it.slot)){seen.add(it.slot);u.eq[it.slot]=it.id}await knRecalc(env,uid,u.eq);return knView(env,uid)}
+ if(a==="kn_scrap"){const u=await knUser(env,uid);const ids=[...new Set((Array.isArray(p.ids)?p.ids:[]).map(x=>x|0))].slice(0,100);if(!ids.length)fail("Выбери части");
+  const worn=new Set(Object.values(u.eq));if(ids.some(i=>worn.has(i)))fail("Надетую часть сначала сними — надень вместо неё другую");
+  const rows=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND id IN ("+ids.map(()=>"?").join(",")+")").bind(uid,...ids).all()).results;if(rows.length!==ids.length)fail("Некоторых частей у тебя уже нет");
+  if(rows.some(r=>r.forge===4))fail("«Ошибку ковки» разобрать нельзя — она одна на всю игру");
+  const steel=rows.reduce((a,r)=>a+KN_RAR[KN_SETS[r.set_id]?KN_SETS[r.set_id].r:0].steel*(1+2*r.forge),0);
+  const d=await env.DB.prepare("DELETE FROM kn_items WHERE owner=? AND id IN ("+ids.map(()=>"?").join(",")+")").bind(uid,...ids).run();if(d.meta.changes!==ids.length)fail("Попробуй ещё раз");
+  await env.DB.prepare("UPDATE kn_users SET steel=steel+? WHERE uid=?").bind(steel,uid).run();return knView(env,uid,{steelGot:steel})}
+ if(a==="kn_craft"){const S=KN_SETS[p.set],sl=p.slot|0;if(!S||S.src!=="forge"||!S.r&&S.r!==0||sl<0||sl>5)fail("Нет такой части");const cost=KN_RAR[S.r].craft;if(!cost)fail("Легендарные части не куются из стали — только выпадают");
+  await knUser(env,uid);const r=await env.DB.prepare("UPDATE kn_users SET steel=steel-? WHERE uid=? AND steel>=?").bind(cost,uid,cost).run();if(!r.meta.changes)fail("Нужно "+cost+" стали 🔩");
+  const it=await knInsert(env,uid,{set:p.set,slot:sl,forge:0,q:Math.min(98,70+Math.round(30*(knRnd()+knRnd()+knRnd())/3))});return knView(env,uid,{got:[it]})}
+ if(a==="kn_merge"){const u=await knUser(env,uid);const ids=[...new Set((Array.isArray(p.ids)?p.ids:[]).map(x=>x|0))];if(ids.length!==KN_MERGE)fail("Нужно ровно 3 одинаковые части");
+  const worn=new Set(Object.values(u.eq));if(ids.some(i=>worn.has(i)))fail("Надетую часть сначала сними");
+  const rows=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND id IN (?,?,?)").bind(uid,...ids).all()).results;if(rows.length!==3)fail("Некоторых частей у тебя уже нет");
+  const a0=rows[0];if(rows.some(r=>r.set_id!==a0.set_id||r.slot!==a0.slot||r.forge!==a0.forge))fail("Части должны быть одного сета, слота и ковки");if(a0.forge>=4)fail("Выше «Ошибки ковки» ничего нет");
+  const nf=a0.forge+1,cap=KN_FORGE[nf].cap;if(cap){const c=(await env.DB.prepare("SELECT COUNT(*) AS n FROM kn_items WHERE set_id=? AND slot=? AND forge=?").bind(a0.set_id,a0.slot,nf).first()).n;if(c>=cap)fail("Тираж ковки «"+KN_FORGE[nf].k+"» для этой части закончился")}
+  const q=Math.round(rows.reduce((a,r)=>a+r.q,0)/3);const it=await knInsert(env,uid,{set:a0.set_id,slot:a0.slot,forge:nf,q},true);
+  const d=await env.DB.prepare("DELETE FROM kn_items WHERE owner=? AND id IN (?,?,?)").bind(uid,...ids).run();if(d.meta.changes!==3){await env.DB.prepare("DELETE FROM kn_items WHERE id=?").bind(it.id).run();fail("Попробуй ещё раз")}const t=knRareTxt(it);if(t)await hypeAdd(env,uid,t,it.forge>=3);
+  return knView(env,uid,{got:[it],merged:1})}
+ if(a==="kn_top"){const items=await cached("kntop",60e3,async()=>(await env.DB.prepare("SELECT k.uid,k.pow,k.look,COALESCE(u.nick,u.name) AS name,u.vip_until AS vu FROM kn_users k JOIN users u ON u.id=k.uid WHERE k.pow>0 ORDER BY k.pow DESC LIMIT 50").all()).results
+   .map(r=>({uid:r.uid,name:r.name||"Игрок",pow:r.pow,rank:knRank(r.pow),look:JSON.parse(r.look||"[]"),vip:(r.vu||0)>Date.now()?1:0})));
+  const me2=await env.DB.prepare("SELECT pow FROM kn_users WHERE uid=?").bind(uid).first(),pw=me2?me2.pow:0;
+  const place=pw?(await env.DB.prepare("SELECT COUNT(*)+1 AS n FROM kn_users WHERE pow>?").bind(pw).first()).n:null;return {items,me:{pow:pw,place}}}
+ if(a==="kn_feed")return {items:await cached("knfeed",20e3,async()=>(await env.DB.prepare("SELECT i.*,COALESCE(u.nick,u.name) AS name FROM kn_items i JOIN users u ON u.id=i.owner WHERE i.forge>=2 OR i.q>=99 ORDER BY i.id DESC LIMIT 20").all()).results.map(r=>Object.assign(knPub(r),{uid:r.owner,name:r.name||"Игрок",t:r.created})))};
+ if(a==="kn_admin"){if(!isAdmin(env,uid))fail("Нет доступа");if(p.op==="hour"){const until=now+Math.max(10,Math.min(240,p.min|0||60))*6e4;await kvSet(env,"kn_hour",{until});delete topCache.knhour;return {until}}
+  if(p.op==="keys"){await knUser(env,uid);await env.DB.prepare("UPDATE kn_users SET keys=keys+? WHERE uid=?").bind(Math.max(0,Math.min(1000,p.n|0)),uid).run();return knView(env,uid)}fail("Нет такой операции")}
+ fail("Неизвестное действие")}
+/* =============== /РЫЦАРЬ =============== */
+
 async function handle(req,env){{
     if(req.method==="OPTIONS")return new Response(null,{headers:CORS});
     const url=new URL(req.url);
@@ -8035,10 +8173,12 @@ async function handle(req,env){{
       if(a==="tower_arena_get"){const r=await arnGet(env,me);return J({ok:true,res:r})}
       if(a==="tower_arena_join"){const r=await arnJoin(env,me);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(a==="tower_arena_pick"){const r=await arnPick(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
+      if(/^kn_/.test(a))return J({ok:true,res:await knApi(env,me,a,p)});
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}
       const r=await doAction(env,me,a,p);if(a==="camp_tap"&&r.res&&r.res.n)await dtopAdd(env,"tap",me.id,r.res.n);
+      if((a==="open"||a==="open_multi")&&r.res)try{r.res.knKey=await knOnSpins(env,me.id,r.res)}catch(e){console.error("kn spins",e&&e.message)}
       if(a==="open_multi"&&r.res&&r.res.cards&&r.res.cards.some(c=>c.h===THOR))r.res.card=r.res.cards.find(c=>c.h===THOR);
       if((a==="open"||a==="open_multi")&&r.res&&r.res.card&&r.res.card.h===THOR){try{const nm=await nameOf(env,me.id);
         for(const ad of ADMINS)await notify(env,ad,"⚡⚡⚡ ТОР ВЫБИТ! Игрок "+nm+" (id "+me.id+") выбил Тора — ошибку печати, 1 из 1!\n\nВыдай обещанный приз: VIP навсегда и NFT-подарок.","⚔️ Открыть");
