@@ -7998,6 +7998,8 @@ async function knUser(env,uid){const now=Date.now();let u=await env.DB.prepare("
    const P=knPower(KN_SLOTS.map((_,sl)=>({set:"bronze",slot:sl,forge:0,q:80})));
    await env.DB.prepare("UPDATE kn_users SET eq=?,look=?,pow=? WHERE uid=?").bind(JSON.stringify(eq),JSON.stringify(Array(6).fill("bronze")),P.pow,uid).run()}
   u=await env.DB.prepare("SELECT * FROM kn_users WHERE uid=?").bind(uid).first()}
+ if(!Number.isInteger(u.keys)||!Number.isInteger(u.sp)){
+  u=await env.DB.prepare("UPDATE kn_users SET keys=CAST(keys+0.000001 AS INTEGER),sp=CAST(sp AS INTEGER) WHERE uid=? RETURNING *").bind(uid).first()}
  if(u.keys<KN_KEYS.stock){const n=Math.floor((now-u.kt)/KN_KEYS.refill);if(n>0){const add=Math.min(n,KN_KEYS.stock-u.keys),kt=u.keys+add>=KN_KEYS.stock?now:u.kt+add*KN_KEYS.refill;
    const r=await env.DB.prepare("UPDATE kn_users SET keys=keys+?,kt=? WHERE uid=? AND kt=?").bind(add,kt,uid,u.kt).run();if(r.meta.changes){u.keys+=add;u.kt=kt}}}
  else if(now-u.kt>KN_KEYS.refill){await env.DB.prepare("UPDATE kn_users SET kt=? WHERE uid=?").bind(now,uid).run();u.kt=now}
@@ -8016,7 +8018,8 @@ const knRareTxt=it=>{const S=KN_SETS[it.set],F=KN_FORGE[it.forge];if(it.forge>=3
 /* ключи за прокрутки карт: каждые 10 прокруток +1, редкая карта +1 сверху. Карты при этом не меняются */
 async function knOnSpins(env,uid,res){const cards=res&&(res.cards||(res.card?[res.card]:[]))||[];const n=cards.length;if(!n)return 0;
  const rare=cards.filter(c=>{const H=HEROES[c.h];return (H&&H[2]>=3)||c.f>=2}).length;
- const q="UPDATE kn_users SET keys=keys+((sp+?)/"+KN_KEYS.perSpins+")-(sp/"+KN_KEYS.perSpins+")+?,sp=sp+? WHERE uid=?";
+ const sp="CAST(sp AS INTEGER)", step=KN_KEYS.perSpins;
+ const q="UPDATE kn_users SET keys=CAST(keys+0.000001 AS INTEGER)+("+sp+"+CAST(? AS INTEGER))/"+step+"-"+sp+"/"+step+"+?,sp="+sp+"+CAST(? AS INTEGER) WHERE uid=?";
  let r=await env.DB.prepare(q).bind(n,rare,n,uid).run();if(!r.meta.changes){await knUser(env,uid);r=await env.DB.prepare(q).bind(n,rare,n,uid).run()}
  return rare}
 /* ⚔️ этап 4: поединки, честь, провиант, побратимы, подвиги, рейд ордена */

@@ -98,10 +98,32 @@ ok(mg.ok && mg.res.got[0].forge === 3 && mg.res.got[0].no === 7, "перепла
 db.prepare("UPDATE users SET state=json_set(COALESCE(state,'{}'),'$.spins',12) WHERE id=?").run(A);
 db.prepare("UPDATE kn_users SET keys=0,sp=0 WHERE uid=?").run(A);
 const cardsBefore = db.prepare("SELECT COUNT(*) n FROM cards WHERE owner=?").get(A).n;
-let opened = 0; for (let i = 0; i < 10; i++) { const o = await call(A, "open"); if (o.ok && o.res.card) opened++; }
+let opened = 0, rareKeys = 0;
+for (let i = 0; i < 10; i++) {
+  const o = await call(A, "open");
+  if (o.ok && o.res.card) { opened++; rareKeys += o.res.knKey; }
+  const balance = db.prepare("SELECT keys FROM kn_users WHERE uid=?").get(A).keys;
+  ok(balance === Math.floor(opened / 10) + rareKeys, "одиночная прокрутка " + (i + 1) + ": точный целый баланс", balance);
+}
 const ku = db.prepare("SELECT keys,sp FROM kn_users WHERE uid=?").get(A);
 ok(opened === 10 && db.prepare("SELECT COUNT(*) n FROM cards WHERE owner=?").get(A).n === cardsBefore + 10, "карты открываются как обычно", { opened });
-ok(ku.sp === 10 && ku.keys >= 1, "10 прокруток карт дают ключ кузни", ku);
+ok(ku.sp === 10 && ku.keys === 1 + rareKeys, "10 прокруток дают ровно 1 ключ плюс редкие", ku);
+
+db.prepare("UPDATE users SET state=json_set(state,'$.spins',10) WHERE id=?").run(A);
+db.prepare("UPDATE kn_users SET keys=0,sp=0,kt=? WHERE uid=?").run(Date.now(), A);
+const batch = await call(A, "open_multi", { n: 10 });
+const batchBalance = db.prepare("SELECT keys,sp FROM kn_users WHERE uid=?").get(A);
+ok(batch.ok && batch.res.cards.length === 10 && batchBalance.sp === 10 && batchBalance.keys === 1 + batch.res.knKey,
+  "пачка из 10 даёт ровно 1 ключ плюс редкие", batchBalance);
+
+db.prepare("UPDATE kn_users SET keys=5.5,sp=19.5,kt=? WHERE uid=?").run(Date.now(), A);
+const legacy = await call(A, "kn_get");
+const legacyRow = db.prepare("SELECT keys,sp FROM kn_users WHERE uid=?").get(A);
+ok(legacy.ok && legacy.res.keys === 5 && legacy.res.sp === 9 && legacyRow.keys === 5 && legacyRow.sp === 19,
+  "дробная строка нормализуется в базе и ответе", legacyRow);
+db.prepare("UPDATE kn_users SET keys=0.9999999999999999 WHERE uid=?").run(A);
+const legacyForge = await call(A, "kn_forge", { n: 1 });
+ok(legacyForge.ok && legacyForge.res.keys === 0, "ковка тратит восстановленный ключ без дробного остатка", legacyForge);
 
 const top = await call(A, "kn_top");
 ok(top.ok && top.res.items.length >= 2 && top.res.me.place >= 1, "топ рыцарей", top);
