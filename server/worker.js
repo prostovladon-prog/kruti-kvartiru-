@@ -2005,7 +2005,18 @@ const KN_SETS={
  steel:{n:"Стальной страж",r:1,src:"forge"},moon:{n:"Лунный страж",r:1,src:"forge"},sapph:{n:"Сапфировый паладин",r:1,src:"forge"},
  emer:{n:"Изумрудный дракон",r:2,src:"forge"},viking:{n:"Варяг",r:2,src:"forge"},ruby:{n:"Рубиновый клинок",r:2,src:"forge"},frost:{n:"Морозный",r:2,src:"forge"},
  obsid:{n:"Обсидиан",r:3,src:"forge",night:1},imper:{n:"Император",r:3,src:"forge"},
- gold:{n:"Золотой лев",r:4,src:"forge"}};
+ gold:{n:"Золотой лев",r:4,src:"forge"},
+ /* Оружейник: за монеты, без случайности, только обычная ковка */
+ samurai:{n:"Сёгунат",r:2,src:"smith"},legion:{n:"Легион",r:2,src:"smith"},bogatyr:{n:"Богатырь",r:3,src:"smith"},pharaoh:{n:"Фараон",r:3,src:"smith"}};
+/* торговля: комиссия рынка, потолок цены, быстрая продажа, лимиты, заточка */
+const KN_TRADE={fee:.08,lots:5,lotsVip:8,orders:5,quick:.7,capX:10,giftsDay:5,ageDays:3,minForged:20};
+const KN_SMITH={price:[150000,400000,1500000,6000000],perWeek:2};   // цена части по редкости сета (обычный…мифический); шлем ×1.3, оружие ×1.5
+const knSmithSets=()=>knSetIds().filter(k=>KN_SETS[k].src==="smith");
+const knSmithWeek=now=>{const L=knSmithSets(),i=Math.floor((now+3*3600e3+3*864e5)/6048e5);return [L[i%L.length],L[(i+1)%L.length]]};
+const knSmithPrice=(set,slot)=>Math.round(KN_SMITH.price[KN_SETS[set].r]*(slot===5?1.5:slot===0?1.3:1));
+const KN_SHARP={max:10,base:100000};
+const knSharpCost=sh=>KN_SHARP.base*Math.pow(2,sh);
+const KN_ENGR=1000000;
 const KN_PITY={e:40,m:160};
 const KN_KEYS={start:10,refill:4*3600e3,stock:3,perSpins:10};
 const KN_SET_BONUS=[[6,.15],[4,.08],[2,.03]];
@@ -2023,7 +2034,7 @@ function knPower(items){let s=0;const c={};for(const it of items){if(!it)continu
 const knRank=p=>KN_RANKS.find(x=>p>=x[0])[1];
 /* оценка в монетах */
 function knValue(it){const S=KN_SETS[it.set];if(!S)return 0;const sm=it.slot===5?1.5:it.slot===0?1.3:1;const nice=it.no===1?3:(it.no===777||it.no===100||it.no===1000)?1.5:1;
- return Math.round(KN_RAR[S.r].v*KN_FORGE[it.forge].pv*(.6+.4*it.q/100)*sm*nice)}
+ return Math.round(KN_RAR[S.r].v*KN_FORGE[it.forge].pv*(.6+.4*it.q/100)*sm*nice*(1+.1*(it.sh||0)))}
 /* качество 70–100: чаще 80–90, 99–100 примерно 1 из 100 */
 function knRollQ(rnd){if(rnd()<.01)return rnd()<.3?100:99;return Math.min(98,70+Math.round(30*(rnd()+rnd()+rnd())/3))}
 function knPick(W,rnd){const t=W.reduce((a,b)=>a+b,0);let r=rnd()*t;for(let i=0;i<W.length;i++){r-=W[i];if(r<0)return i}return W.length-1}
@@ -2035,7 +2046,7 @@ function knRoll(rnd,ctx){const now=ctx.now,night=knNight(now),week=knWeekSet(now
  const fw=KN_FORGE.map((f,i)=>i&&ctx.hour?f.w*2:f.w);
  return {set,slot:knPick(KN_SLOT_W,rnd),forge:knPick(fw,rnd),q:knRollQ(rnd),pity}}
 
-if(typeof module!=="undefined")module.exports={KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
+if(typeof module!=="undefined")module.exports={KN_TRADE,KN_SMITH,knSmithWeek,knSmithPrice,knSharpCost,KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
 
 
 /* server.js — сервер «Воинов Эпох» для Cloudflare Workers.
@@ -2069,7 +2080,7 @@ async function checkInit(initData,token){
 let schemaOk=false;
 /* Миграции базы. На бесплатном тарифе Cloudflare одно обращение может сделать не больше 50 запросов к базе,
    поэтому сначала смотрим, что уже есть (2 запроса), и выполняем только недостающее. Номер версии хранится в kv. */
-const SCHEMA_V=83;const NEWB_MS=3*864e5;
+const SCHEMA_V=84;const NEWB_MS=3*864e5;
 const MIGRATIONS=[
  "CREATE TABLE IF NOT EXISTS recruit_entries (event TEXT NOT NULL,uid INTEGER NOT NULL,inviter INTEGER NOT NULL,opened_at INTEGER NOT NULL,checked_at INTEGER NOT NULL DEFAULT 0,qualified_at INTEGER NOT NULL DEFAULT 0,qualified INTEGER NOT NULL DEFAULT 0,reason TEXT NOT NULL DEFAULT 'pending',retry_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,uid))",
  "CREATE TABLE IF NOT EXISTS recruit_awards (event TEXT NOT NULL,place INTEGER NOT NULL,uid INTEGER NOT NULL,n INTEGER NOT NULL,spins INTEGER NOT NULL,paid INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(event,place),UNIQUE(event,uid))",
@@ -2178,7 +2189,7 @@ const MIGRATIONS=[
  "CREATE TABLE IF NOT EXISTS pair_got (uid INTEGER NOT NULL, other INTEGER NOT NULL, card INTEGER, t INTEGER, PRIMARY KEY(uid,other))",
  "CREATE TABLE IF NOT EXISTS clan_ww (clan INTEGER NOT NULL, wk TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(clan,wk))",
  "CREATE INDEX IF NOT EXISTS friends_f ON friends(fid)","CREATE TABLE IF NOT EXISTS fol_got (uid INTEGER NOT NULL, tier INTEGER NOT NULL, t INTEGER, PRIMARY KEY(uid,tier))",
- "CREATE TABLE IF NOT EXISTS kn_users (uid INTEGER PRIMARY KEY, keys INTEGER NOT NULL DEFAULT 0, kt INTEGER NOT NULL DEFAULT 0, steel INTEGER NOT NULL DEFAULT 0, pe INTEGER NOT NULL DEFAULT 0, pm INTEGER NOT NULL DEFAULT 0, sp INTEGER NOT NULL DEFAULT 0, eq TEXT NOT NULL DEFAULT '{}', look TEXT, pow INTEGER NOT NULL DEFAULT 0, forged INTEGER NOT NULL DEFAULT 0, created INTEGER)","CREATE INDEX IF NOT EXISTS kn_users_pow ON kn_users(pow)","CREATE TABLE IF NOT EXISTS kn_items (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL DEFAULT 0, no INTEGER NOT NULL, q INTEGER NOT NULL, v REAL NOT NULL DEFAULT 0, sh INTEGER NOT NULL DEFAULT 0, created INTEGER, UNIQUE(set_id,slot,forge,no))","CREATE INDEX IF NOT EXISTS kn_items_owner ON kn_items(owner)","CREATE INDEX IF NOT EXISTS kn_items_rare ON kn_items(forge,id)"];
+ "CREATE TABLE IF NOT EXISTS kn_users (uid INTEGER PRIMARY KEY, keys INTEGER NOT NULL DEFAULT 0, kt INTEGER NOT NULL DEFAULT 0, steel INTEGER NOT NULL DEFAULT 0, pe INTEGER NOT NULL DEFAULT 0, pm INTEGER NOT NULL DEFAULT 0, sp INTEGER NOT NULL DEFAULT 0, eq TEXT NOT NULL DEFAULT '{}', look TEXT, pow INTEGER NOT NULL DEFAULT 0, forged INTEGER NOT NULL DEFAULT 0, gd TEXT, gn INTEGER NOT NULL DEFAULT 0, engr TEXT, created INTEGER)","CREATE INDEX IF NOT EXISTS kn_users_pow ON kn_users(pow)","CREATE TABLE IF NOT EXISTS kn_items (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL DEFAULT 0, no INTEGER NOT NULL, q INTEGER NOT NULL, v REAL NOT NULL DEFAULT 0, sh INTEGER NOT NULL DEFAULT 0, list_price REAL, listed_at INTEGER, created INTEGER, UNIQUE(set_id,slot,forge,no))","CREATE INDEX IF NOT EXISTS kn_items_mkt ON kn_items(listed_at) WHERE list_price IS NOT NULL","CREATE TABLE IF NOT EXISTS kn_orders (id INTEGER PRIMARY KEY AUTOINCREMENT, uid INTEGER NOT NULL, set_id TEXT NOT NULL, slot INTEGER NOT NULL, forge INTEGER NOT NULL, price REAL NOT NULL, created INTEGER)","CREATE TABLE IF NOT EXISTS kn_trades (id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL, ai INTEGER, bi INTEGER, extra REAL NOT NULL DEFAULT 0, st INTEGER NOT NULL DEFAULT 0, t INTEGER)","CREATE INDEX IF NOT EXISTS kn_trades_b ON kn_trades(b,st)","CREATE TABLE IF NOT EXISTS kn_sales (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER, set_id TEXT, slot INTEGER, forge INTEGER, no INTEGER, seller INTEGER, buyer INTEGER, price REAL, how TEXT, t INTEGER)","ALTER TABLE kn_items ADD COLUMN list_price REAL","ALTER TABLE kn_items ADD COLUMN listed_at INTEGER","ALTER TABLE kn_users ADD COLUMN gd TEXT","ALTER TABLE kn_users ADD COLUMN gn INTEGER NOT NULL DEFAULT 0","ALTER TABLE kn_users ADD COLUMN engr TEXT","CREATE INDEX IF NOT EXISTS kn_items_owner ON kn_items(owner)","CREATE INDEX IF NOT EXISTS kn_items_rare ON kn_items(forge,id)"];
 async function ensureSchema(env){if(schemaOk)return;
   try{const r=await env.DB.prepare("SELECT v FROM kv WHERE k='schema_v'").first();if(r&&+r.v>=SCHEMA_V){schemaOk=true;return}}catch(e){}
   const have=new Set();
@@ -7900,7 +7911,7 @@ async function evAdmin(env, me, p) {
 /* ===================== ⚔️ РЫЦАРЬ (этап 1): кузня, части с номерами, надеть, сталь, переплавка, топ =====================
    Карты не затрагиваются: отдельные таблицы kn_users и kn_items. Ключи только бесплатные. */
 const knRnd=()=>crypto.getRandomValues(new Uint32Array(1))[0]/4294967296;
-const knPub=r=>({id:r.id,set:r.set_id,slot:r.slot,forge:r.forge,no:r.no,q:r.q,v:r.v,sh:r.sh||0});
+const knPub=r=>({id:r.id,set:r.set_id,slot:r.slot,forge:r.forge,no:r.no,q:r.q,v:r.v,sh:r.sh||0,lp:r.list_price==null?null:r.list_price});
 async function knInsert(env,uid,x,strict){for(let f=x.forge;f>=(strict?x.forge:0);f--){const cap=KN_FORGE[f].cap;
   for(let t=0;t<6;t++){let no;
    if(cap){const used=new Set((await env.DB.prepare("SELECT no FROM kn_items WHERE set_id=? AND slot=? AND forge=?").bind(x.set,x.slot,f).all()).results.map(r=>r.no));no=0;for(let i=1;i<=cap;i++)if(!used.has(i)){no=i;break}if(!no)break}
@@ -7926,7 +7937,7 @@ async function knRecalc(env,uid,eq){const ids=Object.values(eq).filter(Boolean);
 async function knHour(env){return cached("knhour",15e3,async()=>{const h=await kvGet(env,"kn_hour");return h&&h.until>Date.now()?h.until:0})}
 async function knView(env,uid,extra){const u=await knUser(env,uid),items=await knItems(env,uid),now=Date.now();
  const eqd=await knRecalc(env,uid,u.eq);
- return Object.assign({keys:u.keys,next:u.keys<KN_KEYS.stock?u.kt+KN_KEYS.refill:0,steel:u.steel,pe:u.pe,pm:u.pm,sp:u.sp%KN_KEYS.perSpins,eq:eqd.eq,pow:eqd.pow,rank:knRank(eqd.pow),items,forged:u.forged,
+ return Object.assign({keys:u.keys,next:u.keys<KN_KEYS.stock?u.kt+KN_KEYS.refill:0,steel:u.steel,pe:u.pe,pm:u.pm,sp:u.sp%KN_KEYS.perSpins,eq:eqd.eq,pow:eqd.pow,rank:knRank(eqd.pow),items,forged:u.forged,engr:u.engr||"",smith:knSmithWeek(now),
   week:knWeekSet(now),night:knNight(now)?1:0,hour:await knHour(env),now},extra||{})}
 const knRareTxt=it=>{const S=KN_SETS[it.set],F=KN_FORGE[it.forge];if(it.forge>=3)return (it.forge===4?"💥 выковал ОШИБКУ КОВКИ":"🔱 выковал ЗОЛОТУЮ часть")+" · "+KN_SLOT_N[it.slot]+" «"+S.n+"» №"+it.no+(F.cap?"/"+F.cap:"");
  if(S.r===4)return "🦁 выковал ЛЕГЕНДАРНУЮ часть · "+KN_SLOT_N[it.slot]+" «"+S.n+"»";if(it.q>=99)return "⭐ выковал идеальную часть "+it.q+"% · "+KN_SLOT_N[it.slot]+" «"+S.n+"»";return ""};
@@ -7945,14 +7956,14 @@ async function knApi(env,me,a,p){const uid=me.id,now=Date.now();
    const t=knRareTxt(it);if(t)await hypeAdd(env,uid,t,it.forge>=3||R===4)}
   await env.DB.prepare("UPDATE kn_users SET pe=?,pm=?,forged=forged+? WHERE uid=?").bind(pe,pm,n,uid).run();
   return knView(env,uid,{got})}
- if(a==="kn_equip"){const u=await knUser(env,uid);const it=await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND owner=?").bind(p.id|0,uid).first();if(!it)fail("Этой части у тебя нет");
+ if(a==="kn_equip"){const u=await knUser(env,uid);const it=await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND owner=?").bind(p.id|0,uid).first();if(!it)fail("Этой части у тебя нет");if(it.list_price!=null)fail("Часть выставлена на рынок — сначала сними лот");
   u.eq[it.slot]=it.id;await knRecalc(env,uid,u.eq);return knView(env,uid)}
- if(a==="kn_equip_set"){const u=await knUser(env,uid);const best=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND set_id=? ORDER BY slot,forge DESC,q DESC").bind(uid,String(p.set||"")).all()).results;
+ if(a==="kn_equip_set"){const u=await knUser(env,uid);const best=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND set_id=? AND list_price IS NULL ORDER BY slot,forge DESC,q DESC").bind(uid,String(p.set||"")).all()).results;
   if(!best.length)fail("Этого сета у тебя нет");const seen=new Set();for(const it of best)if(!seen.has(it.slot)){seen.add(it.slot);u.eq[it.slot]=it.id}await knRecalc(env,uid,u.eq);return knView(env,uid)}
  if(a==="kn_scrap"){const u=await knUser(env,uid);const ids=[...new Set((Array.isArray(p.ids)?p.ids:[]).map(x=>x|0))].slice(0,100);if(!ids.length)fail("Выбери части");
   const worn=new Set(Object.values(u.eq));if(ids.some(i=>worn.has(i)))fail("Надетую часть сначала сними — надень вместо неё другую");
   const rows=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND id IN ("+ids.map(()=>"?").join(",")+")").bind(uid,...ids).all()).results;if(rows.length!==ids.length)fail("Некоторых частей у тебя уже нет");
-  if(rows.some(r=>r.forge===4))fail("«Ошибку ковки» разобрать нельзя — она одна на всю игру");
+  if(rows.some(r=>r.forge===4))fail("«Ошибку ковки» разобрать нельзя — она одна на всю игру");if(rows.some(r=>r.list_price!=null))fail("Сначала сними части с рынка");
   const steel=rows.reduce((a,r)=>a+KN_RAR[KN_SETS[r.set_id]?KN_SETS[r.set_id].r:0].steel*(1+2*r.forge),0);
   const d=await env.DB.prepare("DELETE FROM kn_items WHERE owner=? AND id IN ("+ids.map(()=>"?").join(",")+")").bind(uid,...ids).run();if(d.meta.changes!==ids.length)fail("Попробуй ещё раз");
   await env.DB.prepare("UPDATE kn_users SET steel=steel+? WHERE uid=?").bind(steel,uid).run();return knView(env,uid,{steelGot:steel})}
@@ -7961,12 +7972,101 @@ async function knApi(env,me,a,p){const uid=me.id,now=Date.now();
   const it=await knInsert(env,uid,{set:p.set,slot:sl,forge:0,q:Math.min(98,70+Math.round(30*(knRnd()+knRnd()+knRnd())/3))});return knView(env,uid,{got:[it]})}
  if(a==="kn_merge"){const u=await knUser(env,uid);const ids=[...new Set((Array.isArray(p.ids)?p.ids:[]).map(x=>x|0))];if(ids.length!==KN_MERGE)fail("Нужно ровно 3 одинаковые части");
   const worn=new Set(Object.values(u.eq));if(ids.some(i=>worn.has(i)))fail("Надетую часть сначала сними");
-  const rows=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND id IN (?,?,?)").bind(uid,...ids).all()).results;if(rows.length!==3)fail("Некоторых частей у тебя уже нет");
+  const rows=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? AND id IN (?,?,?)").bind(uid,...ids).all()).results;if(rows.length!==3)fail("Некоторых частей у тебя уже нет");if(rows.some(r=>r.list_price!=null))fail("Сначала сними части с рынка");
   const a0=rows[0];if(rows.some(r=>r.set_id!==a0.set_id||r.slot!==a0.slot||r.forge!==a0.forge))fail("Части должны быть одного сета, слота и ковки");if(a0.forge>=4)fail("Выше «Ошибки ковки» ничего нет");
   const nf=a0.forge+1,cap=KN_FORGE[nf].cap;if(cap){const c=(await env.DB.prepare("SELECT COUNT(*) AS n FROM kn_items WHERE set_id=? AND slot=? AND forge=?").bind(a0.set_id,a0.slot,nf).first()).n;if(c>=cap)fail("Тираж ковки «"+KN_FORGE[nf].k+"» для этой части закончился")}
   const q=Math.round(rows.reduce((a,r)=>a+r.q,0)/3);const it=await knInsert(env,uid,{set:a0.set_id,slot:a0.slot,forge:nf,q},true);
   const d=await env.DB.prepare("DELETE FROM kn_items WHERE owner=? AND id IN (?,?,?)").bind(uid,...ids).run();if(d.meta.changes!==3){await env.DB.prepare("DELETE FROM kn_items WHERE id=?").bind(it.id).run();fail("Попробуй ещё раз")}const t=knRareTxt(it);if(t)await hypeAdd(env,uid,t,it.forge>=3);
   return knView(env,uid,{got:[it],merged:1})}
+
+ /* ---------- этап 2: торговля ---------- */
+ const free=async(id,need)=>{const u=await knUser(env,uid);const it=await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND owner=?").bind(id|0,uid).first();if(!it)fail("Этой части у тебя нет");
+  if(Object.values(u.eq).includes(it.id))fail("Надетую часть сначала сними — надень вместо неё другую");if(need!=="listed"&&it.list_price!=null)fail("Часть выставлена на рынок — сначала сними лот");return {u,it}};
+ const canTransfer=async()=>{const r=await env.DB.prepare("SELECT u.created,k.forged FROM users u LEFT JOIN kn_users k ON k.uid=u.id WHERE u.id=?").bind(uid).first();
+  if(!r||Date.now()-(r.created||Date.now())<KN_TRADE.ageDays*864e5)fail("Передавать части можно с аккаунта старше "+KN_TRADE.ageDays+" дней");if((r.forged|0)<KN_TRADE.minForged)fail("Сначала выкуй в кузне "+KN_TRADE.minForged+" частей");};
+ const capOf=it=>Math.max(1000,Math.round(knValue(it)*KN_TRADE.capX));
+ const itemOf=r=>({set:r.set_id,slot:r.slot,forge:r.forge,no:r.no,q:r.q,sh:r.sh||0});
+ const tell=(to,txt)=>notify(env,to,txt).catch(()=>{});
+ if(a==="kn_list"){await canTransfer();const {it}=await free(p.id);const price=Math.round(+p.price||0),cap=capOf(itemOf(it));if(!(price>=1))fail("Укажи цену");if(price>cap)fail("Слишком дорого: потолок для этой части "+cap.toLocaleString("ru")+" 🪙");
+  const vip=((await env.DB.prepare("SELECT vip_until FROM users WHERE id=?").bind(uid).first())||{}).vip_until>now;const n=(await env.DB.prepare("SELECT COUNT(*) AS n FROM kn_items WHERE owner=? AND list_price IS NOT NULL").bind(uid).first()).n;
+  if(n>=(vip?KN_TRADE.lotsVip:KN_TRADE.lots))fail("Максимум "+(vip?KN_TRADE.lotsVip:KN_TRADE.lots)+" лотов одновременно");
+  await env.DB.prepare("UPDATE kn_items SET list_price=?,listed_at=? WHERE id=? AND owner=? AND list_price IS NULL").bind(price,now,it.id,uid).run();return knView(env,uid)}
+ if(a==="kn_unlist"){await env.DB.prepare("UPDATE kn_items SET list_price=NULL,listed_at=NULL WHERE id=? AND owner=?").bind(p.id|0,uid).run();return knView(env,uid)}
+ if(a==="kn_market"){const W=["list_price IS NOT NULL"],B=[];if(p.slot!=null&&p.slot>=0){W.push("slot=?");B.push(p.slot|0)}if(p.forge!=null&&p.forge>=0){W.push("forge=?");B.push(p.forge|0)}if(p.set&&KN_SETS[p.set]){W.push("set_id=?");B.push(p.set)}
+  const ord=p.sort==="cheap"?"list_price ASC":p.sort==="rare"?"forge DESC,list_price DESC":"listed_at DESC";
+  const lots=(await env.DB.prepare("SELECT i.*,COALESCE(u.nick,u.name) AS name FROM kn_items i JOIN users u ON u.id=i.owner WHERE "+W.join(" AND ")+" ORDER BY "+ord+" LIMIT 60").bind(...B).all()).results.map(r=>Object.assign(knPub(r),{uid:r.owner,name:r.name||"Игрок",mine:r.owner===uid?1:0}));
+  const orders=(await env.DB.prepare("SELECT o.*,COALESCE(u.nick,u.name) AS name FROM kn_orders o JOIN users u ON u.id=o.uid ORDER BY o.price DESC LIMIT 40").all()).results.map(o=>({id:o.id,uid:o.uid,name:o.name||"Игрок",set:o.set_id,slot:o.slot,forge:o.forge,price:o.price,mine:o.uid===uid?1:0}));
+  const big=await cached("knbig",60e3,async()=>(await env.DB.prepare("SELECT * FROM kn_sales WHERE t>? ORDER BY price DESC LIMIT 1").bind(now-7*864e5).first()));
+  return {lots,orders,big,smith:knSmithWeek(now)}}
+ if(a==="kn_buy"){const it=await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND list_price IS NOT NULL").bind(p.id|0).first();if(!it)fail("Этот лот уже купили или сняли");if(it.owner===uid)fail("Это твой лот");
+  if(Math.abs(it.list_price-(+p.price||0))>.001)fail("Продавец изменил цену, обнови рынок");await knUser(env,uid);
+  const price=it.list_price,seller=it.owner;const take=await env.DB.prepare("UPDATE kn_items SET owner=?,list_price=NULL,listed_at=NULL WHERE id=? AND owner=? AND list_price=?").bind(uid,it.id,seller,price).run();if(take.meta.changes!==1)fail("Этот лот уже купили");
+  const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(price,uid,price).run();
+  if(pay.meta.changes!==1){await env.DB.prepare("UPDATE kn_items SET owner=?,list_price=?,listed_at=? WHERE id=? AND owner=?").bind(seller,price,now,it.id,uid).run();fail("Не хватает монет")}
+  const got=Math.round(price*(1-KN_TRADE.fee));await env.DB.batch([env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(got,seller),
+   env.DB.prepare("INSERT INTO kn_sales(item,set_id,slot,forge,no,seller,buyer,price,how,t) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(it.id,it.set_id,it.slot,it.forge,it.no,seller,uid,price,"market",now)]);
+  await tell(seller,"💰 Твою часть «"+KN_SETS[it.set_id].n+"» ("+KN_SLOT_N[it.slot]+") купили за "+Math.round(price).toLocaleString("ru")+" 🪙. Тебе +"+got.toLocaleString("ru")+" 🪙 (комиссия "+Math.round(KN_TRADE.fee*100)+"%)");
+  delete topCache.knbig;return knView(env,uid,{bought:knPub(Object.assign(it,{owner:uid,list_price:null}))})}
+ if(a==="kn_sell"){const ids=[...new Set((Array.isArray(p.ids)?p.ids:[p.id]).map(x=>x|0))].filter(Boolean).slice(0,50);if(!ids.length)fail("Выбери части");let sum=0;const rows=[];
+  for(const id of ids){const {it}=await free(id);if(it.forge===4)fail("«Ошибку ковки» системе не продать — она одна на всю игру");rows.push(it);sum+=Math.round(knValue(itemOf(it))*KN_TRADE.quick)}
+  const d=await env.DB.prepare("DELETE FROM kn_items WHERE owner=? AND list_price IS NULL AND id IN ("+ids.map(()=>"?").join(",")+")").bind(uid,...ids).run();if(d.meta.changes!==ids.length)fail("Попробуй ещё раз");
+  await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(sum,uid).run();return knView(env,uid,{sold:sum})}
+ if(a==="kn_ord_add"){const S=KN_SETS[p.set],sl=p.slot|0,f=p.forge|0,price=Math.round(+p.price||0);if(!S||sl<0||sl>5||f<0||f>4)fail("Нет такой части");if(!(price>=100))fail("Минимальная цена заказа 100 🪙");
+  if(price>capOf({set:p.set,slot:sl,forge:f,no:2,q:100}))fail("Слишком дорого для этой части");
+  const n=(await env.DB.prepare("SELECT COUNT(*) AS n FROM kn_orders WHERE uid=?").bind(uid).first()).n;if(n>=KN_TRADE.orders)fail("Максимум "+KN_TRADE.orders+" заказов");
+  const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(price,uid,price).run();if(pay.meta.changes!==1)fail("Не хватает монет");
+  await env.DB.prepare("INSERT INTO kn_orders(uid,set_id,slot,forge,price,created) VALUES(?,?,?,?,?,?)").bind(uid,p.set,sl,f,price,now).run();return {ok:1}}
+ if(a==="kn_ord_cancel"){const o=await env.DB.prepare("SELECT * FROM kn_orders WHERE id=? AND uid=?").bind(p.id|0,uid).first();if(!o)fail("Заказа уже нет");
+  const d=await env.DB.prepare("DELETE FROM kn_orders WHERE id=? AND uid=?").bind(o.id,uid).run();if(d.meta.changes===1)await env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(o.price,uid).run();return {ok:1}}
+ if(a==="kn_ord_fill"){const o=await env.DB.prepare("SELECT * FROM kn_orders WHERE id=?").bind(p.order|0).first();if(!o)fail("Заказ уже выполнен или отменён");if(o.uid===uid)fail("Это твой заказ");await canTransfer();
+  const {it}=await free(p.id);if(it.set_id!==o.set_id||it.slot!==o.slot||it.forge!==o.forge)fail("Эта часть не подходит под заказ");
+  const d=await env.DB.prepare("DELETE FROM kn_orders WHERE id=?").bind(o.id).run();if(d.meta.changes!==1)fail("Заказ уже выполнен");
+  const mv=await env.DB.prepare("UPDATE kn_items SET owner=? WHERE id=? AND owner=? AND list_price IS NULL").bind(o.uid,it.id,uid).run();
+  if(mv.meta.changes!==1){await env.DB.prepare("INSERT INTO kn_orders(id,uid,set_id,slot,forge,price,created) VALUES(?,?,?,?,?,?,?)").bind(o.id,o.uid,o.set_id,o.slot,o.forge,o.price,o.created).run();fail("Попробуй ещё раз")}
+  const got=Math.round(o.price*(1-KN_TRADE.fee));await env.DB.batch([env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(got,uid),
+   env.DB.prepare("INSERT INTO kn_sales(item,set_id,slot,forge,no,seller,buyer,price,how,t) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(it.id,it.set_id,it.slot,it.forge,it.no,uid,o.uid,o.price,"order",now)]);
+  await tell(o.uid,"📦 Твой заказ выполнен: «"+KN_SETS[it.set_id].n+"» ("+KN_SLOT_N[it.slot]+") №"+it.no+" уже в твоём арсенале");return knView(env,uid,{sold:got})}
+ if(a==="kn_gift"){await canTransfer();let to=Math.floor(+p.to||0);if(!to&&p.nick){const r=await env.DB.prepare("SELECT id FROM users WHERE nick_key=?").bind(nickKey(String(p.nick).trim().replace(/^@/,""))).first();if(!r)fail("Игрок с таким ником не найден");to=r.id}
+  if(!to||to===uid)fail("Кому подарить?");if(!(await env.DB.prepare("SELECT 1 FROM users WHERE id=?").bind(to).first()))fail("Игрок не найден");
+  const {u,it}=await free(p.id);const day=mskDay(now);const gn=u.gd===day?u.gn:0;if(gn>=KN_TRADE.giftsDay)fail("Сегодня уже подарено "+KN_TRADE.giftsDay+" частей — завтра ещё");
+  await knUser(env,to);const mv=await env.DB.prepare("UPDATE kn_items SET owner=? WHERE id=? AND owner=? AND list_price IS NULL").bind(to,it.id,uid).run();if(mv.meta.changes!==1)fail("Попробуй ещё раз");
+  await env.DB.batch([env.DB.prepare("UPDATE kn_users SET gd=?,gn=? WHERE uid=?").bind(day,gn+1,uid),env.DB.prepare("INSERT INTO kn_sales(item,set_id,slot,forge,no,seller,buyer,price,how,t) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(it.id,it.set_id,it.slot,it.forge,it.no,uid,to,0,"gift",now)]);
+  await tell(to,"🎁 "+(await nameOf(env,uid))+" подарил тебе часть доспеха: «"+KN_SETS[it.set_id].n+"» ("+KN_SLOT_N[it.slot]+") №"+it.no+". Загляни во вкладку «Рыцарь»!");return knView(env,uid)}
+ if(a==="kn_inv"){const who=Math.floor(+p.uid||0);const u2=await env.DB.prepare("SELECT k.*,COALESCE(u.nick,u.name) AS name FROM kn_users k JOIN users u ON u.id=k.uid WHERE k.uid=?").bind(who).first();if(!u2)fail("У этого игрока ещё нет рыцаря");
+  const eq=JSON.parse(u2.eq||"{}"),worn=new Set(Object.values(eq));const items=(await env.DB.prepare("SELECT * FROM kn_items WHERE owner=? ORDER BY forge DESC,v DESC LIMIT 200").bind(who).all()).results.map(r=>Object.assign(knPub(r),{worn:worn.has(r.id)?1:0}));
+  return {uid:who,name:u2.name||"Игрок",pow:u2.pow,rank:knRank(u2.pow),look:JSON.parse(u2.look||"[]"),engr:u2.engr||"",items}}
+ if(a==="kn_trade_offer"){await canTransfer();const to=Math.floor(+p.to||0);if(!to||to===uid)fail("С кем меняемся?");const extra=Math.round(+p.extra||0);
+  const mine=p.mine?(await free(p.mine)).it:null;const th=p.theirs?await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND owner=?").bind(p.theirs|0,to).first():null;if(p.theirs&&!th)fail("Этой части у игрока уже нет");
+  if(!mine&&!th)fail("Выбери, что меняем");if(!th&&extra<=0)fail("Укажи, что хочешь за свою часть");if(extra>0){const c=await env.DB.prepare("SELECT cash FROM users WHERE id=?").bind(uid).first();if(!c||c.cash<extra)fail("Не хватает монет на доплату")}
+  const n=(await env.DB.prepare("SELECT COUNT(*) AS n FROM kn_trades WHERE a=? AND st=0").bind(uid).first()).n;if(n>=10)fail("Не больше 10 открытых предложений");
+  await env.DB.prepare("INSERT INTO kn_trades(a,b,ai,bi,extra,st,t) VALUES(?,?,?,?,?,0,?)").bind(uid,to,mine?mine.id:null,th?th.id:null,extra,now).run();
+  await tell(to,"🔄 "+(await nameOf(env,uid))+" предлагает обмен частями доспеха. Открой «Рыцарь» → «Рынок» → «Обмены»");return {ok:1}}
+ if(a==="kn_trades"){const rows=(await env.DB.prepare("SELECT t.*,COALESCE(ua.nick,ua.name) AS an,COALESCE(ub.nick,ub.name) AS bn FROM kn_trades t JOIN users ua ON ua.id=t.a JOIN users ub ON ub.id=t.b WHERE (t.a=? OR t.b=?) AND t.st=0 ORDER BY t.id DESC LIMIT 30").bind(uid,uid).all()).results;
+  const ids=[...new Set(rows.flatMap(r=>[r.ai,r.bi]).filter(Boolean))];const its=ids.length?(await env.DB.prepare("SELECT * FROM kn_items WHERE id IN ("+ids.map(()=>"?").join(",")+")").bind(...ids).all()).results:[];const by={};its.forEach(r=>by[r.id]=knPub(r));
+  return {items:rows.map(r=>({id:r.id,a:r.a,b:r.b,an:r.an,bn:r.bn,ai:r.ai?by[r.ai]||null:null,bi:r.bi?by[r.bi]||null:null,extra:r.extra,in:r.b===uid?1:0}))}}
+ if(a==="kn_trade_answer"){const t=await env.DB.prepare("SELECT * FROM kn_trades WHERE id=? AND st=0").bind(p.id|0).first();if(!t)fail("Предложение уже закрыто");
+  if(!p.ok){if(t.a!==uid&&t.b!==uid)fail("Это не твоё предложение");await env.DB.prepare("UPDATE kn_trades SET st=? WHERE id=? AND st=0").bind(t.a===uid?3:2,t.id).run();if(t.b===uid)await tell(t.a,"🔄 Твоё предложение обмена отклонили");return {ok:1}}
+  if(t.b!==uid)fail("Принять может только тот, кому предложили");await canTransfer();
+  const chk=async(id,own)=>{if(!id)return null;const it=await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND owner=? AND list_price IS NULL").bind(id,own).first();if(!it)fail("Одной из частей уже нет или она на рынке");
+   const k=await env.DB.prepare("SELECT eq FROM kn_users WHERE uid=?").bind(own).first();if(Object.values(JSON.parse((k&&k.eq)||"{}")).includes(id))fail("Одна из частей сейчас надета — её надо снять");return it};
+  const ai=await chk(t.ai,t.a),bi=await chk(t.bi,t.b);
+  const close=await env.DB.prepare("UPDATE kn_trades SET st=1 WHERE id=? AND st=0").bind(t.id).run();if(close.meta.changes!==1)fail("Предложение уже закрыто");
+  if(t.extra>0){const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(t.extra,t.a,t.extra).run();if(pay.meta.changes!==1){await env.DB.prepare("UPDATE kn_trades SET st=2 WHERE id=?").bind(t.id).run();fail("У предложившего не хватает монет на доплату")}}
+  if(t.extra<0){const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(-t.extra,uid,-t.extra).run();if(pay.meta.changes!==1){await env.DB.prepare("UPDATE kn_trades SET st=0 WHERE id=?").bind(t.id).run();fail("Не хватает монет на доплату")}}
+  const B=[];if(ai)B.push(env.DB.prepare("UPDATE kn_items SET owner=? WHERE id=? AND owner=?").bind(t.b,ai.id,t.a));if(bi)B.push(env.DB.prepare("UPDATE kn_items SET owner=? WHERE id=? AND owner=?").bind(t.a,bi.id,t.b));
+  if(t.extra>0)B.push(env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(t.extra,t.b));if(t.extra<0)B.push(env.DB.prepare("UPDATE users SET cash=cash+? WHERE id=?").bind(-t.extra,t.a));
+  for(const x of [ai,bi])if(x)B.push(env.DB.prepare("INSERT INTO kn_sales(item,set_id,slot,forge,no,seller,buyer,price,how,t) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(x.id,x.set_id,x.slot,x.forge,x.no,x.owner,x.owner===t.a?t.b:t.a,Math.abs(t.extra),"trade",now));
+  await env.DB.batch(B);await tell(t.a,"🔄 Обмен состоялся! Загляни в арсенал рыцаря");return knView(env,uid,{traded:1})}
+ if(a==="kn_smith_buy"){const set=String(p.set||""),sl=p.slot|0;if(!knSmithWeek(now).includes(set))fail("Этого сета сейчас нет у Оружейника");if(sl<0||sl>5)fail("Нет такой части");await knUser(env,uid);
+  const price=knSmithPrice(set,sl);const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(price,uid,price).run();if(pay.meta.changes!==1)fail("Не хватает монет: нужно "+price.toLocaleString("ru")+" 🪙");
+  const it=await knInsert(env,uid,{set,slot:sl,forge:0,q:Math.min(98,75+Math.round(23*(knRnd()+knRnd())/2))});return knView(env,uid,{got:[it]})}
+ if(a==="kn_sharpen"){const it=await env.DB.prepare("SELECT * FROM kn_items WHERE id=? AND owner=?").bind(p.id|0,uid).first();if(!it)fail("Этой части у тебя нет");if((it.sh|0)>=KN_SHARP.max)fail("Заточена до максимума +"+KN_SHARP.max);
+  const cost=knSharpCost(it.sh|0);const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(cost,uid,cost).run();if(pay.meta.changes!==1)fail("Не хватает монет: нужно "+cost.toLocaleString("ru")+" 🪙");
+  const nx=Object.assign(itemOf(it),{sh:(it.sh|0)+1});await env.DB.prepare("UPDATE kn_items SET sh=?,v=? WHERE id=? AND owner=? AND sh=?").bind(nx.sh,knValue(nx),it.id,uid,it.sh|0).run();
+  const u=await knUser(env,uid);await knRecalc(env,uid,u.eq);return knView(env,uid,{sharp:nx.sh})}
+ if(a==="kn_engrave"){const txt=String(p.text||"").replace(/\s+/g," ").trim().slice(0,14);if(txt.length<2)fail("Надпись от 2 до 14 символов");if(/https?:|t\.me|@/i.test(txt))fail("Без ссылок");await knUser(env,uid);
+  const pay=await env.DB.prepare("UPDATE users SET cash=cash-? WHERE id=? AND cash>=?").bind(KN_ENGR,uid,KN_ENGR).run();if(pay.meta.changes!==1)fail("Не хватает монет: нужно "+KN_ENGR.toLocaleString("ru")+" 🪙");
+  await env.DB.prepare("UPDATE kn_users SET engr=? WHERE uid=?").bind(txt,uid).run();return knView(env,uid)}
  if(a==="kn_top"){const items=await cached("kntop",60e3,async()=>(await env.DB.prepare("SELECT k.uid,k.pow,k.look,COALESCE(u.nick,u.name) AS name,u.vip_until AS vu FROM kn_users k JOIN users u ON u.id=k.uid WHERE k.pow>0 ORDER BY k.pow DESC LIMIT 50").all()).results
    .map(r=>({uid:r.uid,name:r.name||"Игрок",pow:r.pow,rank:knRank(r.pow),look:JSON.parse(r.look||"[]"),vip:(r.vu||0)>Date.now()?1:0})));
   const me2=await env.DB.prepare("SELECT pow FROM kn_users WHERE uid=?").bind(uid).first(),pw=me2?me2.pow:0;
@@ -8173,7 +8273,7 @@ async function handle(req,env){{
       if(a==="tower_arena_get"){const r=await arnGet(env,me);return J({ok:true,res:r})}
       if(a==="tower_arena_join"){const r=await arnJoin(env,me);return J({ok:true,res:r,S:await stateFor(env,me)})}
       if(a==="tower_arena_pick"){const r=await arnPick(env,me,p);return J({ok:true,res:r,S:await stateFor(env,me)})}
-      if(/^kn_/.test(a))return J({ok:true,res:await knApi(env,me,a,p)});
+      if(/^kn_/.test(a)){const res=await knApi(env,me,a,p);return J({ok:true,res,S:/^kn_(buy|sell|ord_|trade_answer|smith_buy|sharpen|engrave)/.test(a)?await stateFor(env,me):undefined})}
       if(!ACTIONS[a])fail("Неизвестное действие");
       if(a==="unl_claim"){const u=await env.DB.prepare("SELECT created FROM users WHERE id=?").bind(me.id).first();if(!u||(u.created||0)<UNLOCK_FROM)fail("Подарки за открытие разделов — только для новичков")}
       if(a==="title_buy"||a==="title_set"){const r=await doAction(env,me,a,p);await env.DB.prepare("UPDATE users SET title=? WHERE id=?").bind(r.res.k||null,me.id).run();delete topCache.nfx;r.S=await stateFor(env,me);return J({ok:true,...r})}

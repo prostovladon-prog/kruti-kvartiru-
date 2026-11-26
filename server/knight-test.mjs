@@ -107,5 +107,72 @@ const top = await call(A, "kn_top");
 ok(top.ok && top.res.items.length >= 2 && top.res.me.place >= 1, "топ рыцарей", top);
 ok(!(await call(A, "kn_admin", { op: "keys", n: 5 })).ok, "админ-операции недоступны обычному игроку");
 
+// ---------- этап 2: торговля ----------
+const C = 72003; await call(C, "sync"); await call(C, "kn_get");
+const cash = id => db.prepare("SELECT cash FROM users WHERE id=?").get(id).cash;
+const setCash = (id, v) => db.prepare("UPDATE users SET cash=? WHERE id=?").run(v, id);
+const fresh = db.prepare("SELECT * FROM kn_items WHERE owner=? AND id NOT IN (SELECT value FROM json_each((SELECT eq FROM kn_users WHERE uid=?))) AND forge<4 LIMIT 1");
+let lotItem = fresh.get(A, A);
+const young = await call(A, "kn_list", { id: lotItem.id, price: 5000 });
+ok(!young.ok && /старше/.test(young.err), "новый аккаунт не может продавать (защита от фейков)");
+db.prepare("UPDATE users SET created=? WHERE id IN (?,?,?)").run(Date.now() - 10 * 864e5, A, B, C);
+db.prepare("UPDATE kn_users SET forged=50").run();
+const cap = Math.max(1000, Math.round(lotItem.v * 10));
+ok(!(await call(A, "kn_list", { id: lotItem.id, price: cap + 1 })).ok, "цену выше потолка поставить нельзя");
+const L = await call(A, "kn_list", { id: lotItem.id, price: 5000 });
+ok(L.ok && L.res.items.find(i => i.id === lotItem.id).lp === 5000, "часть выставлена на рынок", L);
+ok(!(await call(A, "kn_equip", { id: lotItem.id })).ok, "выставленную часть надеть нельзя");
+setCash(B, 6000); setCash(C, 6000); setCash(A, 0);
+const race = await Promise.all([call(B, "kn_buy", { id: lotItem.id, price: 5000 }), call(C, "kn_buy", { id: lotItem.id, price: 5000 })]);
+const win = race.findIndex(r => r.ok);
+ok(race.filter(r => r.ok).length === 1, "двое не могут купить один лот", race.map(r => r.err));
+const buyer = win === 0 ? B : C, other = win === 0 ? C : B;
+ok(cash(buyer) === 1000 && cash(other) === 6000 && cash(A) === 4600, "деньги: покупатель −5000, продавец +4600 (комиссия 8%), второй не потерял", { b: cash(buyer), o: cash(other), a: cash(A) });
+ok(db.prepare("SELECT owner FROM kn_items WHERE id=?").get(lotItem.id).owner === buyer, "часть перешла покупателю");
+
+// быстрая продажа системе
+const qs = fresh.get(A, A); setCash(A, 0);
+const sold = await call(A, "kn_sell", { ids: [qs.id] });
+ok(sold.ok && cash(A) === Math.round(qs.v * .7) && !db.prepare("SELECT 1 FROM kn_items WHERE id=?").get(qs.id), "быстрая продажа: 70% оценки, часть уходит из игры", sold);
+
+// заказ «куплю»: монеты замораживаются, отмена возвращает
+setCash(B, 10000);
+const it2 = fresh.get(A, A);
+const oa = await call(B, "kn_ord_add", { set: it2.set_id, slot: it2.slot, forge: it2.forge, price: 3000 });
+ok(oa.ok && cash(B) === 7000, "заказ замораживает монеты", oa);
+const ord = db.prepare("SELECT id FROM kn_orders WHERE uid=?").get(B).id;
+setCash(A, 0);
+const fill = await call(A, "kn_ord_fill", { order: ord, id: it2.id });
+ok(fill.ok && cash(A) === 2760 && db.prepare("SELECT owner FROM kn_items WHERE id=?").get(it2.id).owner === B, "заказ выполнен: часть у заказчика, продавцу 92%", fill);
+await call(B, "kn_ord_add", { set: "gold", slot: 0, forge: 0, price: 2000 });
+const ord2 = db.prepare("SELECT id FROM kn_orders WHERE uid=?").get(B).id;
+await call(B, "kn_ord_cancel", { id: ord2 });
+ok(cash(B) === 7000, "отмена заказа возвращает монеты");
+
+// подарок
+const gi = fresh.get(A, A);
+const gf = await call(A, "kn_gift", { id: gi.id, to: C });
+ok(gf.ok && db.prepare("SELECT owner FROM kn_items WHERE id=?").get(gi.id).owner === C, "подарок другу", gf);
+
+// обмен с доплатой
+const ma = fresh.get(A, A), mc = fresh.get(C, C); setCash(A, 1000); setCash(C, 0);
+const off = await call(A, "kn_trade_offer", { to: C, mine: ma.id, theirs: mc.id, extra: 500 });
+ok(off.ok, "предложение обмена отправлено", off);
+const tid = (await call(C, "kn_trades")).res.items[0].id;
+ok(!(await call(A, "kn_trade_answer", { id: tid, ok: 1 })).ok, "своё предложение принять нельзя");
+const acc = await call(C, "kn_trade_answer", { id: tid, ok: 1 });
+ok(acc.ok && db.prepare("SELECT owner FROM kn_items WHERE id=?").get(ma.id).owner === C && db.prepare("SELECT owner FROM kn_items WHERE id=?").get(mc.id).owner === A && cash(A) === 500 && cash(C) === 500, "обмен: части поменялись, доплата 500 дошла", acc);
+ok(!(await call(C, "kn_trade_answer", { id: tid, ok: 1 })).ok, "обмен нельзя принять дважды");
+
+// Оружейник и заточка
+const sw = (await call(A, "kn_market")).res.smith; setCash(A, 1e9);
+const sb = await call(A, "kn_smith_buy", { set: sw[0], slot: 1 });
+ok(sb.ok && sb.res.got[0].set === sw[0] && cash(A) < 1e9, "Оружейник продаёт часть за монеты", sb);
+const sh = await call(A, "kn_sharpen", { id: sb.res.got[0].id });
+ok(sh.ok && sh.res.items.find(i => i.id === sb.res.got[0].id).sh === 1, "заточка +1", sh);
+setCash(A, 0); ok(!(await call(A, "kn_sharpen", { id: sb.res.got[0].id })).ok, "без монет заточить нельзя");
+const total = db.prepare("SELECT SUM(cash) s FROM users").get().s;
+ok(Number.isFinite(total), "балансы в порядке");
+
 if (process.exitCode) console.log("\n❌ ПРОВЕРКА РЫЦАРЯ НЕ ПРОЙДЕНА");
-else console.log("\n✅ РЫЦАРЬ РАБОТАЕТ: кузня, тиражи, сталь, переплавка, ключи за карты");
+else console.log("\n✅ РЫЦАРЬ РАБОТАЕТ: кузня, тиражи, сталь, переплавка, ключи за карты, рынок, заказы, обмен, подарки");

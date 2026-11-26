@@ -4,6 +4,10 @@
 if(window.__KN_UI__)return;window.__KN_UI__=1;
 const O="#0d1020";
 const KSETS={
+ samurai:{p:{a:"#2a2a30",ad:"#121216",al:"#6a6a78",t:"#c8102e",td:"#6a0814",c:"#8a1018",cd:"#3a0408",pl:"#ffd60a",gem:"#ffd60a",bl:"#eef0f4",fur:"#c8102e",furd:"#6a0814"},v:{helm:"horns",shoulders:"plates",chest:"lamellar",legs:"strap",boots:"plain",weapon:"royal"}},
+ legion:{p:{a:"#c8873a",ad:"#7a4a18",al:"#ffe0a8",t:"#c8102e",td:"#6a0814",c:"#a81a24",cd:"#4a0a0e",pl:"#d8202e",gem:"#ffd60a",bl:"#e8e8ee"},v:{helm:"crest",shoulders:"plates",chest:"sun",legs:"strap",boots:"plain",weapon:"broad"}},
+ bogatyr:{p:{a:"#c0c6d0",ad:"#5a6070",al:"#ffffff",t:"#ffc21a",td:"#8a5a00",c:"#a81a24",cd:"#4a0a0e",pl:"#ffc21a",gem:"#e0102a",bl:"#f0f2f6"},v:{helm:"spikes",shoulders:"plates",chest:"scales",legs:"fan",boots:"plain",weapon:"broad"}},
+ pharaoh:{p:{a:"#ffc400",ad:"#9a5e00",al:"#fff0a0",t:"#2a6bff",td:"#16256a",c:"#16256a",cd:"#0a1236",pl:"#2a6bff",gem:"#2ee6ff",bl:"#fff8e0"},v:{helm:"crown",shoulders:"royal",chest:"sun",legs:"gem",boots:"point",weapon:"flamb"}},
  bronze:{p:{a:"#c8873a",ad:"#7a4a18",al:"#ffd9a0",t:"#6a7a3a",td:"#3a4a18",c:"#4a5a2a",cd:"#26300f",pl:"#c8873a",gem:"#e0a040",bl:"#e8e0d0"},v:{helm:"crest",shoulders:"plates",chest:"cross",legs:"fan",boots:"plain",weapon:"sword"}},
  iron:{p:{a:"#8a929e",ad:"#4a525e",al:"#d0d6e0",t:"#7a5434",td:"#3a2414",c:"#3a3a44",cd:"#1a1a22",pl:"#5a6070",gem:"#c0c8d4",bl:"#e4e8ee"},v:{helm:"plume",shoulders:"spike1",chest:"cross",legs:"strap",boots:"plain",weapon:"broad"}},
  moon:{p:{a:"#cfe6e2",ad:"#6a8a88",al:"#ffffff",t:"#5affd8",td:"#1a7a6a",c:"#0a3a4a",cd:"#041a22",pl:"#e8fff8",gem:"#5affd8",bl:"#f0fffc"},v:{helm:"fin",shoulders:"plates",chest:"sun",legs:"fan",boots:"plain",weapon:"sword"}},
@@ -160,6 +164,7 @@ function knDraw(eq,opt){opt=opt||{};const u=opt.u||"k";
  if(vh==="plume") o+=`<path d="M205 70 L215 70 L215 100 L205 100 Z" ${f(H.t,3)}/>`;
  /* блики */
  o+=`<g fill="#fff"><path d="M112 206 C116 196 124 190 132 188 C126 196 122 202 120 210Z" opacity=".7"/><path d="M168 200 C172 192 178 188 186 186 C180 194 176 198 174 204Z" opacity=".7"/><circle cx="170" cy="450" r="3.5" opacity=".9"/><circle cx="232" cy="450" r="3.5" opacity=".9"/><circle cx="180" cy="92" r="3" opacity=".8"/></g>`;
+ if(opt.engr)o+=`<text x="0" y="0" transform="translate(214 560) rotate(-90)" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="13" fill="#ffd60a" stroke="#3a2400" stroke-width=".6" paint-order="stroke">${String(opt.engr).replace(/[<&>"]/g,"")}</text>`;
  return o+`</g>${opt.front||""}</svg>`;
 }
 
@@ -181,7 +186,8 @@ const nf=n=>Math.round(n).toLocaleString("ru-RU").replace(/[  ,]/g," ");
 const K={sub:"knight",d:null,busy:false,fl:-1,sel:new Set(),selMode:"",top:null,reveal:null};
 const css=`
 #kn-tabs{display:flex;gap:4px;margin:2px 0 10px;overflow-x:auto}
-#kn-tabs button{flex:1 1 0;min-width:0;padding:8px 2px;border-radius:11px;border:1.5px solid #2a3260;background:#0c1230;color:#aab4dc;font-weight:900;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kn-tabs button i{display:block;font-style:normal;font-size:17px;line-height:1.1}
+#kn-tabs button{flex:1 1 0;min-width:0;padding:5px 1px;border-radius:11px;border:1.5px solid #2a3260;background:#0c1230;color:#aab4dc;font-weight:900;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #kn-tabs button.on{border-color:#ffd60a;color:#ffd60a;background:#16204a}
 .kn-stage{position:relative;border:2.5px solid #ffc21a;border-radius:18px;overflow:hidden;box-shadow:0 0 24px rgba(255,194,26,.2)}
 .kn-pw{position:absolute;left:10px;top:10px;background:rgba(8,12,32,.85);border:1.5px solid #3a447a;border-radius:12px;padding:6px 10px}
@@ -215,13 +221,13 @@ const css=`
 function ensure(){const sec=$("sec-dragon");if(!sec||$("kn-root"))return;const st=document.createElement("style");st.textContent=css;document.head.appendChild(st);
  const tabs=document.createElement("div");tabs.id="kn-tabs";const root=document.createElement("div");root.id="kn-root";sec.prepend(root);sec.prepend(tabs);
  tabs.onclick=e=>{const b=e.target.closest("[data-k]");if(!b)return;hap("light");K.sub=b.dataset.k;show()}}
-function tabsHTML(){return [["knight","⚔️ Рыцарь"],["forge","🔨 Кузня"],["ars","🛡 Арсенал"],["top","🏆 Топ"],["dragon","🐉 Дракон"]].map(([k,n])=>`<button type="button" data-k="${k}" class="${K.sub===k?"on":""}">${n}${k==="forge"&&K.d&&K.d.keys>0?" "+K.d.keys+"🔑":""}</button>`).join("")}
+function tabsHTML(){return [["knight","⚔️","Рыцарь"],["forge","🔨","Кузня"],["ars","🛡","Арсенал"],["mkt","🛒","Рынок"],["top","🏆","Топ"],["dragon","🐉","Дракон"]].map(([k,ic,n])=>`<button type="button" data-k="${k}" class="${K.sub===k?"on":""}"><i>${ic}</i>${k==="forge"&&K.d&&K.d.keys>0?K.d.keys+"🔑":n}</button>`).join("")}
 function show(){ensure();const t=$("kn-tabs"),root=$("kn-root"),dg=$("dg-root");if(!t)return;t.innerHTML=tabsHTML();
  if(K.sub==="dragon"){root.hidden=true;dg.hidden=false;try{renderDragon()}catch(e){}return}
  root.hidden=false;dg.hidden=true;
  if(!ONLINE){root.innerHTML='<div class="kn-off">⚔️ Рыцарь работает в игре через Telegram</div>';return}
  if(!K.d){root.innerHTML='<div class="kn-off">⚔️ Кузнец раздувает горн…</div>';load();return}
- ({knight:drawKnight,forge:drawForge,ars:drawArs,top:drawTop})[K.sub]()}
+ ({knight:drawKnight,forge:drawForge,ars:drawArs,mkt:drawMkt,top:drawTop})[K.sub]()}
 async function load(){const r=await act("kn_get");if(r){K.d=r;show()}}
 async function call(a,p){if(K.busy)return null;K.busy=true;try{const r=await act(a,p||{});if(r&&r.items){K.d=Object.assign(K.d||{},r)}return r}finally{K.busy=false}}
 const eqItems=()=>SLK.map((_,i)=>K.d.items.find(x=>x.id===K.d.eq[i])||null);
@@ -231,10 +237,12 @@ function drawKnight(){const d=K.d,root=$("kn-root"),E=eqItems(),look=E.map(x=>x?
  const cnt={};E.forEach(x=>{if(x)cnt[x.set]=(cnt[x.set]||0)+1});
  const bon=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([k,n])=>{const t=[[6,"+15%"],[4,"+8%"],[2,"+3%"]].find(x=>n>=x[0]);return `<span class="kn-chip" style="border-color:${KN_RAR[KN_SETS[k].r].c}">${esc(KN_SETS[k].n)} ${n}/6${t?" · "+t[1]:""}</span>`}).join("");
  const mySets=[...new Set(d.items.map(x=>x.set))].sort((a,b)=>KN_SETS[b].r-KN_SETS[a].r);
- root.innerHTML=`<div class="kn-stage">${knDraw(eqOf(look),{bg:1,u:"main"})}<div class="kn-pw"><b>${nf(P.pow)}</b><small>СИЛА РЫЦАРЯ</small></div><div class="kn-rk">${knRank(P.pow)}</div></div>
+ root.innerHTML=`<div class="kn-stage">${knDraw(eqOf(look),{bg:1,u:"main",engr:d.engr})}<div class="kn-pw"><b>${nf(P.pow)}</b><small>СИЛА РЫЦАРЯ</small></div><div class="kn-rk">${knRank(P.pow)}</div></div>
  <div class="kn-box"><h4>СЕТ-БОНУСЫ · 2/6 +3% · 4/6 +8% · 6/6 +15%</h4><div class="kn-chips">${bon||'<span class="kn-chip">нет</span>'}</div></div>
  <div class="kn-box"><h4>НА ТЕБЕ · НАЖМИ, ЧТОБЫ СМЕНИТЬ</h4>${SLK.map((_,i)=>{const it=E[i];return it?`<div class="kn-row" data-slot="${i}"><div class="kn-th ${FCLS[it.forge]}">${partSVG(it)}</div><div class="t">${itLine(it)}</div><div class="kn-p">⚔ ${pw(it)}</div></div>`:`<div class="kn-row" data-slot="${i}"><div class="kn-th">${KN_SLOT_IC[i]}</div><div class="t"><b>${KN_SLOT_N[i]}</b><small>пусто</small></div></div>`}).join("")}</div>
  <div class="kn-box"><h4>НАДЕТЬ ВЕСЬ СЕТ</h4><div class="kn-chips">${mySets.map(k=>`<button type="button" class="kn-chip" data-set="${k}" style="border-color:${KN_RAR[KN_SETS[k].r].c}">${esc(KN_SETS[k].n)} · ${new Set(d.items.filter(x=>x.set===k).map(x=>x.slot)).size}/6</button>`).join("")}</div></div>`;
+ root.insertAdjacentHTML("beforeend",`<div class="kn-box"><h4>ГРАВИРОВКА ИМЕНИ НА МЕЧЕ · ${nf(KN_ENGR)} 🪙</h4><div style="display:flex;gap:6px"><input id="kn-eg" maxlength="14" placeholder="${esc(d.engr||"Твоя надпись")}" style="flex:1;min-width:0"><div class="kn-btn g" id="kn-egb" style="padding:8px 12px;font-size:12px">Выгравировать</div></div></div>`);
+ $("kn-egb").onclick=async()=>{const t=$("kn-eg").value.trim();if(t.length<2)return toast("Надпись от 2 до 14 символов");if(!confirmMoney(KN_ENGR))return;const r=await call("kn_engrave",{text:t});if(r){toast("✍️ Выгравировано");moneyUpd();show()}};
  root.querySelectorAll("[data-slot]").forEach(r=>r.onclick=()=>pick(+r.dataset.slot));
  root.querySelectorAll("[data-set]").forEach(b=>b.onclick=async()=>{const r=await call("kn_equip_set",{set:b.dataset.set});if(r){toast("Надет сет «"+KN_SETS[b.dataset.set].n+"»");show()}})}
 function pick(sl){const L=K.d.items.filter(x=>x.slot===sl).sort((a,b)=>pw(b)-pw(a)),m=$("modal"),sh=$("msheet");m.hidden=false;
@@ -264,14 +272,66 @@ function drawArs(){const d=K.d,root=$("kn-root"),worn=new Set(Object.values(d.eq
  root.innerHTML=`<div class="kn-box"><h4>АРСЕНАЛ · СОБРАНО ${have}/${total} ЧАСТЕЙ · ВСЕГО ${d.items.length}</h4><div class="kn-chips">${[[-1,"Все"]].concat(KN_SLOT_N.map((n,i)=>[i,KN_SLOT_IC[i]+" "+n])).map(([i,n])=>`<button type="button" class="kn-chip" data-fl="${i}" style="${K.fl===i?"border-color:#ffd60a;color:#ffd60a":""}">${n}</button>`).join("")}</div>
  ${mg.length?`<div class="kn-chips" style="margin-top:8px">${mg.slice(0,6).map(g=>`<button type="button" class="kn-chip" data-mg="${g.slice(0,3).map(x=>x.id).join(",")}" style="border-color:#ff7a00;color:#ffb070">♻️ Переплавить 3 → ${KN_FORGE[g[0].forge+1].k}: ${esc(KN_SETS[g[0].set].n)} · ${KN_SLOT_N[g[0].slot]}</button>`).join("")}</div>`:""}
  <div class="kn-btns"><div class="kn-btn g" id="kn-sm">${K.selMode?"Отмена":"🔩 Разобрать на сталь"}</div>${K.selMode?`<div class="kn-btn" id="kn-sg">Разобрать: ${K.sel.size}</div>`:""}</div></div>
- <div class="kn-box">${L.map(it=>`<div class="kn-row ${K.sel.has(it.id)?"sel":""}" data-id="${it.id}"><div class="kn-th ${FCLS[it.forge]}" style="font-size:22px">${KN_SLOT_IC[it.slot]}</div><div class="t">${itLine(it,worn.has(it.id)?" · <b style='color:#39ff9a;display:inline'>надето</b>":"")}</div><div class="kn-p">⚔ ${pw(it)}<small style="display:block;color:#8e9ac8;font-size:10px;text-align:right">${nf(it.v)} 🪙</small></div></div>`).join("")||"<p>Пусто</p>"}</div>`;
+ <div class="kn-box">${L.map(it=>`<div class="kn-row ${K.sel.has(it.id)?"sel":""}" data-id="${it.id}"><div class="kn-th ${FCLS[it.forge]}" style="font-size:22px">${KN_SLOT_IC[it.slot]}</div><div class="t">${itLine(it,worn.has(it.id)?" · <b style='color:#39ff9a;display:inline'>надето</b>":it.lp!=null?" · <b style='color:#ffb070;display:inline'>на рынке "+nf(it.lp)+"</b>":"")}${it.sh?`<small style="color:#ffd60a">заточка +${it.sh}</small>`:""}</div><div class="kn-p">⚔ ${pw(it)}<small style="display:block;color:#8e9ac8;font-size:10px;text-align:right">${nf(it.v)} 🪙</small></div></div>`).join("")||"<p>Пусто</p>"}</div>`;
  root.querySelectorAll("[data-fl]").forEach(b=>b.onclick=()=>{K.fl=+b.dataset.fl;show()});
  root.querySelectorAll("[data-mg]").forEach(b=>b.onclick=async()=>{const r=await call("kn_merge",{ids:b.dataset.mg.split(",").map(Number)});if(r){hap("heavy");toast("♻️ Переплавлено: "+KN_FORGE[r.got[0].forge].k+" ковка, №"+r.got[0].no);show()}});
  $("kn-sm").onclick=()=>{K.selMode=K.selMode?"":"scrap";K.sel.clear();show()};if($("kn-sg"))$("kn-sg").onclick=async()=>{if(!K.sel.size)return toast("Выбери части");const r=await call("kn_scrap",{ids:[...K.sel]});if(r){toast("+"+r.steelGot+" стали 🔩");K.sel.clear();K.selMode="";show()}};
- root.querySelectorAll(".kn-row[data-id]").forEach(r=>r.onclick=()=>{const id=+r.dataset.id;if(K.selMode){if(worn.has(id))return toast("Надетую часть разобрать нельзя");K.sel.has(id)?K.sel.delete(id):K.sel.add(id);r.classList.toggle("sel")}})}
+ root.querySelectorAll(".kn-row[data-id]").forEach(r=>r.onclick=()=>{const id=+r.dataset.id;if(K.selMode){if(worn.has(id))return toast("Надетую часть разобрать нельзя");K.sel.has(id)?K.sel.delete(id):K.sel.add(id);r.classList.toggle("sel")}else itemMenu(id)})}
 async function drawTop(){const root=$("kn-root");if(!K.top||Date.now()-K.top.t>60e3){root.innerHTML='<div class="kn-off">🏆 Загружаю топ…</div>';const r=await act("kn_top");if(!r)return;K.top={t:Date.now(),r}}
  if(K.sub!=="top")return;const r=K.top.r;
- root.innerHTML=`<div class="kn-box"><h4>ТОП РЫЦАРЕЙ ПО СИЛЕ · ТВОЁ МЕСТО: ${r.me.place||"—"}</h4>${r.items.map((x,i)=>`<div class="kn-row"><div class="kn-th" style="font-weight:900;color:#ffd60a">${i<3?["🥇","🥈","🥉"][i]:i+1}</div>${i<10?`<div class="kn-th">${knDraw(eqOf(x.look),{vb:"120 0 180 330",u:"t"+i})}</div>`:""}<div class="t"><b>${x.vip?"👑 ":""}${esc(x.name)}</b><small>${x.rank}</small></div><div class="kn-p">⚔ ${nf(x.pow)}</div></div>`).join("")}</div>`}
+ root.innerHTML=`<div class="kn-box"><h4>ТОП РЫЦАРЕЙ ПО СИЛЕ · ТВОЁ МЕСТО: ${r.me.place||"—"}</h4>${r.items.map((x,i)=>`<div class="kn-row" data-u="${x.uid}"><div class="kn-th" style="font-weight:900;color:#ffd60a">${i<3?["🥇","🥈","🥉"][i]:i+1}</div>${i<10?`<div class="kn-th">${knDraw(eqOf(x.look),{vb:"120 0 180 330",u:"t"+i})}</div>`:""}<div class="t"><b>${x.vip?"👑 ":""}${esc(x.name)}</b><small>${x.rank}</small></div><div class="kn-p">⚔ ${nf(x.pow)}</div></div>`).join("")}</div>`;root.querySelectorAll("[data-u]").forEach(e=>e.onclick=()=>openInv(+e.dataset.u))}
+
+const confirmMoney=n=>{const c=S&&S.cash||0;if(c<n){toast("Не хватает монет: нужно "+nf(n)+" 🪙");return false}return true};
+const moneyUpd=()=>{try{updCash()}catch(e){}};
+function modal(html){const m=$("modal"),sh=$("msheet");m.hidden=false;sh.innerHTML=`<button type="button" class="x" id="kn-x">Закрыть</button><div class="box">${html}</div>`;$("kn-x").onclick=closeModal;return sh}
+function itemMenu(id){const it=K.d.items.find(x=>x.id===id);if(!it)return;const worn=Object.values(K.d.eq).includes(id),cap=Math.max(1000,Math.round(knValue(it)*KN_TRADE.capX)),sc=knSharpCost(it.sh||0);
+ const sh=modal(`<div class="kn-row" style="cursor:default"><div class="kn-th ${FCLS[it.forge]}" style="width:70px;height:70px">${partSVG(it)}</div><div class="t">${itLine(it)}<small style="display:block">Сила ⚔ ${pw(it)} · оценка ${nf(it.v)} 🪙${it.sh?" · заточка +"+it.sh:""}</small></div></div>
+ <div class="kn-btns" style="grid-template-columns:1fr">
+ ${worn?'<div class="kn-chip">Надето — чтобы продать или подарить, надень вместо неё другую часть</div>':it.lp!=null?`<div class="kn-btn g" data-a="unlist">Снять с рынка (${nf(it.lp)} 🪙)</div>`:`<div class="kn-btn" data-a="equip">Надеть</div>
+ <div style="display:flex;gap:6px"><input id="kn-pr" type="number" min="1" max="${cap}" placeholder="Цена, до ${nf(cap)}" style="flex:1;min-width:0"><div class="kn-btn b" data-a="list" style="padding:10px">На рынок</div></div>
+ <div class="kn-btn g" data-a="sell">Быстро продать системе: +${nf(Math.round(knValue(it)*KN_TRADE.quick))} 🪙</div>
+ <div style="display:flex;gap:6px"><input id="kn-to" placeholder="Ник друга" style="flex:1;min-width:0"><div class="kn-btn g" data-a="gift" style="padding:10px">🎁 Подарить</div></div>`}
+ ${(it.sh||0)<10?`<div class="kn-btn g" data-a="sharp">🗡 Заточить до +${(it.sh||0)+1}: ${nf(sc)} 🪙 (+2% силы)</div>`:""}
+ </div><small style="color:#8e9ac8;font-size:10.5px">Комиссия рынка ${Math.round(KN_TRADE.fee*100)}%. Подарки — до ${KN_TRADE.giftsDay} в день.</small>`);
+ sh.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{const a=b.dataset.a;let r;
+  if(a==="equip")r=await call("kn_equip",{id});
+  if(a==="unlist")r=await call("kn_unlist",{id});
+  if(a==="list"){const pr=Math.round(+$("kn-pr").value||0);if(!pr)return toast("Укажи цену");r=await call("kn_list",{id,price:pr});if(r)toast("Выставлено на рынок")}
+  if(a==="sell"){if(it.forge>=2&&!confirm("Продать редкую ковку системе? Она уйдёт из игры."))return;r=await call("kn_sell",{ids:[id]});if(r){toast("+"+nf(r.sold)+" 🪙");moneyUpd()}}
+  if(a==="gift"){const n=$("kn-to").value.trim();if(!n)return toast("Впиши ник друга");r=await call("kn_gift",{id,nick:n});if(r)toast("🎁 Подарено!")}
+  if(a==="sharp"){if(!confirmMoney(sc))return;r=await call("kn_sharpen",{id});if(r){toast("🗡 Заточка +"+r.sharp);moneyUpd()}}
+  if(r){closeModal();show()}})}
+K.mk="lots";K.mf={slot:-1,forge:-1,sort:"new"};
+async function drawMkt(){const root=$("kn-root");const tabs=[["lots","Лоты"],["ord","Заказы"],["tr","Обмены"],["smith","Оружейник"],["feed","Лента"]];
+ const head=`<div class="kn-chips">${tabs.map(([k,n])=>`<button type="button" class="kn-chip" data-mk="${k}" style="${K.mk===k?"border-color:#ffd60a;color:#ffd60a":""}">${n}</button>`).join("")}</div>`;
+ root.innerHTML=`<div class="kn-box">${head}<div id="kn-mb" style="margin-top:8px"><div class="kn-off">Загружаю…</div></div></div>`;
+ root.querySelectorAll("[data-mk]").forEach(b=>b.onclick=()=>{K.mk=b.dataset.mk;show()});const box=$("kn-mb"),mk=K.mk;
+ if(mk==="lots"||mk==="ord"||mk==="smith"){const f=K.mf;const r=await act("kn_market",mk==="lots"?{slot:f.slot,forge:f.forge,sort:f.sort}:{});if(!r||K.mk!==mk||K.sub!=="mkt")return;
+  if(mk==="lots"){box.innerHTML=`<div style="display:flex;gap:5px;flex-wrap:wrap"><select id="kn-fs"><option value="-1">Все слоты</option>${KN_SLOT_N.map((n,i)=>`<option value="${i}" ${f.slot===i?"selected":""}>${n}</option>`).join("")}</select><select id="kn-ff"><option value="-1">Любая ковка</option>${KN_FORGE.map((x,i)=>`<option value="${i}" ${f.forge===i?"selected":""}>${x.k}</option>`).join("")}</select><select id="kn-fo"><option value="new">Новые</option><option value="cheap" ${f.sort==="cheap"?"selected":""}>Дешёвые</option><option value="rare" ${f.sort==="rare"?"selected":""}>Редкие</option></select></div>
+   ${r.big?`<div class="kn-chip" style="margin-top:6px;border-color:#ffd60a">💰 Сделка недели: ${esc(KN_SETS[r.big.set_id]?KN_SETS[r.big.set_id].n:"")} · ${KN_SLOT_N[r.big.slot]} за ${nf(r.big.price)} 🪙</div>`:""}
+   ${r.lots.map(it=>`<div class="kn-row" data-buy="${it.id}" data-p="${it.lp}"><div class="kn-th ${FCLS[it.forge]}">${partSVG(it)}</div><div class="t">${itLine(it)}<small style="display:block">продаёт ${esc(it.name)}</small></div><div class="kn-p">${it.mine?"твой лот":nf(it.lp)+" 🪙"}</div></div>`).join("")||'<div class="kn-off">Лотов пока нет. Выстави свою часть из «Арсенала»</div>'}`;
+   ["kn-fs","kn-ff","kn-fo"].forEach(id=>$(id).onchange=()=>{K.mf={slot:+$("kn-fs").value,forge:+$("kn-ff").value,sort:$("kn-fo").value};show()});
+   box.querySelectorAll("[data-buy]").forEach(e=>e.onclick=async()=>{const it=r.lots.find(x=>x.id===+e.dataset.buy);if(it.mine)return itemMenu(it.id);if(!confirmMoney(it.lp))return;if(!confirm("Купить «"+KN_SETS[it.set].n+"» ("+KN_SLOT_N[it.slot]+") за "+nf(it.lp)+" 🪙?"))return;
+    const x=await call("kn_buy",{id:it.id,price:it.lp});if(x){hap("medium");toast("Куплено! Часть в арсенале");moneyUpd();show()}})}
+  if(mk==="ord"){const myFree=K.d.items.filter(i=>!Object.values(K.d.eq).includes(i.id)&&i.lp==null);
+   box.innerHTML=`<h4 style="margin:0 0 6px;font-size:11px;letter-spacing:2px;color:#8e9ac8">ЗАКАЗЫ «КУПЛЮ» · МОНЕТЫ ЗАМОРОЖЕНЫ</h4>${r.orders.map(o=>{const m=myFree.find(i=>i.set===o.set&&i.slot===o.slot&&i.forge===o.forge);return `<div class="kn-row"><div class="kn-th ${FCLS[o.forge]}">${partSVG({set:o.set,slot:o.slot})}</div><div class="t"><b style="color:${KN_RAR[KN_SETS[o.set].r].c}">${esc(KN_SETS[o.set].n)}</b><small>${KN_SLOT_N[o.slot]} · ${KN_FORGE[o.forge].k} · ${o.mine?"твой заказ":"от "+esc(o.name)}</small></div>${o.mine?`<button type="button" class="kn-chip" data-oc="${o.id}">Отменить</button>`:m?`<button type="button" class="kn-chip" style="border-color:#39ff9a" data-of="${o.id}" data-it="${m.id}">Продать ${nf(o.price*(1-KN_TRADE.fee))}</button>`:`<div class="kn-p">${nf(o.price)} 🪙</div>`}</div>`}).join("")||'<div class="kn-off">Заказов нет</div>'}
+   <div class="kn-box"><h4>СОЗДАТЬ ЗАКАЗ</h4><div style="display:flex;gap:5px;flex-wrap:wrap"><select id="kn-os">${knSetIds().map(k=>`<option value="${k}">${esc(KN_SETS[k].n)}</option>`).join("")}</select><select id="kn-ol">${KN_SLOT_N.map((n,i)=>`<option value="${i}">${n}</option>`).join("")}</select><select id="kn-of">${KN_FORGE.map((x,i)=>`<option value="${i}">${x.k}</option>`).join("")}</select><input id="kn-op" type="number" placeholder="Цена" style="width:110px"><div class="kn-btn b" id="kn-oa" style="padding:8px 12px;font-size:12px">Создать</div></div></div>`;
+   box.querySelectorAll("[data-oc]").forEach(b=>b.onclick=async()=>{if(await call("kn_ord_cancel",{id:+b.dataset.oc})){toast("Заказ отменён, монеты вернулись");moneyUpd();await load()}});
+   box.querySelectorAll("[data-of]").forEach(b=>b.onclick=async()=>{if(!confirm("Отдать свою часть по заказу?"))return;const x=await call("kn_ord_fill",{order:+b.dataset.of,id:+b.dataset.it});if(x){toast("+"+nf(x.sold)+" 🪙");moneyUpd();show()}});
+   $("kn-oa").onclick=async()=>{const pr=Math.round(+$("kn-op").value||0);if(!confirmMoney(pr))return;const x=await call("kn_ord_add",{set:$("kn-os").value,slot:+$("kn-ol").value,forge:+$("kn-of").value,price:pr});if(x){toast("Заказ создан");moneyUpd();show()}}}
+  if(mk==="smith"){box.innerHTML=`<small style="color:#aab4dc">Оружейник продаёт части сетов эпох за монеты — без случайности. Сеты меняются каждый понедельник.</small>${r.smith.map(set=>`<h4 style="margin:10px 0 4px;color:${KN_RAR[KN_SETS[set].r].c}">${esc(KN_SETS[set].n)} · ${KN_RAR[KN_SETS[set].r].k}</h4>${KN_SLOT_N.map((n,sl)=>`<div class="kn-row" data-sb="${set}|${sl}"><div class="kn-th">${partSVG({set,slot:sl})}</div><div class="t"><b>${n}</b><small>обычная ковка · качество 75–98%</small></div><div class="kn-p">${nf(knSmithPrice(set,sl))} 🪙</div></div>`).join("")}`).join("")}`;
+   box.querySelectorAll("[data-sb]").forEach(e=>e.onclick=async()=>{const [set,sl]=e.dataset.sb.split("|"),pr=knSmithPrice(set,+sl);if(!confirmMoney(pr))return;if(!confirm("Купить за "+nf(pr)+" 🪙?"))return;const x=await call("kn_smith_buy",{set,slot:+sl});if(x){K.reveal=x.got;toast("⚒ Куплено у Оружейника");moneyUpd();show()}})}}
+ if(mk==="tr"){const r=await act("kn_trades");if(!r||K.mk!=="tr")return;const it=x=>x?`${esc(KN_SETS[x.set].n)} · ${KN_SLOT_N[x.slot]} ${x.forge?"("+KN_FORGE[x.forge].k+")":""} №${x.no}`:"—";
+  box.innerHTML=r.items.map(t=>`<div class="kn-box" style="margin-top:6px"><small style="color:#8e9ac8">${t.in?"Тебе предлагает "+esc(t.an):"Ты предложил "+esc(t.bn)}</small><div style="font-size:12px;margin-top:4px">Отдаёт: <b>${it(t.in?t.ai:t.bi)}</b><br>Просит: <b>${it(t.in?t.bi:t.ai)}</b>${t.extra?`<br>${(t.extra>0)===!!t.in?"Доплачивает тебе":"Ты доплачиваешь"}: <b>${nf(Math.abs(t.extra))} 🪙</b>`:""}</div><div class="kn-chips">${t.in?`<button type="button" class="kn-chip" style="border-color:#39ff9a" data-ta="${t.id}">Принять</button>`:""}<button type="button" class="kn-chip" data-td="${t.id}">${t.in?"Отклонить":"Отменить"}</button></div></div>`).join("")||'<div class="kn-off">Обменов нет. Открой рыцаря игрока в «Топе» и предложи обмен</div>';
+  box.querySelectorAll("[data-ta]").forEach(b=>b.onclick=async()=>{const x=await call("kn_trade_answer",{id:+b.dataset.ta,ok:1});if(x){hap("heavy");toast("🔄 Обмен состоялся!");moneyUpd();show()}});
+  box.querySelectorAll("[data-td]").forEach(b=>b.onclick=async()=>{if(await act("kn_trade_answer",{id:+b.dataset.td,ok:0}))show()})}
+ if(mk==="feed"){const r=await act("kn_feed");if(!r||K.mk!=="feed")return;box.innerHTML=`<h4 style="margin:0 0 6px;font-size:11px;letter-spacing:2px;color:#8e9ac8">ПРЯМО СЕЙЧАС ВЫКОВАЛИ</h4>`+(r.items.map(it=>`<div class="kn-row" data-u="${it.uid}"><div class="kn-th ${FCLS[it.forge]}">${partSVG(it)}</div><div class="t">${itLine(it)}<small style="display:block">${esc(it.name)}</small></div></div>`).join("")||'<div class="kn-off">Пока тихо — выкуй что-нибудь редкое!</div>');
+  box.querySelectorAll("[data-u]").forEach(e=>e.onclick=()=>openInv(+e.dataset.u))}}
+async function openInv(uid){if(K.d&&uid===(S&&S.uid)){K.sub="ars";return show()}const r=await act("kn_inv",{uid});if(!r)return;
+ const sh=modal(`<h3>⚔️ Рыцарь игрока ${esc(r.name)}</h3><div style="max-width:260px;margin:0 auto;border-radius:14px;overflow:hidden">${knDraw(eqOf(r.look),{bg:1,u:"inv",engr:r.engr})}</div><p style="text-align:center">Сила ⚔ ${nf(r.pow)} · ${r.rank}</p><h4>АРСЕНАЛ · НАЖМИ, ЧТОБЫ ПРЕДЛОЖИТЬ ОБМЕН</h4>${r.items.map(it=>`<div class="kn-row" data-ti="${it.id}"><div class="kn-th ${FCLS[it.forge]}">${partSVG(it)}</div><div class="t">${itLine(it,it.worn?" · надето":"")}</div></div>`).join("")}`);
+ sh.querySelectorAll("[data-ti]").forEach(e=>e.onclick=()=>{const th=r.items.find(x=>x.id===+e.dataset.ti),mine=K.d?K.d.items.filter(i=>!Object.values(K.d.eq).includes(i.id)&&i.lp==null):[];
+  const s2=modal(`<h3>🔄 Обмен с ${esc(r.name)}</h3><p>Ты хочешь: <b>${esc(KN_SETS[th.set].n)} · ${KN_SLOT_N[th.slot]} №${th.no}</b></p><p>Твоя часть взамен:</p><select id="kn-tm" style="width:100%"><option value="">— без части, только монеты —</option>${mine.map(i=>`<option value="${i.id}">${esc(KN_SETS[i.set].n)} · ${KN_SLOT_N[i.slot]} ${i.forge?"("+KN_FORGE[i.forge].k+")":""} ${i.q}%</option>`).join("")}</select><p>Доплата монетами (можно 0):</p><input id="kn-tx" type="number" value="0" style="width:100%"><div class="kn-btns" style="grid-template-columns:1fr"><div class="kn-btn" id="kn-ts">Отправить предложение</div></div>`);
+  $("kn-ts").onclick=async()=>{const x=await call("kn_trade_offer",{to:r.uid,theirs:th.id,mine:+$("kn-tm").value||0,extra:Math.round(+$("kn-tx").value||0)});if(x){closeModal();toast("Предложение отправлено — игрок получит сообщение")}}})}
 /* вкладка внизу: «Рыцарь» вместо «Дракона», дракон — подвкладка */
 const _dgNav=typeof dgNav==="function"?dgNav:null;
 if(_dgNav)dgNav=function(){_dgNav.apply(this,arguments);const i=$("tab-dragon-i"),t=$("tab-dragon-t");if(i)i.textContent="⚔️";if(t)t.textContent="Рыцарь"};

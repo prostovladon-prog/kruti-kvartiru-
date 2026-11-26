@@ -2003,7 +2003,18 @@ const KN_SETS={
  steel:{n:"Стальной страж",r:1,src:"forge"},moon:{n:"Лунный страж",r:1,src:"forge"},sapph:{n:"Сапфировый паладин",r:1,src:"forge"},
  emer:{n:"Изумрудный дракон",r:2,src:"forge"},viking:{n:"Варяг",r:2,src:"forge"},ruby:{n:"Рубиновый клинок",r:2,src:"forge"},frost:{n:"Морозный",r:2,src:"forge"},
  obsid:{n:"Обсидиан",r:3,src:"forge",night:1},imper:{n:"Император",r:3,src:"forge"},
- gold:{n:"Золотой лев",r:4,src:"forge"}};
+ gold:{n:"Золотой лев",r:4,src:"forge"},
+ /* Оружейник: за монеты, без случайности, только обычная ковка */
+ samurai:{n:"Сёгунат",r:2,src:"smith"},legion:{n:"Легион",r:2,src:"smith"},bogatyr:{n:"Богатырь",r:3,src:"smith"},pharaoh:{n:"Фараон",r:3,src:"smith"}};
+/* торговля: комиссия рынка, потолок цены, быстрая продажа, лимиты, заточка */
+const KN_TRADE={fee:.08,lots:5,lotsVip:8,orders:5,quick:.7,capX:10,giftsDay:5,ageDays:3,minForged:20};
+const KN_SMITH={price:[150000,400000,1500000,6000000],perWeek:2};   // цена части по редкости сета (обычный…мифический); шлем ×1.3, оружие ×1.5
+const knSmithSets=()=>knSetIds().filter(k=>KN_SETS[k].src==="smith");
+const knSmithWeek=now=>{const L=knSmithSets(),i=Math.floor((now+3*3600e3+3*864e5)/6048e5);return [L[i%L.length],L[(i+1)%L.length]]};
+const knSmithPrice=(set,slot)=>Math.round(KN_SMITH.price[KN_SETS[set].r]*(slot===5?1.5:slot===0?1.3:1));
+const KN_SHARP={max:10,base:100000};
+const knSharpCost=sh=>KN_SHARP.base*Math.pow(2,sh);
+const KN_ENGR=1000000;
 const KN_PITY={e:40,m:160};
 const KN_KEYS={start:10,refill:4*3600e3,stock:3,perSpins:10};
 const KN_SET_BONUS=[[6,.15],[4,.08],[2,.03]];
@@ -2021,7 +2032,7 @@ function knPower(items){let s=0;const c={};for(const it of items){if(!it)continu
 const knRank=p=>KN_RANKS.find(x=>p>=x[0])[1];
 /* оценка в монетах */
 function knValue(it){const S=KN_SETS[it.set];if(!S)return 0;const sm=it.slot===5?1.5:it.slot===0?1.3:1;const nice=it.no===1?3:(it.no===777||it.no===100||it.no===1000)?1.5:1;
- return Math.round(KN_RAR[S.r].v*KN_FORGE[it.forge].pv*(.6+.4*it.q/100)*sm*nice)}
+ return Math.round(KN_RAR[S.r].v*KN_FORGE[it.forge].pv*(.6+.4*it.q/100)*sm*nice*(1+.1*(it.sh||0)))}
 /* качество 70–100: чаще 80–90, 99–100 примерно 1 из 100 */
 function knRollQ(rnd){if(rnd()<.01)return rnd()<.3?100:99;return Math.min(98,70+Math.round(30*(rnd()+rnd()+rnd())/3))}
 function knPick(W,rnd){const t=W.reduce((a,b)=>a+b,0);let r=rnd()*t;for(let i=0;i<W.length;i++){r-=W[i];if(r<0)return i}return W.length-1}
@@ -2033,4 +2044,4 @@ function knRoll(rnd,ctx){const now=ctx.now,night=knNight(now),week=knWeekSet(now
  const fw=KN_FORGE.map((f,i)=>i&&ctx.hour?f.w*2:f.w);
  return {set,slot:knPick(KN_SLOT_W,rnd),forge:knPick(fw,rnd),q:knRollQ(rnd),pity}}
 
-if(typeof module!=="undefined")module.exports={KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
+if(typeof module!=="undefined")module.exports={KN_TRADE,KN_SMITH,knSmithWeek,knSmithPrice,knSharpCost,KN_SLOTS,KN_RAR,KN_FORGE,KN_SETS,KN_PITY,KN_KEYS,knRoll,knPower,knPartPow,knValue,knRank,knWeekSet,knNight,knForgeSets,EV,EV_SOLO,evOpen,evPlayerCap,evPoints,evAccept,evMinActOneDays,evNodeDamage,evKvorumOk,evNodeReward,relicChest,RIFT,RIFT_P,compRun,DQR,dqProg,dqDay,DQ,PROMO_BOX,ESHOP,AVF,CRESTS,eshopCheck,WAR,BIGUPD,empLvP,empLvl,DG_CAS,dgCasDrop,DG,DG_STAGE,dgStage,dgCum,DG_BREED,DG_BR_R,DG_BR_P,DG_REB_P,DG_FOOD,DG_SLOT,DG_R,DG_SET,DG_CHEST,DG_SHOP,dgItemName,dgItemPow,dgUpCost,dgEq,dgSetBonus,dgPower,dgSat,dgBonus,dgDay,dgAddXp,dgWin,dgNewItem,dgView,dgSetOf,dgSlotOf,isBase,BASE,baseNo,DUO,isDuo,DUO_F,DUO_RUN,DUO_PAIRS,rollDuo,SLOT_STEP,SLOT_COIN,SLOT_STAR,VIP_SLOTS,VIP_CAP,capCoinPrice,capParts,capOf,conqLeft,conqBuyPrice,ERA_OF,CONQ,CONQ_CH,conqN,conqStage,conqDay,conqTorch,conqPow,cpow,PASS,PQ,passSeason,passEnd,passTheme,passQuests,passState,passLv,passReward,passAdd,ERAS,CLAN,clanHp,clanDmg,VIP_T,vipTier,exMax,EX,exDay,exPrice,COLLAB,isCollab,GIFTS,GR,GR_C,GR_V,giftVal,SHELF_N,CAS_DAY,CASE,SLOT,HL,hlP,casDay,GOLEM,TITLES,ABIL,abil,rkInit,rkTurn,rkAI,rkGain,rkFighter,wclass,league,LEAGUES,RK_DAY,FAT_N,FAT_MS,craftPrice,CRAFT_MAX,DON,ONE,rollOne,NBASE,COMP,isComp,SHOP,CHESTS,numPrice,checkSn,NFX,NFX_PRICE,HALF_RUN,TRAIN_B,campTrainer,campBonus,mskDay,mskWeek,camp,campMax,campFull,campPow,campCrit,campSq,campSqRate,TARGETS,CAMP_UP,CRIT_X,SQ_HOURS,spinsBought,spinPrice,BUY_MAX,WHEEL,aiPick,rndPick,away,spinCap,VIP_SPINS,checkNick,NICK_COST,STAR_MAX,epithet,HEROES,FIN,HT,NICE,classify,HH_T,HH_LEN,hhDay,hhNow,hhIs,SDAY,DFX,PBG,PRESENT,DG_WISH,DG_WISH_R,DG_WISH_ALL,dgWishes,MN,mnM,JP,CSB,EMP,cardPow,empPower,empRank,THEMES,LUCK,luckPrice,HOF,hofCard,hofSlots,hofColl,hofRate,RKT,rkM,MAP_W,MAP_DG,MAP_AL,MAP_R,MAP_Z,AL0,DGL0,DGL_THRONE,mapInc,MAP,MFLAG,MPASS,mapMon,mapPass,mapLv,mapAtt,DG_PLAY,SUP,LPITY,PITY,ACTIONS,runAction,freshState,touch,GameError,lvl,eff,CAP,MAX_LOTS,FEE,QUICK,TOWER,TOWER_CHAMP_IDS,towerOf,towerChampCard,noTrade,finRun};
