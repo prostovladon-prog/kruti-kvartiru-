@@ -37,12 +37,12 @@ const KSETS={
 const KSLOTS=[["helm","Шлем"],["shoulders","Наплечники"],["chest","Нагрудник"],["legs","Ноги"],["boots","Сапоги"],["weapon","Оружие"]];
 
 
-function knDraw(eq,opt){opt=opt||{};if(SLK.every(k=>KN_HAS.has(eq[k])))return knDrawR(eq,opt);const u=opt.u||"k",gA=opt.gA||{t:"none"},gW=opt.gW||{t:"none"};
+function knDraw(eq,opt){opt=opt||{};if(!opt.vector&&KN_HAS.has(eq.chest)&&SLK.every(k=>eq[k]===eq.chest))return knDrawR(eq,opt);const u=opt.u||"k",gA=opt.gA||{t:"none"},gW=opt.gW||{t:"none"};
  const S=k=>KSETS[eq[k]],P=k=>S(k).p,V=k=>S(k).v[k];
  const H=P("helm"),SH=P("shoulders"),C=P("chest"),L=P("legs"),B=P("boots"),W=P("weapon");
  const f=(c,w)=>`fill="${c}" stroke="${O}" stroke-width="${w||5}"`;
  const st=(c,w)=>`fill="none" stroke="${c}" stroke-width="${w||4}"`;
- let o=`<svg xmlns="http://www.w3.org/2000/svg"${opt.vb?"":` viewBox="0 0 420 640"`} width="${opt.w||"100%"}"${opt.vb?` viewBox="${opt.vb}"`:""} style="display:block">${opt.bg?(SCN[opt.bg]?SCN[opt.bg](u):knBG(u)):""}${opt.back||""}<defs><clipPath id="ct${u}"><path d="M150 186 C172 170 248 170 270 186 L262 270 C258 300 240 318 210 320 C180 318 162 300 158 270 Z"/></clipPath><clipPath id="cs${u}"><path d="M170 180 C120 168 88 196 90 236 C92 266 118 278 150 266 L174 214 Z"/></clipPath><clipPath id="cl${u}"><path d="M158 484 L200 484 L194 562 L148 562 Z M220 484 L262 484 L272 562 L226 562 Z"/></clipPath><clipPath id="cb${u}"><path d="${eq.weapon&&KSETS[eq.weapon].v.weapon==="axe"?"M210 540 C186 526 160 528 150 540 C146 560 152 582 164 596 C176 584 194 580 210 582Z M210 540 C234 526 260 528 270 540 C274 560 268 582 256 596 C244 584 226 580 210 582Z":"M193 372 L227 372 L224 592 L210 610 L196 592 Z"}"/></clipPath></defs><g stroke-linejoin="round" stroke-linecap="round"${opt.kt?` transform="${opt.kt}"`:""}>`;
+ let o=`<svg xmlns="http://www.w3.org/2000/svg"${opt.vb?"":` viewBox="0 0 420 640"`} width="${opt.w||"100%"}"${opt.vb?` viewBox="${opt.vb}"`:""} style="display:block">${opt.bg?knArtBackground(opt.bg):""}${opt.back||""}<defs><clipPath id="ct${u}"><path d="M150 186 C172 170 248 170 270 186 L262 270 C258 300 240 318 210 320 C180 318 162 300 158 270 Z"/></clipPath><clipPath id="cs${u}"><path d="M170 180 C120 168 88 196 90 236 C92 266 118 278 150 266 L174 214 Z"/></clipPath><clipPath id="cl${u}"><path d="M158 484 L200 484 L194 562 L148 562 Z M220 484 L262 484 L272 562 L226 562 Z"/></clipPath><clipPath id="cb${u}"><path d="${eq.weapon&&KSETS[eq.weapon].v.weapon==="axe"?"M210 540 C186 526 160 528 150 540 C146 560 152 582 164 596 C176 584 194 580 210 582Z M210 540 C234 526 260 528 270 540 C274 560 268 582 256 596 C244 584 226 580 210 582Z":"M193 372 L227 372 L224 592 L210 610 L196 592 Z"}"/></clipPath></defs><g stroke-linejoin="round" stroke-linecap="round"${opt.kt?` transform="${opt.kt}"`:""}>`;
  o+=`<ellipse cx="210" cy="598" rx="170" ry="26" fill="#000" opacity=".45"/>`;
  /* ---- плащ (сет нагрудника) ---- */
  o+=`<path d="M140 200 C100 300 78 440 66 586 C120 600 170 590 210 578 C250 590 300 600 354 586 C342 440 320 300 280 200 Z" ${f(C.c)}/>`;
@@ -327,24 +327,19 @@ function fxEmbers(){return parts(30,["#ffb030","#ff5a00","#ffe070"],-1,"e",120)}
 function fxGold(){return Array.from({length:18},(_,i)=>{const x=15+(i*59)%390,d=3+(i%4)*.9,b=(i*.7)%4;return `<g><ellipse cx="${x}" cy="-10" rx="5" ry="5" fill="#ffd60a" stroke="#8a5a00" stroke-width="1.5"><animate attributeName="cy" values="-10;650" dur="${d}s" begin="${b}s" repeatCount="indefinite"/><animate attributeName="rx" values="5;1;5" dur=".6s" repeatCount="indefinite"/></ellipse></g>`}).join("")}
 const FXD={fireflies:fireflies,snow:fxSnow,embers:fxEmbers,goldrain:fxGold};
 
-/* ===== Арт рыцаря: все детали привязаны к одному холсту и манекену ===== */
+/* Цельный арт доступен для полных сетов. Смешанные наборы использует SVG-рендерер. */
 const KN_ART="assets/kn/",KN_ARTV="2",KN_HAS=new Set(["bronze","iron","steel","moon","sapph","emer","viking","ruby","frost","obsid","imper","gold","samurai","legion","bogatyr","pharaoh","drake","champ","glad","banner","laurel","keeper","flag"]);
 const KN_BG={"":"court",1:"court",citadel:"citadel",ice:"ice",lava:"lava",throne:"throne"};
 /* рамки под карты на стенах каждого фона: центр x, y верхней и нижней, ширина — в % сцены 420×640 */
 const KN_FR={court:[12,87.6,31.8,53.2,17.2],citadel:[9.3,91,28.1,51.9,18.6],ice:[10.5,88.5,28.6,54.1,21],lava:[10,90.3,28.3,52.8,20.5],throne:[9.35,90.4,27.6,47.6,17.7]};
 const VBR=["135 0 152 178","70 145 282 136","130 150 160 235","112 345 200 150","85 470 252 132","150 265 125 335"];
 const artUrl=n=>KN_ART+n+".webp?v="+KN_ARTV;
-const KN_LAYER_ORDER=["cape","base_body","legs","boots","chest","weapon","shoulders","helm"];
-const KN_LAYER_FRAME='x="5.5" y="0" width="408.3" height="612.4"';
-const layerImage=n=>`<image href="${KN_ART}layers/${n}.png?v=1" ${KN_LAYER_FRAME}/>`;
+const knArtBackground=bg=>`<image href="${artUrl("bg_"+(KN_BG[bg]||"court"))}" x="0" y="0" width="420" height="640" preserveAspectRatio="xMidYMid slice"/>`;
 function knDrawR(eq,opt){const u=opt.u||"k",gA=opt.gA||{t:"none"},gW=opt.gW||{t:"none"};
  let o=`<svg xmlns="http://www.w3.org/2000/svg"${opt.vb?"":` viewBox="0 0 420 640"`} width="${opt.w||"100%"}"${opt.vb?` viewBox="${opt.vb}"`:""} style="display:block">`;
- if(opt.bg)o+=`<image href="${artUrl("bg_"+(KN_BG[opt.bg]||"court"))}" x="0" y="0" width="420" height="640" preserveAspectRatio="xMidYMid slice"/>`;
+ if(opt.bg)o+=knArtBackground(opt.bg);
  o+=(opt.back||"")+`<defs><filter id="gt${u}"><feFlood flood-color="${gA.c||"#fff"}"/><feComposite in2="SourceAlpha" operator="in"/></filter><filter id="gw${u}"><feFlood flood-color="${gW.c||"#fff"}"/><feComposite in2="SourceAlpha" operator="in"/></filter><clipPath id="cb${u}"><rect x="196" y="380" width="28" height="210"/></clipPath><clipPath id="ct${u}"><ellipse cx="210" cy="255" rx="58" ry="62"/></clipPath></defs>`;
- o+=`<g${opt.kt?` transform="${opt.kt}"`:""}><ellipse cx="210" cy="600" rx="150" ry="22" fill="#000" opacity=".45"/>`;
- for(const slot of KN_LAYER_ORDER){
-  o+=layerImage(slot==="base_body"?slot:`${eq[slot==="cape"?"chest":slot]}_${slot}`);
- }
+ o+=`<g${opt.kt?` transform="${opt.kt}"`:""}><ellipse cx="210" cy="600" rx="150" ry="22" fill="#000" opacity=".45"/><image href="${artUrl(eq.chest)}" x="5.5" y="0" width="408.3" height="612.4"/>`;
  if(gA.t&&gA.t!=="none")o+=`<g clip-path="url(#ct${u})" opacity=".85"><image href="${artUrl("gr_"+gA.t)}" x="158" y="200" width="104" height="104" filter="url(#gt${u})"/></g>`;
  if(gW.t&&gW.t!=="none")o+=`<g clip-path="url(#cb${u})" opacity=".85"><image href="${artUrl("gr_"+gW.t)}" x="160" y="400" width="100" height="100" filter="url(#gw${u})"/><image href="${artUrl("gr_"+gW.t)}" x="160" y="490" width="100" height="100" filter="url(#gw${u})"/></g>`;
  if(opt.engr)o+=`<text x="0" y="0" transform="translate(214 470) rotate(90)" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="13" fill="#3a2a10" opacity=".85" stroke="#ffe8a8" stroke-width=".6" paint-order="stroke">${esc(String(opt.engr).slice(0,16))}</text>`;
@@ -359,9 +354,8 @@ const SLK=["helm","shoulders","chest","legs","boots","weapon"];
 const VB=["150 6 120 190","70 150 280 160","130 150 160 260","110 350 200 240","90 530 240 90","140 300 140 320"];
 const eqOf=(look)=>{const e={};SLK.forEach((k,i)=>e[k]=(look&&look[i]&&KSETS[look[i]])?look[i]:"bronze");return e};
 const partSVG=(it,w)=>{
- const sid=KSETS[it.set]?it.set:"bronze",slot=SLK[it.slot];
- if(KN_HAS.has(sid)&&slot)return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VBR[it.slot]}" width="${w||"100%"}" style="display:block">${layerImage(sid+"_"+slot)}</svg>`;
- return knDraw(Object.fromEntries(SLK.map(k=>[k,sid])),{w:w||"100%",vb:VB[it.slot],u:"p"+(++uidN)});
+ const sid=KSETS[it.set]?it.set:"bronze";
+ return knDraw(Object.fromEntries(SLK.map(k=>[k,sid])),{w:w||"100%",vb:VB[it.slot],u:"p"+(++uidN),vector:true});
 };
 let uidN=0;
 const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
