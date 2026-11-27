@@ -5435,8 +5435,12 @@ async function evHit(env, me, p) {
   const { u, cards } = await loadUser(env, me);
   const clan = (u && u.clan) || 0, key = evKey(u, me);
   if (!admin && !(await evBuildDone(env, season, key, clan))) fail("Сначала завершите все 4 сегмента Стройки");
-  const order = (await env.DB.prepare("SELECT n,closed FROM ev_node WHERE season=? AND key=? ORDER BY n").bind(season, key).all()).results || [];
-  const expectedNode = order.find(x => !x.closed)?.n || 1;
+  const closedRows = (await env.DB.prepare("SELECT n FROM ev_node WHERE season=? AND key=? AND closed=1").bind(season, key).all()).results || [];
+  const closedNodes = new Set(closedRows.map(row => row.n));
+  const nodes = clan ? EV.nodes : EV_SOLO.nodes;
+  const nextIndex = nodes.findIndex((_, i) => !closedNodes.has(i + 1));
+  if (nextIndex < 0) fail("Все узлы закрыты");
+  const expectedNode = nextIndex + 1;
   if (n !== expectedNode) fail("Сначала закройте узел " + expectedNode);
   const ids = Array.isArray(p.cards) ? p.cards.slice(0, 3) : [];
   if (!ids.length) fail("Выбери отряд");

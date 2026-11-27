@@ -254,6 +254,16 @@ sec("7. Клан: динамический лимит, приглашение и
   const finalDonor = JSON.parse(db.prepare("SELECT state FROM users WHERE id=?").get(donor).state || "{}");
   ok(last.ok && (finalDonor.pays || []).includes("evfirst:" + season + ":done:" + donor),
     "первый клан, закрывший четыре сегмента, получает обещанный мифический сундук");
+
+  await call(ADMIN, "ev_admin", { op: "close", n: 1 });
+  await call(ADMIN, "ev_admin", { op: "close", n: 4 });
+  const skipped = await call(ADMIN, "ev_hit", { n: 3, cards: cards.slice(0, 3) });
+  ok(!skipped.ok && skipped.err === "Сначала закройте узел 2", "нельзя перепрыгнуть через узел, у которого ещё нет строки", skipped.err);
+  const next = await call(ADMIN, "ev_hit", { n: 2, cards: cards.slice(0, 3) });
+  ok(next.ok && next.res.dmg > 0, "первый удар по узлу 2 проходит после закрытия узла 1", next);
+  for (let n = 2; n <= 12; n++) await call(ADMIN, "ev_admin", { op: "close", n });
+  const complete = await call(ADMIN, "ev_hit", { n: 1, cards: cards.slice(0, 3) });
+  ok(!complete.ok && complete.err === "Все узлы закрыты", "закрытый Поход не возвращает игрока к первому узлу", complete.err);
 }
 
 Date.now = realNow;
