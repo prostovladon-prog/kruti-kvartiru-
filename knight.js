@@ -37,7 +37,7 @@ const KSETS={
 const KSLOTS=[["helm","Шлем"],["shoulders","Наплечники"],["chest","Нагрудник"],["legs","Ноги"],["boots","Сапоги"],["weapon","Оружие"]];
 
 
-function knDraw(eq,opt){opt=opt||{};const u=opt.u||"k",gA=opt.gA||{t:"none"},gW=opt.gW||{t:"none"};
+function knDraw(eq,opt){opt=opt||{};if(SLK.every(k=>KN_HAS.has(eq[k])))return knDrawR(eq,opt);const u=opt.u||"k",gA=opt.gA||{t:"none"},gW=opt.gW||{t:"none"};
  const S=k=>KSETS[eq[k]],P=k=>S(k).p,V=k=>S(k).v[k];
  const H=P("helm"),SH=P("shoulders"),C=P("chest"),L=P("legs"),B=P("boots"),W=P("weapon");
  const f=(c,w)=>`fill="${c}" stroke="${O}" stroke-width="${w||5}"`;
@@ -326,6 +326,27 @@ function fxSnow(){return parts(28,["#ffffff","#e8f8ff"],1,"s")}
 function fxEmbers(){return parts(30,["#ffb030","#ff5a00","#ffe070"],-1,"e",120)}
 function fxGold(){return Array.from({length:18},(_,i)=>{const x=15+(i*59)%390,d=3+(i%4)*.9,b=(i*.7)%4;return `<g><ellipse cx="${x}" cy="-10" rx="5" ry="5" fill="#ffd60a" stroke="#8a5a00" stroke-width="1.5"><animate attributeName="cy" values="-10;650" dur="${d}s" begin="${b}s" repeatCount="indefinite"/><animate attributeName="rx" values="5;1;5" dur=".6s" repeatCount="indefinite"/></ellipse></g>`}).join("")}
 const FXD={fireflies:fireflies,snow:fxSnow,embers:fxEmbers,goldrain:fxGold};
+
+/* ===== арт рыцаря (картинки GPT, выровнены по лицу и нарезаны на 6 деталей) =====
+   плащ и щит идут с нагрудником; поверх кладутся ноги, сапоги, оружие, наплечники, шлем */
+const KN_ART="assets/kn/",KN_ARTV="1",KN_HAS=new Set(["bronze","iron","steel","moon","sapph","emer","viking","ruby","frost","obsid","imper","gold","samurai","legion","bogatyr","pharaoh","drake","champ","glad","banner","laurel","keeper","flag"]);
+const KN_BG={"":"court",1:"court",citadel:"citadel",ice:"ice",lava:"lava",throne:"throne"};
+/* рамки под карты на стенах каждого фона: центр x, y верхней и нижней, ширина — в % сцены 420×640 */
+const KN_FR={court:[12,87.6,31.8,53.2,17.2],citadel:[9.3,91,28.1,51.9,18.6],ice:[10.5,88.5,28.6,54.1,21],lava:[10,90.3,28.3,52.8,20.5],throne:[9.35,90.4,27.6,47.6,17.7]};
+const VBR=["135 0 152 178","70 145 282 136","130 150 160 235","112 345 200 150","85 470 252 132","150 265 125 335"];
+const artUrl=n=>KN_ART+n+".webp?v="+KN_ARTV;
+function knDrawR(eq,opt){const u=opt.u||"k",gA=opt.gA||{t:"none"},gW=opt.gW||{t:"none"},c=eq.chest,K=[["legs",3],["boots",4],["weapon",5],["shoulders",1],["helm",0]];
+ const R=`x="5.5" y="0" width="408.3" height="612.4"`;
+ let o=`<svg xmlns="http://www.w3.org/2000/svg"${opt.vb?"":` viewBox="0 0 420 640"`} width="${opt.w||"100%"}"${opt.vb?` viewBox="${opt.vb}"`:""} style="display:block">`;
+ if(opt.bg)o+=`<image href="${artUrl("bg_"+(KN_BG[opt.bg]||"court"))}" x="0" y="0" width="420" height="640" preserveAspectRatio="xMidYMid slice"/>`;
+ o+=(opt.back||"")+`<defs><filter id="gt${u}"><feFlood flood-color="${gA.c||"#fff"}"/><feComposite in2="SourceAlpha" operator="in"/></filter><filter id="gw${u}"><feFlood flood-color="${gW.c||"#fff"}"/><feComposite in2="SourceAlpha" operator="in"/></filter><clipPath id="cb${u}"><rect x="196" y="380" width="28" height="210"/></clipPath><clipPath id="ct${u}"><ellipse cx="210" cy="255" rx="58" ry="62"/></clipPath></defs>`;
+ o+=`<g${opt.kt?` transform="${opt.kt}"`:""}><ellipse cx="210" cy="600" rx="150" ry="22" fill="#000" opacity=".45"/><image href="${artUrl(c)}" ${R}/>`;
+ for(const [k] of K){const sid=eq[k];if(sid&&sid!==c)o+=`<image href="${artUrl(sid+"_"+k)}" ${R}/>`}
+ if(gA.t&&gA.t!=="none")o+=`<g clip-path="url(#ct${u})" opacity=".85"><image href="${artUrl("gr_"+gA.t)}" x="158" y="200" width="104" height="104" filter="url(#gt${u})"/></g>`;
+ if(gW.t&&gW.t!=="none")o+=`<g clip-path="url(#cb${u})" opacity=".85"><image href="${artUrl("gr_"+gW.t)}" x="160" y="400" width="100" height="100" filter="url(#gw${u})"/><image href="${artUrl("gr_"+gW.t)}" x="160" y="490" width="100" height="100" filter="url(#gw${u})"/></g>`;
+ if(opt.engr)o+=`<text x="0" y="0" transform="translate(214 470) rotate(90)" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="13" fill="#3a2a10" opacity=".85" stroke="#ffe8a8" stroke-width=".6" paint-order="stroke">${esc(String(opt.engr).slice(0,16))}</text>`;
+ return o+`</g>${opt.front||""}${opt.fx&&FXD[opt.fx]?FXD[opt.fx]():""}</svg>`}
+const petImg=(x,y)=>`<image href="${artUrl("pet")}" x="${x-60}" y="${y-70}" width="120" height="120"/>`;
 /* бесплатный фон «Двор ордена» */
 function knBG(u){return `<defs><radialGradient id="kbg${u}" cx=".5" cy=".38" r=".75"><stop offset="0" stop-color="#2e3c8c"/><stop offset=".55" stop-color="#141a48"/><stop offset="1" stop-color="#070a1c"/></radialGradient></defs>
  <rect width="420" height="640" fill="url(#kbg${u})"/><path d="M90 560 V250 A120 120 0 0 1 330 250 V560" fill="none" stroke="#ffd60a" stroke-opacity=".16" stroke-width="4"/>
@@ -334,7 +355,7 @@ function knBG(u){return `<defs><radialGradient id="kbg${u}" cx=".5" cy=".38" r="
 const SLK=["helm","shoulders","chest","legs","boots","weapon"];
 const VB=["150 6 120 190","70 150 280 160","130 150 160 260","110 350 200 240","90 530 240 90","140 300 140 320"];
 const eqOf=(look)=>{const e={};SLK.forEach((k,i)=>e[k]=(look&&look[i]&&KSETS[look[i]])?look[i]:"bronze");return e};
-const partSVG=(it,w)=>knDraw(Object.fromEntries(SLK.map(k=>[k,KSETS[it.set]?it.set:"bronze"])),{w:w||"100%",vb:VB[it.slot],u:"p"+(++uidN)});
+const partSVG=(it,w)=>{const sid=KSETS[it.set]?it.set:"bronze";return knDraw(Object.fromEntries(SLK.map(k=>[k,sid])),{w:w||"100%",vb:(KN_HAS.has(sid)?VBR:VB)[it.slot],u:"p"+(++uidN)})};
 let uidN=0;
 const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const R=it=>KN_RAR[KN_SETS[it.set]?KN_SETS[it.set].r:0];
@@ -385,6 +406,15 @@ const css=`
 .kn-plate.marble{background:linear-gradient(180deg,#f4f2ee,#c8c4bc);border-color:#8a8478}.kn-plate.marble b{color:#2a2620}.kn-plate.marble small{color:#5a5448}
 .kn-plate.neon{background:#0a0014;border-color:#ff3bf0;box-shadow:0 0 14px #ff3bf0,inset 0 0 10px #ff3bf0}.kn-plate.neon b{color:#fff;text-shadow:0 0 8px #ff3bf0}.kn-plate.neon small{color:#7fe8ff}
 .kn-plate.gold{background:linear-gradient(180deg,#fff2a8,#ffb300 60%,#a86a00);border-color:#fff4c0;box-shadow:0 0 18px rgba(255,214,10,.6)}.kn-plate.gold b,.kn-plate.gold small{color:#2a1600}
+
+.kxf{position:absolute;aspect-ratio:68/100;transform:translate(-50%,-50%);z-index:2;border-radius:10%/7%;background:linear-gradient(160deg,#fff3b0,#ffc21a 30%,#a86a00 60%,#ffd23a 80%,#7a4a00);box-shadow:0 0 0 1.5px #3a2200,0 4px 10px rgba(0,0,0,.6),0 0 14px rgba(255,200,60,.35)}
+.kxf:before{content:"";position:absolute;inset:4.5%;border-radius:8%/6%;background:linear-gradient(180deg,#1a1030,#0b0716);box-shadow:inset 0 0 0 1.5px #3a2200}
+.kxf:after{content:"";position:absolute;left:50%;top:-5%;width:15%;aspect-ratio:1;transform:translateX(-50%) rotate(45deg);background:linear-gradient(135deg,#fff3b0,#e0102a 40%,#7a0010);border:1.5px solid #3a2200;box-shadow:0 0 6px rgba(255,60,60,.6)}
+.kxf .kxi{position:absolute;left:9%;right:9%;top:50%;transform:translateY(-50%);z-index:1}.kxf .kxi .minic{display:block;width:100%}
+.kxf>i{position:absolute;bottom:-4%;left:50%;width:12%;aspect-ratio:1;transform:translateX(-50%) rotate(45deg);background:linear-gradient(135deg,#fff3b0,#ffc21a,#7a4a00);border:1.5px solid #3a2200;z-index:2}
+.kn-plate.marble,.kn-plate.neon,.kn-plate.gold{border:0!important;box-shadow:none!important;background:center/100% 100% no-repeat;padding:10px 34px 12px;min-width:58%}
+.kn-plate.marble{background-image:url(assets/kn/pl_marble.webp)}.kn-plate.neon{background-image:url(assets/kn/pl_neon.webp)}.kn-plate.gold{background-image:url(assets/kn/pl_gold.webp)}
+.kn-plate.neon b{text-shadow:0 0 8px #ff3bf0}
 .kn-ent{animation:knent 1.1s ease-out}@keyframes knent{0%{filter:brightness(4) saturate(0);transform:scale(1.04)}15%{transform:translateY(-6px) scale(1.02)}30%{transform:translateY(4px)}45%{filter:brightness(1.6)}100%{filter:none;transform:none}}
 .kn-cos{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:900;padding:6px 9px;border-radius:9px;border:1.5px solid #3a447a;background:#0a0f28;color:#cfd7f8;margin:3px 3px 0 0}
 .kn-cos.on{border-color:#ffd60a;color:#ffd60a}.kn-cos.buy{border-style:dashed;color:#d8b8ff;border-color:#7a4ad0}
@@ -520,10 +550,11 @@ const BGN={"":"Двор ордена",citadel:"Цитадель",ice:"Ледян
 const FXN={"":"Без эффекта",fireflies:"Светлячки",snow:"Снегопад",embers:"Искры кузни",goldrain:"Золотой дождь"};
 const PLN={"":"Обычная",marble:"Мрамор",neon:"Неон",gold:"Золото"};
 const cosKey=(kind,v)=>Object.keys(KN_COS).find(k=>KN_COS[k].kind===kind&&KN_COS[k].v===v);
-function sceneHTML(F,u){const st=F.set||{},front=F.dg?dragonPet(356,548):"";
+function sceneHTML(F,u){const st=F.set||{},front=F.dg?petImg(352,560):"";
  const svg=knDraw(eqOf(F.look),{bg:st.bg||1,fx:st.fx,gA:st.ga||undefined,gW:st.gw||undefined,engr:F.engr,front,u:u||"sc",kt:"translate(31 62) scale(.85)"});
  const pos=["l1","r1","l2","r2"],cards=F.cards||[];
- return `<div class="kn-scn ${st.ent?"kn-ent":""}">${svg}${cards.slice(0,4).map((c,i)=>`<div class="kn-wall ${pos[i]}">${miniSlot(c)}</div>`).join("")}</div>
+ const FR=KN_FR[KN_BG[st.bg||""]||"court"],PP=[[FR[0],FR[2]],[FR[1],FR[2]],[FR[0],FR[3]],[FR[1],FR[3]]];
+ return `<div class="kn-scn ${st.ent?"kn-ent":""}">${svg}${cards.slice(0,4).map((c,i)=>`<div class="kxf" style="left:${PP[i][0]}%;top:${PP[i][1]}%;width:${FR[4]}%"><div class="kxi">${miniSlot(c)}</div><i></i></div>`).join("")}</div>
  <div class="kn-plate ${st.plate||""}"><b>${esc(F.name)}</b><small>${esc(F.rank||"")} · ⚔ ${nf(F.pow||0)}</small></div>
  ${cards.length>4?`<div class="kn-wall2">${cards.slice(4).map(c=>miniSlot(c)).join("")}</div>`:""}`}
 async function knPay(k,to,nick){const C=KN_COS[k],sh=modal(`<h3>💎 ${esc(C.n)}</h3><p>${C.stars} ⭐ · ${to||nick?"подарок другу":"для себя"}. Только внешний вид — силы не даёт.</p><div class="kn-btns" style="grid-template-columns:1fr"><div class="kn-btn" id="kn-pt">Оплатить в Telegram · ${C.stars} ⭐</div><div class="kn-btn g" id="kn-pb">С игрового баланса${S&&S.starBal!=null?" ("+S.starBal+" ⭐)":""}</div></div>`);
@@ -634,7 +665,7 @@ function orderHTML(r,b){const board=`<div class="kn-box"><h4>📯 ДОСКА Н�
  if(r.noclan)return `<div class="kn-box"><h4>🏴 РЕЙД ОРДЕНА</h4><small style="color:#8e9ac8">Раз в неделю орден из ${KN_RAID.min}+ рыцарей бьёт Чёрного рыцаря. Каждый — один удар в день силой своего рыцаря. Поверг — все, кто бил, получают 🗝 «Знамя ордена» и +${KN_RAID.steel} ⚙️. Найди клан на доске ниже.</small></div>`+board;
  if(r.locked)return `<div class="kn-box"><h4>🏴 РЕЙД ОРДЕНА «${esc(r.cname)}»</h4><div class="kn-off">Рыцарей в клане: ${r.knights} из ${r.need}. Позови соклановцев выковать доспех или дай объявление на доске — рейд откроется сам.</div></div>`+board;
  const pc=Math.round(100*r.dmg/r.hp);
- return `<div class="kn-box"><h4>🏴 РЕЙД ОРДЕНА «${esc(r.cname)}» · ⚔ ${nf(r.cpow)}</h4><div style="text-align:center"><div class="kn-th" style="width:150px;height:180px;margin:0 auto;filter:${r.killed?"grayscale(1) brightness(.6)":"brightness(.55) saturate(.4) drop-shadow(0 0 12px #ff2a2a)"}">${knMini(["obsid","obsid","obsid","obsid","obsid","obsid"],"rb")}</div><b style="color:#ff6a6a">ЧЁРНЫЙ РЫЦАРЬ${r.killed?" — ПОВЕРЖЕН":""}</b></div>
+ return `<div class="kn-box"><h4>🏴 РЕЙД ОРДЕНА «${esc(r.cname)}» · ⚔ ${nf(r.cpow)}</h4><div style="text-align:center"><div class="kn-th" style="width:150px;height:180px;margin:0 auto;filter:${r.killed?"grayscale(1) brightness(.6)":"drop-shadow(0 0 14px #ff2a2a)"}"><img src="${artUrl("blackknight")}" style="width:100%;height:100%;object-fit:contain"></div><b style="color:#ff6a6a">ЧЁРНЫЙ РЫЦАРЬ${r.killed?" — ПОВЕРЖЕН":""}</b></div>
  <div style="height:14px;border-radius:8px;background:#2a0a10;border:2px solid #0b0f24;overflow:hidden;margin:8px 0"><div style="height:100%;width:${100-pc}%;background:linear-gradient(90deg,#ff2a3a,#ff8a2a)"></div></div><small style="color:#cfd7f8">❤️ ${nf(Math.max(0,r.hp-r.dmg))} / ${nf(r.hp)}</small>
  <div class="kn-btns" style="grid-template-columns:1fr">${r.killed?'<div class="kn-chip">Повержен! Новый Чёрный рыцарь — в понедельник</div>':r.hitToday?'<div class="kn-chip">Сегодня ты уже бил — приходи завтра</div>':'<div class="kn-btn" id="kn-rh">⚔ Ударить всей силой</div>'}</div>
  ${r.hits.length?`<h4 style="margin-top:10px">УРОН ОРДЕНА ЗА НЕДЕЛЮ</h4>${r.hits.map((h,i)=>`<div class="kn-row" style="cursor:default"><div class="t"><b>${i+1}. ${esc(h.name)}</b></div><div class="kn-p">⚔ ${nf(h.d)}</div></div>`).join("")}`:""}</div>`+board}
