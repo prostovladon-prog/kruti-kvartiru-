@@ -329,7 +329,7 @@ const FXD={fireflies:fireflies,snow:fxSnow,embers:fxEmbers,goldrain:fxGold};
 
 /* ===== арт рыцаря (картинки GPT, выровнены по лицу и нарезаны на 6 деталей) =====
    плащ и щит идут с нагрудником; поверх кладутся ноги, сапоги, оружие, наплечники, шлем */
-const KN_ART="assets/kn/",KN_ARTV="1",KN_HAS=new Set(["bronze","iron","steel","moon","sapph","emer","viking","ruby","frost","obsid","imper","gold","samurai","legion","bogatyr","pharaoh","drake","champ","glad","banner","laurel","keeper","flag"]);
+const KN_ART="assets/kn/",KN_ARTV="2",KN_HAS=new Set(["bronze","iron","steel","moon","sapph","emer","viking","ruby","frost","obsid","imper","gold","samurai","legion","bogatyr","pharaoh","drake","champ","glad","banner","laurel","keeper","flag"]);
 const KN_BG={"":"court",1:"court",citadel:"citadel",ice:"ice",lava:"lava",throne:"throne"};
 /* рамки под карты на стенах каждого фона: центр x, y верхней и нижней, ширина — в % сцены 420×640 */
 const KN_FR={court:[12,87.6,31.8,53.2,17.2],citadel:[9.3,91,28.1,51.9,18.6],ice:[10.5,88.5,28.6,54.1,21],lava:[10,90.3,28.3,52.8,20.5],throne:[9.35,90.4,27.6,47.6,17.7]};
