@@ -2178,6 +2178,11 @@ $("ref-go").onclick=()=>{if(!ONLINE){toast("Приглашения работа�
   sendLink("Залетай в «Воины Эпох»: крути карточки воинов, собирай легенды, сражайся с друзьями и торгуй на рынке!",linkFor("r_"+S.uid))};
 
 async function openParam(p){
+  if(p==="arena"||p==="tower"){
+    const open=()=>window.twOpen?.(p);
+    if(window.twOpen)open();else document.addEventListener("DOMContentLoaded",open,{once:true});
+    return;
+  }
   if(p==="dayzeus"){dcOpen();return}
   if(p==="profilecontest"){profileContestOpen();return}
   if(p.startsWith("r_"))return;   // приглашение: сервер уже засчитал его при первом входе
@@ -2196,7 +2201,8 @@ function renderFriends(){const box=$("friends");if(!box)return;box.innerHTML="";
     d.querySelector("b").textContent=n;d.querySelector("small").textContent=(String(F[n].p||"").startsWith("u_")?"последний раз ":"витрина от ")+new Date(F[n].t).toLocaleDateString("ru-RU");
     d.querySelector("button").onclick=()=>openParam(F[n].p);box.appendChild(d)})}
 function handleStart(){let p=null;try{p=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param||INITP.get("start_param"))}catch(e){}
-  if(!p){const q=new URLSearchParams(location.search).get("startapp");if(q)p=q}
+  if(!p){const q=new URLSearchParams(location.search);p=q.get("startapp");
+    if(!p&&(q.has("tower")||location.hash==="#tower"))p=q.has("arena")?"arena":"tower"}
   if(p?.startsWith("c_")){const id=+p.split("_")[1];const f=(S?.fights||[]).find(f=>f.att_card===id&&f.stake&&f.took&&f.w>f.l);if(f){startRecovery(f.id);return}}
   if(p)openParam(p)}
 

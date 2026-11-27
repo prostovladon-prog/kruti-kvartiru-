@@ -144,9 +144,9 @@
     return el;
   }
 
-  function twOpen() {
+  function twOpen(tab) {
     if (!S || !S.tower) { toast("Башня ещё не подключена. Обнови игру"); return; }
-    const el = ensure(); el.hidden = false; twTab = "main"; twRes = null; twTop = null; twTourData = null; twArena = null; twArenaRoster = null; twArenaSel = { id: "", st: null, q: null }; twRender();
+    const el = ensure(); el.hidden = false; twTab = tab === "arena" ? "arena" : "main"; twRes = null; twTop = null; twTourData = null; twArena = null; twArenaRoster = null; twArenaSel = { id: "", st: null, q: null }; twRender();
     try { hap("light"); } catch (e) {}
   }
   function twClose() { const el = $("tower"); if (el) el.hidden = true; twStopTour(); twStopArena(); }
@@ -665,15 +665,4 @@
       return _mg.apply(this, arguments);
     };
   }
-  // deep link ?tower=1 / ?tower=1&arena=1
-  try {
-    const q = new URLSearchParams(location.search);
-    if (q.has("tower") || location.hash === "#tower") {
-      setTimeout(() => {
-        if (!window.S) return;
-        twOpen();
-        if (q.has("arena")) { twTab = "arena"; twArena = null; twRender(); }
-      }, 900);
-    }
-  } catch (e) {}
 })();

@@ -98,10 +98,10 @@ assert.ok(server.includes('id:"arena-20261127"') &&
   server.includes("tower_arena_pick") &&
   server.includes("try{await arnTick(env)}catch(e){console.error('arena',e)}"),
   "27.11 arena must support 30 seats, no minimum, bracket battles, puzzles and scheduled ticks");
-assert.ok(server.includes('id:"arena-announce-20261126",on:true') &&
-  server.includes('id:"arena-open-20261126",on:true') &&
-  server.includes("?tower=1&arena=1"),
-  "arena announcement and opening post must be enabled for 26.11");
+assert.ok(["1100","1730","2020"].every(time=>server.includes('id:"arena-20261127-'+time+'"')) &&
+  server.includes("?startapp=arena") &&
+  server.includes("event-assets/arena-2026-11-27-reminder.png"),
+  "three channel posts must link directly to the arena, including the photo reminder");
 assert.ok(rules.includes("ACTIONS.tower_arena_prize") &&
   rules.includes("TITLES.arena={n:\"Чемпион Арены\""),
   "arena rewards must grant keys, spins, shards and the champion cosmetics");

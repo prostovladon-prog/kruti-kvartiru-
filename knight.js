@@ -344,7 +344,7 @@ function knDrawR(eq,opt){const u=opt.u||"k",gA=opt.gA||{t:"none"},gW=opt.gW||{t:
  if(SLK.every(k=>eq[k]===eq.chest))o+=`<image href="${artUrl(eq.chest)}" ${KN_ART_FRAME}/>`;
  else for(const slot of KN_LAYER_ORDER){
   const file=slot==="base_body"?slot:`${eq[slot==="cape"?"chest":slot]}_${slot}`;
-  o+=`<image href="${KN_ART}layers/${file}.png?v=3" ${KN_ART_FRAME}/>`;
+  o+=`<image href="${KN_ART}layers/${file}.png?v=${slot==="helm"?4:3}" ${KN_ART_FRAME}/>`;
  }
  if(gA.t&&gA.t!=="none")o+=`<g clip-path="url(#ct${u})" opacity=".85"><image href="${artUrl("gr_"+gA.t)}" x="158" y="200" width="104" height="104" filter="url(#gt${u})"/></g>`;
  if(gW.t&&gW.t!=="none")o+=`<g clip-path="url(#cb${u})" opacity=".85"><image href="${artUrl("gr_"+gW.t)}" x="160" y="400" width="100" height="100" filter="url(#gw${u})"/><image href="${artUrl("gr_"+gW.t)}" x="160" y="490" width="100" height="100" filter="url(#gw${u})"/></g>`;
