@@ -7,6 +7,7 @@
 
   const css = `
   #tower{position:fixed;inset:0;z-index:90;display:flex;justify-content:center;box-sizing:border-box;padding-top:max(var(--st,0px),env(safe-area-inset-top,0px),calc(var(--tg-safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px)));background:rgba(4,6,20,.74);backdrop-filter:blur(3px)}
+  html.tgfs #tower{padding-top:max(92px,var(--st,0px),calc(var(--tg-safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px)))}
   #tower[hidden]{display:none}
   .tw-sh{width:100%;max-width:540px;display:flex;flex-direction:column;position:relative;background:linear-gradient(180deg,#111738,#070a1c 60%,#050714);color:#e8ecff;overflow:hidden;border-left:2px solid #2a3260;border-right:2px solid #2a3260}
   .tw-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(180deg,#1b2250,#121638);border-bottom:2px solid #ffd60a;flex:0 0 auto}
@@ -64,8 +65,13 @@
   .tw-item b{display:block;font-size:12px;line-height:1.2}
   .tw-item small{display:block;color:#9aa6d0;font-size:10px;margin:3px 0 5px;min-height:24px}
   .tw-item .tw-btn{margin:0;font-size:11px;padding:6px}
-  .tw-nav{position:absolute;left:0;right:0;bottom:0;display:flex;gap:6px;padding:7px 10px calc(7px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(12,18,48,.6),#0c1230 40%);border-top:2px solid #2a3260}
+  .tw-nav{position:absolute;left:0;right:0;bottom:0;display:flex;gap:4px;padding:7px 10px calc(7px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(12,18,48,.6),#0c1230 40%);border-top:2px solid #2a3260}
   .tw-nav button{flex:1;border:2px solid #3a447a;border-radius:10px;background:#0a0f28;color:#aeb8e0;font-weight:900;font-size:11px;padding:7px 4px}
+  .tw-pay{position:absolute;inset:0;z-index:5;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+  .tw-pay-b{width:100%;max-width:540px;background:#111738;border-top:3px solid #ffd60a;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px;color:#e8ecff}
+  .tw-pay-b p{margin:0;font-size:13px;color:#aeb8e0}.tw-pay-b button{border:2px solid #ffd60a;border-radius:12px;background:#ffd60a;color:#1a1408;font-weight:900;font-size:15px;padding:12px}
+  .tw-pay-b button[data-pb=tg]{background:#2a9df4;border-color:#2a9df4;color:#fff}.tw-pay-b .tw-pay-x{background:transparent;border-color:#3a447a;color:#aeb8e0}
+  .tw-nav button.tw-exit{flex:0 0 34px;font-size:15px!important;border-color:#7a2a3a;color:#ff9aa8;background:#2a0f18}
   .tw-nav button.on{border-color:#ffd60a;color:#ffd60a;background:#1a2250}
   .tw-nav button{font-size:10px;white-space:nowrap;padding:7px 2px}
   .tw-load{text-align:center;color:#9aa6d0;font-size:12px;padding:20px}
@@ -137,6 +143,7 @@
       $("tw-x").onclick = twClose;
       $("tw-back").onclick = () => { if (twTab !== "main") { twTab = "main"; twRender(); } else twClose(); };
       $("tw-nav").onclick = e => {
+        if (e.target.closest("[data-exit]")) { twClose(); return; }
         const b = e.target.closest("[data-tab]"); if (!b) return;
         twTab = b.dataset.tab; twRes = null; twRender();
       };
@@ -146,10 +153,12 @@
 
   function twOpen(tab) {
     if (!S || !S.tower) { toast("Башня ещё не подключена. Обнови игру"); return; }
-    const el = ensure(); el.hidden = false; twTab = tab === "arena" ? "arena" : "main"; twRes = null; twTop = null; twTourData = null; twArena = null; twArenaRoster = null; twArenaSel = { id: "", st: null, q: null }; twRender();
+    const el = ensure(); el.hidden = false; twTab = tab === "arena" ? "arena" : "main"; twRes = null; twTop = null; twTourData = null; twArena = null; twArenaRoster = null; twArenaSel = { id: "", st: null, q: null }; twRender(); twTgBack(true);
     try { hap("light"); } catch (e) {}
   }
-  function twClose() { const el = $("tower"); if (el) el.hidden = true; twStopTour(); twStopArena(); }
+  const twBackBtn = () => { if (twTab !== "main") { twTab = "main"; twRes = null; twRender(); } else twClose(); };
+  function twTgBack(on) { try { const B = tg && tg.BackButton; if (!B) return; B.offClick(twBackBtn); if (on) { B.onClick(twBackBtn); B.show(); } else B.hide(); } catch (e) {} }
+  function twClose() { const el = $("tower"); if (el) el.hidden = true; twTgBack(false); twStopTour(); twStopArena(); }
   window.twOpen = twOpen;
   window.twClose = twClose;
 
@@ -160,7 +169,8 @@
       '<button type="button" data-tab="top" class="' + (twTab === "top" ? "on" : "") + '">📊 Топ</button>' +
       '<button type="button" data-tab="tour" class="' + (twTab === "tour" ? "on" : "") + '">🏆 Турнир</button>' +
       '<button type="button" data-tab="arena" class="' + (twTab === "arena" ? "on" : "") + '">⚔️ Арена</button>' +
-      '<button type="button" data-tab="rules">📖 Правила</button>';
+      '<button type="button" data-tab="rules">📖 Правила</button>' +
+      '<button type="button" data-exit="1" class="tw-exit" aria-label="Выйти">✕</button>';
   }
 
   function twRender() {
@@ -321,7 +331,27 @@
     finally { twBusy = false; }
   }
 
-  async function twInvoice(kind) {
+  function twPayChoice(kind) {
+    const n = (S && S.starBal) || 0;
+    if (!n || !ONLINE) return twInvoice(kind, 1);
+    let m = $("tw-pay"); if (m) m.remove();
+    m = document.createElement("div"); m.id = "tw-pay"; m.className = "tw-pay";
+    m.innerHTML = '<div class="tw-pay-b"><b>Как оплатить?</b><p>На игровом балансе <b>⭐ ' + n + '</b>. Если не хватит — оплати через Telegram.</p><button type="button" data-pb="bal">⭐ С игрового баланса</button><button type="button" data-pb="tg">Через Telegram</button><button type="button" data-pb="x" class="tw-pay-x">Отмена</button></div>';
+    m.onclick = async e => {
+      const b = e.target.closest("[data-pb]"); if (!b && e.target !== m) return;
+      const w = b ? b.dataset.pb : "x"; m.remove();
+      if (w === "tg") return twInvoice(kind, 1);
+      if (w !== "bal" || twBusy) return;
+      twBusy = true;
+      try { const r = await act("pay_bal", { item: "tower_" + kind }); if (r) { toast("Покупка получена"); try { hapN("success"); } catch (e) {} twRender(); } }
+      catch (e) { toast(e.message || "Не получилось"); }
+      finally { twBusy = false; }
+    };
+    $("tower").appendChild(m);
+  }
+
+  async function twInvoice(kind, direct) {
+    if (!direct) return twPayChoice(kind);
     if (twBusy) return; twBusy = true;
     try {
       const inv = await act("invoice", { item: "tower_" + kind });
