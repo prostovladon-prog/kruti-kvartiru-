@@ -3011,7 +3011,9 @@ const DC_PLAN={"2026-11-14":[{n:"Кощей",e:"Сказки Руси",d:"Бес
   "2026-11-23":[{n:"Зевс",e:"Мифы Греции",d:"Громовержец Олимпа. Молния раскалывает небо рядом с ним.",o:{sn:"555555",sn2:"555565",hue:270},from:14.5,to:20.5,stars:3999,ch:DSP.ch,disabled:1},
   {n:"Аид",e:"Подземное царство",d:"Владыка подземного царства. Тёмное пламя сопровождает его.",o:{hair:"long",hairc:"#14101c",helm:"crownhell",weapon:"bident",armor:"plate",cape:"#1a0a24",beard:"#14101c",x:["flames"],glow:"#9f6bff",fierce:1,hue:270,skinc:"#b9b2c9",sn:"666667",sn2:"666676"},from:14.75,to:20.5,stars:4111,ch:.000001}],
   /* 24.11: Домовой — с момента обновления сервера до 00:00 Минска (21:00 UTC), 2 экземпляра, 4999⭐ */
-  "2026-11-24":[{n:"Домовой",e:"Сказки Руси",d:"Хозяин за печью. Дом бережёт.",o:{p:[8,8,7,8,9],sn:"777787",sn2:"777788",hue:20},from:18.55,to:21,stars:4999,ch:DSP.ch}]};
+  "2026-11-24":[{n:"Домовой",e:"Сказки Руси",d:"Хозяин за печью. Дом бережёт.",o:{p:[8,8,7,8,9],sn:"777787",sn2:"777788",hue:20},from:18.55,to:21,stars:4999,ch:DSP.ch}],
+  /* 28.11: Аид снова — 18:00–23:59 (Минск) = 15–20.98 UTC; в 23.11 его никто не выбил (шанс был почти нулевой) — теперь обычный шанс Особого прокрута */
+  "2026-11-28":[{n:"Аид",e:"Подземное царство",d:"Владыка подземного царства. Тёмное пламя сопровождает его.",o:{hair:"long",hairc:"#14101c",helm:"crownhell",weapon:"bident",armor:"plate",cape:"#1a0a24",beard:"#14101c",x:["flames"],glow:"#9f6bff",fierce:1,hue:270,skinc:"#b9b2c9",sn:"666667",sn2:"666676"},from:15,to:20.98,stars:4111,ch:DSP.ch}]};
 let DCS=[];
 async function xhLoad(env,force){if(!force&&Date.now()-XHT<15e3)return;XHT=Date.now();try{XH=(await kvGet(env,"xh"))||{}}catch(e){XH={}}try{DC=await kvGet(env,"dc")}catch(e){DC=null}
   DCS=[];let k=0;Object.keys(DC_PLAN).sort().forEach(d=>{for(const P of [].concat(DC_PLAN[d])){const h=DAY_SLOTS[k++];if(h==null)return;XH[h]={...P,on:1};const [y,m,dd]=d.split("-").map(Number),at=Date.UTC(y,m-1,dd)+(P.from!=null?P.from:16)*36e5,until=Date.UTC(y,m-1,dd)+(P.to!=null?P.to:20)*36e5;
@@ -4555,13 +4557,17 @@ const R28A={id:"react-1128a",on:true,at:Date.UTC(2026,10,28,8,0),until:Date.UTC(
 const R28B={id:"react-1128b",on:true,at:Date.UTC(2026,10,28,14,0),until:Date.UTC(2026,10,28,20,59),code:"СУББОТА40",codeUntil:Date.UTC(2026,10,28,20,59),goal:40,sp:40,cash:0,mx:0,
  photo:"event-assets/react-2026-11-28b.jpg",photoK:"event-assets/react-2026-11-28b-code.jpg",btn:"❄️ Поставить реакцию",url:"https://t.me/voinyepoh",
  chan:"❄️ 40 РЕАКЦИЙ = 40 ПРОКРУТОК!\n\nВечерний заход: соберём 40 реакций — бот сразу ответит промокодом на 40 прокруток 🎴\n\nКод действует до 23:59 по Минску. Прокрутки пригодятся перед Ареной ⚔️\n\nЖми реакцию 👇"};
+/* 28.11 18:00 — пост «Карта дня: Аид» (до 23:59 по Минску) */
+const DCAID={id:"dc_aid_2811",at:Date.UTC(2026,10,28,15,0),photo:"event-assets/daycard-aid-2026-11-28.jpg",btn:"💀 Забрать Аида",link:"",
+ chan:"💀 КАРТА ДНЯ — АИД!\n\nВладыка подземного царства вернулся. В прошлый раз его так никто и не забрал — сегодня второй шанс.\n\n🃏 Мифическая «Ошибка печати» с номером из шестёрок: 666 667\n⚔️ Атака 560 · 🛡 570 · 🔥 580\n\n⭐ Купить за 4111 звёзд — 1 экземпляр\n🎰 Или лови шанс в Особом прокруте\n\n⏰ Только сегодня с 18:00 до 23:59 по Минску!\n\n👉 @VoinyEpohBot",
+ dm:"💀 Карта дня — Аид!\n\nМифическая «Ошибка печати» с номером 666 667. Купить за 4111 ⭐ или поймать в Особом прокруте.\n\n⏰ Только сегодня до 23:59 по Минску 👇"};
 const ARP1={id:"arn_1126_16",at:Date.UTC(2026,10,26,13,0),photo:"assets/post-knight.png",btn:"🏟 Записаться на Арену",link:"",
  chan:"🏟 СЕГОДНЯ В 20:30 — АРЕНА!\n\nЗапись уже открыта — жми «Участвую» заранее, мест 30!\n\n👉 @VoinyEpohBot",dm:"🏟 Сегодня в 20:30 Арена! Запишись заранее — мест 30 👇"};
 const ARP2=Object.assign({},ARP1,{id:"arn_1126_20",at:Date.UTC(2026,10,26,17,0),chan:"⏰ Через 30 минут АРЕНА!\n\nЕщё не записался? Жми «Участвую» прямо сейчас 👇\n\n👉 @VoinyEpohBot",dm:"⏰ Через 30 минут Арена! Успей записаться 👇"});
 let kn26Busy=false;async function kn26Tick(env){if(kn26Busy)return;kn26Busy=true;const now=Date.now();
  try{for(const B of [KNP1,KNP2,ARP1,ARP2])if(now>=B.at&&now<B.at+3*36e5)await blastRun(env,B);
   for(const R of [KN_REACT,R28A,R28B])if(R.on&&now>=R.at&&now<R.until){await blastRun(env,R);const st=await kvGet(env,"blast:"+R.id);if(st&&st.mid&&(st.rc||0)>=R.goal&&st.rev!==1)await reactionCodePost(env,R,st)}
-  if(now>=HUNT2.at&&now<HUNT2.until)await blastRun(env,HUNTP2)}finally{kn26Busy=false}}
+  if(now>=HUNT2.at&&now<HUNT2.until)await blastRun(env,HUNTP2);if(now>=DCAID.at&&now<DCAID.at+3*36e5)await blastRun(env,DCAID)}finally{kn26Busy=false}}
 let towerReactBusy=false;
 async function towerReactTick(env){
   const now=Date.now();
