@@ -89,7 +89,7 @@ const reactionPoster = readFileSync(path.join(root, "event-assets/reactions-2026
 assert.equal(reactionPoster.toString("hex", 0, 8), "89504e470d0a1a0a");
 assert.equal(reactionPoster.readUInt32BE(16), 1080);
 assert.equal(reactionPoster.readUInt32BE(20), 1350);
-assert.ok(server.includes('id:"arena-20261127"') &&
+assert.ok(server.includes('id:"arena-20261128"') &&
   server.includes("max:30,min:1") &&
   server.includes("A.players.length===1") &&
   server.includes("const ARN_PUZZLES") &&
@@ -97,10 +97,10 @@ assert.ok(server.includes('id:"arena-20261127"') &&
   server.includes("tower_arena_join") &&
   server.includes("tower_arena_pick") &&
   server.includes("try{await arnTick(env)}catch(e){console.error('arena',e)}"),
-  "27.11 arena must support 30 seats, no minimum, bracket battles, puzzles and scheduled ticks");
-assert.ok(["1100","1730","2020"].every(time=>server.includes('id:"arena-20261127-'+time+'"')) &&
+  "28.11 arena must support 30 seats, no minimum, bracket battles, puzzles and scheduled ticks");
+assert.ok(["0900","1600","2020"].every(time=>server.includes('id:"arena-20261128-'+time+'"')) &&
   server.includes("?startapp=arena") &&
-  server.includes("event-assets/arena-2026-11-27-reminder.png"),
+  server.includes("event-assets/arena-2026-11-28-reminder.jpg"),
   "three channel posts must link directly to the arena, including the photo reminder");
 assert.ok(rules.includes("ACTIONS.tower_arena_prize") &&
   rules.includes("TITLES.arena={n:\"Чемпион Арены\""),

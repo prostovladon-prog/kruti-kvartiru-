@@ -25,7 +25,7 @@ const env = { DB, DEV: "1", TEST: "1", BOT_TOKEN: "123:TEST", NO_RARE: "1", NOTI
 db.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)");
 db.prepare("INSERT OR REPLACE INTO kv(k,v) VALUES('chal',?)").run(JSON.stringify({ id: "off", start: 0, end: 0, prizes: [], slots: [] }));
 
-let NOW = Date.UTC(2026, 10, 26, 21, 1); // 27.11 00:01 Minsk
+let NOW = Date.UTC(2026, 10, 28, 2, 1); // 28.11 05:01 Minsk
 Date.now = () => NOW;
 const worker = (await import("data:text/javascript;base64," + Buffer.from(readFileSync(path.join(dir, "worker.js"))).toString("base64"))).default;
 
@@ -63,7 +63,7 @@ for (let i = 1; i < ids.length; i++) {
 }
 let g = await call(ids[0], "tower_arena_get");
 if (g.res && g.res.phase === "reg") {
-  NOW = Date.UTC(2026, 10, 27, 17, 45, 1);
+  NOW = Date.UTC(2026, 10, 28, 17, 45, 1);
   g = await call(ids[0], "tower_arena_get");
 }
 ok(g.ok && g.res.phase === "run", "bracket built after " + N + " joins", g.res && { phase: g.res.phase, count: g.res.count, matches: Object.keys(g.res.matches || {}).length });

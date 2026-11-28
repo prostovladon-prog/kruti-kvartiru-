@@ -2750,10 +2750,10 @@ async function towerTourReady(env,me){
    Вечерний турнир на 30 мест (минимум 20): play-in, сетка на вылет, 3 раунда в бою.
    В каждом бою игрок выбирает стойку и отвечает на загадку — это даёт бонус к силе. */
 const ARN={
-  id:"arena-20261127",
-  regOpen:Date.UTC(2026,10,26,21,0),    // 27.11 00:00 Minsk — регистрация открыта заранее
-  open:Date.UTC(2026,10,27,17,30),      // 27.11 20:30 Minsk — плановое открытие турнира
-  regClose:Date.UTC(2026,10,27,17,45),  // 27.11 20:45 Minsk
+  id:"arena-20261128",
+  regOpen:Date.UTC(2026,10,28,2,0),     // 28.11 05:00 Minsk — запись открыта сразу
+  open:Date.UTC(2026,10,28,17,30),      // 28.11 20:30 Minsk — старт турнира
+  regClose:Date.UTC(2026,10,28,17,45),  // 28.11 20:45 Minsk
   max:30,min:1,gap:45e3,len:7*60e3,
   prizes:[
     {p:1,st:200,vip:7,keys:3,txt:"200 ⭐ + VIP 7 дней + 3 ключа + титул и рамка «Чемпион Арены» + 30 🎴"},
@@ -3070,14 +3070,14 @@ async function arnTick(env){
 }
 function arnPosts(){
   const url="https://t.me/VoinyEpohBot?startapp=arena",btn="⚔️ Участвовать";
-  const photo="event-assets/arena-2026-11-27.png";
   return [
-    {id:"arena-20261127-1100",at:Date.UTC(2026,10,27,8),window:45*60e3,photo,btn,url,
-     chan:"⚔️ ЗАПИСЬ НА АРЕНУ ОТКРЫТА\n\nВечером в Башне — турнир на 30 мест. Запишись сейчас, чтобы к началу боя состав уже был готов.\n\nНажми «Участвовать», выбери 3 карты или доверь подбор игре, затем подтверди состав. Порядок карт определяет раунды. До закрытия набора состав можно поменять.\n\n🥇 Победителю — 200 ⭐, VIP на 7 дней и 3 ключа.\n⏰ Сетка в 20:30 при 30 участниках. Иначе старт в 20:45. Время по Минску."},
-    {id:"arena-20261127-1730",at:Date.UTC(2026,10,27,14,30),window:45*60e3,photo:"event-assets/arena-2026-11-27-evening.png",btn,url,
-     chan:"🛡 ГОТОВ ЛИ ТВОЙ ОТРЯД К ВЕЧЕРНЕЙ АРЕНЕ?\n\nВыбери три карты и реши, кого поставить в первый раунд. В бою правильная загадка даст +25% к урону, а выигрышная стойка — +15%.\n\nЖми «Участвовать» и подтверди состав, если ещё есть место. В турнир попадут первые 30 участников.\n\n⏰ В 20:30 по Минску соберём сетку при 30 участниках. Иначе начнём в 20:45."},
-    {id:"arena-20261127-2020",at:Date.UTC(2026,10,27,17,20),window:10*60e3,photo:"event-assets/arena-2026-11-27-reminder.png",btn,url,
-     chan:"⏰ ДО АРЕНЫ 10 МИНУТ!\n\nЕсли уже записался, проверь, какие три карты и в каком порядке пойдут в бой. Если ещё есть свободное место, жми «Участвовать» и подтверждай отряд.\n\nВ 20:30 по Минску проверим набор. Если все 30 мест заняты, соберём сетку. Если нет, запись продолжится до 20:45.\n\n🥇 Победителю — 200 ⭐, VIP на 7 дней и 3 ключа."}
+    {id:"arena-20261128-0900",at:Date.UTC(2026,10,28,6),window:45*60e3,photo:"event-assets/arena-2026-11-28.jpg",btn,url,
+     chan:"⚔️ ЗАПИСЬ НА АРЕНУ ОТКРЫТА!\n\nСегодня в 20:30 по Минску — турнир на 30 мест. Записывайся прямо сейчас, пока есть места.\n\nЖми «Участвовать», выбери 3 карты (или доверь подбор игре) и подтверди отряд. До старта состав можно менять.\n\n🥇 200 ⭐ + VIP 7 дней + 3 ключа + титул «Чемпион Арены»\n🥈 100 ⭐ + VIP 3 дня · 🥉 50 ⭐\n\n👉 @VoinyEpohBot",
+     dm:"⚔️ Запись на Арену открыта!\n\nСегодня в 20:30 по Минску — турнир на 30 мест. Победителю 200 ⭐ + VIP 7 дней + 3 ключа.\n\nЗаймёшь место заранее? 👇"},
+    {id:"arena-20261128-1600",at:Date.UTC(2026,10,28,13),window:45*60e3,photo:"event-assets/arena-2026-11-28-day.jpg",btn,url,
+     chan:"🛡 ГОТОВ ЛИ ТВОЙ ОТРЯД?\n\nДо Арены 4,5 часа. В бою решают три вещи: порядок карт, стойка (Натиск, Стена или Обман) и загадка — верный ответ даёт +25% к урону.\n\nЕщё не записался? Жми «Участвовать» — места разбирают 👇\n\n⏰ Старт в 20:30 по Минску."},
+    {id:"arena-20261128-2020",at:Date.UTC(2026,10,28,17,20),window:10*60e3,photo:"event-assets/arena-2026-11-28-reminder.jpg",btn,url,
+     chan:"⏰ ДО АРЕНЫ 10 МИНУТ!\n\nПроверь отряд: какие три карты и в каком порядке пойдут в бой. Есть свободное место? Жми «Участвовать» и подтверждай!\n\nВ 20:30 по Минску соберём сетку, если все 30 мест заняты. Иначе запись продлится до 20:45.\n\n🥇 Победителю — 200 ⭐, VIP на 7 дней и 3 ключа."}
   ];
 }
 let arnPostBusy=0;
@@ -6601,12 +6601,13 @@ async function koloTick(env){const n=Date.now();try{await funSeed(env)}catch(e){
 const FUN=[{code:"РЕАКЦИЯ",sp:10,cash:3000,mx:50},{code:"ОГОНЁК30",sp:30,cash:3000,mx:50}],FUN_UNTIL=Date.UTC(2026,10,17,20,59);
 /* 18.11: охота за свитком 18:00–22:00 (Минск), код СВИТОК, первые 10; и пост реакций в 12:00 с кодом ЖАРА30 */
 const HUNT={code:"СВИТОК",sp:30,cash:10000,mx:10,sec:"album",at:Date.UTC(2026,10,18,15,0),until:Date.UTC(2026,10,18,19,0)};
-const FUN2=[{code:"ЖАРА30",sp:30,cash:3000,mx:50,until:Date.UTC(2026,10,18,20,59)},{...HUNT},{code:"ОГОНЬ40",sp:40,cash:0,mx:15,until:Date.UTC(2026,10,19,20,59)}];
+const HUNT2={code:"СВИТОК28",sp:30,cash:10000,mx:10,sec:"top",at:Date.UTC(2026,10,28,10,0),until:Date.UTC(2026,10,28,14,0)};
+const FUN2=[{...HUNT2},{code:"ЖАРА30",sp:30,cash:3000,mx:50,until:Date.UTC(2026,10,18,20,59)},{...HUNT},{code:"ОГОНЬ40",sp:40,cash:0,mx:15,until:Date.UTC(2026,10,19,20,59)}];
 let funOk=0;async function funSeed(env){if(funOk)return;funOk=1;const now=Date.now();
   for(const F of [...FUN.map(x=>({...x,until:FUN_UNTIL})),...FUN2])if(now<F.until)await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,?,?,?,?,?,0,0,0,0)").bind(promoKey(F.code),F.sp,F.cash,F.mx,F.until,now).run()}
-async function huntNow(env){const now=Date.now();if(now<HUNT.at||now>=HUNT.until)return null;await funSeed(env);
-  const n=await cached("huntn",10e3,async()=>(((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(promoKey(HUNT.code)).first())||{}).n||0));
-  return n>=HUNT.mx?{gone:1}:{code:HUNT.code,sec:HUNT.sec,left:HUNT.mx-n}}
+async function huntNow(env){const now=Date.now(),H=[HUNT,HUNT2].find(x=>now>=x.at&&now<x.until);if(!H)return null;await funSeed(env);
+  const n=await cached("huntn:"+H.code,10e3,async()=>(((await env.DB.prepare("SELECT COUNT(*) AS n FROM promo_uses WHERE code=?").bind(promoKey(H.code)).first())||{}).n||0));
+  return n>=H.mx?{gone:1}:{code:H.code,sec:H.sec,left:H.mx-n}}
 const BCAP={"НОЧНИК":10};let nochOk=0;async function nochSeed(env){if(nochOk)return;nochOk=1;await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES('НОЧНИК',0,0,0,?,?,0,0,200,150)").bind(Date.UTC(2026,10,13,20,59),Date.now()).run()}
 /* 📅 удержание: через ~20–30 ч после регистрации, если игрок не вернулся, — напоминание с подарком (+5 прокруток), один раз */
 let d2T=0;async function d2Tick(env){const now=Date.now();if(now-d2T<5*60e3)return;d2T=now;const h=new Date(now+TZ).getUTCHours();if(h<10||h>21)return;
@@ -6651,12 +6652,20 @@ const KNP2=Object.assign({},KNP1,{id:"kn_upd_1400",at:Date.UTC(2026,10,26,11,0),
 const KN_REACT={id:"kn-react-1126",on:true,at:Date.UTC(2026,10,26,7,0),until:Date.UTC(2026,10,26,20,59),code:"РЫЦАРЬ30",codeUntil:Date.UTC(2026,10,26,20,59),goal:30,sp:30,cash:0,mx:0,
  photo:"assets/post-knight.png",photoK:"assets/post-knight.png",btn:"🔥 Поставить реакцию",url:"https://t.me/voinyepoh",
  chan:"🔥 30 РЕАКЦИЙ = 30 ПРОКРУТОК + 🔑 КЛЮЧ КУЗНИ!\n\nСоберём 30 реакций — бот сам выложит промокод.\n\nЖми реакцию 👇"};
+/* 28.11: два поста «реакции → промокод» (11:00 и 17:00 Минск) */
+const R28A={id:"react-1128a",on:true,at:Date.UTC(2026,10,28,8,0),until:Date.UTC(2026,10,28,13,59),code:"АРЕНА30",codeUntil:Date.UTC(2026,10,28,20,59),goal:30,sp:30,cash:0,mx:0,
+ photo:"event-assets/react-2026-11-28a.jpg",photoK:"event-assets/react-2026-11-28a-code.jpg",btn:"🔥 Поставить реакцию",url:"https://t.me/voinyepoh",
+ chan:"🔥 30 РЕАКЦИЙ = 30 ПРОКРУТОК!\n\nСоберём 30 реакций под этим постом — бот сам выложит промокод на 30 прокруток 🎴\n\nПромокод будет действовать до 23:59 по Минску. Жми реакцию 👇"};
+const R28B={id:"react-1128b",on:true,at:Date.UTC(2026,10,28,14,0),until:Date.UTC(2026,10,28,20,59),code:"СУББОТА40",codeUntil:Date.UTC(2026,10,28,20,59),goal:40,sp:40,cash:0,mx:0,
+ photo:"event-assets/react-2026-11-28b.jpg",photoK:"event-assets/react-2026-11-28b-code.jpg",btn:"❄️ Поставить реакцию",url:"https://t.me/voinyepoh",
+ chan:"❄️ 40 РЕАКЦИЙ = 40 ПРОКРУТОК!\n\nВечерний заход: соберём 40 реакций — бот сразу ответит промокодом на 40 прокруток 🎴\n\nКод действует до 23:59 по Минску. Прокрутки пригодятся перед Ареной ⚔️\n\nЖми реакцию 👇"};
 const ARP1={id:"arn_1126_16",at:Date.UTC(2026,10,26,13,0),photo:"assets/post-knight.png",btn:"🏟 Записаться на Арену",link:"",
  chan:"🏟 СЕГОДНЯ В 20:30 — АРЕНА!\n\nЗапись уже открыта — жми «Участвую» заранее, мест 30!\n\n👉 @VoinyEpohBot",dm:"🏟 Сегодня в 20:30 Арена! Запишись заранее — мест 30 👇"};
 const ARP2=Object.assign({},ARP1,{id:"arn_1126_20",at:Date.UTC(2026,10,26,17,0),chan:"⏰ Через 30 минут АРЕНА!\n\nЕщё не записался? Жми «Участвую» прямо сейчас 👇\n\n👉 @VoinyEpohBot",dm:"⏰ Через 30 минут Арена! Успей записаться 👇"});
 let kn26Busy=false;async function kn26Tick(env){if(kn26Busy)return;kn26Busy=true;const now=Date.now();
  try{for(const B of [KNP1,KNP2,ARP1,ARP2])if(now>=B.at&&now<B.at+3*36e5)await blastRun(env,B);
-  if(now>=KN_REACT.at&&now<KN_REACT.until){await blastRun(env,KN_REACT);const st=await kvGet(env,"blast:"+KN_REACT.id);if(st&&st.mid&&(st.rc||0)>=KN_REACT.goal&&st.rev!==1)await reactionCodePost(env,KN_REACT,st)}}finally{kn26Busy=false}}
+  for(const R of [KN_REACT,R28A,R28B])if(R.on&&now>=R.at&&now<R.until){await blastRun(env,R);const st=await kvGet(env,"blast:"+R.id);if(st&&st.mid&&(st.rc||0)>=R.goal&&st.rev!==1)await reactionCodePost(env,R,st)}
+  if(now>=HUNT2.at&&now<HUNT2.until)await blastRun(env,HUNTP2)}finally{kn26Busy=false}}
 let towerReactBusy=false;
 async function towerReactTick(env){
   const now=Date.now();
@@ -6677,6 +6686,9 @@ const REACT4={id:"react_241124_1030",on:true,at:Date.UTC(2026,10,24,7,30),until:
 const HUNTP={id:"hunt_1811",on:true,at:HUNT.at,photo:"assets/post-hunt.jpg",btn:"📜 Искать свиток",link:"",
   chan:"📜 ОХОТА ЗА СВИТКОМ!\n\nПрямо сейчас в одной из вкладок игры спрятан светящийся свиток 📜 Внутри — промокод на 🎴 30 прокруток + 💰 10 000 монет.\n\n⚠️ Сработает только у первых 10, кто найдёт и введёт!\n\nПодсказка: ищи там, где собирают эпохи 👀\n\nВремя пошло ⏳ 👉 @VoinyEpohBot",
   dm:"📜 Охота за свитком началась!\n\nВ одной из вкладок игры спрятан светящийся свиток с промокодом на 🎴 30 прокруток + 💰 10 000 монет. Сработает только у первых 10!\n\nПодсказка: ищи там, где собирают эпохи 👀"};
+const HUNTP2={id:"hunt_2811",on:true,at:HUNT2.at,photo:"event-assets/hunt-2026-11-28.jpg",btn:"📜 Искать свиток",link:"",
+  chan:"📜 ОХОТА ЗА СВИТКОМ — СНОВА!\n\nПрямо сейчас в одной из вкладок игры спрятан светящийся свиток 📜 Внутри — промокод на 🎴 30 прокруток + 💰 10 000 монет.\n\n⚠️ Сработает только у первых 10, кто найдёт и введёт!\n\nПодсказка: ищи там, где меряются силой лучшие 🏆\n\nСвиток исчезнет в 17:00 по Минску ⏳ 👉 @VoinyEpohBot",
+  dm:"📜 Охота за свитком!\n\nВ одной из вкладок игры спрятан свиток с промокодом на 🎴 30 прокруток + 💰 10 000 монет. Только первые 10!\n\nПодсказка: ищи там, где меряются силой лучшие 🏆"};
 const ERRP={id:"err15_1811",on:false,at:Date.UTC(2026,10,18,10,0),photo:"assets/post-err15.jpg",btn:"🎰 Испытать удачу",link:"",
   chan:"🖨 В ИГРЕ 15 НОВЫХ ОШИБОК ПЕЧАТИ!\n\nТипография снова ошиблась — и теперь из прокрута могут выпасть карточки с новым браком:\n\n🟡 Золотой брак — весь воин золотой (×1300 к цене!)\n⚪ Негатив — цвета наоборот (×1100)\n🔵 Синий брак · 🟢 Кислотная · 🌈 Сдвиг цвета\n🟣 Пятно краски · 👥 Двойной оттиск · 🪞 Зеркальная\n…и ещё 7 видов!\n\n💎 Каждая — 1 из 1 у своего воина. Самых дорогих на весь мир всего 3–4 штуки.\n\nУспей поймать первым 👉 @VoinyEpohBot",
   dm:"🖨 В игре 15 новых ошибок печати!\n\nЗолотой брак, Негатив, Кислотная, Пятно краски и ещё 11 видов. Каждая — 1 из 1, самые дорогие дают до ×1300 к цене карты.\n\nКрути — может, первая выпадет тебе 👇"};
@@ -6751,8 +6763,8 @@ async function reactionCodePost(env,B,st){
     if(!claim.meta||claim.meta.changes!==1)return false;
   }
   st.rev=lockValue;await kvSet(env,k,st);
-  await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,40,0,0,?,?,0,0,0,0)")
-    .bind(promoKey(code),B.codeUntil||now+864e5,now).run();
+  await env.DB.prepare("INSERT OR IGNORE INTO promo(code,sp,cash,mx,until,created,off,x2,bon,bmin) VALUES(?,?,?,?,?,?,0,0,0,0)")
+    .bind(promoKey(code),SP,CA,MX,B.codeUntil||now+864e5,now).run();
   const cap="🎉 "+G+" РЕАКЦИЙ ЕСТЬ — ДЕРЖИТЕ!\n\n🎟 Промокод: "+code+"\n🎴 "+SP+" прокруток"+
     (CA?" + 💰 "+CA.toLocaleString("ru")+" монет":"")+
     (MX?"\n\n⚠️ Только первые "+MX+" активаций — бегом! 🏃":"\n\nАктивируй сегодня до 23:59 по Минску.")+
@@ -6771,7 +6783,7 @@ async function reactionCodePost(env,B,st){
 
 async function fire30React(env,R){
   if(!R||!R.chat||String(R.chat.username||"").toLowerCase()!==CHANNEL.slice(1))return;
-  const now=Date.now(),B=[TOWER_REACT,REACT4,REACT3,REACT2,FIRE30].concat([KN_REACT]).find(C=>C.on&&C.at!=null&&now>=C.at&&now<(C.until||C.at+6*36e5));
+  const now=Date.now(),B=[TOWER_REACT,REACT4,REACT3,REACT2,FIRE30].concat([KN_REACT,R28A,R28B]).find(C=>C.on&&C.at!=null&&now>=C.at&&now<(C.until||C.at+6*36e5));
   if(!B)return;
   const G=B.goal||30,k="blast:"+B.id,st=await kvGet(env,k);
   console.log("react upd",R.message_id,st&&st.mid,(R.reactions||[]).length);
@@ -8164,7 +8176,7 @@ async function ttkTick(env){const now=Date.now();if(ttkBusy||now<TTK.start-36e5|
   for(const P of TTK_POSTS){if(now<P.at||now>=P.until)continue;const T=TTK_POST_TXT[P.k],url=await kvGet(env,TTK.p+"url"),n=await ttkCount(env);
    const how="Как участвовать:\n1️⃣ Впиши @VoinyEpohBot в ник или «О себе» в Telegram\n2️⃣ Сделай скриншот своей самой сильной карты\n3️⃣ Оставь его в комментарии под нашим видео в TikTok"+(url?":\n"+url:" (ссылка — в игре)")+"\n4️⃣ Нажми «Я участвую» в игре и укажи ник TikTok";
    const prizes="🥇 Именная карта 1/1 с твоим ником — по лайкам на комментарии\n🥈 Сет доспехов рыцаря «Знаменосец»\n🥉 Титул и рамка «Легенда»\nУчастие бесплатное · итоги 28.11 в 22:00 МСК";
-   const B={id:P.id,photo:"assets/post-ttk.jpg",btn:"🏆 Участвовать",link:"?ttk=1",chan:T[0].replace("{n}",n)+"\n\n"+T[1].replace("{n}",n)+"\n\n"+how+"\n\n"+prizes+"\n\n👉 @VoinyEpohBot",
+   const B={id:P.id,photo:P.k.startsWith("28-")?"assets/post-ttk-"+P.k+".jpg":"assets/post-ttk.jpg",btn:"🏆 Участвовать",link:"?ttk=1",chan:T[0].replace("{n}",n)+"\n\n"+T[1].replace("{n}",n)+"\n\n"+how+"\n\n"+prizes+"\n\n👉 @VoinyEpohBot",
      dm:P.dm?T[0].replace("{n}",n)+"\n\n"+T[1].replace("{n}",n)+"\n\n"+prizes:""};
    await blastRun(env,B)}
   /* 22:00 28.11 — бот сам разыгрывает 2-е и 3-е места среди проверенных */
