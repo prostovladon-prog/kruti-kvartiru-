@@ -1936,6 +1936,7 @@ ACTIONS.tower_grant=function(G){
     t.keys=(t.keys||0)+2;const c=rollTier(ctx,2);c.how="tower_set";addCard(G,c);
     return {keys:t.keys,card:c};
   }
+  if(kind==="tower_keeper"){const c=rollTier(ctx,3);c.how="tower_keeper";c.cust=1;addCard(G,c);t.shop.keeper=1;return {card:c}}
   if(kind==="tower_pass"){
     t.passUntil=Math.max(ctx.now,t.passUntil||0)+7*864e5;
     if(t.free<3)t.free=(t.free||0)+1;

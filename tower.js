@@ -316,7 +316,7 @@
 
   async function twShopBuy(k) {
     if (twBusy) return; twBusy = true;
-    try { const r = await act("tower_shop", { item: k }); if (r) { toast(k === "keeper" ? "🛡 Хранитель Башни получен!" : "Куплено"); try { hapN("success"); } catch (e) {} twRender(); } }
+    try { const r = await act("tower_shop", { item: k }); if (r) { toast(k === "keeper" ? "🛡 Хранитель Башни: «" + ((r.card && HEROES[r.card.h] && HEROES[r.card.h][0]) || "легендарная карта") + "» — ищи в «Картах»" : "Куплено"); try { hapN("success"); } catch (e) {} twRender(); } }
     catch (e) { toast(e.message || "Не получилось"); }
     finally { twBusy = false; }
   }
