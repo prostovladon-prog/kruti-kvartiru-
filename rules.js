@@ -1861,12 +1861,13 @@ ACTIONS.tower_start=function(G){
   const squad=ids.map(id=>{const c=freeCard(G,id);if(c.part)fail("Половинка не может идти в Башню. Собери целого воина");return snap(c)});
   const power=towerSquadPow(squad);
   if(!(power>0))fail("Пустой отряд");
-  if(t.free>0){t.free--}
+  let tkFree=0;
+  if(t.free>0){t.free--;if(t.fd!==t.d){t.fd=t.d;t.fn=0}t.fn=(t.fn|0)+1;tkFree=t.fn<=TOWER.free?1:0}
   else if(t.keys>0&&t.paid<TOWER.paidMax){t.keys--;t.paid++}
   else if(t.paid<TOWER.paidMax)fail("Попытки на сегодня закончились. Купи Ключ Башни");
   else fail("На сегодня всё: 3 платных забега уже использованы");
   t.wRuns=(t.wRuns||0)+1;
-  t.run={n:1,squad,power,got:{sh:0,sp:0,xp:0,sig:0,card:0},started:ctx.now};
+  t.run={n:1,squad,power,got:{sh:0,sp:0,xp:0,sig:0,card:0},started:ctx.now,tk:tkFree};
   return {run:towerView(st,ctx.now).run,free:t.free,paid:t.paid,keys:t.keys};
 };
 ACTIONS.tower_fight=function(G){
@@ -1880,7 +1881,7 @@ ACTIONS.tower_fight=function(G){
   const chance=Math.max(.08,Math.min(.94,risk?base*.92:base));
   const win=Math.random()<chance;
   const R=TOWER.rew[n-1],rr=risk?R.risk:R;
-  const out={n,win,chance:Math.round(chance*1000)/1000,enemy,risk,got:{}};
+  const out={n,win,chance:Math.round(chance*1000)/1000,enemy,risk,got:{},tkFree:r.tk?1:0};
   if(win){
     const sh=towerShards(st,ctx,rr.sh);out.got.sh=sh;r.got.sh=(r.got.sh||0)+sh;
     if(rr.sp){st.spins=(st.spins||0)+rr.sp;out.got.sp=rr.sp;r.got.sp=(r.got.sp||0)+rr.sp}

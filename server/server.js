@@ -2691,13 +2691,16 @@ async function mapDgAttack(env,me,rid,st,p,now){const myD=st.dg;if(!myD||!(dgPow
 /* ID в Telegram бывают больше 2^31 — «|0» их обрезает. Только так: */
 const uidOf=x=>{const n=Math.floor(Number(x));return Number.isSafeInteger(n)&&n>0?n:0};
 /* 🎟 Воскресная гонка активности: покупки не начисляют билеты. */
-const TK={id:"tk20261122",start:Date.UTC(2026,10,22,5),end:Date.UTC(2026,10,22,19),min:0,
- act:{duel:2,rk:3,conq_fight:2,dga_fight:2,streak:5,camp_tap:1,dg_tap:1,dg_play:5,dg_morning:3,dg_nest:5,dg_exp_end:5,exp_claim:3,ref:10},
- grp:{duel:"fight",rk:"rk",conq_fight:"conq",dga_fight:"dga",streak:"login",camp_tap:"camp",dg_tap:"pet",dg_play:"play",dg_morning:"morning",dg_nest:"nest",dg_exp_end:"dgexp",exp_claim:"exp",ref:"ref"},
- cap:{fight:120,rk:60,conq:10,dga:14,login:5,camp:3000,pet:200,play:25,morning:3,nest:5,dgexp:15,exp:9,ref:100},
- unit:{camp:100,pet:20},cooldown:{fight:20000},sameOpponent:5,
- capN:{fight:"⚔️ Обычные бои",rk:"🏆 Рейтинг",conq:"🔥 Покорение: первые 5 попыток дня",dga:"🐉 Арена: первые 7 боёв дня",login:"📅 Ежедневный подарок",camp:"🏕 Тапы в лагере",pet:"🖐 Погладить дракона",play:"🎾 Игры с драконом",morning:"☀️ Доброе утро",nest:"🪺 Гнездо",dgexp:"🐉 Походы дракона",exp:"🧭 Походы воинов",ref:"👥 Подтверждённые друзья"},
- how:[["⚔️","Обычный бой без ставки","+2 за бой, не чаще раза в 20 сек; максимум 120"],["🏆","Доигранный рейтинговый бой","+3 за победу или поражение; сделай хотя бы один ход. С одним соперником — до 5 боёв, максимум 60"],["🔥","Покорение","+2 за каждую из первых 5 попыток дня, максимум 10"],["🐉","Арена драконов","+2 за каждый из первых 7 боёв дня, максимум 14"],["📅","Забрать ежедневный подарок","+5 один раз"],["🏕","Тапы в лагере","+1 за 100 принятых сервером тапов; максимум 30"],["🖐","Погладить дракона","+1 за 20 поглаживаний; максимум 10"],["🎾","Поиграть с драконом","+5 за игру хотя бы с одним попаданием; до 5 игр, максимум 25"],["☀️","Доброе утро дракону","+3 один раз, до 12:00"],["🪺","Собрать гнездо","+5 один раз"],["🐉","Завершить поход дракона","+5; до 3 походов, максимум 15"],["🧭","Завершить поход воина","+3; до 3 походов, максимум 9"],["👥","Пригласить нового друга","+10: друг впервые приходит по твоей ссылке 22 ноября с 08:00 до 22:00, делает 15 открытий и вступает в канал и чат. До 10 друзей, максимум 100"]],
+const TK={id:"tk20261128",start:Date.UTC(2026,10,28,5),end:Date.UTC(2026,10,29,19),min:0,
+ /* 28–29.11: два дня, без жёстких лимитов — убывающая отдача внутри каждого дня (счётчики обнуляются в 00:00 по Минску) */
+ act:{duel:2,rk:3,conq_fight:2,dga_fight:2,streak:5,camp_tap:1,dg_tap:1,dg_play:5,dg_morning:3,dg_nest:5,dg_exp_end:5,exp_claim:3,ref:10,tower_fight:2,kn_duel:3,min:1},
+ grp:{duel:"fight",rk:"rk",conq_fight:"conq",dga_fight:"dga",streak:"login",camp_tap:"camp",dg_tap:"pet",dg_play:"play",dg_morning:"morning",dg_nest:"nest",dg_exp_end:"dgexp",exp_claim:"exp",ref:"ref",tower_fight:"tower",kn_duel:"kn",min:"time"},
+ /* сырые очки за день: до t1 — полная цена, t1..t2 — ½, дальше — ¼ (в купонах = сырые/unit) */
+ tier:{fight:[120,300],rk:[60,150],conq:[1e9,1e9],dga:[1e9,1e9],login:[1e9,1e9],camp:[3000,9000],pet:[200,600],play:[25,75],morning:[1e9,1e9],nest:[1e9,1e9],dgexp:[1e9,1e9],exp:[1e9,1e9],ref:[1e9,1e9],tower:[1e9,1e9],kn:[1e9,1e9],time:[60,120]},
+ cap:{fight:1e9,rk:1e9,conq:10,dga:14,login:5,camp:1e9,pet:1e9,play:1e9,morning:3,nest:5,dgexp:15,exp:9,ref:1e9,tower:20,kn:30,time:1e9},
+ unit:{camp:100,pet:20},cooldown:{fight:20000,time:170000},sameOpponent:5,daily:1,
+ capN:{fight:"⚔️ Обычные бои",rk:"🏆 Рейтинговые бои",conq:"🔥 Покорение",dga:"🐉 Арена драконов",login:"📅 Ежедневный подарок",camp:"🏕 Тапы в лагере",pet:"🖐 Погладить дракона",play:"🎾 Игры с драконом",morning:"☀️ Доброе утро",nest:"🪺 Гнездо",dgexp:"🐉 Походы дракона",exp:"🧭 Походы воинов",ref:"👥 Подтверждённые друзья",tower:"🏰 Башня (бесплатные забеги)",kn:"🛡 Поединки рыцаря (бесплатные)",time:"⏱ Время в игре"},
+ how:[["⏱","Время в игре","+1 за каждые 3 минуты, когда ты реально играешь (не в фоне). 3 часа в день — полная цена, дальше ½, после 6 часов ¼"],["⚔️","Обычный бой без ставки","+2 за бой, не чаще раза в 20 сек. 60 боёв в день — полная цена, 61–150 — +1, дальше +1 за 2 боя"],["🏆","Доигранный рейтинговый бой","+3 за победу или поражение, нужен хотя бы один ход. С одним соперником — до 5 боёв в день. 20 боёв — полная цена, 21–50 — ½, дальше ¼"],["🏰","Башня","+2 за каждый пройденный этаж в 2 бесплатных забегах дня (до 20 в день). Забеги по ключам за звёзды, VIP и пропуск не считаются"],["🛡","Поединки рыцаря","+3 за каждый из 10 бесплатных поединков дня (до 30 в день)"],["🔥","Покорение","+2 за каждую из первых 5 попыток дня"],["🐉","Арена драконов","+2 за каждый из первых 7 боёв дня"],["🏕","Лагерь и дракон","Лагерь: +1 за 100 тапов · Погладить дракона: +1 за 20 · Игры с драконом: +5. Первые 30/10/5 в день — полная цена, дальше ½ и ¼"],["📅","Ежедневные дела","Подарок дня +5 · Доброе утро +3 · Гнездо +5 · Походы дракона +5 · Походы воинов +3"],["👥","Подтверждённый новый друг","+10 за каждого, без лимита. Друг пришёл по твоей ссылке за время гонки, открыл 15 карт и подписан на канал и чат"]],
  prizes:[{stars:300,chest:"mythic",n:"Мифический сундук + 300 ⭐"},{stars:200,chest:"empire",n:"Сундук Империи + 200 ⭐"},{stars:100,chest:"legend",n:"Легендарный сундук + 100 ⭐"}]};
 const tkLive=t=>t>=TK.start&&t<TK.end,TKC={};
 function tkProof(a,p,r,st,ctx){
@@ -2707,14 +2710,18 @@ function tkProof(a,p,r,st,ctx){
  if(a==="dga_apply"){if(!ctx.dga||ctx.dga.check||!(st.dgA?.n>0)||st.dgA.n>DGA.day)return null;a="dga_fight";}
  if(!TK.act[a]||a==="rk"||a==="ref"||a==="dga_fight"&&!ctx.dga)return null;
  if(a==="dg_play"&&!(r.hits>0))return null;
+ if(a==="tower_fight"&&!(r.win&&r.tkFree))return null;
  let n=a==="camp_tap"||a==="dg_tap"?Math.max(0,Math.floor(+r.n||0)):TK.act[a];
  return n>0?{a,n}:null;
 }
+const tkKey=(g,at)=>TK.daily&&g!=="ref"?g+"@"+mskDay(at):g;
+/* купоны из сырых очков за день: до t1 — ×1, t1..t2 — ×½, дальше — ×¼ */
+const tkF=(x,g)=>{const [a,b]=TK.tier[g]||[1e9,1e9],u=TK.unit[g]||1;return `((MIN(${x},${a})+MAX(0,MIN(${x},${b})-${a})*0.5+MAX(0,(${x})-${b})*0.25)/${u}.0)`};
 function tkAwardSql(env,uid,a,n,ev,at=Date.now(),version=null,opponent=null){
- const g=TK.grp[a],cap=TK.cap[g],unit=TK.unit[g]||1;
+ const g0=TK.grp[a],cap=TK.cap[g0],unit=TK.unit[g0]||1,g=g0?tkKey(g0,at):g0;
  if(!tkLive(at)||!g||!(n>0)||!ev)return [];n=Math.floor(Math.min(n,cap));
  const token=crypto.randomUUID(),key="tkfreeze:"+TK.id,guard=version==null?"":" AND u.ver="+Math.floor(version);
- const allowed=Math.floor(TK.cooldown[g]||0),pair=g==="rk"&&opponent!=null?TK.sameOpponent:1000000;
+ const allowed=Math.floor(TK.cooldown[g0]||0),pair=g0==="rk"&&opponent!=null?TK.sameOpponent:1000000;
  const from=`FROM tk_events e LEFT JOIN tk_k k ON k.cid=e.cid AND k.uid=e.uid AND k.k=e.g WHERE e.cid=? AND e.uid=? AND e.ev=? AND e.token=?`;
  return [env.DB.prepare(`INSERT OR IGNORE INTO tk_events(cid,uid,ev,g,n,t,token,opponent)
   SELECT ?,?,?,?,MIN(?,MAX(0,?-COALESCE((SELECT n FROM tk_k WHERE cid=? AND uid=? AND k=?),0))),?,?,?
@@ -2725,10 +2732,10 @@ function tkAwardSql(env,uid,a,n,ev,at=Date.now(),version=null,opponent=null){
   AND (SELECT COUNT(*) FROM tk_events WHERE cid=? AND uid=? AND g=? AND opponent=?)<?`)
   .bind(TK.id,uid,ev,g,n,cap,TK.id,uid,g,at,token,opponent,uid,key,TK.id,uid,g,cap,TK.id,uid,g,at-allowed,TK.id,uid,g,opponent,pair),
  env.DB.prepare(`INSERT INTO tk(cid,uid,n,lp,t)
-  SELECT e.cid,e.uid,CAST((COALESCE(k.n,0)+e.n)/? AS INTEGER)-CAST(COALESCE(k.n,0)/? AS INTEGER),0,e.t ${from}
-  AND CAST((COALESCE(k.n,0)+e.n)/? AS INTEGER)>CAST(COALESCE(k.n,0)/? AS INTEGER)
+  SELECT e.cid,e.uid,CAST(${tkF("COALESCE(k.n,0)+e.n",g0)} AS INTEGER)-CAST(${tkF("COALESCE(k.n,0)",g0)} AS INTEGER),0,e.t ${from}
+  AND CAST(${tkF("COALESCE(k.n,0)+e.n",g0)} AS INTEGER)>CAST(${tkF("COALESCE(k.n,0)",g0)} AS INTEGER)
   ON CONFLICT(cid,uid) DO UPDATE SET n=n+excluded.n,t=excluded.t`)
-  .bind(unit,unit,TK.id,uid,ev,token,unit,unit),
+  .bind(TK.id,uid,ev,token),
  env.DB.prepare(`INSERT INTO tk_k(cid,uid,k,n) SELECT cid,uid,g,n FROM tk_events WHERE cid=? AND uid=? AND ev=? AND token=?
   ON CONFLICT(cid,uid,k) DO UPDATE SET n=n+excluded.n`).bind(TK.id,uid,ev,token)];
 }
@@ -2754,12 +2761,14 @@ async function tkAfter(req,env,resp){const c=CLREQ.get(req);if(!c||resp.status!=
  const u=await env.DB.prepare("SELECT clan FROM users WHERE id=?").bind(c.uid).first();if(u?.clan){await env.DB.prepare("INSERT INTO clan_wk(clan,wk,n) VALUES(?,?,?) ON CONFLICT(clan,wk) DO UPDATE SET n=n+excluded.n").bind(u.clan,mskWeek(Date.now()),c.n).run();
  const W=cwWin(Date.now());if(W.on)await env.DB.prepare("INSERT INTO clan_ww(clan,wk,n) VALUES(?,?,?) ON CONFLICT(clan,wk) DO UPDATE SET n=n+excluded.n").bind(u.clan,W.wk,c.n).run();}}
 async function tkTop(env){const now=Date.now();if(TKC.v&&now-TKC.t<5000)return TKC.v;TKC.v=(await env.DB.prepare("SELECT t.uid,t.n,COALESCE(u.nick,u.name) AS name,json_extract(u.state,'$.ava') AS ava FROM tk t JOIN users u ON u.id=t.uid WHERE t.cid=? AND t.n>0 AND u.banned=0 ORDER BY t.n DESC,t.t ASC,t.uid ASC LIMIT 20").bind(TK.id).all()).results;TKC.t=now;return TKC.v;}
-async function tkPing(env,me,p){const now=Date.now(),my=await env.DB.prepare("SELECT n,t FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first(),n=my?.n||0;
+async function tkPing(env,me,p){{const t=Date.now();if(tkLive(t)&&p&&p.act)try{await tkAct(env,me.id,"min",1,"min:"+Math.floor(t/18e4),t)}catch(e){}}
+ const now=Date.now(),my=await env.DB.prepare("SELECT n,t FROM tk WHERE cid=? AND uid=?").bind(TK.id,me.id).first(),n=my?.n||0;
  const rank=n?1+((await env.DB.prepare("SELECT COUNT(*) AS c FROM tk t JOIN users u ON u.id=t.uid WHERE t.cid=? AND u.banned=0 AND (t.n>? OR (t.n=? AND (t.t<? OR (t.t=? AND t.uid<?))))").bind(TK.id,n,n,my.t,my.t,me.id).first())?.c||0):0;
  const cnt=(await env.DB.prepare("SELECT COUNT(*) AS c FROM tk t JOIN users u ON u.id=t.uid WHERE t.cid=? AND t.n>0 AND u.banned=0").bind(TK.id).first())?.c||0;
  const rows=(await env.DB.prepare("SELECT k,n FROM tk_k WHERE cid=? AND uid=?").bind(TK.id,me.id).all()).results,M=Object.fromEntries(rows.map(x=>[x.k,x.n]));
  return {id:TK.id,start:TK.start,end:TK.end,now,n,rank,cnt,got:0,top:(await tkTop(env)).map(x=>({...x,name:x.name||"Игрок",me:x.uid===me.id?1:0})),prizes:TK.prizes.map(x=>x.n),act:TK.act,how:TK.how,
-  fin:await kvGet(env,"tkfin:"+TK.id)||null,caps:Object.keys(TK.cap).map(k=>({k,n:TK.capN[k],have:Math.floor((M[k]||0)/(TK.unit[k]||1)),cap:TK.cap[k]/(TK.unit[k]||1)}))};}
+  fin:await kvGet(env,"tkfin:"+TK.id)||null,caps:Object.keys(TK.capN).map(k=>{const raw=M[tkKey(k,now)]||0,[a,b]=TK.tier[k]||[1e9,1e9],u=TK.unit[k]||1,cap=TK.cap[k]<1e8?TK.cap[k]/u:0,F=x=>Math.min(x,a)+Math.max(0,Math.min(x,b)-a)*.5+Math.max(0,x-b)*.25;
+   return {k,n:TK.capN[k],have:Math.floor(F(raw)/u),cap,rate:cap&&raw>=TK.cap[k]?0:raw<a?1:raw<b?.5:.25,next:a<1e8&&raw<a?Math.ceil((a-raw)/u):a<1e8&&raw<b?Math.ceil((b-raw)/u):0}})};}
 let tkFinBusy=false;
 async function tkFinish(env){if(Date.now()<TK.end||tkFinBusy)return;tkFinBusy=true;
  try{
@@ -2781,6 +2790,8 @@ async function tkFinish(env){if(Date.now()<TK.end||tkFinBusy)return;tkFinBusy=tr
   const pending=(await env.DB.prepare("SELECT COUNT(*) AS n FROM tk_awards WHERE cid=? AND (stars_paid=0 OR chest_paid=0)").bind(TK.id).first())?.n||0;
   if(pending)return;
   await kvSet(env,key,{w:top.map((x,i)=>({name:x.name,n:x.n,prize:TK.prizes[i].n})),t:Date.now()});
+  try{const M=["🥇","🥈","🥉"];await blastRun(env,{id:TK.id+"_results",at:TK.end,photo:"event-assets/tk-2026-11-29-results.jpg",btn:"🎟 Смотреть итоги",link:"?tk=1",
+   chan:"🏁 ГОНКА КУПОНОВ ЗАВЕРШЕНА!\n\n"+top.map((x,i)=>M[i]+" "+x.name+" — "+x.n+" 🎟 → "+TK.prizes[i].n).join("\n")+"\n\nЗвёзды уже на игровом балансе победителей, сундуки — в призах. Спасибо всем, кто играл два дня! ⚔️"})}catch(e){console.error("tk results post",e)}
  }finally{tkFinBusy=false;}}
 
 /* 🎰 БЕСПРОИГРЫШНАЯ ЛОТЕРЕЯ (каждый день 08:00–22:00 по Минску): билет 29 ⭐, до 15 на игрока в день.
@@ -4202,11 +4213,25 @@ const BLAST_TK={id:"tk1115_ann",on:true,at:Date.UTC(2026,10,15,5,0),until:Date.U
   dm:"🎟 Воин, стартовала БИЛЕТНАЯ ГОНКА!\n\nСегодня до 22:00 за прокрутки, бои, рейтинг, войну армий и казино ты получаешь билеты. Топ-3 забирают 300/200/100 ⭐ + NFT-подарки 🏆\n\nЗаходи — гонка уже идёт!"};
 /* 22.11: новые правила гонки; каждое сообщение отправляется один раз, только в своё временное окно. */
 const TK_POST="🎟 БИЛЕТНАЯ ГОНКА — СЕГОДНЯ ДО 22:00!\n\nСобирай билеты за игру: ⚔️ обычные бои, 🏆 завершённый рейтинг, 🔥 Покорение, 🐉 дракона, 🏕 лагерь, 📅 ежедневный подарок и походы.\n\n👥 +10 билетов за нового друга, который пришёл по твоей ссылке, открыл 15 карт и вступил в канал и чат. До 10 друзей.\n\n🥇 300 ⭐ + Мифический сундук\n🥈 200 ⭐ + Сундук Империи\n🥉 100 ⭐ + Легендарный сундук\n\nЗвёзды — на игровой баланс; сундуки — в призы. Победит топ-3 по билетам. Прокрутки, покупки и казино билетов не дают. Все способы и лимиты смотри в игре: Крутить → Билетная гонка или Ещё → Билетная гонка.\n\n👉 @VoinyEpohBot";
+const TK_HOW="⏱ +1 купон за каждые 3 минуты в игре\n⚔️ Обычные и 🏆 рейтинговые бои\n🏰 Башня и 🛡 поединки рыцаря (бесплатные попытки)\n🐉 Дракон, лагерь, покорение, походы, подарок дня\n👥 +10 за каждого подтверждённого друга\n\nЛимитов нет, но после первых часов купоны идут медленнее — выгоднее играть оба дня и по-разному. За звёзды и покупки купонов НЕТ — победу не купить.",
+ TK_PR="🥇 300 ⭐ + Мифический сундук\n🥈 200 ⭐ + Сундук Империи\n🥉 100 ⭐ + Легендарный сундук";
 const TK_MEDIA=[
- {id:"tk20261122_announce",at:TK.start,until:Date.UTC(2026,10,22,14,30),photo:"assets/post-ticket-race-1122.jpg",btn:"🎟 Смотреть гонку",link:"?tk=1",chan:TK_POST,dm:"🎟 Сегодня до 22:00 — Билетная гонка! Бои, рейтинг, задания и дракон дают билеты, подтверждённый новый друг — сразу +10. Топ-3: 300 / 200 / 100 ⭐ и три сундука по местам. Прокрутки и покупки не считаются. Смотри правила и своё место: Крутить → Билетная гонка."},
- {id:"tk20261122_evening",at:Date.UTC(2026,10,22,14,30),until:Date.UTC(2026,10,22,17,30),photo:"assets/post-ticket-race-1122.jpg",btn:"🎟 Смотреть гонку",link:"?tk=1",chan:"🔥 Билетная гонка продолжается до 22:00! Ещё можно ворваться в топ: играй обычные и рейтинговые бои, выполняй задания, позови нового друга (+10 после 15 открытий и вступления в канал и чат). Призы — 300 / 200 / 100 ⭐ и сундуки. Прокрутки и покупки билетов не дают.\n\n👉 @VoinyEpohBot",dm:"🔥 До финиша Билетной гонки несколько часов! Проверь своё место и способы получить билеты в игре. За подтверждённого нового друга — +10. Топ-3 получают звёзды и сундуки."},
- {id:"tk20261122_final",at:Date.UTC(2026,10,22,17,30),until:TK.end,photo:"assets/post-ticket-race-1122.jpg",btn:"🎟 Смотреть гонку",link:"?tk=1",chan:"⏳ Последний рывок в Билетной гонке! Финиш в 22:00 по Минску. Топ-3 получат 300 / 200 / 100 ⭐ и сундуки. Проверь место и все способы получить билеты в игре → Билетная гонка. Прокрутки и покупки не считаются.\n\n👉 @VoinyEpohBot",dm:"⏳ Билетная гонка скоро закончится — финиш в 22:00! Успей набрать билеты за игру или подтверждённого нового друга. Смотри своё место во вкладке «Билетная гонка»."}
-];
+ {id:"tk1128_start",at:Date.UTC(2026,10,28,5,10),until:Date.UTC(2026,10,28,8,0),photo:"event-assets/tk-2026-11-28-start.jpg",btn:"🎟 Правила и мои купоны",link:"?tk=1",
+  chan:"🎟 СТАРТ! ГОНКА КУПОНОВ — 2 ДНЯ\n\n28–29 ноября, до 22:00 воскресенья по Минску. Играй — получай купоны. Топ-3 забирают призы:\n\n"+TK_PR+"\n\n"+TK_HOW+"\n\nВсе правила — в игре: кнопка «📖 Правила» в гонке 👇",
+  dm:"🎟 Стартовала Гонка купонов — 2 дня!\n\n28–29.11 до 22:00 по Минску. Купоны за бои, Башню, рыцаря, дракона, друзей и даже за каждые 3 минуты в игре. За звёзды купонов нет — победу не купить.\n\n🥇 300 ⭐ · 🥈 200 ⭐ · 🥉 100 ⭐ + сундуки"},
+ {id:"tk1128_day",at:Date.UTC(2026,10,28,12,0),until:Date.UTC(2026,10,28,14,0),photo:"event-assets/tk-2026-11-28-day.jpg",btn:"🎟 Моё место",link:"?tk=1",
+  chan:"⚔️ ГОНКА КУПОНОВ В РАЗГАРЕ!\n\nТаблица уже меняется каждые минуты. Совет: не фарми одно — у каждого действия своя полная цена в день, а потом купоны идут медленнее. Бои + Башня + рыцарь + дракон = быстрее всего.\n\n"+TK_PR+"\n\nФиниш завтра в 22:00 по Минску 👇"},
+ {id:"tk1128_night",at:Date.UTC(2026,10,28,18,30),until:Date.UTC(2026,10,28,20,30),photo:"event-assets/tk-2026-11-28-night.jpg",btn:"🎟 Моё место",link:"?tk=1",
+  chan:"🌙 ПЕРВЫЙ ДЕНЬ ГОНКИ ПОЧТИ ПОЗАДИ\n\nВ 00:00 по Минску все дневные счётчики обнулятся — завтра каждое действие снова даёт полную цену. Кто отстал — завтра можно догнать!\n\nНе забудь сегодня: 2 бесплатных забега в Башне и 10 поединков рыцаря — это до 50 купонов 🎟"},
+ {id:"tk1129_last",at:Date.UTC(2026,10,29,6,0),until:Date.UTC(2026,10,29,9,0),photo:"event-assets/tk-2026-11-29-last.jpg",btn:"🎟 Моё место",link:"?tk=1",
+  chan:"⏰ ПОСЛЕДНИЙ ДЕНЬ ГОНКИ КУПОНОВ!\n\nСчётчики обновились — всё снова по полной цене. Финиш сегодня в 22:00 по Минску.\n\n"+TK_PR+"\n\nПроверь своё место в таблице 👇",
+  dm:"⏰ Последний день Гонки купонов! Счётчики обновились — всё снова по полной цене. Финиш сегодня в 22:00 по Минску. Проверь своё место 👇"},
+ {id:"tk1129_mid",at:Date.UTC(2026,10,29,12,0),until:Date.UTC(2026,10,29,14,0),photo:"event-assets/tk-2026-11-29-mid.jpg",btn:"🎟 Моё место",link:"?tk=1",
+  chan:"🔥 ДО ФИНИША ГОНКИ 7 ЧАСОВ!\n\nМеста в топе ещё не решены — один вечер боёв, Башни и рыцаря может поднять на несколько строк вверх.\n\n"+TK_PR+"\n\n⏰ Финиш в 22:00 по Минску 👇"},
+ {id:"tk1129_final",at:Date.UTC(2026,10,29,17,0),until:Date.UTC(2026,10,29,18,30),photo:"event-assets/tk-2026-11-29-final.jpg",btn:"🎟 Последний рывок",link:"?tk=1",
+  chan:"🚨 2 ЧАСА ДО ФИНИША ГОНКИ КУПОНОВ!\n\nВ 22:00 по Минску таблица замрёт, и призы уйдут топ-3 автоматически.\n\n"+TK_PR+"\n\nПоследний рывок 👇",
+  dm:"🚨 2 часа до финиша Гонки купонов! В 22:00 по Минску призы уйдут топ-3 автоматически. Последний рывок 👇"}];
+
 let tkMediaBusy=false;
 const PROFILE_CONTEST={
   start:Date.UTC(2026,10,23,5),end:Date.UTC(2026,10,24,19),
@@ -6271,6 +6296,7 @@ async function knApi(env,me,a,p){const uid=me.id,now=Date.now();
   let broB=false;if(A.bro){const b=await env.DB.prepare("SELECT dd,dn,bro FROM kn_users WHERE uid=?").bind(A.bro).first();broB=!!(b&&b.bro===uid&&b.dd===day&&b.dn>0);if(broB)h*=KN_DUEL.bro}
   h=Math.round(h);const hb=R.win?0:KN_DUEL.def;await knHonor(env,uid,h,now);if(hb)await knHonor(env,opp,hb,now);if(R.win)await env.DB.prepare("UPDATE kn_users SET steel=steel+2 WHERE uid=?").bind(uid).run();
   await env.DB.prepare("INSERT INTO kn_duels(a,b,win,ha,hb,combo,day,t,r) VALUES(?,?,?,?,?,?,?,?,?)").bind(uid,opp,R.win?1:0,h,hb,R.combo?1:0,day,now,JSON.stringify(R.rounds)).run();
+  if((A.dn|0)<KN_DUEL.free)try{await tkAct(env,uid,"kn_duel",TK.act.kn_duel,"kn:"+uid+":"+day+":"+(A.dn|0),now)}catch(e){}
   if(R.win&&R.combo&&B.pow>A.pow*1.3)try{await hypeAdd(env,uid,"⚔️ разгадал защиту рыцаря «"+(await knNm(env,opp))+"» и победил сильнейшего!",false)}catch(e){}
   return knDuelView(env,uid,{res:{win:R.win,rounds:R.rounds,combo:R.combo,h,paid,bro:broB,steel:R.win?2:0,name:await knNm(env,opp),look:JSON.parse(B.look||"[]"),mlook:JSON.parse(A.look||"[]"),pow:B.pow,mpow:A.pow}})}
  if(a==="kn_food"){const to=Math.floor(+p.uid||0),day=mskDay(now);if(!to||to===uid)fail("Кому отправить провиант?");const T=await env.DB.prepare("SELECT uid FROM kn_users WHERE uid=?").bind(to).first();if(!T)fail("У этого игрока ещё нет рыцаря");await knUser(env,uid);
